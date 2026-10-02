@@ -1,5 +1,5 @@
 import { VideoTile } from "@/components/robot/video-tile"
-import type { Device } from "@/dummy/devices"
+import type { Device } from "@/domain/device"
 
 /** Two-column camera tiles that fill the remaining height */
 export function CameraGrid({ cameras, recording, timecode }: { cameras: Device[]; recording: boolean; timecode?: string }) {

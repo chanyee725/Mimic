@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import type { Outcome } from "@/dummy/tasks"
+import type { Outcome } from "@/domain/task"
 
 import { measureEpisode, recentEpisodes, type CapturedEpisode, type Phase, type Review } from "../lib"
 

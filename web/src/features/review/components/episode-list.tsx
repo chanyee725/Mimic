@@ -4,7 +4,7 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatusDot } from "@/components/common/status-dot"
-import type { Recording } from "@/dummy/recordings"
+import type { Recording } from "@/domain/recording"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 

@@ -1,6 +1,6 @@
 import type { Tone } from "@/components/common/status-dot"
-import type { RecordingReview } from "@/dummy/recordings"
-import type { Outcome } from "@/dummy/tasks"
+import type { RecordingReview } from "@/domain/recording"
+import type { Outcome } from "@/domain/task"
 
 // ── Review status / outcome display ─────────────────────
 

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/common/empty-state"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { TaskPicker } from "@/components/pickers/task-picker"
-import { getTask, TASKS } from "@/dummy/tasks"
 import { deleteRecording, useRecordings } from "@/api/recordings"
+import { getTask, listTasks } from "@/api/tasks"
 
 import { DeleteRecordingDialog } from "./components/delete-recording-dialog"
 import { EpisodeList } from "./components/episode-list"
@@ -16,7 +16,7 @@ import { latestFirst } from "./lib"
 
 export function ReviewPage() {
   const recordings = useRecordings()
-  const [taskId, setTaskId] = useState(TASKS[0].id)
+  const [taskId, setTaskId] = useState(() => listTasks()[0].id)
   const task = getTask(taskId)!
   const episodes = latestFirst(recordings.filter((r) => r.taskId === taskId))
   const [selectedId, setSelectedId] = useState<string | null>(episodes[0]?.id ?? null)

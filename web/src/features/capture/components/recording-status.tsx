@@ -1,5 +1,5 @@
 import { ProgressBar } from "@/components/common/progress-bar"
-import type { Outcome, Task } from "@/dummy/tasks"
+import type { Outcome, Task } from "@/domain/task"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 

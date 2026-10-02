@@ -9,10 +9,10 @@ import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { VideoTile } from "@/components/robot/video-tile"
-import { MODELS, getModel } from "@/dummy/models"
-import { getRig } from "@/dummy/rigs"
-import { getTask } from "@/dummy/tasks"
-import { POLICY } from "@/dummy/training"
+import { getModel, listModels } from "@/api/models"
+import { getRig } from "@/api/rigs"
+import { getTask } from "@/api/tasks"
+import { POLICY } from "@/api/training"
 import { formatClock } from "@/lib/format"
 
 import { ModelField } from "./components/model-field"
@@ -26,8 +26,9 @@ import { useEvalRun } from "./hooks/use-eval-run"
 export function EvaluatePage() {
   // Preselect via ?model= when coming from the Evaluate button in Models
   const [params] = useSearchParams()
-  const [modelId, setModelId] = useState(() => getModel(params.get("model") ?? "")?.id ?? MODELS[0].id)
-  const model = getModel(modelId) ?? MODELS[0]
+  const models = listModels()
+  const [modelId, setModelId] = useState(() => getModel(params.get("model") ?? "")?.id ?? models[0].id)
+  const model = getModel(modelId) ?? models[0]
   const [pickerOpen, setPickerOpen] = useState(false)
   const task = getTask(model.taskId)
   const rig = getRig(task?.rigId ?? "so101-kit")
