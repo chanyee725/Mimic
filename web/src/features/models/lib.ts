@@ -1,4 +1,5 @@
-import { MODELS, type Model } from "@/dummy/models"
+import { listModels } from "@/api/models"
+import type { Model } from "@/domain/model"
 
 export type Filter = "all" | "local" | "hub"
 
@@ -9,7 +10,7 @@ export const FILTERS: { id: Filter; label: string; fits: (m: Model) => boolean }
 ]
 
 // Most recently saved first
-export const SORTED = [...MODELS].sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+export const sortedModels = () => [...listModels()].sort((a, b) => b.savedAt.localeCompare(a.savedAt))
 
 /** File size label; "< 1 MB" below 1 MB */
 export const formatFileSize = (mb: number) => (mb >= 1 ? `${mb.toLocaleString()} MB` : "< 1 MB")

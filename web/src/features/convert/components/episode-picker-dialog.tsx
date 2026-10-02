@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import type { Recording } from "@/dummy/recordings"
+import type { Recording } from "@/domain/recording"
 
 import { PICKER_PAGE } from "../lib"
 

@@ -4,9 +4,9 @@ import { LuChevronRight } from "react-icons/lu"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Page, Panel } from "@/components/layout/page-layout"
-import { getRig } from "@/dummy/rigs"
-import { TASKS, getTask } from "@/dummy/tasks"
 import { useRecordings } from "@/api/recordings"
+import { getRig } from "@/api/rigs"
+import { getTask, listTasks } from "@/api/tasks"
 
 import { ConvertSummary } from "./components/convert-summary"
 import { EpisodePickerDialog } from "./components/episode-picker-dialog"
@@ -15,7 +15,8 @@ import { includedFeatures } from "./lib"
 
 export function ConvertPage() {
   const recordings = useRecordings()
-  const [taskId, setTaskId] = useState<string>(TASKS[0].id)
+  const tasks = listTasks()
+  const [taskId, setTaskId] = useState<string>(tasks[0].id)
   const task = getTask(taskId)
   const pool = recordings.filter((r) => r.taskId === taskId)
   const accepted = pool.filter((r) => r.review === "accepted")
@@ -62,7 +63,7 @@ export function ConvertPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TASKS.map((t) => (
+                {tasks.map((t) => (
                   <SelectItem key={t.id} value={t.id} className="text-[13px]">
                     {t.id}
                   </SelectItem>

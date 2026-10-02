@@ -4,17 +4,17 @@ import { HfBadge } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { SearchInput } from "@/components/common/search-input"
 import { Segmented } from "@/components/common/segmented"
-import { DATASETS } from "@/dummy/datasets"
 import { cn } from "@/lib/utils"
 
-import { FILTERS, KIND_DOT, KIND_LABEL, SORTED, type Filter } from "../lib"
+import { FILTERS, KIND_DOT, KIND_LABEL, sortedDatasets, type Filter } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
 
 export function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const byKind = (f: Filter) => SORTED.filter((d) => f === "all" || d.kind === f)
+  const sorted = sortedDatasets()
+  const byKind = (f: Filter) => sorted.filter((d) => f === "all" || d.kind === f)
   const shown = byKind(filter).filter((d) => !q || d.repoId.toLowerCase().includes(q) || d.taskId.includes(q))
 
   return (
@@ -23,7 +23,7 @@ export function DatasetList({ selected, onSelect }: { selected: string; onSelect
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           Datasets
-          <span className="font-normal text-muted-foreground tabular-nums">{DATASETS.length}</span>
+          <span className="font-normal text-muted-foreground tabular-nums">{sorted.length}</span>
         </span>
       }
     >
