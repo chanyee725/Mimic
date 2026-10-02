@@ -1,4 +1,4 @@
-import { EmptyState } from "@/components/app/empty-state"
+import { EmptyState } from "@/components/common/empty-state"
 import type { Recording } from "@/dummy/recordings"
 import { formatLength, formatSize } from "@/lib/format"
 

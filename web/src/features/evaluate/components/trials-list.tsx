@@ -1,5 +1,5 @@
-import { EmptyState } from "@/components/app/empty-state"
-import { StatusDot } from "@/components/app/status-dot"
+import { EmptyState } from "@/components/common/empty-state"
+import { StatusDot } from "@/components/common/status-dot"
 
 import type { Trial } from "../lib"
 

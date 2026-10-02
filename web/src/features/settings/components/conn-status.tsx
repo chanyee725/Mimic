@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { StatusDot } from "@/components/app/status-dot"
+import { StatusDot } from "@/components/common/status-dot"
 import type { ConnState } from "@/dummy/settings"
 
 const LABEL: Record<ConnState, { tone: "ok" | "bad" | "muted"; text: string }> = {

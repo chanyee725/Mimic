@@ -52,17 +52,20 @@ npm run format       # prettier --write src
 src/
   app/                 routes.tsx, nav.ts, layout.tsx
   features/<name>/     page.tsx (XxxPage, composition only) · components/ · hooks/use-*.ts · lib.ts (helpers, status→tone maps, constants, local types)
-  components/ui/       owned by the shadcn CLI — never hand-edit (theme via index.css tokens, behaviour via app/ wrappers)
-  components/app/      shared components: Page/Panel, StatusDot, StatStrip, Segmented, SearchInput, EmptyState,
-                       ProgressBar, DetailList, ProgressRing, HfBadge, TaskPicker, ModelPickerDialog, SettingsSection …
+  components/ui/       owned by the shadcn CLI — never hand-edit (theme via index.css tokens / data-slot rules, behaviour via wrappers)
+  components/layout/   page-layout.tsx: Page, Panel, PanelLink
+  components/common/   domain-free building blocks: StatusDot, StatStrip, Segmented, SearchInput, EmptyState, ProgressBar,
+                       DetailList, ProgressRing, HfBadge, LinkButton, SettingsSection
+  components/pickers/  shared pickers that know domain data: TaskPicker, ModelPickerDialog
   components/robot/    VideoTile, JointPlots, plot-canvas.ts (canvas drawing helpers)
   hooks/               use-hotkeys, use-draft-on-open, use-mobile
   lib/                 utils (cn), format (time, size, price, plural), recordings-store
   dummy/               mock data and (for now) domain types
 ```
 
-- Named exports only. Inside a feature use relative imports; never import from another feature — anything used in two places moves to `components/app` or `lib`.
-- Import order: external → `@/components/ui` → `@/components/app` / `robot` → `@/dummy` → `@/hooks` → `@/lib` → relative.
+- Named exports only. Inside a feature use relative imports; never import from another feature — anything used in two places moves to `components/common` (or `pickers`) or `lib`.
+- Use `LinkButton` for links styled as buttons (not `buttonVariants` on a `Link`).
+- Import order: external → `@/components/ui` → `@/components/layout` / `common` / `pickers` / `robot` → `@/dummy` → `@/hooks` → `@/lib` → relative.
 - Before writing new UI or helpers, check the shared components, `lib/format` and `use-hotkeys`. Don't rebuild tab bars, search fields, empty states, progress bars or time formatting.
 - Next step: move domain types to `src/domain` and data access to `src/api` (mocks in `api/mock`) so connecting the backend touches one layer.
 

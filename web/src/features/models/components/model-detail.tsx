@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom"
 import { LuCloudUpload, LuDownload, LuFlaskConical, LuFootprints, LuHardDrive, LuTarget, LuTrash2, LuTrendingDown } from "react-icons/lu"
 
-import { Button, buttonVariants } from "@/components/ui/button"
-import { DetailList } from "@/components/app/detail-list"
-import { HfBadge } from "@/components/app/hf-badge"
-import { Panel } from "@/components/app/page"
-import { StatStrip } from "@/components/app/stat-strip"
+import { Button } from "@/components/ui/button"
+import { LinkButton } from "@/components/common/link-button"
+import { DetailList } from "@/components/common/detail-list"
+import { HfBadge } from "@/components/common/hf-badge"
+import { Panel } from "@/components/layout/page-layout"
+import { StatStrip } from "@/components/common/stat-strip"
 import { successRate, type Model } from "@/dummy/models"
 import { POLICY, POLICY_BASE } from "@/dummy/training"
 import { formatPct } from "@/lib/format"
@@ -54,10 +55,10 @@ export function ModelDetail({ model: m }: { model: Model }) {
             <LuDownload />
             Download
           </Button>
-          <Link to={`/evaluate?model=${m.id}`} className={buttonVariants({ size: "sm" })}>
+          <LinkButton to={`/evaluate?model=${m.id}`} size="sm">
             <LuFlaskConical />
             Evaluate
-          </Link>
+          </LinkButton>
           <Button variant="ghost" size="icon-sm" aria-label="Delete model" title="Delete model" className="text-bad hover:text-bad">
             <LuTrash2 />
           </Button>

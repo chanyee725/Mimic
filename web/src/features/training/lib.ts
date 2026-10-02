@@ -1,4 +1,4 @@
-import type { Tone } from "@/components/app/status-dot"
+import type { Tone } from "@/components/common/status-dot"
 import { DATASETS } from "@/dummy/datasets"
 import {
   POLICY_BASE,

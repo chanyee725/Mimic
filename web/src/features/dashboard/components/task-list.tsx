@@ -1,4 +1,4 @@
-import { Panel, PanelLink } from "@/components/app/page"
+import { Panel, PanelLink } from "@/components/layout/page-layout"
 import { CURRENT_TASK_ID } from "@/dummy/station"
 import { TASKS } from "@/dummy/tasks"
 

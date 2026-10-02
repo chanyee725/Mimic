@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { LuClock, LuCpu, LuHourglass, LuLayers } from "react-icons/lu"
 
-import { ProgressBar } from "@/components/app/progress-bar"
+import { ProgressBar } from "@/components/common/progress-bar"
 import type { TrainJob } from "@/dummy/training"
 
 export function PodRow({ job }: { job: TrainJob }) {

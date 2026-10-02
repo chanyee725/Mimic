@@ -1,7 +1,7 @@
 import { useState } from "react"
 
-import { Panel } from "@/components/app/page"
-import { Segmented } from "@/components/app/segmented"
+import { Panel } from "@/components/layout/page-layout"
+import { Segmented } from "@/components/common/segmented"
 import { JOBS, isActive } from "@/dummy/training"
 
 import { JobRow } from "./job-row"

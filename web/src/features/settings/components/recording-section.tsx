@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input"
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
+import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 import { SETTINGS } from "@/dummy/settings"
 
 import { useDraft } from "../hooks/use-draft"

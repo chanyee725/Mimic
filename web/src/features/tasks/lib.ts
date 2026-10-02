@@ -1,4 +1,4 @@
-import type { Tone } from "@/components/app/status-dot"
+import type { Tone } from "@/components/common/status-dot"
 import { getRig } from "@/dummy/rigs"
 import { SESSIONS } from "@/dummy/sessions"
 import type { Task, TaskStatus } from "@/dummy/tasks"

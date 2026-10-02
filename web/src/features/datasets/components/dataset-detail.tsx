@@ -1,18 +1,17 @@
-import { Link } from "react-router-dom"
 import { LuArrowRightLeft, LuClock, LuCloudUpload, LuCpu, LuFilm, LuHardDrive, LuListVideo, LuRotateCcw, LuTrash2 } from "react-icons/lu"
 
-import { Button, buttonVariants } from "@/components/ui/button"
-import { EmptyState } from "@/components/app/empty-state"
-import { HfBadge } from "@/components/app/hf-badge"
-import { Panel } from "@/components/app/page"
-import { ProgressBar } from "@/components/app/progress-bar"
-import { StatStrip } from "@/components/app/stat-strip"
-import { StatusDot } from "@/components/app/status-dot"
+import { Button } from "@/components/ui/button"
+import { LinkButton } from "@/components/common/link-button"
+import { EmptyState } from "@/components/common/empty-state"
+import { HfBadge } from "@/components/common/hf-badge"
+import { Panel } from "@/components/layout/page-layout"
+import { ProgressBar } from "@/components/common/progress-bar"
+import { StatStrip } from "@/components/common/stat-strip"
+import { StatusDot } from "@/components/common/status-dot"
 import type { Dataset } from "@/dummy/datasets"
 import { getRig } from "@/dummy/rigs"
 import { getTask } from "@/dummy/tasks"
 import { formatLength } from "@/lib/format"
-import { cn } from "@/lib/utils"
 
 import { STATUS } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
@@ -50,19 +49,15 @@ export function DatasetDetail({ dataset }: { dataset: Dataset }) {
             {dataset.hub.pushed ? "On HF Hub (private)" : "Push to HF Hub"}
           </Button>
           {dataset.kind === "lerobot" ? (
-            <Link
-              to="/training"
-              className={cn(buttonVariants({ size: "sm" }), dataset.status !== "ready" && "pointer-events-none opacity-50")}
-              aria-disabled={dataset.status !== "ready"}
-            >
+            <LinkButton to="/training" size="sm" disabled={dataset.status !== "ready"}>
               <LuCpu />
               Train with this
-            </Link>
+            </LinkButton>
           ) : (
-            <Link to="/convert" className={buttonVariants({ size: "sm" })}>
+            <LinkButton to="/convert" size="sm">
               <LuArrowRightLeft />
               Convert to LeRobot
-            </Link>
+            </LinkButton>
           )}
           <Button variant="ghost" size="icon-sm" aria-label="Delete dataset" title="Delete dataset" className="text-bad hover:text-bad">
             <LuTrash2 />
@@ -83,10 +78,10 @@ export function DatasetDetail({ dataset }: { dataset: Dataset }) {
       {dataset.status === "failed" && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-bad-muted px-3 py-2.5 text-[13px] text-bad">
           <span>영상 인코딩 중 디스크 공간이 부족해 변환이 중단됐습니다. 공간을 확보한 뒤 다시 시도하세요.</span>
-          <Link to="/convert" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "bg-background")}>
+          <LinkButton to="/convert" variant="outline" size="sm" className="bg-background">
             <LuRotateCcw />
             Convert again
-          </Link>
+          </LinkButton>
         </div>
       )}
 

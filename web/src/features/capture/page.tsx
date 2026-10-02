@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { Page } from "@/components/app/page"
+import { Page } from "@/components/layout/page-layout"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { devicesOf } from "@/dummy/devices"
 import { getRig } from "@/dummy/rigs"

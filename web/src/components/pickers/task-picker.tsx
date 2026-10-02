@@ -1,11 +1,11 @@
 import { useState } from "react"
 import { LuSearch } from "react-icons/lu"
 
-import { SearchInput } from "@/components/app/search-input"
-import { ProgressRing } from "@/components/app/progress-ring"
+import { SearchInput } from "@/components/common/search-input"
+import { ProgressRing } from "@/components/common/progress-ring"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { TASKS, type Task } from "@/dummy/tasks"
+import { TASKS, type Task, TASK_RING_TONE } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 
 /** Shows the selected task; pick another one from a search dialog */
@@ -79,7 +79,7 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
                     <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                       {t.collected}/{t.targetEpisodes}
                     </span>
-                    <ProgressRing pct={pct} status={t.status} label={`${t.id} progress`} thin className="size-8" />
+                    <ProgressRing pct={pct} tone={TASK_RING_TONE[t.status]} label={`${t.id} progress`} thin className="size-8" />
                   </button>
                 </li>
               )

@@ -1,5 +1,5 @@
 import { Kbd } from "@/components/ui/kbd"
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
+import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 import { SHORTCUTS } from "@/dummy/settings"
 
 export function ShortcutsSection() {

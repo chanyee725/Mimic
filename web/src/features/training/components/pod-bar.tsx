@@ -1,7 +1,7 @@
 import { LuCloud, LuPower } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
-import { StatusDot } from "@/components/app/status-dot"
+import { StatusDot } from "@/components/common/status-dot"
 import type { PodState, TrainJob } from "@/dummy/training"
 import { formatRate, formatUsd, parseDuration } from "@/lib/format"
 

@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Panel } from "@/components/app/page"
+import { Panel } from "@/components/layout/page-layout"
 import type { Device } from "@/dummy/devices"
 import type { Rig, rigGroups } from "@/dummy/rigs"
 

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
+import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 import { SETTINGS } from "@/dummy/settings"
 
 import { useDraft } from "../hooks/use-draft"

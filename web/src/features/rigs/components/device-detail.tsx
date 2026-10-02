@@ -1,6 +1,6 @@
-import { DetailList } from "@/components/app/detail-list"
-import { Panel } from "@/components/app/page"
-import { StatusDot } from "@/components/app/status-dot"
+import { DetailList } from "@/components/common/detail-list"
+import { Panel } from "@/components/layout/page-layout"
+import { StatusDot } from "@/components/common/status-dot"
 import type { Device } from "@/dummy/devices"
 import { cn } from "@/lib/utils"
 

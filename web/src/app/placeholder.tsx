@@ -1,4 +1,4 @@
-import { Page, Panel } from "@/components/app/page"
+import { Page, Panel } from "@/components/layout/page-layout"
 
 export function PlaceholderPage({ title }: { group?: string; title: string }) {
   return (
