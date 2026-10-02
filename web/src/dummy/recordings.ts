@@ -56,7 +56,8 @@ function captureTopics(durationS: number, droppedFrames: number): McapTopic[] {
 }
 
 function captureRecording(taskId: string, episode: number, k: number, durationS: number, outcome: Outcome, review: RecordingReview): Recording {
-  const dropped = k % 4 === 2 ? 14 : 0
+  // 승인되지 않은 에피소드 일부에만 프레임 드랍을 넣는다
+  const dropped = review !== "accepted" && k % 4 === 2 ? 14 : 0
   const names = ["reach", "grasp", "lift", "place"]
   const done = outcome === "success" ? 4 : outcome === "partial" ? 3 : 2
   const cuts = [0, 0.22, 0.4, 0.65, 1].map((r) => +(r * durationS).toFixed(1))
@@ -70,7 +71,7 @@ function captureRecording(taskId: string, episode: number, k: number, durationS:
     taskId,
     rigId: "so101-kit",
     episode,
-    recordedAt: `2026-10-0${k < 4 ? 1 : 2} ${10 + k}:${pad((k * 7) % 60, 2)}`,
+    recordedAt: `2026-${k < 9 ? "09-30" : "10-01"} ${pad(9 + (k % 9), 2)}:${pad((k * 7) % 60, 2)}`,
     durationS,
     sizeMB: +(durationS * 1.9 + k).toFixed(1),
     outcome,
@@ -87,15 +88,13 @@ function captureRecording(taskId: string, episode: number, k: number, durationS:
   }
 }
 
-const STACK: [number, number, Outcome, RecordingReview][] = [
-  [40, 24.0, "success", "accepted"],
-  [41, 27.5, "success", "accepted"],
-  [42, 22.1, "success", "pending"],
-  [43, 26.0, "fail", "rejected"],
-  [44, 20.4, "success", "pending"],
-  [45, 22.0, "partial", "pending"],
-  [46, 24.0, "success", "pending"],
-]
+// stack-two-blocks: ep 30–46. 오래된 에피소드는 대부분 검수가 끝났고 최근 것은 대기 중
+const STACK: [number, number, Outcome, RecordingReview][] = Array.from({ length: 17 }, (_, i) => {
+  const ep = 30 + i
+  const outcome: Outcome = ep % 7 === 3 ? "fail" : ep % 9 === 0 ? "partial" : "success"
+  const review: RecordingReview = ep >= 42 ? "pending" : outcome === "fail" ? "rejected" : "accepted"
+  return [ep, +(20 + ((ep * 7) % 9) + (ep % 3) * 0.5).toFixed(1), outcome, review]
+})
 
 export const RECORDINGS: Recording[] = [
   ...STACK.map(([ep, dur, outcome, review], k) => captureRecording("stack-two-blocks", ep, k, dur, outcome, review)),

@@ -3,6 +3,7 @@ import { LuCheck, LuTrash2, LuUpload, LuX } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { StatusDot } from "@/components/app/status-dot"
+import { TaskPicker } from "@/components/app/task-picker"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,28 +14,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { RecordingReview } from "@/dummy/recordings"
-import { cn } from "@/lib/utils"
+import { getTask, TASKS } from "@/dummy/tasks"
 import { deleteRecording, setReview, useRecordings } from "@/lib/recordings-store"
+import { cn } from "@/lib/utils"
+import { EpisodeList } from "./components/episode-list"
 import { McapPlayer } from "./components/mcap-player"
-import { RecordingList } from "./components/recording-list"
 
 const REVIEW_TONE = { pending: "muted", accepted: "ok", rejected: "bad" } as const
 
+/** 가장 최근 에피소드부터 */
+const latestFirst = <T extends { episode?: number }>(xs: T[]) => [...xs].sort((a, b) => (b.episode ?? 0) - (a.episode ?? 0))
+
 export function ReviewPage() {
   const recordings = useRecordings()
-  const [selectedId, setSelectedId] = useState<string | null>(recordings[0]?.id ?? null)
+  const [taskId, setTaskId] = useState(TASKS[0].id)
+  const task = getTask(taskId)!
+  const episodes = latestFirst(recordings.filter((r) => r.taskId === taskId))
+  const [selectedId, setSelectedId] = useState<string | null>(episodes[0]?.id ?? null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const selected = recordings.find((r) => r.id === selectedId) ?? null
+  const selected = episodes.find((r) => r.id === selectedId) ?? episodes[0] ?? null
 
-  const review = (id: string, value: RecordingReview) => {
-    setReview(id, value)
+  const changeTask = (id: string) => {
+    setTaskId(id)
+    setSelectedId(latestFirst(recordings.filter((r) => r.taskId === id))[0]?.id ?? null)
   }
 
   const remove = (id: string) => {
-    const idx = recordings.findIndex((r) => r.id === id)
-    const next = recordings.filter((r) => r.id !== id)
+    const idx = episodes.findIndex((r) => r.id === id)
+    const next = episodes.filter((r) => r.id !== id)
     deleteRecording(id)
     setSelectedId(next[Math.min(idx, next.length - 1)]?.id ?? null)
     setConfirmDelete(false)
@@ -44,7 +52,7 @@ export function ReviewPage() {
     <Page
       fit
       title="Review"
-      description="녹화한 MCAP 에피소드를 재생해 보고 승인, 거절하거나 지웁니다. 승인한 에피소드만 Convert 에서 변환할 수 있습니다."
+      description="Task 를 고르고 녹화한 에피소드를 재생해 승인, 거절하거나 지웁니다. 승인한 에피소드만 Convert 에서 변환할 수 있습니다."
       actions={
         <Button variant="outline" size="lg">
           <LuUpload />
@@ -52,78 +60,83 @@ export function ReviewPage() {
         </Button>
       }
     >
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
-        <Panel className="min-h-80 gap-2 p-3">
-          <RecordingList
-            recordings={recordings}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            className="min-h-0 flex-1"
-          />
-        </Panel>
-
-        <Panel className="min-h-[28rem] gap-3">
+      {/* Capture 와 같은 배치: 좌 7 재생 · 우 3 Task / 목록 / 검수 */}
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+        <div className="flex min-h-[28rem] min-w-0 flex-col">
           {selected ? (
-            <>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="grid min-w-0 gap-0.5">
-                  <h2 className="truncate text-base font-semibold">{selected.file}</h2>
-                  <p className="text-[13px] text-muted-foreground tabular-nums">
-                    {selected.source === "capture"
-                      ? `${selected.taskId}, episode ${selected.episode}, recorded ${selected.recordedAt}`
-                      : `Imported file, recorded ${selected.recordedAt}`}
-                    {`, ${selected.durationS.toFixed(1)} s, ${selected.sizeMB} MB`}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <StatusDot tone={REVIEW_TONE[selected.review]} className="mr-1.5 text-[13px] text-muted-foreground">
-                    {selected.review}
-                  </StatusDot>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => review(selected.id, "accepted")}
-                    disabled={selected.review === "accepted"}
-                  >
-                    <LuCheck />
-                    Accept
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => review(selected.id, "rejected")}
-                    disabled={selected.review === "rejected"}
-                  >
-                    <LuX />
-                    Reject
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Delete recording"
-                    title="Delete recording"
-                    className="text-bad hover:text-bad"
-                    onClick={() => setConfirmDelete(true)}
-                  >
-                    <LuTrash2 />
-                  </Button>
-                </div>
-              </div>
-
-              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                {selected.checks.map((c) => (
-                  <li key={c.label}>
-                    <StatusDot tone={c.ok ? "ok" : "bad"} className="text-xs text-muted-foreground">
-                      {c.label} <span className={cn("tabular-nums", c.ok ? "text-foreground" : "text-bad")}>{c.value}</span>
-                    </StatusDot>
-                  </li>
-                ))}
-              </ul>
-
-              <McapPlayer key={selected.id} recording={selected} className="min-h-0 flex-1" />
-            </>
+            <McapPlayer key={selected.id} recording={selected} className="min-h-0 flex-1" />
           ) : (
-            <p className="m-auto text-sm text-muted-foreground">재생할 에피소드를 왼쪽 목록에서 선택하세요.</p>
+            <div className="grid flex-1 place-items-center rounded-lg border border-dashed text-sm text-muted-foreground">
+              이 Task 에는 아직 녹화된 에피소드가 없습니다.
+            </div>
+          )}
+        </div>
+
+        <Panel className="min-h-0 gap-4">
+          <div className="grid gap-1.5">
+            <span className="text-xs text-muted-foreground">Task</span>
+            <TaskPicker task={task} onSelect={changeTask} />
+          </div>
+
+          <EpisodeList
+            key={taskId}
+            recordings={episodes}
+            selectedId={selected?.id ?? null}
+            onSelect={setSelectedId}
+            className="min-h-40 flex-1"
+          />
+
+          {selected && (
+            <div className="grid shrink-0 gap-3 border-t pt-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="truncate text-[13px] font-medium">{selected.file.split("/").pop()}</span>
+                <StatusDot tone={REVIEW_TONE[selected.review]} className="shrink-0 text-xs text-muted-foreground">
+                  {selected.review}
+                </StatusDot>
+              </div>
+              <dl className="grid gap-1">
+                {selected.checks.map((c) => (
+                  <div key={c.label} className="flex justify-between gap-3 text-xs">
+                    <dt>
+                      <StatusDot tone={c.ok ? "ok" : "bad"} className="text-xs text-muted-foreground">
+                        {c.label}
+                      </StatusDot>
+                    </dt>
+                    <dd className={cn("tabular-nums", c.ok ? "text-muted-foreground" : "text-bad")}>{c.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5">
+                <Button
+                  variant="outline"
+                  className="h-9"
+                  onClick={() => setReview(selected.id, "accepted")}
+                  disabled={selected.review === "accepted"}
+                >
+                  <LuCheck />
+                  Accept
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9"
+                  onClick={() => setReview(selected.id, "rejected")}
+                  disabled={selected.review === "rejected"}
+                >
+                  <LuX />
+                  Reject
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Delete recording"
+                  title="Delete recording"
+                  className="size-9 text-bad hover:text-bad"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <LuTrash2 />
+                </Button>
+              </div>
+            </div>
           )}
         </Panel>
       </div>
