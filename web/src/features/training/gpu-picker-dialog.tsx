@@ -1,5 +1,6 @@
 import { useState } from "react"
 
+import { Segmented } from "@/components/app/segmented"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -55,24 +56,13 @@ export function GpuPickerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex rounded-md bg-muted p-0.5" role="tablist" aria-label="VRAM">
-          {TIERS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tier === t.id}
-              onClick={() => setTier(t.id)}
-              className={cn(
-                "h-7 flex-1 rounded-[5px] text-xs transition-colors",
-                tier === t.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.label}
-              <span className="ml-1 text-muted-foreground tabular-nums">{RUNPOD_GPUS.filter(t.fits).length}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="VRAM"
+          fill
+          value={tier}
+          onChange={setTier}
+          options={TIERS.map((t) => ({ value: t.id, label: t.label, count: RUNPOD_GPUS.filter(t.fits).length }))}
+        />
 
         <div className="min-h-0 overflow-y-auto rounded-md border">
           <table className="w-full text-[13px]">

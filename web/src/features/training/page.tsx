@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { LuChevronRight, LuCloud, LuPlay, LuServer, LuSlidersHorizontal } from "react-icons/lu"
 
+import { Segmented } from "@/components/app/segmented"
 import { Page, Panel } from "@/components/app/page"
 import { StatusDot } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
@@ -106,30 +107,16 @@ function JobsPanel() {
       className="min-h-0 flex-1"
       title="Jobs"
       action={
-        <div className="flex rounded-md bg-muted p-0.5" role="tablist" aria-label="Jobs">
-          {(
-            [
-              { id: "all", label: "All", n: JOBS.length },
-              { id: "active", label: "Running", n: active.length },
-              { id: "finished", label: "Finished", n: finished.length },
-            ] as const
-          ).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "h-7 rounded-[5px] px-3 text-xs transition-colors",
-                tab === t.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.label}
-              <span className="ml-1 text-muted-foreground tabular-nums">{t.n}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Jobs"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "all", label: "All", count: JOBS.length },
+            { value: "active", label: "Running", count: active.length },
+            { value: "finished", label: "Finished", count: finished.length },
+          ]}
+        />
       }
     >
       {shown.length === 0 ? (
@@ -202,29 +189,18 @@ function StartTraining() {
 
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Compute</span>
-          <div className="grid grid-cols-2 rounded-md bg-muted p-0.5" role="radiogroup" aria-label="Compute">
-            {(
-              [
-                { id: "local", label: "Local GPU", icon: LuServer },
-                { id: "runpod", label: "RunPod", icon: LuCloud },
-              ] as const
-            ).map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                role="radio"
-                aria-checked={compute === c.id}
-                onClick={() => setCompute(c.id)}
-                className={cn(
-                  "inline-flex h-8 items-center justify-center gap-1.5 rounded-[5px] text-[13px] transition-colors",
-                  compute === c.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <c.icon className="size-3.5" aria-hidden />
-                {c.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            label="Compute"
+            role="radiogroup"
+            fill
+            size="md"
+            value={compute}
+            onChange={setCompute}
+            options={[
+              { value: "local", label: "Local GPU", icon: LuServer },
+              { value: "runpod", label: "RunPod", icon: LuCloud },
+            ]}
+          />
 
           {compute === "local" ? (
             <ul className="grid gap-1.5">
