@@ -13,7 +13,7 @@ import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 import { JointPlots } from "./components/joint-plots"
-import { TaskPicker } from "./components/task-picker"
+import { TaskPicker } from "@/components/app/task-picker"
 import { VideoTile } from "./components/video-tile"
 import { useEpisode, type Phase } from "./use-episode"
 
