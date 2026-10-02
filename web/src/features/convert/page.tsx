@@ -9,10 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ALIGNMENT_MODES } from "@/dummy/convert"
 import type { McapTopic, Recording } from "@/dummy/recordings"
 import { getRig } from "@/dummy/rigs"
-import { TASKS, getTask, type Alignment } from "@/dummy/tasks"
+import { TASKS, getTask } from "@/dummy/tasks"
 import { useRecordings } from "@/lib/recordings-store"
 import { cn } from "@/lib/utils"
 
@@ -150,7 +149,6 @@ export function ConvertPage() {
 
   // 기본은 승인된 에피소드 전부. Task 를 바꾸면 다시 전부 선택
   const [excluded, setExcluded] = useState<string[]>([])
-  const [mode, setMode] = useState<Alignment>(task?.alignment ?? "chunk")
   const [repoId, setRepoId] = useState(task?.repoId ?? "")
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerPage, setPickerPage] = useState(0)
@@ -159,7 +157,6 @@ export function ConvertPage() {
     setTaskId(id)
     setExcluded([])
     setPickerPage(0)
-    setMode(getTask(id)?.alignment ?? "chunk")
     setRepoId(getTask(id)?.repoId ?? "")
   }
 
@@ -167,7 +164,9 @@ export function ConvertPage() {
   const targets = accepted.filter((r) => !skip.has(r.id))
   const pages = Math.ceil(accepted.length / PICKER_PAGE)
   const toggle = (id: string) => setExcluded((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
-  const fps = ALIGNMENT_MODES.find((m) => m.id === mode)!.fps
+  // LeRobot 은 fps 가 하나라 action 을 영상 fps 로 줄여 맞춘다 (원본 MCAP 은 그대로 남는다)
+  const fps = task?.videoFps ?? 30
+  const actionHz = task?.actionHz ?? 60
   const topics = new Map<string, { topic: McapTopic; rec: Recording }>()
   for (const r of targets.length ? targets : accepted)
     for (const t of r.topics) if (!topics.has(t.name)) topics.set(t.name, { topic: t, rec: r })
@@ -183,8 +182,8 @@ export function ConvertPage() {
     `fps: ${fps}`,
     "features:",
     ...included.map((m) =>
-      m.feature === "action" && mode === "chunk"
-        ? `  action: float32 [2, ${rig?.joints.length ?? 6}]`
+      m.feature === "action" || m.feature === "observation.state"
+        ? `  ${m.feature}: float32 [${rig?.joints.length ?? 6}]`
         : `  ${m.feature}: ${m.topic.kind === "video" ? "video" : m.topic.kind === "label" ? "int64" : "float32"}`,
     ),
     ...(task ? [`task: ${task.instruction}`] : []),
@@ -193,7 +192,7 @@ export function ConvertPage() {
   return (
     <Page fit title="Convert" description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다.">
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        {/* ── 왼쪽: 무엇을 어떻게 변환하나 (Task · Time alignment) ── */}
+        {/* ── 왼쪽: 무엇을 변환하나 (Task · 에피소드) ── */}
         <section className="flex min-h-0 flex-col gap-4">
           <Panel title="Task" className="min-h-0 flex-1 gap-3 overflow-y-auto">
             <Select value={taskId} onValueChange={(v) => v && changeTask(v as string)}>
@@ -249,43 +248,6 @@ export function ConvertPage() {
               </p>
             )}
           </Panel>
-          <Panel
-            title="Time alignment"
-            className="shrink-0"
-            action={<span className="text-[13px] text-muted-foreground">Dataset fps {fps}</span>}
-          >
-            <ul className="grid gap-2 md:grid-cols-3" role="radiogroup" aria-label="Time alignment">
-              {ALIGNMENT_MODES.map((m) => {
-                const on = m.id === mode
-                return (
-                  <li key={m.id}>
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      onClick={() => setMode(m.id)}
-                      className={cn(
-                        "grid h-full w-full grid-cols-[16px_minmax(0,1fr)] content-start items-start gap-x-2.5 gap-y-2 rounded-md border p-3 text-left transition-colors hover:bg-accent/60",
-                        on && "border-foreground/40 bg-accent hover:bg-accent",
-                      )}
-                    >
-                      <span
-                        className={cn("mt-0.5 grid size-4 place-items-center rounded-full border", on && "border-foreground")}
-                        aria-hidden
-                      >
-                        {on && <span className="size-2 rounded-full bg-foreground" />}
-                      </span>
-                      <span className="grid min-w-0 gap-0.5">
-                        <span className="text-[13px] font-medium">{m.title}</span>
-                        <span className="text-xs text-muted-foreground">{m.description}</span>
-                      </span>
-                      <span className="col-start-2 text-xs text-muted-foreground tabular-nums">{m.spec}</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </Panel>
         </section>
 
         {/* ── 오른쪽: 결과 (Output · Convert) ── */}
@@ -318,6 +280,9 @@ export function ConvertPage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {fps} fps. Action {actionHz} Hz is downsampled to {fps} Hz to match the cameras.
+              </p>
             </div>
             <div className="flex min-h-0 flex-1 flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">Features</span>
