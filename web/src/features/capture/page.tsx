@@ -8,7 +8,7 @@ import { Kbd } from "@/components/ui/kbd"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DEVICES, type DeviceStream } from "@/dummy/devices"
-import { ACTION_HZ, SO101_JOINTS, VIDEO_FPS } from "@/dummy/robot"
+import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 import { AlignmentStrip } from "./components/alignment-strip"
@@ -43,6 +43,7 @@ const isTyping = (el: EventTarget | null) =>
 export function CapturePage() {
   const [taskId, setTaskId] = useState(TASKS[0].id)
   const task = TASKS.find((t) => t.id === taskId) ?? TASKS[0]
+  const rig = getRig(task.rigId)
   const [gloveDemo, setGloveDemo] = useState(false)
 
   const ep = useEpisode({ durationS: task.durationS, startEpisode: task.collected + 1 })
@@ -90,7 +91,7 @@ export function CapturePage() {
     <Page
       fit
       title="Capture"
-      description={`${task.robot} · ${task.teleop} · action ${ACTION_HZ} Hz / video ${VIDEO_FPS} fps`}
+      description={`${rig.name} · ${rig.master} → ${rig.slave} · action ${task.actionHz} Hz / video ${task.videoFps} fps`}
       actions={
         <>
           <span className="flex h-8 items-center rounded-md border px-2.5">
@@ -220,8 +221,8 @@ export function CapturePage() {
             title="Action / State"
             action={<span className="text-xs text-muted-foreground">solid = leader action · dashed = follower state</span>}
           >
-            <TimeSeries series={SO101_JOINTS} hz={ACTION_HZ} height={120} />
-            <AlignmentStrip actionHz={ACTION_HZ} videoFps={VIDEO_FPS} />
+            <TimeSeries series={rig.joints} hz={task.actionHz} height={120} />
+            <AlignmentStrip actionHz={task.actionHz} videoFps={task.videoFps} />
           </Panel>
         </div>
 

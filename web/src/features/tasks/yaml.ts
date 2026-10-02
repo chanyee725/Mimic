@@ -1,3 +1,4 @@
+import { getRig } from "@/dummy/rigs"
 import type { Task } from "@/dummy/tasks"
 
 const ALIGNMENT_YAML: Record<Task["alignment"], string> = {
@@ -10,8 +11,7 @@ const ALIGNMENT_YAML: Record<Task["alignment"], string> = {
 export function taskToYaml(t: Task): string {
   const list = (items: string[], indent = "  ") =>
     items.length ? items.map((v) => `\n${indent}- ${v}`).join("") : " []"
-  const cameras = t.sensors.filter((s) => s.enabled && s.key !== "glove").map((s) => s.key)
-  const glove = t.sensors.find((s) => s.key === "glove")?.enabled ?? false
+  const rig = getRig(t.rigId)
 
   return [
     `task_id: ${t.id}`,
@@ -19,10 +19,8 @@ export function taskToYaml(t: Task): string {
     `instruction: ${t.instruction}`,
     `variants:${list(t.variants)}`,
     `tags: [${t.tags.join(", ")}]`,
-    `robot: ${t.robot}`,
-    `teleop: ${t.teleop}`,
-    `cameras: [${cameras.join(", ")}]`,
-    `glove: ${glove}`,
+    `rig: ${rig.id}  # ${rig.master} → ${rig.slave}, ${rig.joints.length} DoF`,
+    `cameras: [${t.cameras.join(", ")}]`,
     `rates: { action_hz: ${t.actionHz}, video_fps: ${t.videoFps} }`,
     `episode: { target: ${t.targetEpisodes}, duration_s: ${t.durationS}, reset_s: ${t.resetS}, countdown_s: ${t.countdownS} }`,
     "output:",
