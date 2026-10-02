@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { DATASETS, type Dataset, type DatasetKind, type DatasetStatus } from "@/dummy/datasets"
 import { getRig } from "@/dummy/rigs"
 import { getTask } from "@/dummy/tasks"
+import { formatLength } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { DatasetThumb } from "./thumbnail"
@@ -44,8 +45,6 @@ const KIND_DOT: Record<DatasetKind, string> = { lerobot: "bg-yellow-400", mcap: 
 
 // 최근 것부터
 const SORTED = [...DATASETS].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-
-const minutes = (sec: number) => (sec >= 60 ? `${(sec / 60).toFixed(1)} min` : `${sec.toFixed(0)} s`)
 
 function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all")
@@ -223,7 +222,7 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
           items={[
             { label: "Episodes", value: dataset.episodes.length, icon: LuListVideo },
             { label: dataset.kind === "mcap" ? "Video frames" : "Frames", value: frames.toLocaleString(), icon: LuFilm },
-            { label: "Length", value: minutes(lengthS), icon: LuClock },
+            { label: "Length", value: formatLength(lengthS), icon: LuClock },
             { label: "Size", value: `${dataset.sizeGB} GB`, icon: LuHardDrive },
           ]}
         />

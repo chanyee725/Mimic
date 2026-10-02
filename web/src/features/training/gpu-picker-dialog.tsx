@@ -4,6 +4,7 @@ import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { RUNPOD_GPUS, type GpuStock, type RunPodGpu } from "@/dummy/training"
+import { formatRate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Tier = "all" | "small" | "mid" | "large"
@@ -122,7 +123,7 @@ export function GpuPickerDialog({
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{g.vramGB} GB</td>
-                    <td className="px-3 py-2 text-right tabular-nums">${g.pricePerHr.toFixed(2)}/h</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatRate(g.pricePerHr)}</td>
                     <td className="px-3 py-2 text-muted-foreground">{g.community ? "Yes" : "—"}</td>
                     <td className="px-3 py-2">
                       <StatusDot tone={STOCK[g.stock].tone} className="text-xs text-muted-foreground">

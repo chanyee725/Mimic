@@ -9,6 +9,7 @@ import { CURRENT_TASK_ID, DATA_TOTALS, STATION } from "@/dummy/station"
 import { TASKS, type Task, type TaskStatus } from "@/dummy/tasks"
 import { JOBS, type TrainJob } from "@/dummy/training"
 import { EpisodeHeatmap } from "@/features/dashboard/episode-heatmap"
+import { plural } from "@/lib/format"
 
 const MAX_TASKS = 6
 const MAX_PODS = 2
@@ -80,9 +81,7 @@ function TaskRow({ task }: { task: Task }) {
             <span className="text-foreground">
               {task.collected} / {task.targetEpisodes}
             </span>
-            <span>
-              {sessions.length} {sessions.length === 1 ? "session" : "sessions"}
-            </span>
+            <span>{plural(sessions.length, "session")}</span>
             <span>success {success === null ? "—" : `${success}%`}</span>
           </div>
         </div>

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { McapTopic, Recording } from "@/dummy/recordings"
 import { getRig } from "@/dummy/rigs"
 import { TASKS, getTask } from "@/dummy/tasks"
+import { formatLength, formatSize, plural } from "@/lib/format"
 import { useRecordings } from "@/lib/recordings-store"
 
 const SKIP = "skip"
@@ -33,8 +34,6 @@ function autoFeature(t: McapTopic, rec: Recording): string {
   }
 }
 
-const fmtLength = (sec: number) => (sec < 3600 ? `${(sec / 60).toFixed(1)} min` : `${(sec / 3600).toFixed(1)} h`)
-const fmtSize = (mb: number) => (mb < 1024 ? `${mb.toFixed(1)} MB` : `${(mb / 1024).toFixed(1)} GB`)
 const PICKER_PAGE = 50
 
 /** 변환 대상 요약. 에피소드 수와 상관없이 같은 모양이다 */
@@ -50,7 +49,7 @@ function ConvertSummary({ targets, fps }: { targets: Recording[]; fps: number })
   const dates = targets.map((r) => r.recordedAt.slice(5, 10)).sort()
   const summary = [
     { k: "Frames", v: Math.round(totalS * fps).toLocaleString() },
-    { k: "Length", v: fmtLength(totalS) },
+    { k: "Length", v: formatLength(totalS) },
     {
       k: "Avg episode",
       v: `${(totalS / targets.length).toFixed(1)} s`,
@@ -58,7 +57,7 @@ function ConvertSummary({ targets, fps }: { targets: Recording[]; fps: number })
     },
     { k: "Recorded", v: dates[0] === dates[dates.length - 1] ? dates[0] : `${dates[0]} – ${dates[dates.length - 1]}` },
     // AV1 재인코딩 기준 대략치
-    { k: "Est. output", v: `~${fmtSize(totalMB * 0.6)}`, sub: `MCAP ${fmtSize(totalMB)}` },
+    { k: "Est. output", v: `~${formatSize(totalMB * 0.6)}`, sub: `MCAP ${formatSize(totalMB)}` },
   ]
 
   return (
@@ -226,7 +225,7 @@ export function ConvertPage() {
             </div>
             <Button size="lg" className="w-full" disabled={targets.length === 0 || !repoId.trim()}>
               <LuPlay />
-              Convert {targets.length.toLocaleString()} {targets.length === 1 ? "episode" : "episodes"}
+              Convert {plural(targets.length, "episode")}
             </Button>
           </Panel>
         </section>

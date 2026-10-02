@@ -20,6 +20,7 @@ import {
   type RunPodOptions,
   type TrainJob,
 } from "@/dummy/training"
+import { formatRate, formatUsd } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { JOB_STATUS, computeText, jobPct, runpodRate, runpodSummary } from "./jobs"
@@ -87,7 +88,7 @@ function JobRow({ job }: { job: TrainJob }) {
           {job.elapsed && <span>Elapsed {job.elapsed}</span>}
           {job.eta && <span>ETA {job.eta}</span>}
           {job.status === "queued" && <span>Waiting for a GPU</span>}
-          {job.podState?.state === "idle" && <span className="text-warn">Pod still running, ${job.pricePerHr?.toFixed(2)}/h</span>}
+          {job.podState?.state === "idle" && <span className="text-warn">Pod still running, {formatRate(job.pricePerHr ?? 0)}</span>}
         </div>
       </Link>
     </li>
@@ -256,7 +257,7 @@ function StartTraining() {
               <span className="grid gap-0.5">
                 <span className="font-medium">{cloud.name}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {cloud.vramGB} GB, ${cloud.pricePerHr.toFixed(2)}/h
+                  {cloud.vramGB} GB, {formatRate(cloud.pricePerHr)}
                 </span>
               </span>
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -277,8 +278,8 @@ function StartTraining() {
             >
               <span className="grid min-w-0 gap-0.5">
                 <span className="font-medium tabular-nums">
-                  ${podRate.toFixed(2)}/h
-                  {podCap > 0 && <span className="font-normal text-muted-foreground">, up to ${(podRate * podCap).toFixed(2)}</span>}
+                  {formatRate(podRate)}
+                  {podCap > 0 && <span className="font-normal text-muted-foreground">, up to {formatUsd(podRate * podCap)}</span>}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">{runpodSummary(podOpts)}</span>
               </span>

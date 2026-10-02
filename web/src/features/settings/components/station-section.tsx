@@ -5,6 +5,7 @@ import { SettingsGroup, SettingsSection } from "@/components/app/settings-sectio
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SETTINGS } from "@/dummy/settings"
+import { pad } from "@/lib/format"
 
 import { useDraft } from "../hooks/use-draft"
 import { ChoiceSelect } from "./choice-select"
@@ -79,7 +80,7 @@ export function StationSection() {
             variant="outline"
             size="sm"
             onClick={() => {
-              set("operators", [...draft.operators, { id: `OP-${String(nextNo).padStart(2, "0")}`, role: "operator" }])
+              set("operators", [...draft.operators, { id: `OP-${pad(nextNo)}`, role: "operator" }])
               setNextNo((n) => n + 1)
             }}
           >

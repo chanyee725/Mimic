@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { RUNPOD_DEFAULTS, RUNPOD_REGIONS, RUNPOD_VOLUMES, type RunPodOptions } from "@/dummy/training"
+import { formatRate, formatUsd } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { runpodRate } from "./jobs"
@@ -217,7 +218,7 @@ export function RunPodDialog({
 
         <div className="flex items-baseline justify-between gap-3 rounded-md bg-muted px-3 py-2.5 text-[13px] tabular-nums">
           <span>
-            ${rate.toFixed(2)}/h
+            {formatRate(rate)}
             <span className="text-muted-foreground">
               {" "}
               ({draft.gpuCount} × {gpu})
@@ -226,7 +227,7 @@ export function RunPodDialog({
           <span className="text-muted-foreground">
             {capHours ? (
               <>
-                max <span className="text-foreground">${(rate * capHours).toFixed(2)}</span> for {capHours.toFixed(1)} h
+                max <span className="text-foreground">{formatUsd(rate * capHours)}</span> for {capHours.toFixed(1)} h
               </>
             ) : (
               "no limit"

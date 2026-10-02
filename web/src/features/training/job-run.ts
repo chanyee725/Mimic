@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 
 import type { TrainJob } from "@/dummy/training"
+import { parseDuration } from "@/lib/format"
 
 // 학습 중 매 step 기록되는 값 (목업).
 // 실제로는 lerobot-train 의 step 로그(loss, grad_norm, lr, update_s, data_s)와 nvidia-smi 값을 받아 채운다.
@@ -71,19 +72,6 @@ export function createRun(job: TrainJob): JobRun {
     run.count = Math.max(run.count, end)
   }
   return run
-}
-
-export function parseDuration(s?: string) {
-  if (!s) return 0
-  const h = Number(s.match(/(\d+)h/)?.[1] ?? 0)
-  const m = Number(s.match(/(\d+)m/)?.[1] ?? 0)
-  return (h * 60 + m) * 60
-}
-
-export function formatDuration(sec: number) {
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`
 }
 
 /**

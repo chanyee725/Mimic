@@ -6,16 +6,10 @@ import { VideoTile } from "@/components/robot/video-tile"
 import { Button } from "@/components/ui/button"
 import type { McapTopic, Recording } from "@/dummy/recordings"
 import { getRig } from "@/dummy/rigs"
+import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const SPEEDS = [0.5, 1, 2] as const
-
-const pad2 = (n: number) => String(n).padStart(2, "0")
-
-function clock(sec: number) {
-  const s = Math.floor(sec)
-  return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}.${Math.floor((sec % 1) * 10)}`
-}
 
 /** recording id 로 고정되는 시드 (같은 파일은 항상 같은 궤적) */
 function seedOf(id: string) {
@@ -80,7 +74,7 @@ function Scrubber({ recording, time, onSeek }: { recording: Recording; time: num
       aria-valuemin={0}
       aria-valuemax={dur}
       aria-valuenow={+time.toFixed(1)}
-      aria-valuetext={clock(time)}
+      aria-valuetext={formatClock(time, { tenths: true })}
       onPointerDown={(e) => {
         dragging.current = true
         e.currentTarget.setPointerCapture(e.pointerId)
@@ -222,7 +216,7 @@ function Player({ recording, className }: { recording: Recording; className?: st
         </Button>
         <Scrubber recording={recording} time={time} onSeek={seek} />
         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-          <span className="text-foreground">{clock(time)}</span> / {clock(dur)}
+          <span className="text-foreground">{formatClock(time, { tenths: true })}</span> / {formatClock(dur, { tenths: true })}
         </span>
         <div className="flex shrink-0 rounded-md border p-0.5" role="group" aria-label="Playback speed">
           {SPEEDS.map((s) => (

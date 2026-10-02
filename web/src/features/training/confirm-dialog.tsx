@@ -3,6 +3,7 @@ import { LuPlay } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { POLICY, POLICY_BASE, RUNPOD_VOLUMES, type RunPodOptions } from "@/dummy/training"
+import { formatRate, formatUsd } from "@/lib/format"
 
 import { runpodSummary } from "./jobs"
 
@@ -107,11 +108,11 @@ export function ConfirmTrainingDialog({
 
           {pod && (
             <div className="flex items-baseline justify-between gap-3 rounded-md bg-muted px-3 py-2.5 text-[13px] tabular-nums">
-              <span>${pod.rate.toFixed(2)}/h</span>
+              <span>{formatRate(pod.rate)}</span>
               <span className="text-muted-foreground">
                 {pod.capHours ? (
                   <>
-                    at most <span className="text-foreground">${(pod.rate * pod.capHours).toFixed(2)}</span> ({pod.capHours.toFixed(1)} h)
+                    at most <span className="text-foreground">{formatUsd(pod.rate * pod.capHours)}</span> ({pod.capHours.toFixed(1)} h)
                   </>
                 ) : (
                   "no time or budget limit"

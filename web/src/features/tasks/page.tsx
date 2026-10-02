@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SESSIONS } from "@/dummy/sessions"
 import { CURRENT_TASK_ID } from "@/dummy/station"
 import { TASKS, type Task, type TaskStatus } from "@/dummy/tasks"
+import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ProgressRing } from "@/components/app/progress-ring"
 import { TaskDefinition } from "@/features/tasks/task-definition"
@@ -88,8 +89,7 @@ function TaskList({ selectedId }: { selectedId: string }) {
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{t.instruction}</p>
                   <p className="truncate text-[11px] text-muted-foreground/80 tabular-nums">
-                    {t.collected}/{t.targetEpisodes} · {sessions} {sessions === 1 ? "session" : "sessions"} · success{" "}
-                    {success === null ? "—" : `${success}%`}
+                    {t.collected}/{t.targetEpisodes} · {plural(sessions, "session")} · success {success === null ? "—" : `${success}%`}
                   </p>
                 </div>
                 <ProgressRing pct={pct} status={t.status} label={`${t.id} progress`} thin className="size-10" />

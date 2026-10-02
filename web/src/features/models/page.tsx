@@ -19,6 +19,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MODELS, MODEL_FILES, successRate, type Model } from "@/dummy/models"
 import { POLICY, POLICY_BASE } from "@/dummy/training"
+import { formatPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Filter = "all" | "local" | "hub"
@@ -30,8 +31,6 @@ const FILTERS: { id: Filter; label: string; fits: (m: Model) => boolean }[] = [
 
 // 최근 저장한 것부터
 const SORTED = [...MODELS].sort((a, b) => b.savedAt.localeCompare(a.savedAt))
-
-const pct = (r?: number) => (r === undefined ? "—" : `${Math.round(r * 100)}%`)
 
 function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all")
@@ -101,7 +100,7 @@ function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: st
                 </span>
                 <span className="truncate text-xs text-muted-foreground">{m.taskId}</span>
                 <span className="text-[11px] text-muted-foreground/80 tabular-nums">
-                  Step {m.step.toLocaleString()}, loss {m.loss.toFixed(3)}, success {pct(successRate(m))}
+                  Step {m.step.toLocaleString()}, loss {m.loss.toFixed(3)}, success {formatPct(successRate(m))}
                 </span>
               </button>
             </li>
@@ -169,7 +168,7 @@ function ModelDetail({ model: m }: { model: Model }) {
           { label: "Train loss", value: m.loss.toFixed(3), icon: LuTrendingDown },
           {
             label: "Success rate",
-            value: pct(rate),
+            value: formatPct(rate),
             sub: m.evals.length ? `${m.evals.reduce((a, e) => a + e.trials, 0)} trials` : "not evaluated",
             icon: LuTarget,
           },
@@ -207,7 +206,7 @@ function ModelDetail({ model: m }: { model: Model }) {
                     <span className="truncate">{e.instruction}</span>
                     <span className="text-right tabular-nums">
                       {e.success} / {e.trials}
-                      <span className="text-muted-foreground"> ({pct(e.success / e.trials)})</span>
+                      <span className="text-muted-foreground"> ({formatPct(e.success / e.trials)})</span>
                     </span>
                     <span className="text-xs text-muted-foreground tabular-nums">{e.at}</span>
                   </li>
