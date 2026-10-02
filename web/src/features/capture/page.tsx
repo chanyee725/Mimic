@@ -13,6 +13,7 @@ import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 import { JointPlots } from "./components/joint-plots"
+import { TaskPicker } from "./components/task-picker"
 import { VideoTile } from "./components/video-tile"
 import { useEpisode, type Phase } from "./use-episode"
 
@@ -196,9 +197,11 @@ export function CapturePage() {
       {/* Live — 좌 7 : 우 3. 좌측은 카메라 2대를 크게, 아래에 Action / Observation 그래프 */}
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
-          <div className="grid shrink-0 gap-3 md:grid-cols-2">
+          {/* 카메라가 남은 높이를 채우고, 그래프는 고정 높이 */}
+          <div className="grid min-h-48 flex-1 gap-3 md:grid-cols-2">
             {cameras.map((c) => (
               <VideoTile
+                className="aspect-auto h-full min-h-48"
                 key={c.id}
                 label={c.name.replace(/ camera$/, "")}
                 resolution={c.stats.find((s) => s.label === "Resolution")?.value ?? ""}
@@ -214,7 +217,7 @@ export function CapturePage() {
             hz={task.actionHz}
             actionSource={rig.master}
             stateSource={rig.slave}
-            className="min-h-72 flex-1"
+            className="h-64 shrink-0"
           />
         </div>
 
@@ -236,21 +239,8 @@ export function CapturePage() {
 
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="capture-task" className="text-xs text-muted-foreground">
-                Task
-              </Label>
-              <Select value={taskId} onValueChange={(v) => v && setTaskId(v as string)} disabled={phase !== "idle"}>
-                <SelectTrigger id="capture-task" className="h-9 w-full text-[13px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASKS.map((t) => (
-                    <SelectItem key={t.id} value={t.id} className="text-[13px]">
-                      {t.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <span className="text-xs text-muted-foreground">Task</span>
+              <TaskPicker task={task} onSelect={setTaskId} disabled={phase !== "idle"} />
             </div>
             <div className="grid gap-1">
               <span className="text-xs text-muted-foreground">Label</span>

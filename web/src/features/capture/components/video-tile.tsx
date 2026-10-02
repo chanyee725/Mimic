@@ -7,14 +7,20 @@ type Props = {
   resolution: string
   measuredFps: number | null
   targetFps: number | null
+  className?: string
 }
 
 /** WebRTC 영상 트랙이 붙을 자리. 지금은 플레이스홀더만 그린다. */
-export function VideoTile({ label, resolution, measuredFps, targetFps }: Props) {
+export function VideoTile({ label, resolution, measuredFps, targetFps, className }: Props) {
   const low = measuredFps !== null && targetFps !== null && measuredFps < targetFps * 0.98
 
   return (
-    <figure className="relative m-0 flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-stage">
+    <figure
+      className={cn(
+        "relative m-0 flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-stage",
+        className,
+      )}
+    >
       {/* <video autoPlay muted playsInline ref={...} /> */}
       <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground">
         <LuVideo className="size-6" />
