@@ -1,3 +1,5 @@
+import { getRig, rigGroups } from "@/dummy/rigs"
+
 export type DeviceType = "robot" | "teleop" | "camera" | "glove" | "input"
 export type Health = "ok" | "warn" | "off"
 
@@ -11,7 +13,6 @@ export type DeviceStream = {
 
 export type Device = {
   id: string
-  rigId: string // 소속 Rig (@/dummy/rigs)
   name: string
   type: DeviceType
   port: string
@@ -24,7 +25,6 @@ export type Device = {
 export const DEVICES: Device[] = [
   {
     id: "leader",
-    rigId: "so101-kit",
     name: "SO-101 Leader",
     type: "teleop",
     port: "/dev/so101_leader",
@@ -39,7 +39,6 @@ export const DEVICES: Device[] = [
   },
   {
     id: "follower",
-    rigId: "so101-kit",
     name: "SO-101 Follower",
     type: "robot",
     port: "/dev/so101_follower",
@@ -53,14 +52,13 @@ export const DEVICES: Device[] = [
     ],
   },
   {
-    id: "front",
-    rigId: "so101-kit",
-    name: "Front camera",
+    id: "top",
+    name: "Top camera",
     type: "camera",
-    port: "/dev/cam_front",
+    port: "/dev/cam_top",
     health: "ok",
     calibration: { done: true, note: "Intrinsics registered" },
-    streams: [{ key: "images.front", shape: "480×640×3", targetHz: 30, measuredHz: 30.0, unit: "fps" }],
+    streams: [{ key: "images.top", shape: "480×640×3", targetHz: 30, measuredHz: 30.0, unit: "fps" }],
     stats: [
       { label: "Resolution", value: "640×480" },
       { label: "Exposure", value: "auto" },
@@ -69,7 +67,6 @@ export const DEVICES: Device[] = [
   },
   {
     id: "wrist",
-    rigId: "so101-kit",
     name: "Wrist camera",
     type: "camera",
     port: "/dev/cam_wrist",
@@ -82,41 +79,10 @@ export const DEVICES: Device[] = [
       { label: "USB", value: "2.0" },
     ],
   },
-  {
-    id: "glove",
-    rigId: "so101-kit",
-    name: "Data Glove (R)",
-    type: "glove",
-    port: "ble://glove-r",
-    health: "off",
-    calibration: { done: false, note: "Calibration required" },
-    streams: [
-      { key: "hand.imu", shape: "[16,7]", targetHz: 200, measuredHz: null, unit: "Hz" },
-      { key: "hand.flex", shape: "[10]", targetHz: 100, measuredHz: null, unit: "Hz" },
-      { key: "hand.tactile", shape: "[5,4,4]", targetHz: 100, measuredHz: null, unit: "Hz" },
-    ],
-    stats: [
-      { label: "Battery", value: "—" },
-      { label: "BLE RSSI", value: "—" },
-      { label: "Firmware", value: "—" },
-    ],
-  },
-  {
-    id: "pedal",
-    rigId: "so101-kit",
-    name: "Foot pedal",
-    type: "input",
-    port: "/dev/input/pedal",
-    health: "ok",
-    calibration: { done: true, note: "L Re-record · C Start/Stop · R Save" },
-    streams: [{ key: "events", shape: "3 keys", targetHz: null, measuredHz: null, unit: "Hz" }],
-    stats: [{ label: "Mapping", value: "3 keys" }],
-  },
 ]
 
 const offlineArm = (id: string, name: string, type: DeviceType, key: string): Device => ({
   id,
-  rigId: "so101-bimanual-kit",
   name,
   type,
   port: `/dev/${id.replaceAll("-", "_")}`,
@@ -132,7 +98,6 @@ const offlineArm = (id: string, name: string, type: DeviceType, key: string): De
 
 const bimanualCamera = (id: string, name: string, key: string, health: Health): Device => ({
   id,
-  rigId: "so101-bimanual-kit",
   name,
   type: "camera",
   port: `/dev/${id.replaceAll("-", "_")}`,
@@ -156,23 +121,14 @@ DEVICES.push(
   bimanualCamera("bi-cam-wrist-r", "Right wrist camera", "images.right_wrist", "off"),
 )
 
-/** Rigs 화면의 구분: 로봇 암 / 그 외 입력 장치 / 카메라 */
-export const DEVICE_GROUPS: { key: string; label: string; types: DeviceType[] }[] = [
-  { key: "robot", label: "Robot", types: ["teleop", "robot"] },
-  { key: "device", label: "Device", types: ["glove", "input"] },
-  { key: "camera", label: "Camera", types: ["camera"] },
-]
-
-export const devicesOf = (rigId: string) => DEVICES.filter((d) => d.rigId === rigId)
-
-/** 장치 종류별 캘리브레이션 절차 */
-export const CALIBRATION_STEPS: Record<DeviceType, string[]> = {
-  robot: ["Check port · motor IDs", "Record middle pose", "Sweep full joint range", "Save · version"],
-  teleop: ["Check port · motor IDs", "Record middle pose", "Sweep full joint range", "Save · version"],
-  camera: ["Detect device", "Set resolution · fps", "Intrinsic calibration", "Save · version"],
-  glove: ["Flat hand", "Fist", "Thumb pinch", "IMU reference pose"],
-  input: ["Detect device", "Map keys"],
+/** Rig 설정에 등록된 장치를 Robot → Device → Camera 순서로 돌려준다 */
+export function devicesOf(rigId: string): Device[] {
+  return rigGroups(getRig(rigId))
+    .flatMap((g) => g.ids)
+    .map((id) => DEVICES.find((d) => d.id === id))
+    .filter((d): d is Device => Boolean(d))
 }
+
 
 export const STATION_WARNINGS = [
   "Wrist camera 28.7 fps (target 30)",

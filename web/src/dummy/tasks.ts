@@ -123,7 +123,7 @@ export const TASKS: Task[] = [
     instruction: "sort the blocks into matching color trays",
     variants: [],
     tags: ["sorting", "multi-step"],
-    cameras: ["front", "wrist", "top"],
+    cameras: ["top", "wrist"],
     targetEpisodes: 100,
     durationS: 45,
     subtasks: [

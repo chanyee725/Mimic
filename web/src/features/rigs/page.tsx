@@ -1,13 +1,14 @@
 import { useState } from "react"
-import { LuCable, LuCheck, LuCircleCheck, LuPlus, LuRefreshCw, LuTriangleAlert, LuWifi } from "react-icons/lu"
+import { LuCable, LuCircleCheck, LuPlus, LuRefreshCw, LuTriangleAlert, LuWifi } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { StatStrip } from "@/components/app/stat-strip"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CALIBRATION_STEPS, DEVICE_GROUPS, devicesOf, type Device, type DeviceStream, type Health } from "@/dummy/devices"
-import { getRig, RIGS } from "@/dummy/rigs"
+import { devicesOf, type Device, type DeviceStream, type Health } from "@/dummy/devices"
+import { getRig, rigGroups, RIGS } from "@/dummy/rigs"
+import { rigToYaml } from "./rig-yaml"
 import { cn } from "@/lib/utils"
 
 const HEALTH_TONE: Record<Health, Tone> = { ok: "ok", warn: "warn", off: "muted" }
@@ -118,55 +119,54 @@ function RigList({ selectedId, onSelect }: { selectedId: string; onSelect: (id: 
   )
 }
 
+const TYPE_LABEL: Record<Device["type"], string> = {
+  robot: "Robot (follower)",
+  teleop: "Teleop (leader)",
+  camera: "Camera",
+  glove: "Data glove",
+  input: "Input",
+}
+
+/** 선택한 장치의 간단한 정보 */
 function DeviceDetail({ device }: { device: Device }) {
-  const steps = CALIBRATION_STEPS[device.type]
-  const done = device.calibration.done ? steps.length : 0
+  const info = [
+    { label: "Type", value: TYPE_LABEL[device.type] },
+    { label: "Port", value: device.port },
+    { label: "Calibration", value: device.calibration.done ? "Done" : "Required" },
+    ...device.stats.map((s) => ({ label: s.label, value: s.value })),
+  ]
 
   return (
-    <Panel title={device.name} action={<StatusDot tone={HEALTH_TONE[device.health]} className="text-[13px] text-muted-foreground">{device.health}</StatusDot>}>
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
-        <div className="grid gap-2.5">
-          <span className="text-xs text-muted-foreground">Calibration</span>
-          <ol className="grid gap-2.5">
-            {steps.map((label, i) => {
-              const isDone = i < done
-              return (
-                <li key={label} className="flex items-center gap-2.5 text-sm">
-                  <span
-                    className={cn(
-                      "flex size-5.5 items-center justify-center rounded-full font-mono text-[11px] font-medium",
-                      isDone ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {isDone ? <LuCheck className="size-3" /> : i + 1}
-                  </span>
-                  <span className={isDone ? "text-muted-foreground" : undefined}>{label}</span>
-                </li>
-              )
-            })}
-          </ol>
-        </div>
-
-        <div className="grid gap-2">
-          <span className="text-xs text-muted-foreground">Health</span>
+    <Panel
+      title={device.name}
+      action={
+        <StatusDot tone={HEALTH_TONE[device.health]} className="text-[13px] text-muted-foreground">
+          {device.health}
+        </StatusDot>
+      }
+    >
+      <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto">
+        <dl className="divide-y">
+          {info.map((i) => (
+            <div key={i.label} className="flex justify-between gap-4 py-2 text-[13px]">
+              <dt className="text-muted-foreground">{i.label}</dt>
+              <dd className="truncate text-right tabular-nums">{i.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="grid gap-1.5">
+          <span className="text-xs text-muted-foreground">Streams</span>
           <dl className="divide-y">
-            {device.stats.map((s) => (
-              <div key={s.label} className="flex justify-between py-2 text-sm">
-                <dt className="text-muted-foreground">{s.label}</dt>
-                <dd className="font-mono">{s.value}</dd>
+            {device.streams.map((s) => (
+              <div key={s.key} className="flex justify-between gap-4 py-2 text-[13px]">
+                <dt className="min-w-0 truncate">
+                  {s.key} <span className="text-muted-foreground">{s.shape}</span>
+                </dt>
+                <dd className={cn("shrink-0 tabular-nums", rateClass(s))}>{rateText(s)}</dd>
               </div>
             ))}
           </dl>
         </div>
-      </div>
-
-      <div className="flex gap-2">
-        <Button size="lg" className="flex-1">
-          Start calibration
-        </Button>
-        <Button size="lg" variant="outline" disabled={device.type === "camera" || device.type === "input"}>
-          Torque off
-        </Button>
       </div>
     </Panel>
   )
@@ -176,20 +176,22 @@ export function RigsPage() {
   const [rigId, setRigId] = useState(RIGS[0].id)
   const rig = getRig(rigId)
   const devices = devicesOf(rig.id)
-  const [group, setGroup] = useState(DEVICE_GROUPS[0].key)
-  const groupDevices = devices.filter((d) => DEVICE_GROUPS.find((g) => g.key === group)?.types.includes(d.type))
+  const groups = rigGroups(rig)
+  const [group, setGroup] = useState<string>("robot")
+  const groupIds = groups.find((g) => g.key === group)?.ids ?? []
+  const groupDevices = devices.filter((d) => groupIds.includes(d.id))
   const [selectedId, setSelectedId] = useState("follower")
   const selected = devices.find((d) => d.id === selectedId) ?? groupDevices[0] ?? devices[0]
 
   const selectRig = (id: string) => {
     setRigId(id)
-    setGroup(DEVICE_GROUPS[0].key)
+    setGroup("robot")
     setSelectedId(devicesOf(id)[0]?.id ?? "")
   }
   const selectGroup = (key: string) => {
     setGroup(key)
-    const types = DEVICE_GROUPS.find((g) => g.key === key)?.types ?? []
-    setSelectedId(devices.find((d) => types.includes(d.type))?.id ?? "")
+    const first = groups.find((g) => g.key === key)?.ids[0]
+    if (first) setSelectedId(first)
   }
 
   const stats = [
@@ -223,7 +225,7 @@ export function RigsPage() {
     >
       <StatStrip items={stats} />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,4fr)_minmax(0,3fr)]">
         <RigList selectedId={rig.id} onSelect={selectRig} />
 
         <Panel
@@ -238,16 +240,23 @@ export function RigsPage() {
           {/* Rig 안의 장치를 Robot / Device / Camera 탭으로 나눠 본다 */}
           <Tabs value={group} onValueChange={(v) => selectGroup(String(v))} className="min-h-0 flex-1">
             <TabsList>
-              {DEVICE_GROUPS.map((g) => (
+              {groups.map((g) => (
                 <TabsTrigger key={g.key} value={g.key} className="gap-1.5 px-3">
                   {g.label}
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {devices.filter((d) => g.types.includes(d.type)).length}
-                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums">{g.ids.length}</span>
                 </TabsTrigger>
               ))}
+              <TabsTrigger value="config" className="px-3">
+                Config
+              </TabsTrigger>
             </TabsList>
-            {DEVICE_GROUPS.map((g) => (
+            {/* Rig 설정 파일: Robot / Device / Camera 구성이 여기에 기록된다 */}
+            <TabsContent value="config" className="min-h-0 flex-1 overflow-y-auto">
+              <pre className="rounded-md bg-muted p-4 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
+                {rigToYaml(rig)}
+              </pre>
+            </TabsContent>
+            {groups.map((g) => (
               <TabsContent key={g.key} value={g.key} className="-mx-2 min-h-0 flex-1 overflow-y-auto">
                 {groupDevices.length === 0 ? (
                   <p className="px-2 py-6 text-center text-[13px] text-muted-foreground">이 Rig 에 {g.label} 장치가 없습니다.</p>

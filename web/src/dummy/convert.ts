@@ -11,7 +11,7 @@ export type RawStream = { raw: string; rate: string; feature: string; kind: "act
 export const RAW_STREAMS: RawStream[] = [
   { raw: "/so101_leader/action", rate: "60 Hz", feature: "action", kind: "action", included: true },
   { raw: "/so101_follower/state", rate: "60 Hz", feature: "observation.state", kind: "state", included: true },
-  { raw: "/cam_front/image", rate: "30 fps", feature: "observation.images.front", kind: "video", included: true },
+  { raw: "/cam_top/image", rate: "30 fps", feature: "observation.images.top", kind: "video", included: true },
   { raw: "/cam_wrist/image", rate: "30 fps", feature: "observation.images.wrist", kind: "video", included: true },
   { raw: "/labels/subtask", rate: "event", feature: "subtask_index", kind: "label", included: true },
   { raw: "/glove_r/imu", rate: "200 Hz", feature: "observation.hand.imu", kind: "glove", included: false },
