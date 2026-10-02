@@ -31,6 +31,15 @@ function rateTone(s: DeviceStream): Tone {
   return s.measuredHz >= s.targetHz * 0.98 ? "ok" : "warn"
 }
 
+/** 카메라 타임코드 mm:ss:ff */
+function timecode(ms: number, fps: number) {
+  const totalFrames = Math.floor((ms / 1000) * fps)
+  const ff = totalFrames % fps
+  const sec = Math.floor(totalFrames / fps)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}:${pad(ff)}`
+}
+
 function fmt(ms: number) {
   const sec = Math.floor(ms / 1000)
   return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`
@@ -95,7 +104,7 @@ export function CapturePage() {
     <Page
       fit
       title="Capture"
-      description={`${rig.name} · ${rig.master} → ${rig.slave} · action ${task.actionHz} Hz / video ${task.videoFps} fps`}
+      description={`${rig.name}: ${rig.master} drives ${rig.slave}. Action ${task.actionHz} Hz, video ${task.videoFps} fps.`}
     >
       {/* Task 요약 (Task · Instruction · Episode · Duration · Subtask · Streams) — 잠시 숨김 */}
       {SHOW_TASK_SUMMARY && (
@@ -202,6 +211,8 @@ export function CapturePage() {
             {cameras.map((c) => (
               <VideoTile
                 className="aspect-auto h-full min-h-48"
+                recording={recording}
+                timecode={timecode(ep.elapsedMs, task.videoFps)}
                 key={c.id}
                 label={c.name.replace(/ camera$/, "")}
                 resolution={c.stats.find((s) => s.label === "Resolution")?.value ?? ""}
@@ -287,10 +298,10 @@ export function CapturePage() {
             {/* 좁은 열이라 한 줄에 하나씩 */}
             <div className="grid gap-1.5">
               <Button variant="outline" className="h-9 justify-between px-3" disabled={phase === "idle"} onClick={() => save("success")}>
-                Save · success <Kbd>→</Kbd>
+                Save as success <Kbd>→</Kbd>
               </Button>
               <Button variant="outline" className="h-9 justify-between px-3" disabled={phase === "idle"} onClick={() => save("fail")}>
-                Save · fail <Kbd>F</Kbd>
+                Save as fail <Kbd>F</Kbd>
               </Button>
               <Button variant="outline" className="h-9 justify-between px-3" disabled={phase === "idle"} onClick={start}>
                 Re-record <Kbd>←</Kbd>

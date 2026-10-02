@@ -207,28 +207,25 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
         <span className="flex items-center gap-1.5">
           <span className="h-0.5 w-3 rounded-full bg-series-1" />
-          action{actionSource ? ` · ${actionSource}` : ""}
+          Action{actionSource ? ` (${actionSource})` : ""}
           <span ref={actionRate} className="text-foreground">
             {hz.toFixed(1)} Hz
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-0.5 w-3 rounded-full border-t border-dashed border-series-3" />
-          observation.state{stateSource ? ` · ${stateSource}` : ""}
+          Observation{stateSource ? ` (${stateSource})` : ""}
           <span ref={stateRate} className="text-foreground">
             {hz.toFixed(1)} Hz
           </span>
         </span>
-        <span className="ml-auto">target {hz} Hz</span>
+        <span className="ml-auto">Target {hz} Hz</span>
       </div>
 
       <div className="grid min-h-0 flex-1 auto-rows-[minmax(7rem,1fr)] gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
         {joints.map((j, i) => (
           <figure key={j} className="m-0 flex min-h-0 flex-col rounded-md border bg-card px-2 pt-1.5 pb-1">
-            {/* Rerun 처럼 entity path 로 라벨링 */}
-            <figcaption className="truncate text-[11px] text-muted-foreground">
-              <span className="text-foreground">{j}</span> · action / observation.state
-            </figcaption>
+            <figcaption className="truncate text-[11px] font-medium">{j}</figcaption>
             <canvas
               ref={(el) => {
                 canvases.current[i] = el
