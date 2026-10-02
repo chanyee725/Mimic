@@ -5,15 +5,7 @@ const W = 600
 const H = 180
 
 /** train(실선) / val(점선) loss 곡선. 높이는 className 으로 조절한다. */
-export function LossChart({
-  className,
-  curve = LOSS_CURVE,
-  legend = true,
-}: {
-  className?: string
-  curve?: LossPoint[]
-  legend?: boolean
-}) {
+export function LossChart({ className, curve = LOSS_CURVE, legend = true }: { className?: string; curve?: LossPoint[]; legend?: boolean }) {
   const maxStep = curve[curve.length - 1].step || 1
   const maxLoss = Math.max(...curve.map((p) => Math.max(p.train, p.val)))
   const x = (step: number) => (step / maxStep) * W
@@ -33,7 +25,14 @@ export function LossChart({
           <line key={f} x1={0} x2={W} y1={H * f} y2={H * f} className="stroke-border" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         ))}
         <polyline points={line("train")} fill="none" className="stroke-series-1" strokeWidth={1.75} vectorEffect="non-scaling-stroke" />
-        <polyline points={line("val")} fill="none" className="stroke-series-3" strokeWidth={1.5} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
+        <polyline
+          points={line("val")}
+          fill="none"
+          className="stroke-series-3"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
       {legend && (
         <div className="flex gap-4 text-xs text-muted-foreground">
