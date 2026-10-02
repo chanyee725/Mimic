@@ -1,5 +1,3 @@
-import { LuPlus } from "react-icons/lu"
-
 import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,7 +36,7 @@ function UnitInput({
   onChange?: (v: number) => void
 }) {
   return (
-    <div className="flex h-9 items-center overflow-hidden rounded-md border border-input">
+    <div className="flex h-9 items-center overflow-hidden rounded-md border border-input transition-colors focus-within:border-foreground/25 focus-within:ring-2 focus-within:ring-foreground/5">
       <input
         id={id}
         type="number"
@@ -93,8 +91,6 @@ const rateOptions = (xs: number[], unit: string) => xs.map((x) => ({ value: Stri
 
 export function TaskDefinition({ task, onChange }: Props) {
   const rig = getRig(task.rigId)
-  const setVariant = (i: number, v: string) =>
-    onChange({ variants: task.variants.map((x, k) => (k === i ? v : x)) })
 
   return (
     <SettingsGroup className="-mx-5 rounded-none border-x-0 border-b-0">
@@ -107,7 +103,7 @@ export function TaskDefinition({ task, onChange }: Props) {
             <Input id="t-id" className="h-9 bg-muted font-mono text-[13px]" value={task.id} readOnly />
           </Field>
         </div>
-        <Field label="Language instruction" htmlFor="t-instr">
+        <Field label="Label" htmlFor="t-instr">
           <Textarea
             id="t-instr"
             rows={2}
@@ -115,28 +111,6 @@ export function TaskDefinition({ task, onChange }: Props) {
             onChange={(e) => onChange({ instruction: e.target.value })}
           />
         </Field>
-        <div className="grid gap-1.5">
-          <span className="text-[13px] font-medium">Variants</span>
-          <div className="divide-y rounded-md border">
-            {task.variants.map((v, i) => (
-              <input
-                key={i}
-                aria-label={`Variant ${i + 1}`}
-                value={v}
-                onChange={(e) => setVariant(i, e.target.value)}
-                className="w-full bg-transparent px-3 py-2 text-sm outline-none focus-visible:bg-muted/50"
-              />
-            ))}
-            <button
-              type="button"
-              onClick={() => onChange({ variants: [...task.variants, ""] })}
-              className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-[13px] text-muted-foreground hover:text-foreground"
-            >
-              <LuPlus className="size-3.5" />
-              Add variant
-            </button>
-          </div>
-        </div>
         <Field label="Tags" htmlFor="t-tags">
           <Input
             id="t-tags"
