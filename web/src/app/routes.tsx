@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom"
 
 import { AppLayout } from "@/app/layout"
 import { PlaceholderPage } from "@/app/placeholder"
+import { CapturePage } from "@/features/capture/page"
 import { DashboardPage } from "@/features/dashboard/page"
 import { TasksPage } from "@/features/tasks/page"
 
@@ -13,7 +14,7 @@ export function AppRoutes() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="tasks/:taskId" element={<TasksPage />} />
         <Route path="devices" element={<PlaceholderPage title="Devices" />} />
-        <Route path="capture" element={<PlaceholderPage title="Capture" />} />
+        <Route path="capture" element={<CapturePage />} />
         <Route path="sessions" element={<PlaceholderPage title="Sessions" />} />
         <Route path="convert" element={<PlaceholderPage title="Convert" />} />
         <Route path="datasets" element={<PlaceholderPage group="Data" title="Datasets" />} />
