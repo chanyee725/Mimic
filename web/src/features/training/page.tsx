@@ -1,11 +1,10 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { LuChevronRight, LuCloud, LuPlay, LuServer } from "react-icons/lu"
+import { LuChevronRight, LuCloud, LuPlay, LuServer, LuSlidersHorizontal } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { StatusDot } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DATASETS } from "@/dummy/datasets"
@@ -13,11 +12,13 @@ import { JOBS, LOCAL_GPUS, POLICY, POLICY_BASE, RUNPOD_GPUS, isActive, type Comp
 import { cn } from "@/lib/utils"
 
 import { JOB_STATUS, computeText, jobPct } from "./jobs"
+import { overrideFlags, type Overrides } from "./params"
+import { ParamsDialog } from "./params-dialog"
 
 // 학습에 쓸 수 있는 데이터셋: 변환이 끝난 LeRobot 만
 const TRAINABLE = DATASETS.filter((d) => d.kind === "lerobot" && d.status === "ready").map((d) => d.repoId)
 
-type Tab = "active" | "finished"
+type Tab = "all" | "active" | "finished"
 
 function JobRow({ job }: { job: TrainJob }) {
   const pct = jobPct(job)
@@ -79,10 +80,10 @@ function JobRow({ job }: { job: TrainJob }) {
 }
 
 function JobsPanel() {
-  const [tab, setTab] = useState<Tab>("active")
+  const [tab, setTab] = useState<Tab>("all")
   const active = JOBS.filter(isActive)
   const finished = JOBS.filter((j) => !isActive(j))
-  const shown = tab === "active" ? active : finished
+  const shown = tab === "all" ? JOBS : tab === "active" ? active : finished
 
   return (
     <Panel
@@ -92,6 +93,7 @@ function JobsPanel() {
         <div className="flex rounded-md bg-muted p-0.5" role="tablist" aria-label="Jobs">
           {(
             [
+              { id: "all", label: "All", n: JOBS.length },
               { id: "active", label: "Running", n: active.length },
               { id: "finished", label: "Finished", n: finished.length },
             ] as const
@@ -116,7 +118,7 @@ function JobsPanel() {
     >
       {shown.length === 0 ? (
         <p className="grid flex-1 place-items-center py-10 text-[13px] text-muted-foreground">
-          {tab === "active" ? "돌고 있는 학습이 없습니다. 오른쪽에서 학습을 시작하세요." : "끝난 학습이 없습니다."}
+          {tab !== "finished" ? "돌고 있는 학습이 없습니다. 오른쪽에서 학습을 시작하세요." : "끝난 학습이 없습니다."}
         </p>
       ) : (
         <ul className="-mx-3 grid min-h-0 content-start gap-1 overflow-y-auto">
@@ -133,6 +135,9 @@ function StartTraining() {
   const [compute, setCompute] = useState<Compute>("local")
   const [cloudGpu, setCloudGpu] = useState(RUNPOD_GPUS[1].name)
   const localBusy = JOBS.find((j) => j.compute === "local" && j.status === "running")
+  const [paramsOpen, setParamsOpen] = useState(false)
+  const [overrides, setOverrides] = useState<Overrides>({})
+  const changed = overrideFlags(overrides)
 
   return (
     <Panel title="Start training" className="min-h-0">
@@ -240,19 +245,23 @@ function StartTraining() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor="t-steps" className="text-xs font-normal text-muted-foreground">
-              Steps
-            </Label>
-            <Input id="t-steps" className="h-9 text-[13px] tabular-nums" defaultValue="20000" inputMode="numeric" />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="t-batch" className="text-xs font-normal text-muted-foreground">
-              Batch size
-            </Label>
-            <Input id="t-batch" className="h-9 text-[13px] tabular-nums" defaultValue="64" inputMode="numeric" />
-          </div>
+        <div className="grid gap-1.5">
+          <span className="text-xs text-muted-foreground">Parameters</span>
+          <button
+            type="button"
+            onClick={() => setParamsOpen(true)}
+            className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-accent/60"
+          >
+            <span className="grid min-w-0 gap-0.5">
+              <span className="font-medium">{changed.length ? `${changed.length} changed` : "SmolVLA defaults"}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {changed.length
+                  ? changed.map((f) => f.replace(/^--(policy\.)?/, "")).join(", ")
+                  : "Steps, batch size, learning rate and more"}
+              </span>
+            </span>
+            <LuSlidersHorizontal className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </button>
         </div>
       </div>
 
@@ -263,6 +272,7 @@ function StartTraining() {
         <LuPlay />
         {compute === "local" && localBusy ? "Queue training" : "Start training"}
       </Button>
+      <ParamsDialog open={paramsOpen} onOpenChange={setParamsOpen} overrides={overrides} onSave={setOverrides} />
     </Panel>
   )
 }
