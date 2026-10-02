@@ -129,8 +129,4 @@ export function devicesOf(rigId: string): Device[] {
     .filter((d): d is Device => Boolean(d))
 }
 
-
-export const STATION_WARNINGS = [
-  "Wrist camera 28.7 fps (target 30)",
-  "Follower wrist_roll motor 52°C",
-]
+export const STATION_WARNINGS = ["Wrist camera 28.7 fps (target 30)", "Follower wrist_roll motor 52°C"]

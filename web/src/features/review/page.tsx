@@ -5,15 +5,7 @@ import { Page, Panel } from "@/components/app/page"
 import { StatusDot } from "@/components/app/status-dot"
 import { TaskPicker } from "@/components/app/task-picker"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getTask, TASKS } from "@/dummy/tasks"
 import { deleteRecording, setReview, useRecordings } from "@/lib/recordings-store"
 import { cn } from "@/lib/utils"

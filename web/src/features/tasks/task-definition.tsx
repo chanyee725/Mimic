@@ -23,17 +23,7 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   )
 }
 
-function UnitInput({
-  id,
-  value,
-  unit,
-  onChange,
-}: {
-  id: string
-  value: number
-  unit: string
-  onChange?: (v: number) => void
-}) {
+function UnitInput({ id, value, unit, onChange }: { id: string; value: number; unit: string; onChange?: (v: number) => void }) {
   return (
     <div className="flex h-9 items-center overflow-hidden rounded-md border border-input transition-colors focus-within:border-foreground/25 focus-within:ring-2 focus-within:ring-foreground/5">
       <input
@@ -103,12 +93,7 @@ export function TaskDefinition({ task, onChange }: Props) {
           </Field>
         </div>
         <Field label="Label" htmlFor="t-instr">
-          <Textarea
-            id="t-instr"
-            rows={2}
-            value={task.instruction}
-            onChange={(e) => onChange({ instruction: e.target.value })}
-          />
+          <Textarea id="t-instr" rows={2} value={task.instruction} onChange={(e) => onChange({ instruction: e.target.value })} />
         </Field>
         <Field label="Tags" htmlFor="t-tags">
           <Input

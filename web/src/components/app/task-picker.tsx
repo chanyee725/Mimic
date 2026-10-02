@@ -9,21 +9,11 @@ import { TASKS, type Task } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 
 /** 선택된 Task 표시 + 검색 모달로 다른 Task 선택 */
-export function TaskPicker({
-  task,
-  onSelect,
-  disabled,
-}: {
-  task: Task
-  onSelect: (id: string) => void
-  disabled?: boolean
-}) {
+export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect: (id: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const results = TASKS.filter(
-    (t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q),
-  )
+  const results = TASKS.filter((t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q))
 
   const pick = (id: string) => {
     onSelect(id)
@@ -97,9 +87,7 @@ export function TaskPicker({
                 </li>
               )
             })}
-            {results.length === 0 && (
-              <li className="py-6 text-center text-[13px] text-muted-foreground">검색 결과가 없습니다.</li>
-            )}
+            {results.length === 0 && <li className="py-6 text-center text-[13px] text-muted-foreground">검색 결과가 없습니다.</li>}
           </ul>
         </DialogContent>
       </Dialog>

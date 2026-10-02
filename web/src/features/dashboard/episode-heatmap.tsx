@@ -51,7 +51,12 @@ export function EpisodeHeatmap({ days = EPISODE_ACTIVITY }: { days?: DayCount[] 
         </span>
       </div>
 
-      <svg viewBox={`0 0 ${width} ${height}`} className="block h-auto w-full" role="img" aria-label={`${total} episodes over ${days.length} days`}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="block h-auto w-full"
+        role="img"
+        aria-label={`${total} episodes over ${days.length} days`}
+      >
         {monthLabels.map((m, i) =>
           m ? (
             <text key={`m${i}`} x={LEFT + i * STEP} y={9} className="fill-muted-foreground text-[9px]">
