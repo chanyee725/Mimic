@@ -4,23 +4,24 @@ import { cn } from "@/lib/utils"
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const DAY_LABELS: Record<number, string> = { 1: "Mon", 3: "Wed", 5: "Fri" }
 
-// 0 은 비어 있음, 1~4 단계는 ok 색의 농도
+// 0 is empty, levels 1–4 are increasing shades of the ok colour
 const LEVEL_CLASS = ["fill-muted", "fill-ok/25", "fill-ok/50", "fill-ok/75", "fill-ok"]
 const LEGEND_CLASS = ["bg-muted", "bg-ok/25", "bg-ok/50", "bg-ok/75", "bg-ok"]
 
 const CELL = 10
 const GAP = 3
 const STEP = CELL + GAP
-const LEFT = 26 // 요일 라벨 폭
-const TOP = 14 // 월 라벨 높이
+const LEFT = 26 // weekday label width
+const TOP = 14 // month label height
 
 function level(count: number, max: number) {
   if (count === 0) return 0
   return Math.min(4, Math.ceil((count / max) * 4))
 }
 
-/** GitHub 잔디처럼 일별 취득 에피소드를 주 단위 열로 그린다. SVG 라서 패널 폭에 맞춰 비율 그대로 늘어난다. */
-export function EpisodeHeatmap({ days = EPISODE_ACTIVITY }: { days?: DayCount[] }) {
+/** GitHub-style contribution grid of episodes collected per day, one column per week. SVG, so it scales to the panel width. */
+export function EpisodeHeatmap() {
+  const days = EPISODE_ACTIVITY
   const firstDow = new Date(`${days[0].date}T00:00:00`).getDay()
   const cells: (DayCount | null)[] = [...Array(firstDow).fill(null), ...days]
   const weeks: (DayCount | null)[][] = []
@@ -30,7 +31,7 @@ export function EpisodeHeatmap({ days = EPISODE_ACTIVITY }: { days?: DayCount[] 
   const total = days.reduce((a, d) => a + d.count, 0)
   const activeDays = days.filter((d) => d.count > 0).length
 
-  // 달이 바뀌는 첫 주에만 월 라벨
+  // Month label only on the first week of each month
   const monthLabels = weeks.map((w, i) => {
     const first = w.find(Boolean)
     const prev = i > 0 ? weeks[i - 1].find(Boolean) : null
