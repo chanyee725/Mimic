@@ -6,11 +6,10 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { HfBadge } from "@/components/common/hf-badge"
 import { SearchInput } from "@/components/common/search-input"
 import { Segmented } from "@/components/common/segmented"
-import { MODELS, successRate, type Model } from "@/dummy/models"
+import { listModels } from "@/api/models"
+import { successRate, type Model } from "@/domain/model"
 import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { cn } from "@/lib/utils"
-
-const TASKS = [...new Set(MODELS.map((m) => m.taskId))]
 
 /** Pick a saved model. Filter by task, search by name, dataset or job */
 export function ModelPickerDialog({
@@ -28,11 +27,13 @@ export function ModelPickerDialog({
   const [query, setQuery] = useState("")
   const [draft, setDraft] = useDraftOnOpen(open, value)
   const q = query.trim().toLowerCase()
-  const rows = MODELS.filter(
+  const models = listModels()
+  const tasks = [...new Set(models.map((m) => m.taskId))]
+  const rows = models.filter(
     (m) =>
       (task === "all" || m.taskId === task) && (!q || m.name.toLowerCase().includes(q) || m.dataset.includes(q) || m.jobId.includes(q)),
   )
-  const picked = MODELS.find((m) => m.id === draft)
+  const picked = models.find((m) => m.id === draft)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,7 +55,7 @@ export function ModelPickerDialog({
             label="Task"
             value={task}
             onChange={setTask}
-            options={["all", ...TASKS].map((t) => ({ value: t, label: t === "all" ? "All tasks" : t }))}
+            options={["all", ...tasks].map((t) => ({ value: t, label: t === "all" ? "All tasks" : t }))}
           />
         </div>
 

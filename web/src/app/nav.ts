@@ -14,7 +14,7 @@ import {
   LuSlidersHorizontal,
 } from "react-icons/lu"
 
-import { TASKS } from "@/dummy/tasks"
+import { listTasks } from "@/api/tasks"
 
 export const APP_NAME = "VLA Data Pipeline"
 
@@ -22,7 +22,8 @@ export type NavItem = {
   to: string
   label: string
   icon: IconType
-  badge?: "rec" | number
+  /** "rec" dot, or a function returning a count (read when the sidebar renders) */
+  badge?: "rec" | (() => number)
 }
 export type NavGroup = { label: string; items: NavItem[] }
 
@@ -31,7 +32,7 @@ export const NAV: NavGroup[] = [
     label: "Collect",
     items: [
       { to: "/", label: "Dashboard", icon: LuLayoutDashboard },
-      { to: "/tasks", label: "Tasks", icon: LuListChecks, badge: TASKS.length },
+      { to: "/tasks", label: "Tasks", icon: LuListChecks, badge: () => listTasks().length },
       { to: "/rigs", label: "Rigs", icon: LuCable },
       { to: "/capture", label: "Capture", icon: LuRadioTower, badge: "rec" },
     ],

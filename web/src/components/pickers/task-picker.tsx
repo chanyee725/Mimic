@@ -5,7 +5,8 @@ import { SearchInput } from "@/components/common/search-input"
 import { ProgressRing } from "@/components/common/progress-ring"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { TASKS, type Task, TASK_RING_TONE } from "@/dummy/tasks"
+import { listTasks } from "@/api/tasks"
+import { TASK_RING_TONE, type Task } from "@/domain/task"
 import { cn } from "@/lib/utils"
 
 /** Shows the selected task; pick another one from a search dialog */
@@ -13,7 +14,9 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const results = TASKS.filter((t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q))
+  const results = listTasks().filter(
+    (t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q),
+  )
 
   const pick = (id: string) => {
     onSelect(id)
