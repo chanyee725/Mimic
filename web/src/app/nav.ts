@@ -1,6 +1,7 @@
 import type { IconType } from "react-icons"
 import {
   LuBox,
+  LuBrain,
   LuCable,
   LuClipboardCheck,
   LuCpu,
@@ -47,6 +48,7 @@ export const NAV: NavGroup[] = [
     label: "Train & Evaluate",
     items: [
       { to: "/training", label: "Training", icon: LuCpu },
+      { to: "/models", label: "Models", icon: LuBrain },
       { to: "/evaluate", label: "Evaluate", icon: LuFlaskConical },
       { to: "/simulation", label: "Simulation", icon: LuBox },
     ],

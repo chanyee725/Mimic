@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { LuCheck, LuPlay, LuSquare, LuX } from "react-icons/lu"
+import { useSearchParams } from "react-router-dom"
+import { LuCheck, LuChevronRight, LuPlay, LuSquare, LuX } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { StatusDot } from "@/components/app/status-dot"
@@ -9,24 +10,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Kbd } from "@/components/ui/kbd"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { getRig } from "@/dummy/rigs"
 import { getTask } from "@/dummy/tasks"
-import { JOBS, LOCAL_GPUS, POLICY } from "@/dummy/training"
+import { MODELS, getModel } from "@/dummy/models"
+import { LOCAL_GPUS, POLICY } from "@/dummy/training"
 import { cn } from "@/lib/utils"
+import { ModelPickerDialog } from "@/features/models/model-picker-dialog"
 
-// 학습한 checkpoint 를 실제 로봇에 올려 바로 돌려 보는 페이지.
+// Models 에 저장한 checkpoint 를 실제 로봇에 올려 바로 돌려 보는 페이지.
 // 정책이 카메라 · 관절 상태 · 지시문을 받아 action 을 내고, 결과를 Success / Fail 로 기록한다.
 
 type Phase = "idle" | "running" | "judging"
 type Trial = { n: number; instruction: string; seconds: number; result: "success" | "fail" }
-
-// 고를 수 있는 checkpoint: 저장된 것 전부 (최근 것 먼저)
-const CHECKPOINTS = JOBS.flatMap((j) =>
-  j.checkpoints.map((c) => ({ id: `${j.id}/${c.step}`, job: j, step: c.step, label: `${j.id}, step ${c.step.toLocaleString()}` })),
-).reverse()
 
 const pad = (n: number) => String(n).padStart(2, "0")
 const clock = (ms: number) => `${pad(Math.floor(ms / 60000))}:${pad(Math.floor(ms / 1000) % 60)}`
@@ -35,9 +32,12 @@ const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable)
 
 export function EvaluatePage() {
-  const [ckptId, setCkptId] = useState(CHECKPOINTS[0].id)
-  const ckpt = CHECKPOINTS.find((c) => c.id === ckptId) ?? CHECKPOINTS[0]
-  const task = getTask(ckpt.job.taskId)
+  // Models 의 Evaluate 버튼에서 오면 ?model= 로 미리 고른다
+  const [params] = useSearchParams()
+  const [modelId, setModelId] = useState(() => getModel(params.get("model") ?? "")?.id ?? MODELS[0].id)
+  const model = getModel(modelId) ?? MODELS[0]
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const task = getTask(model.taskId)
   const rig = getRig(task?.rigId ?? "so101-kit")
   const [instruction, setInstruction] = useState(task?.instruction ?? "")
   const [limitS, setLimitS] = useState(task?.durationS ?? 30)
@@ -48,10 +48,9 @@ export function EvaluatePage() {
   const [elapsed, setElapsed] = useState(0)
   const [trials, setTrials] = useState<Trial[]>([])
 
-  const changeCkpt = (id: string) => {
-    const next = CHECKPOINTS.find((c) => c.id === id)
-    setCkptId(id)
-    setInstruction(getTask(next?.job.taskId ?? "")?.instruction ?? "")
+  const changeModel = (id: string) => {
+    setModelId(id)
+    setInstruction(getTask(getModel(id)?.taskId ?? "")?.instruction ?? "")
     setTrials([])
   }
 
@@ -117,7 +116,7 @@ export function EvaluatePage() {
           <JointPlots
             joints={rig.joints}
             hz={task?.actionHz ?? 60}
-            actionSource={`${POLICY} ${ckpt.job.id}`}
+            actionSource={`${POLICY} ${model.jobId}`}
             stateSource={rig.slave}
             className="h-64 shrink-0"
           />
@@ -125,26 +124,23 @@ export function EvaluatePage() {
 
         <Panel className="gap-5 overflow-y-auto">
           <div className="grid gap-1.5">
-            <Label htmlFor="e-ckpt" className="text-xs font-normal text-muted-foreground">
-              Checkpoint
-            </Label>
-            <Select value={ckptId} onValueChange={(v) => v && changeCkpt(v as string)} disabled={phase !== "idle"}>
-              <SelectTrigger id="e-ckpt" className="h-9 w-full text-[13px]">
-                <SelectValue>{() => ckpt.label}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {CHECKPOINTS.map((c) => (
-                  <SelectItem key={c.id} value={c.id} className="text-[13px]">
-                    <span className="grid">
-                      <span>{c.label}</span>
-                      <span className="text-xs text-muted-foreground">{c.job.taskId}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <span className="text-xs text-muted-foreground">Model</span>
+            <button
+              type="button"
+              disabled={phase !== "idle"}
+              onClick={() => setPickerOpen(true)}
+              className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-accent/60 disabled:pointer-events-none disabled:opacity-60"
+            >
+              <span className="grid min-w-0 gap-0.5">
+                <span className="truncate font-medium">{model.name}</span>
+                <span className="truncate text-xs text-muted-foreground tabular-nums">
+                  {model.jobId}, step {model.step.toLocaleString()}, loss {model.loss.toFixed(3)}
+                </span>
+              </span>
+              <LuChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </button>
             <span className="text-xs text-muted-foreground">
-              {ckpt.job.dataset}, inference on {LOCAL_GPUS[0].name}
+              {model.dataset}, inference on {LOCAL_GPUS[0].name}
             </span>
           </div>
 
@@ -270,6 +266,7 @@ export function EvaluatePage() {
           </section>
         </Panel>
       </div>
+      <ModelPickerDialog open={pickerOpen} onOpenChange={setPickerOpen} value={model.id} onSelect={changeModel} />
     </Page>
   )
 }
