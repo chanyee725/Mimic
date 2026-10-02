@@ -1,18 +1,18 @@
 import { useState } from "react"
 import { LuHardDrive } from "react-icons/lu"
 
-import { Segmented } from "@/components/app/segmented"
-import { SearchInput } from "@/components/app/search-input"
-import { HfBadge } from "@/components/app/hf-badge"
-
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { HfBadge } from "@/components/app/hf-badge"
+import { SearchInput } from "@/components/app/search-input"
+import { Segmented } from "@/components/app/segmented"
 import { MODELS, successRate, type Model } from "@/dummy/models"
+import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { cn } from "@/lib/utils"
 
 const TASKS = [...new Set(MODELS.map((m) => m.taskId))]
 
-/** 저장한 모델 고르기. Task 로 거르고 이름 · 데이터셋으로 찾는다 */
+/** Pick a saved model. Filter by task, search by name, dataset or job */
 export function ModelPickerDialog({
   open,
   onOpenChange,
@@ -26,12 +26,7 @@ export function ModelPickerDialog({
 }) {
   const [task, setTask] = useState("all")
   const [query, setQuery] = useState("")
-  const [draft, setDraft] = useState(value)
-  const [lastOpen, setLastOpen] = useState(open)
-  if (open !== lastOpen) {
-    setLastOpen(open)
-    if (open) setDraft(value)
-  }
+  const [draft, setDraft] = useDraftOnOpen(open, value)
   const q = query.trim().toLowerCase()
   const rows = MODELS.filter(
     (m) =>
