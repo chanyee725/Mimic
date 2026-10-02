@@ -8,12 +8,24 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DATASETS } from "@/dummy/datasets"
-import { JOBS, LOCAL_GPUS, POLICY, POLICY_BASE, RUNPOD_GPUS, isActive, type Compute, type TrainJob } from "@/dummy/training"
+import {
+  JOBS,
+  LOCAL_GPUS,
+  POLICY,
+  POLICY_BASE,
+  RUNPOD_DEFAULTS,
+  RUNPOD_GPUS,
+  isActive,
+  type Compute,
+  type RunPodOptions,
+  type TrainJob,
+} from "@/dummy/training"
 import { cn } from "@/lib/utils"
 
-import { JOB_STATUS, computeText, jobPct } from "./jobs"
+import { JOB_STATUS, computeText, jobPct, runpodRate, runpodSummary } from "./jobs"
 import { overrideFlags, type Overrides } from "./params"
 import { ParamsDialog } from "./params-dialog"
+import { RunPodDialog } from "./runpod-dialog"
 
 // 학습에 쓸 수 있는 데이터셋: 변환이 끝난 LeRobot 만
 const TRAINABLE = DATASETS.filter((d) => d.kind === "lerobot" && d.status === "ready").map((d) => d.repoId)
@@ -134,6 +146,11 @@ function JobsPanel() {
 function StartTraining() {
   const [compute, setCompute] = useState<Compute>("local")
   const [cloudGpu, setCloudGpu] = useState(RUNPOD_GPUS[1].name)
+  const [podOpts, setPodOpts] = useState<RunPodOptions>(RUNPOD_DEFAULTS)
+  const [podOpen, setPodOpen] = useState(false)
+  const cloud = RUNPOD_GPUS.find((g) => g.name === cloudGpu) ?? RUNPOD_GPUS[0]
+  const podRate = runpodRate(cloud.pricePerHr, podOpts)
+  const podCap = podOpts.budget ? Math.min(podOpts.maxHours || Infinity, podOpts.budget / podRate) : podOpts.maxHours
   const localBusy = JOBS.find((j) => j.compute === "local" && j.status === "running")
   const [paramsOpen, setParamsOpen] = useState(false)
   const [overrides, setOverrides] = useState<Overrides>({})
@@ -245,6 +262,26 @@ function StartTraining() {
           )}
         </div>
 
+        {compute === "runpod" && (
+          <div className="grid gap-1.5">
+            <span className="text-xs text-muted-foreground">RunPod options</span>
+            <button
+              type="button"
+              onClick={() => setPodOpen(true)}
+              className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-accent/60"
+            >
+              <span className="grid min-w-0 gap-0.5">
+                <span className="font-medium tabular-nums">
+                  ${podRate.toFixed(2)}/h
+                  {podCap > 0 && <span className="font-normal text-muted-foreground">, up to ${(podRate * podCap).toFixed(2)}</span>}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">{runpodSummary(podOpts)}</span>
+              </span>
+              <LuSlidersHorizontal className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </button>
+          </div>
+        )}
+
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Parameters</span>
           <button
@@ -272,6 +309,14 @@ function StartTraining() {
         <LuPlay />
         {compute === "local" && localBusy ? "Queue training" : "Start training"}
       </Button>
+      <RunPodDialog
+        open={podOpen}
+        onOpenChange={setPodOpen}
+        gpu={cloud.name}
+        basePrice={cloud.pricePerHr}
+        options={podOpts}
+        onSave={setPodOpts}
+      />
       <ParamsDialog open={paramsOpen} onOpenChange={setParamsOpen} overrides={overrides} onSave={setOverrides} />
     </Panel>
   )
