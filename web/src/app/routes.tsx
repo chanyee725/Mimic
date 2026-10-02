@@ -5,6 +5,7 @@ import { PlaceholderPage } from "@/app/placeholder"
 import { CapturePage } from "@/features/capture/page"
 import { ConvertPage } from "@/features/convert/page"
 import { DashboardPage } from "@/features/dashboard/page"
+import { DatasetsPage } from "@/features/datasets/page"
 import { ReviewPage } from "@/features/review/page"
 import { RigsPage } from "@/features/rigs/page"
 import { TasksPage } from "@/features/tasks/page"
@@ -22,7 +23,7 @@ export function AppRoutes() {
         <Route path="capture" element={<CapturePage />} />
         <Route path="review" element={<ReviewPage />} />
         <Route path="convert" element={<ConvertPage />} />
-        <Route path="datasets" element={<PlaceholderPage group="Data" title="Datasets" />} />
+        <Route path="datasets" element={<DatasetsPage />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="simulation" element={<PlaceholderPage group="Train & Evaluate" title="Simulation" />} />
         <Route path="settings" element={<PlaceholderPage group="System" title="Settings" />} />
