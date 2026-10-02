@@ -1,5 +1,5 @@
 import { EmptyState } from "@/components/common/empty-state"
-import type { Recording } from "@/dummy/recordings"
+import type { Recording } from "@/domain/recording"
 import { formatLength, formatSize } from "@/lib/format"
 
 /** Summary of the episodes to convert. Same layout regardless of episode count */

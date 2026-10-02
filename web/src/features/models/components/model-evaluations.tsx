@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 
 import { EmptyState } from "@/components/common/empty-state"
-import type { Model } from "@/dummy/models"
+import type { Model } from "@/domain/model"
 import { formatPct } from "@/lib/format"
 
 /** Evaluation history for this model; links to Evaluate when empty */

@@ -5,20 +5,22 @@ import { HfBadge } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { SearchInput } from "@/components/common/search-input"
 import { Segmented } from "@/components/common/segmented"
-import { MODELS, successRate } from "@/dummy/models"
+import { listModels } from "@/api/models"
+import { successRate } from "@/domain/model"
 import { formatPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { FILTERS, SORTED, type Filter } from "../lib"
+import { FILTERS, sortedModels, type Filter } from "../lib"
 
 /** Left-hand model list. Filter by location, search by name, task or dataset */
 export function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const shown = SORTED.filter(FILTERS.find((f) => f.id === filter)!.fits).filter(
-    (m) => !q || m.name.toLowerCase().includes(q) || m.taskId.includes(q) || m.dataset.includes(q),
-  )
+  const models = listModels()
+  const shown = sortedModels()
+    .filter(FILTERS.find((f) => f.id === filter)!.fits)
+    .filter((m) => !q || m.name.toLowerCase().includes(q) || m.taskId.includes(q) || m.dataset.includes(q))
 
   return (
     <Panel
@@ -26,7 +28,7 @@ export function ModelList({ selected, onSelect }: { selected: string; onSelect: 
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           Models
-          <span className="font-normal text-muted-foreground tabular-nums">{MODELS.length}</span>
+          <span className="font-normal text-muted-foreground tabular-nums">{models.length}</span>
         </span>
       }
     >
@@ -41,7 +43,7 @@ export function ModelList({ selected, onSelect }: { selected: string; onSelect: 
         fill
         value={filter}
         onChange={setFilter}
-        options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: MODELS.filter(f.fits).length }))}
+        options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: models.filter(f.fits).length }))}
       />
 
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">

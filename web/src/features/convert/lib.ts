@@ -1,4 +1,4 @@
-import type { McapTopic, Recording } from "@/dummy/recordings"
+import type { McapTopic, Recording } from "@/domain/recording"
 
 const SKIP = "skip"
 
