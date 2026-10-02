@@ -106,7 +106,6 @@ export function TaskDefinition({ task, onChange }: Props) {
     <SettingsGroup className="-mx-5 rounded-none border-x-0 border-b-0">
       <SettingsSection
         title="General"
-        description="언어 지시문은 VLA 학습 라벨로 그대로 들어갑니다. 변형 문장은 학습 시 무작위로 섞입니다."
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Task name" htmlFor="t-name">
@@ -158,7 +157,6 @@ export function TaskDefinition({ task, onChange }: Props) {
 
       <SettingsSection
         title="Robot & sensors"
-        description="SO-101 기본 구성. 켜진 센서만 Capture 화면과 데이터셋에 포함됩니다."
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Robot" htmlFor="t-robot">
@@ -195,7 +193,6 @@ export function TaskDefinition({ task, onChange }: Props) {
 
       <SettingsSection
         title="Recording"
-        description={`원본은 action ${task.actionHz} Hz, video ${task.videoFps} fps로 저장. 변환 시 영상 1프레임당 action 2개를 묶습니다.`}
       >
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Action rate" htmlFor="r-action">
@@ -221,7 +218,6 @@ export function TaskDefinition({ task, onChange }: Props) {
 
       <SettingsSection
         title="Labels & success"
-        description="녹화 중 숫자 키로 서브태스크 구간을, 저장 키로 결과를 기록합니다."
       >
         <div className="grid gap-1.5">
           <span className="text-[13px] font-medium">Outcome</span>
@@ -278,7 +274,7 @@ export function TaskDefinition({ task, onChange }: Props) {
         </Field>
       </SettingsSection>
 
-      <SettingsSection title="Output" description="승인된 에피소드가 변환될 LeRobot 데이터셋.">
+      <SettingsSection title="Output">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="repo_id" htmlFor="o-repo">
             <Input

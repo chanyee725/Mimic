@@ -44,7 +44,7 @@ export function ProgressRing({
           className={RING_CLASS[status]}
         />
       </svg>
-      <span className="absolute inset-0 grid place-items-center font-mono text-xs font-medium">{pct}%</span>
+      <span className="absolute inset-0 grid place-items-center text-[11px] font-medium tracking-tight tabular-nums">{pct}%</span>
     </div>
   )
 }
