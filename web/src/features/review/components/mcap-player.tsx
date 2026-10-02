@@ -1,20 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { LuPause, LuPlay, LuVideo } from "react-icons/lu"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { LuPause, LuPlay } from "react-icons/lu"
 
+import { JointPlots } from "@/components/robot/joint-plots"
+import { VideoTile } from "@/components/robot/video-tile"
 import { Button } from "@/components/ui/button"
 import type { McapTopic, Recording } from "@/dummy/recordings"
 import { getRig } from "@/dummy/rigs"
 import { cn } from "@/lib/utils"
 
 const SPEEDS = [0.5, 1, 2] as const
-const SEGMENT_VARS = ["--series-1", "--series-2", "--series-3", "--series-4", "--series-5"]
-const TRACE_POINTS = 240
-const PLOT_W = 300
-const PLOT_H = 60
 
 const pad2 = (n: number) => String(n).padStart(2, "0")
 
-/** mm:ss:ff (30 fps 프레임) */
+/** mm:ss:ff (프레임) */
 function timecode(sec: number, fps = 30) {
   const frames = Math.floor(sec * fps)
   const s = Math.floor(frames / fps)
@@ -33,41 +31,41 @@ function seedOf(id: string) {
   return h / 1000
 }
 
-function jointNamesOf(recording: Recording, hasJoints: boolean) {
-  if (recording.rigId) return getRig(recording.rigId).joints
-  return hasJoints ? Array.from({ length: 6 }, (_, i) => `j${i}`) : []
+/** `/cam_top/image` → `Top`, 그 외는 토픽 이름 그대로 */
+function cameraLabel(topic: string) {
+  const cam = topic.match(/^\/cam_([^/]+)/)?.[1]
+  return cam ? cam.charAt(0).toUpperCase() + cam.slice(1) : topic
 }
 
-function VideoPane({ topic, time }: { topic: McapTopic; time: number }) {
+function StreamList({ topics }: { topics: McapTopic[] }) {
   return (
-    <figure className="relative m-0 flex min-h-0 items-center justify-center overflow-hidden rounded-md border bg-stage">
-      {/* 실제로는 MCAP 의 CompressedVideo 프레임을 디코딩해 그린다 */}
-      <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground">
-        <LuVideo className="size-6" />
-        Replay
-      </div>
-      <figcaption className="absolute top-2 left-2 max-w-[70%] truncate rounded-md border bg-background px-2 py-0.5 text-xs font-medium">
-        {topic.name}
-      </figcaption>
-      <span className="absolute top-2 right-2 rounded-md bg-foreground/80 px-2 py-0.5 text-[11px] font-medium text-background tabular-nums">
-        {timecode(time, topic.rateHz ?? 30)}
-      </span>
-      <span className="absolute right-2 bottom-2 rounded-md border bg-background px-2 py-0.5 text-[11px] text-muted-foreground tabular-nums">
-        640×480, {topic.rateHz ?? "—"} fps
-      </span>
-    </figure>
+    <div className="min-h-0 overflow-y-auto rounded-md border">
+      <table className="w-full text-[13px]">
+        <thead>
+          <tr className="border-b text-left text-xs text-muted-foreground">
+            <th className="px-3 py-2 font-normal">Topic</th>
+            <th className="px-3 py-2 font-normal">Schema</th>
+            <th className="px-3 py-2 text-right font-normal">Rate</th>
+            <th className="px-3 py-2 text-right font-normal">Messages</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {topics.map((t) => (
+            <tr key={t.name}>
+              <td className="max-w-48 truncate px-3 py-1.5">{t.name}</td>
+              <td className="max-w-48 truncate px-3 py-1.5 text-muted-foreground">{t.schema}</td>
+              <td className="px-3 py-1.5 text-right tabular-nums">{t.rateHz === null ? "event" : `${t.rateHz} Hz`}</td>
+              <td className="px-3 py-1.5 text-right tabular-nums">{t.messages.toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
-function Scrubber({
-  recording,
-  time,
-  onSeek,
-}: {
-  recording: Recording
-  time: number
-  onSeek: (t: number) => void
-}) {
+/** 재생 위치 탐색 바. 프레임 드랍 지점만 빨간 눈금으로 표시한다 */
+function Scrubber({ recording, time, onSeek }: { recording: Recording; time: number; onSeek: (t: number) => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   const dur = recording.durationS
@@ -106,99 +104,23 @@ function Scrubber({
         else return
         e.preventDefault()
       }}
-      className="relative h-9 cursor-pointer touch-none rounded-md border bg-muted/40 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/40"
+      className="group relative flex h-8 min-w-0 flex-1 cursor-pointer touch-none items-center rounded-md outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/40"
     >
-      {/* 서브태스크 구간 */}
-      {recording.subtasks.map((s, i) => (
-        <div
-          key={s.name}
-          className="absolute top-1 bottom-4 overflow-hidden rounded-sm px-1 text-[10px] leading-4 font-medium text-white"
-          style={{
-            left: pct(s.startS),
-            width: `calc(${pct(s.endS - s.startS)} - 2px)`,
-            background: `var(${SEGMENT_VARS[i % SEGMENT_VARS.length]})`,
-            opacity: 0.85,
-          }}
-        >
-          <span className="truncate">{s.name}</span>
-        </div>
-      ))}
-      {/* 프레임 드랍 */}
-      {recording.drops.map((d) => (
+      <div className="relative h-1.5 w-full rounded-full bg-muted">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-foreground" style={{ width: pct(time) }} />
+        {recording.drops.map((d) => (
+          <span
+            key={d}
+            className="absolute top-1/2 h-3 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-bad"
+            style={{ left: pct(d) }}
+            title={`Frame drop at ${clock(d)}`}
+          />
+        ))}
         <span
-          key={d}
-          className="absolute bottom-0.5 h-3 w-0.5 -translate-x-1/2 rounded-full bg-bad"
-          style={{ left: pct(d) }}
-          title={`Frame drop at ${clock(d)}`}
+          className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground shadow-sm"
+          style={{ left: pct(time) }}
         />
-      ))}
-      {/* 재생 위치 */}
-      <span className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-foreground" style={{ left: pct(time) }}>
-        <span className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rounded-full bg-foreground" />
-      </span>
-    </div>
-  )
-}
-
-function JointTraces({ recording, joints, time }: { recording: Recording; joints: string[]; time: number }) {
-  const seed = seedOf(recording.id)
-  const dur = recording.durationS
-
-  // 에피소드 전체 궤적은 파일별로 한 번만 계산한다
-  const paths = useMemo(() => {
-    const value = (i: number, t: number) =>
-      (Math.sin(t * (0.45 + (i % 6) * 0.18) + i * 1.3 + seed * 6) * 0.7 + Math.sin(t * 2.3 + i + seed) * 0.08) * 90
-    const y = (v: number) => PLOT_H / 2 - (v / 90) * (PLOT_H / 2 - 4)
-    const path = (i: number, lag: number) =>
-      Array.from({ length: TRACE_POINTS }, (_, k) => {
-        const t = (k / (TRACE_POINTS - 1)) * dur
-        return `${k ? "L" : "M"}${((k / (TRACE_POINTS - 1)) * PLOT_W).toFixed(1)},${y(value(i, t - lag)).toFixed(1)}`
-      }).join("")
-    return joints.map((_, i) => ({ action: path(i, 0), state: path(i, 0.15) }))
-  }, [joints, dur, seed])
-
-  return (
-    <div className="grid min-h-0 grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2 overflow-y-auto">
-      {joints.map((j, i) => (
-        <figure key={j} className="m-0 grid gap-0.5 rounded-md border bg-card px-2 pt-1 pb-1.5">
-          <figcaption className="truncate text-[11px] font-medium">{j}</figcaption>
-          <div className="relative h-14">
-            <svg viewBox={`0 0 ${PLOT_W} ${PLOT_H}`} preserveAspectRatio="none" className="absolute inset-0 size-full" aria-hidden>
-              <line x1={0} x2={PLOT_W} y1={PLOT_H / 2} y2={PLOT_H / 2} className="stroke-border" vectorEffect="non-scaling-stroke" />
-              <path d={paths[i].state} fill="none" strokeDasharray="4 3" className="stroke-series-3" strokeWidth={1.25} vectorEffect="non-scaling-stroke" />
-              <path d={paths[i].action} fill="none" className="stroke-series-1" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-            </svg>
-            <span className="absolute inset-y-0 w-px bg-foreground/50" style={{ left: `${(time / dur) * 100}%` }} />
-          </div>
-        </figure>
-      ))}
-    </div>
-  )
-}
-
-function StreamList({ topics }: { topics: McapTopic[] }) {
-  return (
-    <div className="min-h-0 overflow-y-auto rounded-md border">
-      <table className="w-full text-[13px]">
-        <thead>
-          <tr className="border-b text-left text-xs text-muted-foreground">
-            <th className="px-3 py-2 font-normal">Topic</th>
-            <th className="px-3 py-2 font-normal">Schema</th>
-            <th className="px-3 py-2 text-right font-normal">Rate</th>
-            <th className="px-3 py-2 text-right font-normal">Messages</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {topics.map((t) => (
-            <tr key={t.name}>
-              <td className="max-w-48 truncate px-3 py-1.5">{t.name}</td>
-              <td className="max-w-48 truncate px-3 py-1.5 text-muted-foreground">{t.schema}</td>
-              <td className="px-3 py-1.5 text-right tabular-nums">{t.rateHz === null ? "event" : `${t.rateHz} Hz`}</td>
-              <td className="px-3 py-1.5 text-right tabular-nums">{t.messages.toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      </div>
     </div>
   )
 }
@@ -211,14 +133,14 @@ function Player({ recording, className }: { recording: Recording; className?: st
 
   const videos = recording.topics.filter((t) => t.kind === "video")
   const hasJoints = recording.topics.some((t) => t.kind === "action" || t.kind === "state")
-  const joints = useMemo(() => jointNamesOf(recording, hasJoints), [recording, hasJoints])
-  const otherTopics = recording.topics.filter((t) => t.kind !== "video")
+  const rig = recording.rigId ? getRig(recording.rigId) : undefined
+  const joints = useMemo(() => rig?.joints ?? Array.from({ length: 6 }, (_, i) => `j${i}`), [rig])
+  const actionHz = recording.topics.find((t) => t.kind === "action")?.rateHz ?? 60
 
-  // 재생: rAF 로 시간을 진행시키되 React 갱신은 약 30 fps 로 제한한다
+  // 재생: rAF 로 시간을 진행시키되 React 갱신은 약 30 fps 로 제한한다.
+  // 그래프는 timeRef 를 직접 읽어 매 프레임 그린다.
   const timeRef = useRef(0)
-  useEffect(() => {
-    timeRef.current = time
-  }, [time])
+  const playhead = useCallback(() => timeRef.current, [])
   useEffect(() => {
     if (!playing) return
     let raf = 0
@@ -263,88 +185,77 @@ function Player({ recording, className }: { recording: Recording; className?: st
         e.preventDefault()
         togglePlay()
       }}
-      className={cn("flex min-h-0 flex-col gap-3 outline-none", className)}
+      className={cn("flex min-h-0 flex-col gap-4 outline-none", className)}
     >
-      <div
-        className={cn(
-          "grid min-h-40 flex-1 gap-2",
-          videos.length > 1 ? "md:grid-cols-2" : "grid-cols-1",
-        )}
-      >
+      {/* Capture 와 같은 카메라 타일 · 관절 그래프 컴포넌트를 쓴다 */}
+      <div className={cn("grid min-h-48 flex-1 gap-3", videos.length > 1 ? "md:grid-cols-2" : "grid-cols-1")}>
         {videos.map((v) => (
-          <VideoPane key={v.name} topic={v} time={time} />
+          <VideoTile
+            key={v.name}
+            className="aspect-auto h-full min-h-48"
+            label={cameraLabel(v.name)}
+            resolution="640×480"
+            measuredFps={v.rateHz}
+            targetFps={v.rateHz}
+            timecode={timecode(time, v.rateHz ?? 30)}
+            placeholder="Replay"
+          />
         ))}
         {videos.length === 0 && (
-          <div className="flex items-center justify-center rounded-md border bg-stage text-xs text-muted-foreground">
-            No video topics in this file
+          <div className="flex items-center justify-center rounded-lg border bg-stage text-xs text-muted-foreground">
+            이 파일에는 영상 토픽이 없습니다.
           </div>
         )}
       </div>
 
-      <div className="grid shrink-0 gap-2">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            aria-label={playing ? "Pause" : "Play"}
-            title={playing ? "Pause (Space)" : "Play (Space)"}
-            onClick={togglePlay}
-          >
-            {playing ? <LuPause /> : <LuPlay />}
-          </Button>
-          <div className="flex rounded-md border p-0.5" role="group" aria-label="Playback speed">
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={speed === s}
-                onClick={() => setSpeed(s)}
-                className={cn(
-                  "h-6 rounded-sm px-2 text-xs tabular-nums transition-colors",
-                  speed === s ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {s}x
-              </button>
-            ))}
-          </div>
-          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-            <span className="text-foreground">{clock(time)}</span> / {clock(dur)}
-          </span>
+      {hasJoints ? (
+        <JointPlots
+          joints={joints}
+          hz={actionHz}
+          actionSource={rig?.master}
+          stateSource={rig?.slave}
+          playhead={playhead}
+          seed={seedOf(recording.id)}
+          className="h-64 shrink-0"
+        />
+      ) : (
+        <div className="h-48 shrink-0">
+          <StreamList topics={recording.topics.filter((t) => t.kind !== "video")} />
         </div>
-        <Scrubber recording={recording} time={time} onSeek={seek} />
-        {(recording.subtasks.length > 0 || recording.drops.length > 0) && (
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-            {recording.subtasks.length > 0 && <span>Bands show subtask segments</span>}
-            {recording.drops.length > 0 && (
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-0.5 rounded-full bg-bad" />
-                {recording.drops.length} frame drop{recording.drops.length > 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
-      <div className="flex max-h-[40%] min-h-24 shrink-0 flex-col gap-1.5">
-        {hasJoints ? (
-          <>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-3 rounded-full bg-series-1" />
-                Action
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-3 rounded-full border-t border-dashed border-series-3" />
-                Observation
-              </span>
-            </div>
-            <JointTraces recording={recording} joints={joints} time={time} />
-          </>
-        ) : (
-          <StreamList topics={otherTopics} />
-        )}
+      {/* 재생 바: 하단 고정 */}
+      <div className="flex shrink-0 items-center gap-3 rounded-lg border px-3 py-2">
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-8 shrink-0"
+          aria-label={playing ? "Pause" : "Play"}
+          title={playing ? "Pause (Space)" : "Play (Space)"}
+          onClick={togglePlay}
+        >
+          {playing ? <LuPause /> : <LuPlay />}
+        </Button>
+        <Scrubber recording={recording} time={time} onSeek={seek} />
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          <span className="text-foreground">{clock(time)}</span> / {clock(dur)}
+        </span>
+        <div className="flex shrink-0 rounded-md border p-0.5" role="group" aria-label="Playback speed">
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={speed === s}
+              onClick={() => setSpeed(s)}
+              className={cn(
+                "h-6 rounded-sm px-2 text-xs tabular-nums transition-colors",
+                speed === s ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s}x
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

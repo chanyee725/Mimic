@@ -12,9 +12,9 @@ import { devicesOf, type DeviceStream } from "@/dummy/devices"
 import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
-import { JointPlots } from "./components/joint-plots"
+import { JointPlots } from "@/components/robot/joint-plots"
 import { TaskPicker } from "@/components/app/task-picker"
-import { VideoTile } from "./components/video-tile"
+import { VideoTile } from "@/components/robot/video-tile"
 import { useEpisode, type Phase } from "./use-episode"
 
 // 상단 Task 요약 패널 노출 여부 (레이아웃 정리 중이라 잠시 끔)
@@ -212,7 +212,7 @@ export function CapturePage() {
               <VideoTile
                 className="aspect-auto h-full min-h-48"
                 recording={recording}
-                timecode={timecode(ep.elapsedMs, task.videoFps)}
+                timecode={recording ? timecode(ep.elapsedMs, task.videoFps) : undefined}
                 key={c.id}
                 label={c.name.replace(/ camera$/, "")}
                 resolution={c.stats.find((s) => s.label === "Resolution")?.value ?? ""}
