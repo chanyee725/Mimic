@@ -35,6 +35,50 @@ function autoFeature(t: McapTopic, rec: Recording): string {
   }
 }
 
+/** 승인된 에피소드 길이 막대. 막대를 누르면 변환 대상에서 빼거나 다시 넣는다 */
+function EpisodeStrip({ episodes, excluded, onToggle }: { episodes: Recording[]; excluded: string[]; onToggle: (id: string) => void }) {
+  if (episodes.length === 0) return <div className="min-h-24 flex-1 rounded-md border border-dashed" />
+  const max = Math.max(...episodes.map((r) => r.durationS))
+  const name = (r: Recording) => r.file.split("/").pop()!.replace(".mcap", "")
+  return (
+    <div className="flex min-h-28 flex-1 flex-col gap-1.5">
+      <div className="relative flex min-h-0 flex-1 items-end justify-between gap-1 border-b" role="group" aria-label="Episode lengths">
+        {/* 25% 간격 보조선 */}
+        {[25, 50, 75, 100].map((y) => (
+          <span key={y} className="pointer-events-none absolute inset-x-0 border-t border-dashed" style={{ bottom: `${y}%` }} aria-hidden />
+        ))}
+        {episodes.map((r) => {
+          const on = !excluded.includes(r.id)
+          return (
+            <button
+              key={r.id}
+              type="button"
+              aria-pressed={on}
+              aria-label={`${name(r)}, ${r.durationS.toFixed(1)} s`}
+              title={`${name(r)}, ${r.durationS.toFixed(1)} s${on ? "" : " (excluded)"}`}
+              onClick={() => onToggle(r.id)}
+              className="group relative flex h-full max-w-6 min-w-2 flex-1 items-end justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            >
+              <span
+                className={cn(
+                  "w-2 rounded-t-sm transition-colors",
+                  on ? "bg-foreground/70 group-hover:bg-foreground" : "bg-foreground/10 group-hover:bg-foreground/25",
+                )}
+                style={{ height: `${(r.durationS / max) * 100}%` }}
+              />
+            </button>
+          )
+        })}
+      </div>
+      <div className="flex justify-between text-[11px] text-muted-foreground tabular-nums">
+        <span>{name(episodes[0])}</span>
+        <span>longest {max.toFixed(1)} s</span>
+        <span>{name(episodes[episodes.length - 1])}</span>
+      </div>
+    </div>
+  )
+}
+
 export function ConvertPage() {
   const recordings = useRecordings()
   const [taskId, setTaskId] = useState<string>(TASKS[0].id)
@@ -57,6 +101,7 @@ export function ConvertPage() {
   }
 
   const targets = accepted.filter((r) => !excluded.includes(r.id))
+  const toggle = (id: string) => setExcluded((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
   const fps = ALIGNMENT_MODES.find((m) => m.id === mode)!.fps
   const topics = new Map<string, { topic: McapTopic; rec: Recording }>()
   for (const r of targets.length ? targets : accepted)
@@ -82,6 +127,7 @@ export function ConvertPage() {
 
   return (
     <Page
+      fit
       title="Convert"
       description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다."
       actions={
@@ -91,9 +137,9 @@ export function ConvertPage() {
         </Button>
       }
     >
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        {/* ── 왼쪽: Task · 에피소드 ── */}
-        <Panel title="Task" className="gap-4">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        {/* ── 왼쪽: 무엇을 변환하나 (Task · 에피소드) ── */}
+        <Panel title="Task" className="min-h-0 gap-4">
           <Select value={taskId} onValueChange={(v) => v && changeTask(v as string)}>
             <SelectTrigger aria-label="Task" className="h-9 w-full text-[13px]">
               <SelectValue />
@@ -137,6 +183,17 @@ export function ConvertPage() {
               </dd>
             </div>
           </dl>
+          <EpisodeStrip episodes={accepted} excluded={excluded} onToggle={toggle} />
+          <dl className="grid grid-cols-2 gap-3 border-t pt-3 text-[13px]">
+            <div className="grid gap-0.5">
+              <dt className="text-xs text-muted-foreground">Total length</dt>
+              <dd className="tabular-nums">{(totalS / 60).toFixed(1)} min</dd>
+            </div>
+            <div className="grid gap-0.5">
+              <dt className="text-xs text-muted-foreground">MCAP size</dt>
+              <dd className="tabular-nums">{totalMB.toFixed(1)} MB</dd>
+            </div>
+          </dl>
           {(accepted.length === 0 || pending > 0) && (
             <p className="text-xs text-muted-foreground">
               {accepted.length === 0 ? "승인된 에피소드가 없습니다. " : `검수를 기다리는 에피소드가 ${pending}개 있습니다. `}
@@ -147,9 +204,13 @@ export function ConvertPage() {
           )}
         </Panel>
 
-        {/* ── 오른쪽: Time alignment · Output ── */}
-        <section className="grid gap-4">
-          <Panel title="Time alignment" action={<span className="text-[13px] text-muted-foreground">Dataset fps {fps}</span>}>
+        {/* ── 오른쪽: 어떻게 만드나 (Time alignment · Output) ── */}
+        <section className="flex min-h-0 flex-col gap-4">
+          <Panel
+            title="Time alignment"
+            className="shrink-0"
+            action={<span className="text-[13px] text-muted-foreground">Dataset fps {fps}</span>}
+          >
             <ul className="grid gap-2 md:grid-cols-3" role="radiogroup" aria-label="Time alignment">
               {ALIGNMENT_MODES.map((m) => {
                 const on = m.id === mode
@@ -183,9 +244,11 @@ export function ConvertPage() {
             </ul>
           </Panel>
 
-          <Panel title="Output">
+          <Panel title="Output" className="min-h-0 flex-1">
             <div className="grid gap-1.5">
-              <Label htmlFor="repo">Dataset name</Label>
+              <Label htmlFor="repo" className="text-xs font-normal text-muted-foreground">
+                Dataset name
+              </Label>
               <Input
                 id="repo"
                 className="h-9 text-[13px]"
@@ -194,22 +257,15 @@ export function ConvertPage() {
                 onChange={(e) => setRepoId(e.target.value)}
               />
             </div>
-            <dl className="divide-y">
-              {[
-                { k: "Episodes", v: String(targets.length) },
-                { k: "Total length", v: `${(totalS / 60).toFixed(1)} min` },
-                { k: "MCAP size", v: `${totalMB.toFixed(1)} MB` },
-                { k: "Format", v: "LeRobot v3.0, AV1" },
-              ].map((s) => (
-                <div key={s.k} className="flex justify-between gap-3 py-2 text-[13px]">
-                  <dt className="text-muted-foreground">{s.k}</dt>
-                  <dd className="tabular-nums">{s.v}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="grid gap-1.5">
+            <div className="flex justify-between gap-3 border-y py-2.5 text-[13px]">
+              <span className="text-muted-foreground">Format</span>
+              <span>LeRobot v3.0, AV1</span>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">Features</span>
-              <pre className="rounded-md bg-muted p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">{preview}</pre>
+              <pre className="min-h-24 flex-1 overflow-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
+                {preview}
+              </pre>
             </div>
           </Panel>
         </section>
