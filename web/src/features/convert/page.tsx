@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { LuArrowRight, LuPlay } from "react-icons/lu"
+import { LuPlay } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { Button } from "@/components/ui/button"
@@ -16,19 +16,6 @@ import { useRecordings } from "@/lib/recordings-store"
 import { cn } from "@/lib/utils"
 
 const SKIP = "skip"
-
-/** 외부 파일처럼 메타데이터가 없을 때 사람이 고를 수 있는 LeRobot feature */
-const FEATURE_OPTIONS = [
-  SKIP,
-  "action",
-  "observation.state",
-  "observation.images.top",
-  "observation.images.wrist",
-  "observation.images.main",
-  "observation.hand.imu",
-  "observation.hand.flex",
-  "observation.hand.tactile",
-]
 
 /** 우리 녹화 파일은 Rig 메타데이터가 있으므로 토픽 종류로 feature 를 자동으로 정한다 */
 function autoFeature(t: McapTopic, rec: Recording): string {
@@ -49,17 +36,6 @@ function autoFeature(t: McapTopic, rec: Recording): string {
   }
 }
 
-/** 정렬 방식과 토픽 주기에 따른 변환 내용 */
-function transformOf(t: McapTopic, mode: Alignment, fps: number) {
-  if (t.rateHz === null) return "event → per-frame"
-  if (t.kind === "video") return mode === "duplicate" ? "duplicate frames" : t.rateHz === fps ? "as is" : `resample → ${fps} fps`
-  // chunk 모드에서 action 만 2 샘플씩 묶고, state 는 프레임 시각의 값을 쓴다
-  if (t.rateHz === fps * 2 && mode === "chunk") return t.kind === "action" ? "chunk 2 samples" : "sample at frame time"
-  if (t.rateHz === fps) return "as is"
-  if (t.kind === "glove") return `${t.name.includes("tactile") ? "max-pool" : "interpolate"} → ${fps} Hz`
-  return `resample ${t.rateHz} → ${fps} Hz`
-}
-
 const IMPORTED = "__imported__"
 
 export function ConvertPage() {
@@ -73,13 +49,11 @@ export function ConvertPage() {
   // 기본은 승인된 에피소드 전부. Task 를 바꾸면 다시 전부 선택
   const [excluded, setExcluded] = useState<string[]>([])
   const [mode, setMode] = useState<Alignment>(task?.alignment ?? "chunk")
-  const [manual, setManual] = useState<Record<string, string>>({})
   const [push, setPush] = useState(true)
 
   const changeTask = (id: string) => {
     setTaskId(id)
     setExcluded([])
-    setManual({})
     setMode(getTask(id)?.alignment ?? "chunk")
   }
 
@@ -87,12 +61,10 @@ export function ConvertPage() {
   const fps = ALIGNMENT_MODES.find((m) => m.id === mode)!.fps
   const topics = new Map<string, { topic: McapTopic; rec: Recording }>()
   for (const r of (targets.length ? targets : accepted)) for (const t of r.topics) if (!topics.has(t.name)) topics.set(t.name, { topic: t, rec: r })
-  const mapping = [...topics.values()].map(({ topic, rec }) => {
-    const auto = autoFeature(topic, rec)
-    const feature = manual[topic.name] ?? auto
-    return { topic, feature, auto: rec.source === "capture", transform: transformOf(topic, mode, fps) }
-  })
-  const included = mapping.filter((m) => m.feature !== SKIP)
+  // feature 는 Rig 정보로 자동 결정한다
+  const included = [...topics.values()]
+    .map(({ topic, rec }) => ({ topic, feature: autoFeature(topic, rec) }))
+    .filter((m) => m.feature !== SKIP)
   const totalS = targets.reduce((a, r) => a + r.durationS, 0)
   const totalMB = targets.reduce((a, r) => a + r.sizeMB, 0)
   const rig = task ? getRig(task.rigId) : undefined
@@ -234,64 +206,6 @@ export function ConvertPage() {
                 )
               })}
             </ul>
-          </Panel>
-
-          <Panel
-            title="Topic mapping"
-            action={
-              <span className="text-[13px] text-muted-foreground tabular-nums">
-                {included.length} of {mapping.length} topics included
-              </span>
-            }
-          >
-            {mapping.length === 0 ? (
-              <p className="py-4 text-center text-[13px] text-muted-foreground">
-                변환할 에피소드를 선택하면 MCAP 토픽이 여기에 나옵니다.
-              </p>
-            ) : (
-              <ul className="-mx-2 divide-y">
-                {mapping.map((m) => (
-                  <li
-                    key={m.topic.name}
-                    className={cn(
-                      "grid grid-cols-[minmax(0,1.2fr)_64px_minmax(0,1.3fr)_minmax(0,1fr)] items-center gap-3 px-2 py-2",
-                      m.feature === SKIP && "opacity-55",
-                    )}
-                  >
-                    <span className="grid min-w-0">
-                      <span className="truncate text-[13px]">{m.topic.name}</span>
-                      <span className="truncate text-[11px] text-muted-foreground">{m.topic.schema}</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {m.topic.rateHz === null ? "event" : `${m.topic.rateHz} Hz`}
-                    </span>
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <LuArrowRight className="size-3 shrink-0 text-muted-foreground" aria-hidden />
-                      {m.auto ? (
-                        <span className="truncate text-[13px] font-medium">{m.feature === SKIP ? "not included" : m.feature}</span>
-                      ) : (
-                        <Select
-                          value={m.feature}
-                          onValueChange={(v) => v && setManual((prev) => ({ ...prev, [m.topic.name]: v as string }))}
-                        >
-                          <SelectTrigger className="h-8 w-full text-[13px]" aria-label={`Feature for ${m.topic.name}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {FEATURE_OPTIONS.map((f) => (
-                              <SelectItem key={f} value={f} className="text-[13px]">
-                                {f === SKIP ? "not included" : f}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">{m.feature === SKIP ? "" : m.transform}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </Panel>
         </div>
 
