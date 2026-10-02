@@ -104,7 +104,7 @@ function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: 
                   on && "bg-accent hover:bg-accent",
                 )}
               >
-                <DatasetThumb taskId={d.taskId} className="w-14" />
+                <DatasetThumb taskId={d.taskId} className="w-20" />
                 <span className="grid min-w-0 flex-1 gap-0.5">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <StatusDot tone={STATUS[d.status].tone} />
@@ -140,7 +140,7 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
     <Panel className="min-h-0 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-4">
-          <DatasetThumb taskId={dataset.taskId} className="w-24" />
+          <DatasetThumb taskId={dataset.taskId} className="w-32" />
           <div className="grid min-w-0 gap-1">
             <div className="flex min-w-0 items-center gap-2.5">
               <h2 className="truncate text-lg font-semibold">{dataset.repoId}</h2>
