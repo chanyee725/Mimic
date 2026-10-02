@@ -2,11 +2,10 @@ import { Link } from "react-router-dom"
 import { LuClock, LuCpu, LuHourglass, LuLayers } from "react-icons/lu"
 
 import { ProgressBar } from "@/components/common/progress-bar"
-import type { TrainJob } from "@/dummy/training"
+import { jobPct, type TrainJob } from "@/domain/training"
 
 export function PodRow({ job }: { job: TrainJob }) {
-  // TODO: job progress calc duplicates the Training page; consolidate in the data-layer step
-  const pct = Math.round((job.step / job.total) * 100)
+  const pct = jobPct(job)
   const meta = [
     { icon: LuCpu, label: "GPU", value: job.gpu },
     { icon: LuLayers, label: "Epoch", value: job.epochs ? `${job.epoch}/${job.epochs}` : "—" },

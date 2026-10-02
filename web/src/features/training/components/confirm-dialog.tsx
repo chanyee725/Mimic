@@ -3,7 +3,7 @@ import { LuPlay } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DetailList } from "@/components/common/detail-list"
-import { POLICY, POLICY_BASE, RUNPOD_VOLUMES } from "@/dummy/training"
+import { POLICY, POLICY_BASE, RUNPOD_VOLUMES } from "@/api/training"
 import { formatRate, formatUsd } from "@/lib/format"
 
 import { runpodSummary, trainCommand, type TrainingPlan } from "../lib"

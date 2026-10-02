@@ -1,5 +1,6 @@
 import type { Tone } from "@/components/common/status-dot"
-import { RUNPOD_PRICE_FACTOR, type GpuStock, type RunPodGpu, type RunPodOptions } from "@/dummy/training"
+import { RUNPOD_PRICE_FACTOR } from "@/api/training"
+import type { GpuStock, RunPodGpu, RunPodOptions } from "@/domain/training"
 
 // RunPod
 

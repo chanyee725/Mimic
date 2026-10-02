@@ -7,7 +7,8 @@ import { LinkButton } from "@/components/common/link-button"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { StatStrip } from "@/components/common/stat-strip"
 import { StatusDot } from "@/components/common/status-dot"
-import { getJob, type TrainJob } from "@/dummy/training"
+import { getJob } from "@/api/training"
+import { jobPct, type TrainJob } from "@/domain/training"
 import { formatDuration, formatRate, formatUsd } from "@/lib/format"
 
 import { CheckpointsPanel } from "./components/checkpoints-panel"
@@ -27,7 +28,7 @@ export function JobPage() {
 function JobView({ job }: { job: TrainJob }) {
   const { run, step, live, stepsPerSec, elapsedSec, remainingSec } = useJobRun(job)
   const status = JOB_STATUS[job.status]
-  const pct = Math.round((step / job.total) * 100)
+  const pct = jobPct(job, step)
   const cost = job.pricePerHr ? (job.pricePerHr * elapsedSec) / 3600 : undefined
   const checkpoints = checkpointsAt(job, step)
   const [pod, setPod] = useState(job.podState)

@@ -1,6 +1,6 @@
 import type { Tone } from "@/components/common/status-dot"
-import { DATASETS } from "@/dummy/datasets"
-import type { Checkpoint, Compute, JobStatus, TrainJob } from "@/dummy/training"
+import { listDatasets } from "@/api/datasets"
+import type { Checkpoint, Compute, JobStatus, TrainJob } from "@/domain/training"
 import { formatRate } from "@/lib/format"
 
 // Job status and display
@@ -15,15 +15,17 @@ export const JOB_STATUS: Record<JobStatus, { tone: Tone; label: string }> = {
 
 const COMPUTE_LABEL: Record<Compute, string> = { local: "Local GPU", runpod: "RunPod" }
 
-export const jobPct = (j: TrainJob) => Math.round((j.step / j.total) * 100)
-
 /** "Local GPU, RTX 4090" / "RunPod, A100 80GB, $1.89/h" */
 export function computeText(j: TrainJob) {
   return [COMPUTE_LABEL[j.compute], j.gpu, j.pricePerHr && formatRate(j.pricePerHr)].filter(Boolean).join(", ")
 }
 
-// Datasets that can be trained on: converted LeRobot datasets only
-export const TRAINABLE = DATASETS.filter((d) => d.kind === "lerobot" && d.status === "ready").map((d) => d.repoId)
+/** Datasets that can be trained on: converted LeRobot datasets only */
+export function trainableDatasets() {
+  return listDatasets()
+    .filter((d) => d.kind === "lerobot" && d.status === "ready")
+    .map((d) => d.repoId)
+}
 
 // Checkpoint
 

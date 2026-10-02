@@ -2,7 +2,7 @@ import { LuCloud, LuPower } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/common/status-dot"
-import type { PodState, TrainJob } from "@/dummy/training"
+import type { PodState, TrainJob } from "@/domain/training"
 import { formatRate, formatUsd, parseDuration } from "@/lib/format"
 
 /** RunPod pod status bar. Highlights a pod still running after training so it does not keep billing */

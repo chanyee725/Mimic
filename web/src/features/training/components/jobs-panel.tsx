@@ -2,7 +2,8 @@ import { useState } from "react"
 
 import { Panel } from "@/components/layout/page-layout"
 import { Segmented } from "@/components/common/segmented"
-import { JOBS, isActive } from "@/dummy/training"
+import { listJobs } from "@/api/training"
+import { isActive } from "@/domain/training"
 
 import { JobRow } from "./job-row"
 
@@ -11,9 +12,10 @@ type Tab = "all" | "active" | "finished"
 /** Job list, filtered by all, running or finished */
 export function JobsPanel() {
   const [tab, setTab] = useState<Tab>("all")
-  const active = JOBS.filter(isActive)
-  const finished = JOBS.filter((j) => !isActive(j))
-  const shown = tab === "all" ? JOBS : tab === "active" ? active : finished
+  const jobs = listJobs()
+  const active = jobs.filter(isActive)
+  const finished = jobs.filter((j) => !isActive(j))
+  const shown = tab === "all" ? jobs : tab === "active" ? active : finished
 
   return (
     <Panel
@@ -25,7 +27,7 @@ export function JobsPanel() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: "all", label: "All", count: JOBS.length },
+            { value: "all", label: "All", count: jobs.length },
             { value: "active", label: "Running", count: active.length },
             { value: "finished", label: "Finished", count: finished.length },
           ]}

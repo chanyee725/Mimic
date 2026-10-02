@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 
-import type { TrainJob } from "@/dummy/training"
+import type { TrainJob } from "@/domain/training"
 import { parseDuration } from "@/lib/format"
 
 import { createRun, type JobRun } from "../lib"

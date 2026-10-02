@@ -65,4 +65,7 @@ export type RunPodOptions = {
   pushToHub: boolean
 }
 
+/** Progress in whole percent, at the job's own step or at a live step */
+export const jobPct = (j: TrainJob, step = j.step) => Math.round((step / j.total) * 100)
+
 export const isActive = (j: TrainJob) => j.status === "running" || j.status === "queued"

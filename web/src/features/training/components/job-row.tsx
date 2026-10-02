@@ -3,10 +3,10 @@ import { LuChevronRight, LuCloud, LuServer } from "react-icons/lu"
 
 import { ProgressBar } from "@/components/common/progress-bar"
 import { StatusDot } from "@/components/common/status-dot"
-import type { TrainJob } from "@/dummy/training"
+import { jobPct, type TrainJob } from "@/domain/training"
 import { formatRate } from "@/lib/format"
 
-import { JOB_STATUS, computeText, jobPct } from "../lib"
+import { JOB_STATUS, computeText } from "../lib"
 
 /** One row in the job list. Links to the job detail page */
 export function JobRow({ job }: { job: TrainJob }) {
