@@ -6,9 +6,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { Checkpoint, TrainJob } from "@/dummy/training"
 
-import type { JobRun } from "./job-run"
+import type { JobRun } from "../lib"
 
-/** Job 의 checkpoint 전체. 골라서 내려받거나 HF Hub 에 올린다 */
+/** All checkpoints of a job. Pick some to download or push to the HF Hub */
 export function CheckpointsDialog({
   job,
   run,
@@ -24,7 +24,7 @@ export function CheckpointsDialog({
 }) {
   const [picked, setPicked] = useState<number[]>([])
   const rows = [...checkpoints].reverse()
-  // 그 step 의 smoothed loss (고를 때 참고)
+  // Smoothed loss at that step (to help pick one)
   const lossAt = (step: number) => run.data.loss[Math.min(step, run.count) - 1]
   const best = rows.reduce<Checkpoint | undefined>((b, c) => (!b || lossAt(c.step) < lossAt(b.step) ? c : b), undefined)
   const toggle = (step: number, on: boolean) => setPicked((p) => (on ? [...p, step] : p.filter((s) => s !== step)))

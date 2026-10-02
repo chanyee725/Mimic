@@ -1,13 +1,11 @@
-import { useState } from "react"
-
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { POLICY_BASE } from "@/dummy/training"
+import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { cn } from "@/lib/utils"
 
-import { PARAM_GROUPS, overrideFlags, type Overrides, type Param, type ParamValue } from "./params"
+import { PARAM_GROUPS, overrideFlags, trainCommand, type Overrides, type Param, type ParamValue } from "../lib"
 
 function ParamField({ param, value, onChange }: { param: Param; value: ParamValue; onChange: (v: ParamValue) => void }) {
   const changed = value !== param.default
@@ -43,7 +41,7 @@ function ParamField({ param, value, onChange }: { param: Param; value: ParamValu
   )
 }
 
-/** 학습 파라미터 모달. 바꾼 값만 overrides 로 돌려준다 */
+/** Training parameters dialog. Returns only changed values as overrides */
 export function ParamsDialog({
   open,
   onOpenChange,
@@ -55,13 +53,8 @@ export function ParamsDialog({
   overrides: Overrides
   onSave: (o: Overrides) => void
 }) {
-  // 열 때마다 저장된 값에서 시작한다
-  const [draft, setDraft] = useState<Overrides>(overrides)
-  const [lastOpen, setLastOpen] = useState(open)
-  if (open !== lastOpen) {
-    setLastOpen(open)
-    if (open) setDraft(overrides)
-  }
+  // Start from the saved values each time it opens
+  const [draft, setDraft] = useDraftOnOpen<Overrides>(open, overrides)
 
   const valueOf = (p: Param) => (p.key in draft ? draft[p.key] : p.default)
   const flags = overrideFlags(draft)
@@ -90,7 +83,7 @@ export function ParamsDialog({
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Command</span>
           <pre className="max-h-24 overflow-auto rounded-md bg-muted p-2.5 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap">
-            {["lerobot-train", `--policy.path=${POLICY_BASE}`, "--dataset.repo_id=<dataset>", ...flags].join(" \\\n  ")}
+            {trainCommand("<dataset>", flags)}
           </pre>
         </div>
 
