@@ -166,3 +166,14 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/*
+ * Softer focus for form fields. Kept here (unlayered, so it wins over Tailwind utilities)
+ * instead of editing the shadcn files in components/ui.
+ */
+[data-slot="input"]:focus-visible,
+[data-slot="textarea"]:focus-visible,
+[data-slot="select-trigger"]:focus-visible {
+  border-color: color-mix(in oklab, var(--foreground) 25%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--foreground) 5%, transparent);
+}
