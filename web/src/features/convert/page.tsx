@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Page, Panel } from "@/components/layout/page-layout"
 import { getRig } from "@/dummy/rigs"
 import { TASKS, getTask } from "@/dummy/tasks"
-import { useRecordings } from "@/lib/recordings-store"
+import { useRecordings } from "@/api/recordings"
 
 import { ConvertSummary } from "./components/convert-summary"
 import { EpisodePickerDialog } from "./components/episode-picker-dialog"

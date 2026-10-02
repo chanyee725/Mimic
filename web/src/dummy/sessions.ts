@@ -1,16 +1,4 @@
-export type SessionStatus = "recording" | "review" | "converted"
-
-export type Session = {
-  id: string
-  taskId: string
-  operator: string // pseudonymous ID
-  episodes: number
-  accepted: number
-  successPct: number
-  failPct: number
-  status: SessionStatus
-  date: string
-}
+import type { Session } from "@/domain/session"
 
 export const SESSIONS: Session[] = [
   {
@@ -80,3 +68,6 @@ export const SESSIONS: Session[] = [
     date: "2026-09-27",
   },
 ]
+
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { SessionStatus, Session } from "@/domain/session"

@@ -1,25 +1,6 @@
+import type { Model } from "@/domain/model"
 // Mock saved models: checkpoints picked from jobs (one lerobot checkpoint folder = one model).
 // For real: scan the models folder and check uploads through the HF Hub API.
-
-export type ModelEval = { at: string; trials: number; success: number; instruction: string }
-
-export type Model = {
-  id: string
-  name: string
-  taskId: string
-  dataset: string
-  jobId: string
-  step: number
-  /** Smoothed train loss when saved */
-  loss: number
-  sizeMB: number
-  savedAt: string
-  /** Folder on this station */
-  localPath?: string
-  /** HF Hub repository (private) */
-  hubRepo?: string
-  evals: ModelEval[]
-}
 
 const dir = (task: string, job: string, step: number) => `~/vla/models/${task}/${job}-${String(step).padStart(6, "0")}`
 
@@ -84,12 +65,6 @@ export const MODELS: Model[] = [
 
 export const getModel = (id: string) => MODELS.find((m) => m.id === id)
 
-/** Success rate (0–1) over all saved evaluations, undefined if none */
-export function successRate(m: Model) {
-  const trials = m.evals.reduce((a, e) => a + e.trials, 0)
-  return trials ? m.evals.reduce((a, e) => a + e.success, 0) / trials : undefined
-}
-
 /** Layout of a lerobot checkpoint folder */
 export const MODEL_FILES = [
   { path: "pretrained_model/model.safetensors", sizeMB: 1790 },
@@ -98,3 +73,7 @@ export const MODEL_FILES = [
   { path: "training_state/optimizer_state.safetensors", sizeMB: 58 },
   { path: "training_state/training_step.json", sizeMB: 0.01 },
 ]
+
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { ModelEval, Model } from "@/domain/model"
+export { successRate } from "@/domain/model"

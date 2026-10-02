@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/common/empty-state"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { TaskPicker } from "@/components/pickers/task-picker"
 import { getTask, TASKS } from "@/dummy/tasks"
-import { deleteRecording, useRecordings } from "@/lib/recordings-store"
+import { deleteRecording, useRecordings } from "@/api/recordings"
 
 import { DeleteRecordingDialog } from "./components/delete-recording-dialog"
 import { EpisodeList } from "./components/episode-list"

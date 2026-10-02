@@ -1,40 +1,8 @@
+import type { McapTopic, RecordingReview, Recording } from "@/domain/recording"
 // Mock raw MCAP files saved by Capture (one episode per file) plus externally imported MCAP files.
 // Our recordings carry task / rig metadata, so the conversion mapping is filled in automatically.
 
 import type { Outcome } from "@/dummy/tasks"
-
-export type TopicKind = "action" | "state" | "video" | "label" | "glove" | "other"
-
-export type McapTopic = {
-  name: string
-  schema: string // protobuf message type
-  kind: TopicKind
-  rateHz: number | null // null = event-based
-  messages: number
-}
-
-export type RecordingReview = "pending" | "accepted" | "rejected"
-
-export type RecordingCheck = { label: string; value: string; ok: boolean }
-
-export type Recording = {
-  id: string
-  file: string
-  source: "capture" | "external"
-  taskId?: string // capture files only
-  rigId?: string
-  episode?: number
-  recordedAt: string
-  durationS: number
-  sizeMB: number
-  outcome?: Outcome
-  review: RecordingReview
-  topics: McapTopic[]
-  subtasks: { name: string; startS: number; endS: number }[]
-  /** Times (s) where video frames were dropped */
-  drops: number[]
-  checks: RecordingCheck[]
-}
 
 const pad = (n: number, w = 4) => String(n).padStart(w, "0")
 
@@ -150,3 +118,6 @@ export const RECORDINGS: Recording[] = [
     ],
   },
 ]
+
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { TopicKind, McapTopic, RecordingReview, RecordingCheck, Recording } from "@/domain/recording"

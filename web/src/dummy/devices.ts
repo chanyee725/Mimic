@@ -1,26 +1,5 @@
+import type { DeviceType, Health, Device } from "@/domain/device"
 import { getRig, rigGroups } from "@/dummy/rigs"
-
-export type DeviceType = "robot" | "teleop" | "camera" | "glove" | "input"
-export type Health = "ok" | "warn" | "off"
-
-export type DeviceStream = {
-  key: string
-  shape: string
-  targetHz: number | null // null = event-based
-  measuredHz: number | null
-  unit: "Hz" | "fps"
-}
-
-export type Device = {
-  id: string
-  name: string
-  type: DeviceType
-  port: string
-  health: Health
-  calibration: { done: boolean; note: string }
-  streams: DeviceStream[]
-  stats: { label: string; value: string }[]
-}
 
 export const DEVICES: Device[] = [
   {
@@ -130,3 +109,6 @@ export function devicesOf(rigId: string): Device[] {
 }
 
 export const STATION_WARNINGS = ["Wrist camera 28.7 fps (target 30)", "Follower wrist_roll motor 52°C"]
+
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { DeviceType, Health, DeviceStream, Device } from "@/domain/device"
