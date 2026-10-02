@@ -1,7 +1,7 @@
 import { ProgressRing } from "@/components/app/progress-ring"
 import type { Task } from "@/dummy/tasks"
 
-/** 이번 세션에서 저장한 에피소드까지 포함한 수집 진행도 */
+/** Collection progress, including episodes saved in this session */
 export function TaskProgress({ task, collected }: { task: Task; collected: number }) {
   const pct = Math.min(100, Math.round((collected / task.targetEpisodes) * 100))
   return (

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 import { FILTERS, latestFirst, OUTCOME_TONE, PAGE_SIZE, REVIEW_CLASS, shortName, type ReviewFilter } from "../lib"
 
-/** 선택한 Task 의 에피소드 목록. 검수 상태로 거르고 10 개씩 넘겨 본다 */
+/** Episode list for the selected task, filtered by review status and paged 10 at a time */
 export function EpisodeList({
   recordings,
   selectedId,
@@ -26,7 +26,7 @@ export function EpisodeList({
   const [page, setPage] = useState(0)
 
   const count = (f: ReviewFilter) => (f === "all" ? recordings.length : recordings.filter((r) => r.review === f).length)
-  // 최근 에피소드가 위로
+  // Most recent episodes on top
   const visible = latestFirst(recordings.filter((r) => filter === "all" || r.review === filter))
   const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
   const current = Math.min(page, pages - 1)
@@ -45,7 +45,7 @@ export function EpisodeList({
           {FILTERS.map((f) => (
             <TabsTrigger key={f.value} value={f.value} className="min-w-0 gap-1 px-1 text-xs">
               <span className="truncate">{f.label}</span>
-              {/* 좁은 패널에서는 개수를 숨겨 라벨이 겹치지 않게 한다 */}
+              {/* Hide counts in narrow panels so labels do not overlap */}
               <span className="hidden text-muted-foreground tabular-nums @[19rem]:inline">{count(f.value)}</span>
             </TabsTrigger>
           ))}

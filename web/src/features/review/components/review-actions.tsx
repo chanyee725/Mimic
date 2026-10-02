@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 import { REVIEW_TONE } from "../lib"
 
-/** 선택한 에피소드의 자동 검증 결과와 승인 · 거절 · 삭제 버튼 */
+/** Validation results of the selected episode with accept, reject and delete buttons */
 export function ReviewActions({ recording, onDelete }: { recording: Recording; onDelete: () => void }) {
   return (
     <div className="grid shrink-0 gap-3 border-t pt-4">

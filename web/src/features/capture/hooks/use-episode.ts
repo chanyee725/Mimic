@@ -5,8 +5,8 @@ import type { Outcome } from "@/dummy/tasks"
 import { measureEpisode, recentEpisodes, type CapturedEpisode, type Phase, type Review } from "../lib"
 
 /**
- * 에피소드 상태 머신: idle → recording → review → (save | re-record | discard)
- * 실제 구현에서는 각 전이를 백엔드 EpisodeService 호출로 바꾼다.
+ * Episode state machine: idle → recording → review → (save | re-record | discard)
+ * In the real implementation each transition becomes a backend EpisodeService call.
  */
 type Options = {
   durationS: number
@@ -22,18 +22,18 @@ export function useEpisode({ durationS, startEpisode, subtasksTotal, actionHz, v
   const [elapsedMs, setElapsedMs] = useState(0)
   const [subtask, setSubtask] = useState(0)
   const [lastOutcome, setLastOutcome] = useState<Outcome | null>(null)
-  // 저장된 에피소드 (최신이 앞). 저장 시 자동 검증 결과가 붙는다
+  // Saved episodes (newest first). Validation results are attached on save
   const [history, setHistory] = useState<CapturedEpisode[]>(() =>
     recentEpisodes(startEpisode, durationS, subtasksTotal, actionHz, videoFps),
   )
 
-  // Task 가 바뀌면 번호와 최근 에피소드를 그 Task 기준으로 다시 채운다
+  // When the task changes, reset the episode number and recent episodes for that task
   useEffect(() => {
     setEpisode(startEpisode)
     setHistory(recentEpisodes(startEpisode, durationS, subtasksTotal, actionHz, videoFps))
   }, [startEpisode, durationS, subtasksTotal, actionHz, videoFps])
 
-  // 재개 시점 계산용. 타이머 effect 보다 먼저 선언해 같은 커밋에서 최신 값을 읽게 한다
+  // Used to compute the resume point. Declared before the timer effect so it holds the latest value in the same commit
   const elapsedRef = useRef(elapsedMs)
   useEffect(() => {
     elapsedRef.current = elapsedMs

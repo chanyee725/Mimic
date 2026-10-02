@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-/** MCAP 삭제 확인 */
+/** Confirm MCAP deletion */
 export function DeleteRecordingDialog({
   open,
   onOpenChange,

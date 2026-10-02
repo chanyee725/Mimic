@@ -7,7 +7,7 @@ import { EpisodeControls } from "./episode-controls"
 import { RecordingStatus } from "./recording-status"
 import { TaskProgress } from "./task-progress"
 
-/** 우측 패널: 진행도 · Task 정보 · 녹화 상태 · 조작 */
+/** Right panel: progress, task info, recording status and controls */
 export function ControlPanel({ task, ep, onSelectTask }: { task: Task; ep: EpisodeState; onSelectTask: (id: string) => void }) {
   return (
     <Panel className="gap-5 overflow-y-auto">

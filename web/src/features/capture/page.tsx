@@ -28,7 +28,7 @@ export function CapturePage() {
 
   const cameras = devicesOf(rig.id).filter((d) => d.type === "camera")
 
-  // 작업자는 양손으로 leader 암을 잡고 있으므로 키보드 / 풋 페달 입력이 기본
+  // The operator holds the leader arm with both hands, so keyboard / foot pedal input is the default
   useHotkeys((e) => {
     if (e.code === "Space") {
       toggle()
@@ -54,17 +54,17 @@ export function CapturePage() {
       title="Capture"
       description={`${rig.name}: ${rig.master} drives ${rig.slave}. Action ${task.actionHz} Hz, video ${task.videoFps} fps.`}
     >
-      {/* Live — 좌 7 : 우 3. 좌측은 카메라 2대를 크게, 아래에 Action / Observation 그래프 */}
+      {/* Live: 7 : 3 split. Left shows both cameras large with action / observation plots below */}
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
-          {/* 카메라가 남은 높이를 채우고, 그래프는 고정 높이 */}
+          {/* Cameras fill the remaining height; plots have a fixed height */}
           <CameraGrid
             cameras={cameras}
             recording={recording}
             timecode={recording ? formatTimecode(ep.elapsedMs, task.videoFps) : undefined}
           />
 
-          {/* Rerun time series 처럼 joint 별 플롯. 바깥 패널 없이 플롯 칸에만 테두리 */}
+          {/* Per-joint plots like Rerun time series. No outer panel, only plot cells are bordered */}
           <JointPlots joints={rig.joints} hz={task.actionHz} actionSource={rig.master} stateSource={rig.slave} className="h-64 shrink-0" />
         </div>
 

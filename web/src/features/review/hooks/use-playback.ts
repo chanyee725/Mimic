@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { Speed } from "../lib"
 
 /**
- * 재생 상태: rAF 로 시간을 진행시키되 React 갱신은 약 30 fps 로 제한한다.
- * 그래프는 playhead() 로 timeRef 를 직접 읽어 매 프레임 그린다.
+ * Playback state: advances time with rAF but limits React updates to about 30 fps.
+ * Plots read timeRef directly via playhead() and redraw every frame.
  */
 export function usePlayback(dur: number) {
   const [time, setTime] = useState(0)

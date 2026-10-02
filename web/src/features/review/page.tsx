@@ -49,11 +49,11 @@ export function ReviewPage() {
         </Button>
       }
     >
-      {/* Capture 와 같은 배치: 좌 7 재생 · 우 3 Task / 목록 / 검수 */}
+      {/* Same layout as Capture: playback on the left 7, task / list / review on the right 3 */}
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-[28rem] min-w-0 flex-col">
           {selected ? (
-            // key 로 파일이 바뀔 때마다 재생 위치를 처음으로 되돌린다
+            // Keyed so playback restarts from the beginning whenever the file changes
             <McapPlayer key={selected.id} recording={selected} className="min-h-0 flex-1" />
           ) : (
             <EmptyState className="grid flex-1 place-items-center rounded-lg py-0 text-sm">

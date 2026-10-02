@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 import { PHASE, type Phase } from "../lib"
 
-/** 녹화 단계 배지 · 경과 막대 · 에피소드 번호와 시간 */
+/** Phase badge, elapsed bar, episode number and time */
 export function RecordingStatus({
   task,
   phase,
@@ -31,7 +31,7 @@ export function RecordingStatus({
           {PHASE[phase].label}
         </span>
       </span>
-      {/* 100 ms 마다 갱신되므로 막대는 transition 으로 부드럽게, 끝은 각지게 */}
+      {/* Updated every 100 ms, so the bar animates its width and keeps a square end */}
       <ProgressBar
         value={pct}
         label="Episode elapsed"

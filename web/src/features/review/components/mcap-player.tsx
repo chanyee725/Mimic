@@ -16,8 +16,8 @@ import { SpeedToggle } from "./speed-toggle"
 import { StreamList } from "./stream-list"
 
 /**
- * 저장된 MCAP 에피소드 재생.
- * 호출하는 쪽에서 recording id 로 key 를 주어 파일이 바뀌면 재생 위치를 처음으로 되돌린다.
+ * Plays back a saved MCAP episode.
+ * Callers key it by recording id so playback restarts when the file changes.
  */
 export function McapPlayer({ recording, className }: { recording: Recording; className?: string }) {
   const dur = recording.durationS
@@ -30,7 +30,7 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
   const actionHz = recording.topics.find((t) => t.kind === "action")?.rateHz ?? 60
 
   return (
-    // 플레이어에 포커스가 있을 때만 Space 로 재생/정지 (전역 단축키 없음)
+    // Space toggles play / pause only while the player has focus (no global hotkey)
     <div
       tabIndex={-1}
       onKeyDown={(e) => {
@@ -42,7 +42,7 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
       }}
       className={cn("flex min-h-0 flex-col gap-4 outline-none", className)}
     >
-      {/* Capture 와 같은 카메라 타일 · 관절 그래프 컴포넌트를 쓴다 */}
+      {/* Uses the same camera tile and joint plot components as Capture */}
       <div className={cn("grid min-h-48 flex-1 gap-3", videos.length > 1 ? "md:grid-cols-2" : "grid-cols-1")}>
         {videos.map((v) => (
           <VideoTile
@@ -78,7 +78,7 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
         </div>
       )}
 
-      {/* 재생 바: 상자 없이 그래프 바로 아래에 하단 고정 */}
+      {/* Transport bar: no box, pinned right below the plots */}
       <div className="-mt-2 flex shrink-0 items-center gap-3">
         <Button
           variant="outline"

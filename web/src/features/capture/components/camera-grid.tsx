@@ -1,7 +1,7 @@
 import { VideoTile } from "@/components/robot/video-tile"
 import type { Device } from "@/dummy/devices"
 
-/** 카메라 타일 2열. 남은 높이를 채운다 */
+/** Two-column camera tiles that fill the remaining height */
 export function CameraGrid({ cameras, recording, timecode }: { cameras: Device[]; recording: boolean; timecode?: string }) {
   return (
     <div className="grid min-h-48 flex-1 gap-3 md:grid-cols-2">

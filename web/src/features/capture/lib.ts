@@ -1,6 +1,6 @@
 import type { Outcome } from "@/dummy/tasks"
 
-/** 에피소드 상태 머신의 단계 */
+/** Phase of the episode state machine */
 export type Phase = "idle" | "recording" | "review"
 
 export const PHASE: Record<Phase, { label: string; className: string }> = {
@@ -11,7 +11,7 @@ export const PHASE: Record<Phase, { label: string; className: string }> = {
 
 export type Review = "pending" | "accepted" | "rejected"
 
-/** 저장된 에피소드 한 건. 저장 직후 자동 검증 결과를 함께 가진다 */
+/** A saved episode, carrying the automatic validation results computed on save */
 export type CapturedEpisode = {
   index: number
   lengthS: number
@@ -28,7 +28,7 @@ export type CapturedEpisode = {
 
 type Check = { label: string; value: string; ok: boolean }
 
-/** 자동 검증 항목. 타임스탬프 간격은 프레임 주기의 1.5배를 허용 범위로 본다 */
+/** Automatic checks. Timestamp gaps up to 1.5x the frame period are tolerated */
 function checksOf(e: CapturedEpisode, videoFps: number): Check[] {
   const tolerance = (1000 / videoFps) * 1.5
   return [
@@ -48,8 +48,8 @@ function checksOf(e: CapturedEpisode, videoFps: number): Check[] {
 }
 
 /**
- * 녹화 결과를 흉내 낸 더미 측정값. 실제로는 백엔드 검증 결과를 받는다.
- * 에피소드 번호 기준으로 가끔 프레임 드랍을 섞는다.
+ * Dummy measurements mimicking a recording. The real app gets these from backend validation.
+ * Mixes in occasional frame drops based on the episode index.
  */
 export function measureEpisode(args: {
   index: number
@@ -75,7 +75,7 @@ export function measureEpisode(args: {
   }
 }
 
-/** 화면 진입 시 보여줄 최근 에피소드 더미 */
+/** Dummy recent episodes shown when the page opens */
 export function recentEpisodes(nextIndex: number, durationS: number, subtasksTotal: number, actionHz: number, videoFps: number) {
   const outcomes: Outcome[] = ["success", "success", "fail", "success"]
   return outcomes
@@ -90,7 +90,7 @@ export function recentEpisodes(nextIndex: number, durationS: number, subtasksTot
         actionHz,
         videoFps,
       })
-      // 오래된 것 중 검증을 통과한 에피소드만 승인된 상태로 둔다
+      // Only older episodes that pass validation start out accepted
       const valid = checksOf(e, videoFps).every((c) => c.ok)
       return { ...e, review: k < 2 && valid ? ("accepted" as const) : ("pending" as const) }
     })

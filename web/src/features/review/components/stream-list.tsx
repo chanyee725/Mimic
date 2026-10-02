@@ -1,6 +1,6 @@
 import type { McapTopic } from "@/dummy/recordings"
 
-/** 영상 · 관절 외 토픽 표 (관절 그래프를 그릴 수 없을 때) */
+/** Table of non-video topics (shown when there are no joint plots) */
 export function StreamList({ topics }: { topics: McapTopic[] }) {
   return (
     <div className="min-h-0 overflow-y-auto rounded-md border">

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 
 import { SPEEDS, type Speed } from "../lib"
 
-/** 재생 배속 선택 */
+/** Playback speed picker */
 export function SpeedToggle({ value, onChange }: { value: Speed; onChange: (s: Speed) => void }) {
   return (
     <div className="flex shrink-0 rounded-md border p-0.5" role="group" aria-label="Playback speed">

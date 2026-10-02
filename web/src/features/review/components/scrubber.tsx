@@ -2,7 +2,7 @@ import { useRef } from "react"
 
 import { formatClock } from "@/lib/format"
 
-/** 재생 위치 탐색 바 */
+/** Playback position scrubber */
 export function Scrubber({ duration: dur, time, onSeek }: { duration: number; time: number; onSeek: (t: number) => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
