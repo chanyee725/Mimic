@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { LuCircle, LuPlus, LuSearch, LuUpload } from "react-icons/lu"
 
-import { Page, Panel, PanelLink } from "@/components/app/page"
+import { Page, Panel } from "@/components/app/page"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -109,108 +109,64 @@ function TaskList({ selectedId }: { selectedId: string }) {
   )
 }
 
-function SessionsTable({ taskId }: { taskId: string }) {
-  const rows = SESSIONS.filter((s) => s.taskId === taskId)
-  if (rows.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">No sessions yet.</p>
-  }
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-muted-foreground">
-            <th className="py-2.5 pr-4 font-medium">Session</th>
-            <th className="px-4 py-2.5 font-medium">Operator</th>
-            <th className="px-4 py-2.5 text-right font-medium">Episodes</th>
-            <th className="px-4 py-2.5 text-right font-medium">Accepted</th>
-            <th className="px-4 py-2.5 text-right font-medium">Success</th>
-            <th className="py-2.5 pl-4 font-medium">Date</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rows.map((s) => (
-            <tr key={s.id} className="transition-colors hover:bg-muted/50">
-              <td className="py-2.5 pr-4">
-                <Link to={`/sessions?task=${taskId}`} className="font-mono text-[13px] underline-offset-4 hover:underline">
-                  {s.id}
-                </Link>
-              </td>
-              <td className="px-4 py-2.5">{s.operator}</td>
-              <td className="px-4 py-2.5 text-right font-mono">{s.episodes}</td>
-              <td className="px-4 py-2.5 text-right font-mono">{s.accepted}</td>
-              <td className="px-4 py-2.5 text-right font-mono">{s.successPct}%</td>
-              <td className="py-2.5 pl-4 text-muted-foreground">{s.date}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
 /** 선택된 Task 의 편집 상태. 부모에서 task id 로 key 를 걸어 Task 전환 시 초기화된다. */
 function TaskDetail({ initial }: { initial: Task }) {
   const [task, setTask] = useState<Task>(initial)
   const [tab, setTab] = useState("definition")
   const yaml = useMemo(() => taskToYaml(task), [task])
-  const sessionCount = SESSIONS.filter((s) => s.taskId === task.id).length
   const status = STATUS[task.status]
 
   return (
-    <Panel className="gap-4">
-      <div className="flex flex-wrap items-start gap-3">
-        {/* 제목이 버튼에 눌리지 않도록 최소 폭을 두고, 좁으면 버튼이 다음 줄로 내려간다 */}
-        <div className="grid min-w-64 flex-1 gap-1">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="truncate font-mono text-lg font-semibold">{task.id}</h2>
-            <StatusDot tone={status.tone} className="text-[13px]">
+    <Panel className="@container min-w-0 gap-4">
+      {/* 제목 · 메타는 왼쪽, 액션은 오른쪽 위 한 줄. 폭이 모자라면 제목이 말줄임된다 */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="grid min-w-0 flex-1 gap-1">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <h2 className="min-w-0 truncate text-lg font-semibold">{task.id}</h2>
+            {/* 패널이 좁으면 제목이 잘리지 않도록 상태·배지를 먼저 숨긴다 */}
+            <StatusDot tone={status.tone} className="hidden shrink-0 text-[13px] @lg:inline-flex">
               {status.label}
             </StatusDot>
-            <Badge variant="outline">SO-101</Badge>
+            <Badge variant="outline" className="hidden shrink-0 @2xl:inline-flex">
+              SO-101
+            </Badge>
           </div>
-          <span className="text-[13px] whitespace-nowrap text-muted-foreground">
-            <span className="font-mono">v{task.version}</span> · updated {task.updatedAt} by{" "}
-            <span className="font-mono">{task.updatedBy}</span>
+          <span className="truncate text-[13px] text-muted-foreground tabular-nums">
+            v{task.version} · updated {task.updatedAt} by {task.updatedBy}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline">
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button variant="ghost" size="icon-sm" aria-label="Import YAML" title="Import YAML" className="text-muted-foreground">
             <LuUpload />
-            Import YAML
           </Button>
-          <Button variant="outline">Duplicate</Button>
-          <Button variant="outline">Save</Button>
-          <Link to="/capture" className={buttonVariants()}>
-            <LuCircle className="size-3 fill-current" />
+          <Button variant="outline" size="sm">
+            Duplicate
+          </Button>
+          <Button variant="outline" size="sm">
+            Save
+          </Button>
+          <Link to="/capture" className={buttonVariants({ size: "sm" })}>
+            <LuCircle className="size-2.5 fill-current" />
             Start capture
           </Link>
         </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(String(v))} className="min-h-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <TabsList>
-            <TabsTrigger value="definition" className="px-3">
-              Definition
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="px-3">
-              Sessions ({sessionCount})
-            </TabsTrigger>
-            <TabsTrigger value="yaml" className="px-3">
-              YAML
-            </TabsTrigger>
-          </TabsList>
-          {tab === "sessions" && <PanelLink to={`/sessions?task=${task.id}`}>Open in Sessions</PanelLink>}
-        </div>
-        {/* 탭 내용만 패널 안에서 스크롤 */}
-        <TabsContent value="definition" className="min-h-0 flex-1 overflow-y-auto">
+        <TabsList>
+          <TabsTrigger value="definition" className="px-3">
+            Definition
+          </TabsTrigger>
+          <TabsTrigger value="yaml" className="px-3">
+            YAML
+          </TabsTrigger>
+        </TabsList>
+        {/* 탭 내용만 세로로 스크롤. 가로는 패널 폭에 맞춰 넘치지 않게 한다 */}
+        <TabsContent value="definition" className="@container min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           <TaskDefinition task={task} onChange={(patch) => setTask((t) => ({ ...t, ...patch }))} />
         </TabsContent>
-        <TabsContent value="sessions" className="min-h-0 flex-1 overflow-y-auto">
-          <SessionsTable taskId={task.id} />
-        </TabsContent>
-        <TabsContent value="yaml" className="min-h-0 flex-1 overflow-y-auto">
-          <pre className="overflow-x-auto rounded-md bg-muted p-4 font-mono text-xs leading-relaxed">{yaml}</pre>
+        <TabsContent value="yaml" className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <pre className="rounded-md bg-muted p-4 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">{yaml}</pre>
         </TabsContent>
       </Tabs>
     </Panel>
