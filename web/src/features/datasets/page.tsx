@@ -14,6 +14,7 @@ import {
 } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
+import { HfBadge } from "@/components/app/hf-badge"
 import { StatStrip } from "@/components/app/stat-strip"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -114,6 +115,7 @@ function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: 
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className={cn("size-1.5 shrink-0 rounded-full", KIND_DOT[d.kind])} aria-hidden />
                     <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{d.repoId}</span>
+                    {d.hub.pushed && <HfBadge />}
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground tabular-nums">
                     {KIND_LABEL[d.kind]},{" "}
@@ -144,14 +146,15 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
   return (
     <Panel className="min-h-0 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-64 flex-1 basis-0 items-center gap-4">
           <DatasetThumb taskId={dataset.taskId} className="w-32" />
           <div className="grid min-w-0 gap-1">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <h2 className="truncate text-lg font-semibold">{dataset.repoId}</h2>
+            <h2 className="truncate text-lg font-semibold">{dataset.repoId}</h2>
+            <div className="flex items-center gap-2">
               <StatusDot tone={status.tone} className="shrink-0 text-[13px]">
                 {status.label}
               </StatusDot>
+              {dataset.hub.pushed && <HfBadge title={dataset.hub.private ? "On HF Hub (private)" : "On HF Hub"} />}
             </div>
             <p className="truncate text-[13px] text-muted-foreground">{task?.instruction ?? dataset.taskId}</p>
             <p className="truncate text-xs text-muted-foreground">
