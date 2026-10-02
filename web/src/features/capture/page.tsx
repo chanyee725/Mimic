@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { LuCircle, LuOctagonX, LuSquare } from "react-icons/lu"
 
 import { Page, Panel, PanelLink } from "@/components/app/page"
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DEVICES, type DeviceStream } from "@/dummy/devices"
+import { devicesOf, type DeviceStream } from "@/dummy/devices"
 import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
@@ -49,18 +49,15 @@ export function CapturePage() {
   const ep = useEpisode({ durationS: task.durationS, startEpisode: task.collected + 1 })
   const { phase, toggle, save, start, discard, setSubtask } = ep
 
-  const cameras = DEVICES.filter((d) => d.type === "camera")
-  const glove = DEVICES.find((d) => d.type === "glove")
-  const pedal = DEVICES.find((d) => d.type === "input")
+  const rigDevices = devicesOf(rig.id)
+  const cameras = rigDevices.filter((d) => d.type === "camera")
+  const glove = rigDevices.find((d) => d.type === "glove")
+  const pedal = rigDevices.find((d) => d.type === "input")
   const gloveOn = gloveDemo || glove?.health === "ok"
 
-  const streams = useMemo(
-    () =>
-      DEVICES.filter((d) => d.type !== "input" && (d.type !== "glove" || gloveOn)).flatMap((d) =>
-        d.streams.map((s) => ({ ...s, key: s.key.replace(/^(images|hand)\./, "") })),
-      ),
-    [gloveOn],
-  )
+  const streams = rigDevices
+    .filter((d) => d.type !== "input" && (d.type !== "glove" || gloveOn))
+    .flatMap((d) => d.streams.map((s) => ({ ...s, key: s.key.replace(/^(images|hand)\./, "") })))
 
   // 작업자는 양손으로 leader 암을 잡고 있으므로 키보드 / 풋 페달 입력이 기본
   useEffect(() => {
