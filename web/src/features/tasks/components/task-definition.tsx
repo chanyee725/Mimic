@@ -1,82 +1,21 @@
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { getRig, rigDefaults, RIGS } from "@/dummy/rigs"
 import type { Task } from "@/dummy/tasks"
+
+import { rateOptions } from "../lib"
+import { Field } from "./field"
+import { Info } from "./info"
+import { SimpleSelect } from "./simple-select"
+import { UnitInput } from "./unit-input"
 
 type Props = {
   task: Task
   onChange: (patch: Partial<Task>) => void
 }
-
-function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={htmlFor} className="text-[13px]">
-        {label}
-      </Label>
-      {children}
-    </div>
-  )
-}
-
-function UnitInput({ id, value, unit, onChange }: { id: string; value: number; unit: string; onChange?: (v: number) => void }) {
-  return (
-    <div className="flex h-9 items-center overflow-hidden rounded-md border border-input transition-colors focus-within:border-foreground/25 focus-within:ring-2 focus-within:ring-foreground/5">
-      <input
-        id={id}
-        type="number"
-        min={0}
-        value={value}
-        onChange={(e) => onChange?.(Number(e.target.value))}
-        className="h-full min-w-0 flex-1 bg-transparent px-2.5 font-mono text-[13px] outline-none"
-      />
-      <span className="px-2.5 text-xs text-muted-foreground">{unit}</span>
-    </div>
-  )
-}
-
-function SimpleSelect({
-  id,
-  value,
-  options,
-  onChange,
-}: {
-  id: string
-  value: string
-  options: { value: string; label: string }[]
-  onChange: (v: string) => void
-}) {
-  return (
-    <Select value={value} onValueChange={(v) => v && onChange(v as string)}>
-      <SelectTrigger id={id} className="h-9 w-full">
-        <SelectValue>{options.find((o) => o.value === value)?.label}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
-
-/** Rig 에서 불러온 읽기 전용 값 */
-function Info({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid min-w-0 gap-0.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="truncate text-[13px]">{children}</span>
-    </div>
-  )
-}
-
-const rateOptions = (xs: number[], unit: string) => xs.map((x) => ({ value: String(x), label: `${x} ${unit}` }))
 
 export function TaskDefinition({ task, onChange }: Props) {
   const rig = getRig(task.rigId)
