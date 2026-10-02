@@ -36,12 +36,22 @@ function autoFeature(t: McapTopic, rec: Recording): string {
 }
 
 /** 승인된 에피소드 길이 막대. 막대를 누르면 변환 대상에서 빼거나 다시 넣는다 */
-function EpisodeStrip({ episodes, excluded, onToggle }: { episodes: Recording[]; excluded: string[]; onToggle: (id: string) => void }) {
-  if (episodes.length === 0) return <div className="min-h-24 flex-1 rounded-md border border-dashed" />
+function EpisodeStrip({
+  episodes,
+  excluded,
+  onToggle,
+  summary,
+}: {
+  episodes: Recording[]
+  excluded: string[]
+  onToggle: (id: string) => void
+  summary: string
+}) {
+  if (episodes.length === 0) return <div className="min-h-16 flex-1 rounded-md border border-dashed" />
   const max = Math.max(...episodes.map((r) => r.durationS))
   const name = (r: Recording) => r.file.split("/").pop()!.replace(".mcap", "")
   return (
-    <div className="flex min-h-28 flex-1 flex-col gap-1.5">
+    <div className="flex min-h-16 flex-1 flex-col gap-1.5">
       <div className="relative flex min-h-0 flex-1 items-end justify-between gap-1 border-b" role="group" aria-label="Episode lengths">
         {/* 25% 간격 보조선 */}
         {[25, 50, 75, 100].map((y) => (
@@ -72,7 +82,7 @@ function EpisodeStrip({ episodes, excluded, onToggle }: { episodes: Recording[];
       </div>
       <div className="flex justify-between text-[11px] text-muted-foreground tabular-nums">
         <span>{name(episodes[0])}</span>
-        <span>longest {max.toFixed(1)} s</span>
+        <span className="text-foreground">{summary}</span>
         <span>{name(episodes[episodes.length - 1])}</span>
       </div>
     </div>
@@ -126,86 +136,69 @@ export function ConvertPage() {
   ].join("\n")
 
   return (
-    <Page
-      fit
-      title="Convert"
-      description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다."
-      actions={
-        <Button size="lg" disabled={targets.length === 0 || !repoId.trim()}>
-          <LuPlay />
-          Convert {targets.length} {targets.length === 1 ? "episode" : "episodes"}
-        </Button>
-      }
-    >
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        {/* ── 왼쪽: 무엇을 변환하나 (Task · 에피소드) ── */}
-        <Panel title="Task" className="min-h-0 gap-4">
-          <Select value={taskId} onValueChange={(v) => v && changeTask(v as string)}>
-            <SelectTrigger aria-label="Task" className="h-9 w-full text-[13px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TASKS.map((t) => (
-                <SelectItem key={t.id} value={t.id} className="text-[13px]">
-                  {t.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <dl className="divide-y">
-            <div className="grid gap-1 pb-3">
-              <dt className="text-xs text-muted-foreground">Label</dt>
-              <dd className="text-[13px] leading-relaxed">{task?.instruction}</dd>
-            </div>
-            {rig && (
-              <div className="flex justify-between gap-3 py-2.5 text-[13px]">
-                <dt className="text-muted-foreground">Rig</dt>
+    <Page fit title="Convert" description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다.">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        {/* ── 왼쪽: 무엇을 어떻게 변환하나 (Task · Time alignment) ── */}
+        <section className="flex min-h-0 flex-col gap-4">
+          <Panel title="Task" className="min-h-0 flex-1 gap-3 overflow-y-auto">
+            <Select value={taskId} onValueChange={(v) => v && changeTask(v as string)}>
+              <SelectTrigger aria-label="Task" className="h-9 w-full text-[13px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TASKS.map((t) => (
+                  <SelectItem key={t.id} value={t.id} className="text-[13px]">
+                    {t.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <dl className="divide-y">
+              <div className="grid gap-1 pb-3">
+                <dt className="text-xs text-muted-foreground">Label</dt>
+                <dd className="text-[13px] leading-relaxed">{task?.instruction}</dd>
+              </div>
+              {rig && (
+                <div className="flex justify-between gap-3 py-2.5 text-[13px]">
+                  <dt className="text-muted-foreground">Rig</dt>
+                  <dd>
+                    {rig.name}, {rig.joints.length} DoF
+                  </dd>
+                </div>
+              )}
+              <div className="py-1">
+                <dt className="sr-only">Episodes</dt>
                 <dd>
-                  {rig.name}, {rig.joints.length} DoF
+                  <button
+                    type="button"
+                    disabled={accepted.length === 0}
+                    onClick={() => setPickerOpen(true)}
+                    className="-mx-2 flex w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-md px-2 py-1.5 text-[13px] transition-colors hover:bg-accent/60 disabled:pointer-events-none"
+                  >
+                    <span className="text-muted-foreground">Episodes</span>
+                    <span className="flex items-center gap-1.5 tabular-nums">
+                      {targets.length} of {accepted.length} accepted
+                      <LuChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
+                    </span>
+                  </button>
                 </dd>
               </div>
+            </dl>
+            <EpisodeStrip
+              episodes={accepted}
+              excluded={excluded}
+              onToggle={toggle}
+              summary={`${(totalS / 60).toFixed(1)} min, ${totalMB.toFixed(1)} MB`}
+            />
+            {(accepted.length === 0 || pending > 0) && (
+              <p className="text-xs text-muted-foreground">
+                {accepted.length === 0 ? "승인된 에피소드가 없습니다. " : `검수를 기다리는 에피소드가 ${pending}개 있습니다. `}
+                <Link to="/review" className="text-foreground underline underline-offset-4">
+                  Review 에서 검수하기
+                </Link>
+              </p>
             )}
-            <div className="py-1">
-              <dt className="sr-only">Episodes</dt>
-              <dd>
-                <button
-                  type="button"
-                  disabled={accepted.length === 0}
-                  onClick={() => setPickerOpen(true)}
-                  className="-mx-2 flex w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-md px-2 py-1.5 text-[13px] transition-colors hover:bg-accent/60 disabled:pointer-events-none"
-                >
-                  <span className="text-muted-foreground">Episodes</span>
-                  <span className="flex items-center gap-1.5 tabular-nums">
-                    {targets.length} of {accepted.length} accepted
-                    <LuChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
-                  </span>
-                </button>
-              </dd>
-            </div>
-          </dl>
-          <EpisodeStrip episodes={accepted} excluded={excluded} onToggle={toggle} />
-          <dl className="grid grid-cols-2 gap-3 border-t pt-3 text-[13px]">
-            <div className="grid gap-0.5">
-              <dt className="text-xs text-muted-foreground">Total length</dt>
-              <dd className="tabular-nums">{(totalS / 60).toFixed(1)} min</dd>
-            </div>
-            <div className="grid gap-0.5">
-              <dt className="text-xs text-muted-foreground">MCAP size</dt>
-              <dd className="tabular-nums">{totalMB.toFixed(1)} MB</dd>
-            </div>
-          </dl>
-          {(accepted.length === 0 || pending > 0) && (
-            <p className="text-xs text-muted-foreground">
-              {accepted.length === 0 ? "승인된 에피소드가 없습니다. " : `검수를 기다리는 에피소드가 ${pending}개 있습니다. `}
-              <Link to="/review" className="text-foreground underline underline-offset-4">
-                Review 에서 검수하기
-              </Link>
-            </p>
-          )}
-        </Panel>
-
-        {/* ── 오른쪽: 어떻게 만드나 (Time alignment · Output) ── */}
-        <section className="flex min-h-0 flex-col gap-4">
+          </Panel>
           <Panel
             title="Time alignment"
             className="shrink-0"
@@ -243,7 +236,10 @@ export function ConvertPage() {
               })}
             </ul>
           </Panel>
+        </section>
 
+        {/* ── 오른쪽: 결과 (Output · Convert) ── */}
+        <section className="flex min-h-0 flex-col gap-4">
           <Panel title="Output" className="min-h-0 flex-1">
             <div className="grid gap-1.5">
               <Label htmlFor="repo" className="text-xs font-normal text-muted-foreground">
@@ -267,6 +263,10 @@ export function ConvertPage() {
                 {preview}
               </pre>
             </div>
+            <Button size="lg" className="w-full" disabled={targets.length === 0 || !repoId.trim()}>
+              <LuPlay />
+              Convert {targets.length} {targets.length === 1 ? "episode" : "episodes"}
+            </Button>
           </Panel>
         </section>
       </div>
