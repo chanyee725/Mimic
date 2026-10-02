@@ -62,6 +62,7 @@ export function RunPodDialog({
   basePrice,
   options,
   onSave,
+  communityOk = true,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -69,6 +70,8 @@ export function RunPodDialog({
   basePrice: number
   options: RunPodOptions
   onSave: (o: RunPodOptions) => void
+  /** 고른 GPU 를 Community cloud 에서도 빌릴 수 있는지 */
+  communityOk?: boolean
 }) {
   const [draft, setDraft] = useState(options)
   const [lastOpen, setLastOpen] = useState(open)
@@ -91,15 +94,17 @@ export function RunPodDialog({
         <div className="-mx-4 min-h-0 divide-y overflow-y-auto px-4">
           <section className="py-1.5">
             <h3 className="pt-1 text-xs font-medium text-muted-foreground">Pod</h3>
-            <Row label="Cloud" hint="Community 는 개인 호스트라 더 싸지만 성능 편차가 있습니다">
+            <Row
+              label="Cloud"
+              hint={
+                communityOk ? "Community 는 개인 호스트라 더 싸지만 성능 편차가 있습니다" : `${gpu} 는 Secure cloud 에서만 빌릴 수 있습니다`
+              }
+            >
               <Segmented
                 label="Cloud"
                 value={draft.cloud}
                 onChange={(v) => set("cloud", v)}
-                options={[
-                  { id: "secure", label: "Secure" },
-                  { id: "community", label: "Community" },
-                ]}
+                options={[{ id: "secure", label: "Secure" }, ...(communityOk ? [{ id: "community" as const, label: "Community" }] : [])]}
               />
             </Row>
             <Row label="Pricing" hint="Spot 은 절반 가격이지만 중간에 회수될 수 있습니다. 마지막 checkpoint 에서 이어 학습합니다">

@@ -46,11 +46,39 @@ export const POLICY_BASE = "lerobot/smolvla_base"
 /** 이 스테이션에 꽂힌 GPU */
 export const LOCAL_GPUS = [{ id: "cuda:0", name: "RTX 4090", vram: "24 GB" }]
 
-/** RunPod 에서 빌릴 수 있는 GPU. 요금은 예시 값 */
-export const RUNPOD_GPUS = [
-  { name: "RTX 4090", vram: "24 GB", pricePerHr: 0.69 },
-  { name: "A100", vram: "80 GB", pricePerHr: 1.89 },
-  { name: "H100", vram: "80 GB", pricePerHr: 2.99 },
+export type GpuStock = "high" | "low" | "none"
+
+export type RunPodGpu = {
+  name: string
+  vramGB: number
+  /** Secure cloud on-demand 시간당 요금 (USD, 예시 값) */
+  pricePerHr: number
+  /** Community cloud 에서도 빌릴 수 있는지 */
+  community: boolean
+  stock: GpuStock
+}
+
+/** RunPod 에서 빌릴 수 있는 NVIDIA GPU (lerobot 은 CUDA 기준). 요금 · 재고는 예시 값 */
+export const RUNPOD_GPUS: RunPodGpu[] = [
+  { name: "RTX A4000", vramGB: 16, pricePerHr: 0.25, community: true, stock: "high" },
+  { name: "RTX A4500", vramGB: 20, pricePerHr: 0.34, community: true, stock: "high" },
+  { name: "RTX 3090", vramGB: 24, pricePerHr: 0.43, community: true, stock: "high" },
+  { name: "RTX A5000", vramGB: 24, pricePerHr: 0.36, community: true, stock: "high" },
+  { name: "L4", vramGB: 24, pricePerHr: 0.43, community: false, stock: "low" },
+  { name: "RTX 4090", vramGB: 24, pricePerHr: 0.69, community: true, stock: "high" },
+  { name: "RTX 5090", vramGB: 32, pricePerHr: 0.94, community: true, stock: "low" },
+  { name: "A40", vramGB: 48, pricePerHr: 0.44, community: false, stock: "high" },
+  { name: "RTX A6000", vramGB: 48, pricePerHr: 0.76, community: true, stock: "high" },
+  { name: "RTX 6000 Ada", vramGB: 48, pricePerHr: 0.77, community: true, stock: "low" },
+  { name: "L40S", vramGB: 48, pricePerHr: 0.86, community: true, stock: "high" },
+  { name: "L40", vramGB: 48, pricePerHr: 0.99, community: false, stock: "low" },
+  { name: "A100 PCIe", vramGB: 80, pricePerHr: 1.64, community: true, stock: "low" },
+  { name: "A100 SXM", vramGB: 80, pricePerHr: 1.89, community: false, stock: "high" },
+  { name: "H100 PCIe", vramGB: 80, pricePerHr: 2.39, community: true, stock: "low" },
+  { name: "H100 SXM", vramGB: 80, pricePerHr: 2.99, community: false, stock: "high" },
+  { name: "H100 NVL", vramGB: 94, pricePerHr: 2.79, community: false, stock: "low" },
+  { name: "H200 SXM", vramGB: 141, pricePerHr: 3.99, community: false, stock: "low" },
+  { name: "B200", vramGB: 180, pricePerHr: 5.99, community: false, stock: "none" },
 ]
 
 export type RunPodOptions = {
