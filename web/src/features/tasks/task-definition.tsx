@@ -1,21 +1,18 @@
 import { LuPlus } from "react-icons/lu"
 
 import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
-import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Input } from "@/components/ui/input"
-import { Kbd } from "@/components/ui/kbd"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ALIGNMENT_MODES } from "@/dummy/convert"
 import { SO101_JOINTS } from "@/dummy/robot"
-import type { Alignment, Outcome, Task } from "@/dummy/tasks"
+import type { Alignment, Task } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 
 const ROBOTS = ["SO-101 Follower", "SO-101 Bimanual"]
 const TELEOPS = ["SO-101 Leader", "Data Glove (R)", "Keyboard / Gamepad"]
-const OUTCOME_TONE: Record<Outcome, Tone> = { success: "ok", fail: "bad", partial: "warn" }
 
 type Props = {
   task: Task
@@ -99,15 +96,13 @@ const asOptions = (xs: string[]) => xs.map((x) => ({ value: x, label: x }))
 export function TaskDefinition({ task, onChange }: Props) {
   const setVariant = (i: number, v: string) =>
     onChange({ variants: task.variants.map((x, k) => (k === i ? v : x)) })
-  const setSubtask = (i: number, patch: Partial<Task["subtasks"][number]>) =>
-    onChange({ subtasks: task.subtasks.map((s, k) => (k === i ? { ...s, ...patch } : s)) })
 
   return (
     <SettingsGroup className="-mx-5 rounded-none border-x-0 border-b-0">
       <SettingsSection
         title="General"
       >
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 @md:grid-cols-2">
           <Field label="Task name" htmlFor="t-name">
             <Input id="t-name" className="h-9" value={task.name} onChange={(e) => onChange({ name: e.target.value })} />
           </Field>
@@ -158,7 +153,7 @@ export function TaskDefinition({ task, onChange }: Props) {
       <SettingsSection
         title="Robot & sensors"
       >
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 @md:grid-cols-2">
           <Field label="Robot" htmlFor="t-robot">
             <SimpleSelect id="t-robot" value={task.robot} options={asOptions(ROBOTS)} onChange={(robot) => onChange({ robot })} />
           </Field>
@@ -194,7 +189,7 @@ export function TaskDefinition({ task, onChange }: Props) {
       <SettingsSection
         title="Recording"
       >
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 @lg:grid-cols-3">
           <Field label="Action rate" htmlFor="r-action">
             <UnitInput id="r-action" value={task.actionHz} unit="Hz" locked />
           </Field>
@@ -216,66 +211,8 @@ export function TaskDefinition({ task, onChange }: Props) {
         </div>
       </SettingsSection>
 
-      <SettingsSection
-        title="Labels & success"
-      >
-        <div className="grid gap-1.5">
-          <span className="text-[13px] font-medium">Outcome</span>
-          <div className="flex flex-wrap gap-4">
-            {task.outcomes.map((o) => (
-              <StatusDot key={o.value} tone={OUTCOME_TONE[o.value]}>
-                {o.value}
-                <Kbd className="ml-1 font-mono">{o.key}</Kbd>
-              </StatusDot>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-1.5">
-          <span className="text-[13px] font-medium">Subtask segments</span>
-          <div className="divide-y rounded-md border">
-            {task.subtasks.map((s, i) => (
-              <div key={i} className="grid h-9 grid-cols-[28px_96px_minmax(0,1fr)] items-center px-3">
-                <Kbd className="font-mono">{s.key}</Kbd>
-                <input
-                  aria-label={`Subtask ${s.key} name`}
-                  value={s.name}
-                  onChange={(e) => setSubtask(i, { name: e.target.value })}
-                  className="bg-transparent font-mono text-[13px] outline-none"
-                />
-                <input
-                  aria-label={`Subtask ${s.key} description`}
-                  value={s.description}
-                  onChange={(e) => setSubtask(i, { description: e.target.value })}
-                  className="bg-transparent text-[13px] text-muted-foreground outline-none"
-                />
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() =>
-                onChange({
-                  subtasks: [...task.subtasks, { key: String(task.subtasks.length + 1), name: "", description: "" }],
-                })
-              }
-              className="flex h-9 w-full items-center gap-1.5 px-3 text-left text-[13px] text-muted-foreground hover:text-foreground"
-            >
-              <LuPlus className="size-3.5" />
-              Add segment
-            </button>
-          </div>
-        </div>
-        <Field label="Success criteria" htmlFor="t-crit">
-          <Textarea
-            id="t-crit"
-            rows={2}
-            value={task.successCriteria}
-            onChange={(e) => onChange({ successCriteria: e.target.value })}
-          />
-        </Field>
-      </SettingsSection>
-
       <SettingsSection title="Output">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 @md:grid-cols-2">
           <Field label="repo_id" htmlFor="o-repo">
             <Input
               id="o-repo"

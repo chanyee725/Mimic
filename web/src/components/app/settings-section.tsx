@@ -7,9 +7,9 @@ export function SettingsGroup({ children, className }: { children: React.ReactNo
 
 export function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-4 p-5">
+    <section className="grid min-w-0 gap-4 p-5">
       <h3 className="text-sm font-semibold">{title}</h3>
-      <div className="grid gap-4">{children}</div>
+      <div className="grid min-w-0 gap-4 [&>*]:min-w-0">{children}</div>
     </section>
   )
 }
