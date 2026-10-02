@@ -38,7 +38,20 @@ function TaskList({ selectedId }: { selectedId: string }) {
   )
 
   return (
-    <Panel title="All tasks" action={<span className="font-mono text-[13px] text-muted-foreground">{TASKS.length}</span>}>
+    <Panel
+      title={
+        <span className="flex items-baseline gap-2">
+          All tasks
+          <span className="text-[13px] font-normal text-muted-foreground tabular-nums">{TASKS.length}</span>
+        </span>
+      }
+      action={
+        <Button size="sm">
+          <LuPlus />
+          New task
+        </Button>
+      }
+    >
       <div className="relative">
         <LuSearch className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -75,17 +88,17 @@ function TaskList({ selectedId }: { selectedId: string }) {
                     )}
                   </div>
                   <p className="truncate text-[13px] text-muted-foreground">{t.instruction}</p>
-                  <div className="flex flex-wrap gap-x-3 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
-                    <span className="text-foreground">
+                  <div className="flex min-w-0 gap-x-3 overflow-hidden text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+                    <span className="shrink-0 text-foreground">
                       {t.collected} / {t.targetEpisodes}
                     </span>
-                    <span>
+                    <span className="shrink-0">
                       {sessions} {sessions === 1 ? "session" : "sessions"}
                     </span>
-                    <span>success {success === null ? "—" : `${success}%`}</span>
+                    <span className="truncate">success {success === null ? "—" : `${success}%`}</span>
                   </div>
                 </div>
-                <ProgressRing pct={pct} status={t.status} label={`${t.id} progress`} className="size-12" />
+                <ProgressRing pct={pct} status={t.status} label={`${t.id} progress`} className="size-12 shrink-0" />
               </button>
             </li>
           )
@@ -146,7 +159,8 @@ function TaskDetail({ initial }: { initial: Task }) {
   return (
     <Panel className="gap-4">
       <div className="flex flex-wrap items-start gap-3">
-        <div className="grid min-w-0 flex-1 gap-1">
+        {/* 제목이 버튼에 눌리지 않도록 최소 폭을 두고, 좁으면 버튼이 다음 줄로 내려간다 */}
+        <div className="grid min-w-64 flex-1 gap-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="truncate font-mono text-lg font-semibold">{task.id}</h2>
             <StatusDot tone={status.tone} className="text-[13px]">
@@ -154,12 +168,16 @@ function TaskDetail({ initial }: { initial: Task }) {
             </StatusDot>
             <Badge variant="outline">SO-101</Badge>
           </div>
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-[13px] whitespace-nowrap text-muted-foreground">
             <span className="font-mono">v{task.version}</span> · updated {task.updatedAt} by{" "}
             <span className="font-mono">{task.updatedBy}</span>
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline">
+            <LuUpload />
+            Import YAML
+          </Button>
           <Button variant="outline">Duplicate</Button>
           <Button variant="outline">Save</Button>
           <Link to="/capture" className={buttonVariants()}>
@@ -208,20 +226,8 @@ export function TasksPage() {
       fit
       title="Tasks"
       description="취득할 데이터를 Task 단위로 정의합니다. Capture와 Sessions는 Task를 기준으로 묶입니다."
-      actions={
-        <>
-          <Button variant="outline">
-            <LuUpload />
-            Import YAML
-          </Button>
-          <Button>
-            <LuPlus />
-            New task
-          </Button>
-        </>
-      }
     >
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,4fr)_minmax(0,5fr)]">
         <TaskList selectedId={selected.id} />
         <TaskDetail key={selected.id} initial={selected} />
       </div>
