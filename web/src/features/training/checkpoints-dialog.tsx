@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { LuBox, LuCloudUpload, LuDownload } from "react-icons/lu"
+import { LuBox, LuCloudUpload, LuDownload, LuSave } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -36,7 +36,7 @@ export function CheckpointsDialog({
         <DialogHeader>
           <DialogTitle>Checkpoints</DialogTitle>
           <DialogDescription>
-            {job.id}, {job.dataset}. 저장할 checkpoint 를 골라 내려받거나 HF Hub 에 올립니다.
+            {job.id}, {job.dataset}. 남길 checkpoint 를 골라 Models 에 저장하거나 내려받거나 HF Hub 에 올립니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -99,9 +99,13 @@ export function CheckpointsDialog({
               <LuCloudUpload />
               Push to HF Hub
             </Button>
-            <Button disabled={!picked.length}>
+            <Button variant="outline" disabled={!picked.length}>
               <LuDownload />
               Download
+            </Button>
+            <Button disabled={!picked.length}>
+              <LuSave />
+              Save to Models
             </Button>
           </div>
         </DialogFooter>
