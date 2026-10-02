@@ -3,7 +3,8 @@ import { Link } from "react-router-dom"
 import { LuChevronRight, LuPlay } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
-import { Button } from "@/components/ui/button"
+import { StatusDot } from "@/components/app/status-dot"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -34,108 +35,133 @@ function autoFeature(t: McapTopic, rec: Recording): string {
   }
 }
 
-/** 막대를 개별로 그리는 최대 개수. 넘으면 연속된 에피소드를 묶어 한 막대로 그린다 */
-const MAX_BARS = 60
-const TICK_STEPS = [5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600]
-
 const fmtLength = (sec: number) => (sec < 3600 ? `${(sec / 60).toFixed(1)} min` : `${(sec / 3600).toFixed(1)} h`)
 const fmtSize = (mb: number) => (mb < 1024 ? `${mb.toFixed(1)} MB` : `${(mb / 1024).toFixed(1)} GB`)
 const PICKER_PAGE = 50
 
-const secLabel = (s: number) => (s < 60 ? `${s}s` : s < 3600 ? `${s / 60}m` : `${s / 3600}h`)
+/** 짧거나 긴 에피소드: 중앙값의 절반 미만이거나 2배 초과 */
+function lengthOutliers(episodes: Recording[]) {
+  if (episodes.length < 3) return []
+  const sorted = episodes.map((r) => r.durationS).sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)]
+  return episodes.filter((r) => r.durationS < median * 0.5 || r.durationS > median * 2)
+}
 
-/** 승인된 에피소드 길이 막대. 개별 막대를 누르면 변환 대상에서 빼거나 다시 넣는다 */
-function EpisodeStrip({
-  episodes,
-  excluded,
-  onToggle,
-  summary,
+const failed = (r: Recording, label: string) => r.checks.some((c) => c.label === label && !c.ok)
+
+const eps = (n: number) => `${n.toLocaleString()} ${n === 1 ? "episode" : "episodes"}`
+
+type Check = { label: string; okText: string; bad: Recording[]; badText: (n: number) => string }
+
+/** 변환 대상 요약과 변환 전 점검. 에피소드 수와 상관없이 같은 모양이다 */
+function ConvertSummary({
+  targets,
+  fps,
+  pending,
+  onExclude,
 }: {
-  episodes: Recording[]
-  excluded: Set<string>
-  onToggle: (id: string) => void
-  summary: string
+  targets: Recording[]
+  fps: number
+  pending: number
+  onExclude: (ids: string[]) => void
 }) {
-  if (episodes.length === 0) return <div className="min-h-16 flex-1 rounded-md border border-dashed" />
+  if (targets.length === 0)
+    return (
+      <p className="rounded-md border border-dashed py-6 text-center text-[13px] text-muted-foreground">변환할 에피소드를 선택하세요.</p>
+    )
 
-  // 세로축: 최대 4칸이 되는 눈금 간격을 고른다
-  const longest = Math.max(...episodes.map((r) => r.durationS))
-  const step = TICK_STEPS.find((t) => longest / t <= 4) ?? 3600
-  const top = Math.ceil(longest / step) * step
-  const ticks = Array.from({ length: top / step }, (_, i) => (i + 1) * step)
-  const pct = (sec: number) => `${(sec / top) * 100}%`
+  const lens = targets.map((r) => r.durationS)
+  const totalS = lens.reduce((a, b) => a + b, 0)
+  const totalMB = targets.reduce((a, r) => a + r.sizeMB, 0)
+  const dates = targets.map((r) => r.recordedAt.slice(5, 10)).sort()
+  const outliers = lengthOutliers(targets)
 
-  const name = (r: Recording) => r.file.split("/").pop()!.replace(".mcap", "")
-  const per = Math.ceil(episodes.length / MAX_BARS)
-  const groups = Array.from({ length: Math.ceil(episodes.length / per) }, (_, i) => episodes.slice(i * per, (i + 1) * per))
+  const summary = [
+    { k: "Frames", v: Math.round(totalS * fps).toLocaleString() },
+    { k: "Length", v: fmtLength(totalS) },
+    {
+      k: "Avg episode",
+      v: `${(totalS / targets.length).toFixed(1)} s`,
+      sub: `${lens.reduce((a, b) => Math.min(a, b)).toFixed(1)} – ${lens.reduce((a, b) => Math.max(a, b)).toFixed(1)} s`,
+    },
+    { k: "Recorded", v: dates[0] === dates[dates.length - 1] ? dates[0] : `${dates[0]} – ${dates[dates.length - 1]}` },
+    // AV1 재인코딩 기준 대략치
+    { k: "Est. output", v: `~${fmtSize(totalMB * 0.6)}`, sub: `MCAP ${fmtSize(totalMB)}` },
+  ]
+
+  const checks: Check[] = [
+    {
+      label: "Video frames",
+      okText: "All complete",
+      bad: targets.filter((r) => failed(r, "Video frames")),
+      badText: (n) => `${eps(n)} with dropped frames`,
+    },
+    {
+      label: "Timestamps",
+      okText: "No gaps",
+      bad: targets.filter((r) => failed(r, "Timestamp gap")),
+      badText: (n) => `${eps(n)} with gaps over 50 ms`,
+    },
+    {
+      label: "Subtasks",
+      okText: "All labeled",
+      bad: targets.filter((r) => failed(r, "Subtasks")),
+      badText: (n) => `${eps(n)} missing subtasks`,
+    },
+    {
+      label: "Length",
+      okText: "No outliers",
+      bad: outliers,
+      badText: (n) => `${eps(n)} much shorter or longer than usual`,
+    },
+  ]
 
   return (
-    <div className="grid min-h-16 flex-1 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-x-2 gap-y-1.5">
-      {/* 세로축 시간 눈금 */}
-      <div className="relative w-7 text-right text-[11px] text-muted-foreground tabular-nums" aria-hidden>
-        {[0, ...ticks].map((t) => (
-          <span key={t} className="absolute right-0 translate-y-1/2 leading-none" style={{ bottom: pct(t) }}>
-            {secLabel(t)}
-          </span>
+    <>
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 @md:grid-cols-3 @2xl:grid-cols-5">
+        {summary.map((m) => (
+          <div key={m.k} className="grid content-start gap-0.5">
+            <dt className="text-xs text-muted-foreground">{m.k}</dt>
+            <dd className="text-[13px] whitespace-nowrap tabular-nums">
+              {m.v}
+              {m.sub && <span className="block text-xs text-muted-foreground">{m.sub}</span>}
+            </dd>
+          </div>
         ))}
-      </div>
-      <div className="relative flex min-h-0 items-end justify-between gap-px border-b" role="group" aria-label="Episode lengths">
-        {ticks.map((t) => (
-          <span key={t} className="pointer-events-none absolute inset-x-0 border-t border-dashed" style={{ bottom: pct(t) }} aria-hidden />
-        ))}
-        {per === 1
-          ? episodes.map((r) => {
-              const on = !excluded.has(r.id)
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  aria-pressed={on}
-                  aria-label={`${name(r)}, ${r.durationS.toFixed(1)} s`}
-                  title={`${name(r)}, ${r.durationS.toFixed(1)} s${on ? "" : " (excluded)"}`}
-                  onClick={() => onToggle(r.id)}
-                  className="group relative flex h-full max-w-6 min-w-1 flex-1 items-end justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                >
-                  <span
-                    className={cn(
-                      "w-full max-w-2 rounded-t-sm transition-colors",
-                      on ? "bg-foreground/70 group-hover:bg-foreground" : "bg-foreground/10 group-hover:bg-foreground/25",
-                    )}
-                    style={{ height: pct(r.durationS) }}
-                  />
-                </button>
-              )
-            })
-          : groups.map((g) => {
-              // 묶음 막대: 연한 부분은 최소~최대 범위, 진한 부분은 선택된 에피소드의 평균
-              const picked = g.filter((r) => !excluded.has(r.id))
-              const lens = g.map((r) => r.durationS)
-              const mean = picked.length ? picked.reduce((a, r) => a + r.durationS, 0) / picked.length : 0
-              return (
-                <span
-                  key={g[0].id}
-                  title={`${name(g[0])} – ${name(g[g.length - 1])}\n${picked.length}/${g.length} selected, mean ${mean.toFixed(1)} s, range ${Math.min(...lens).toFixed(1)}–${Math.max(...lens).toFixed(1)} s`}
-                  className="relative h-full max-w-2 min-w-px flex-1"
-                >
-                  <span
-                    className="absolute inset-x-0 rounded-sm bg-foreground/15"
-                    style={{ bottom: pct(Math.min(...lens)), height: `calc(${pct(Math.max(...lens))} - ${pct(Math.min(...lens))})` }}
-                  />
-                  <span className="absolute inset-x-0 bottom-0 rounded-t-sm bg-foreground/70" style={{ height: pct(mean) }} />
-                </span>
-              )
-            })}
-      </div>
-      <span />
-      <div className="flex justify-between gap-2 text-[11px] text-muted-foreground tabular-nums">
-        <span>{name(episodes[0])}</span>
-        <span className="truncate text-foreground">
-          {summary}
-          {per > 1 && <span className="text-muted-foreground">, {per.toLocaleString()} episodes per bar</span>}
-        </span>
-        <span>{name(episodes[episodes.length - 1])}</span>
-      </div>
-    </div>
+      </dl>
+
+      <section className="grid gap-1.5">
+        <h3 className="text-xs text-muted-foreground">Checks</h3>
+        <ul className="divide-y rounded-md border">
+          {checks.map((c) => (
+            <li key={c.label} className="flex min-h-10 items-center gap-3 px-3 py-1.5 text-[13px]">
+              <StatusDot tone={c.bad.length ? "warn" : "ok"} className="w-28 shrink-0 text-[13px]">
+                {c.label}
+              </StatusDot>
+              <span className={cn("min-w-0 flex-1 truncate", !c.bad.length && "text-muted-foreground")}>
+                {c.bad.length ? c.badText(c.bad.length) : c.okText}
+              </span>
+              {c.bad.length > 0 && (
+                <Button variant="outline" size="sm" className="h-7" onClick={() => onExclude(c.bad.map((r) => r.id))}>
+                  Exclude
+                </Button>
+              )}
+            </li>
+          ))}
+          {pending > 0 && (
+            <li className="flex min-h-10 items-center gap-3 px-3 py-1.5 text-[13px]">
+              <StatusDot tone="muted" className="w-28 shrink-0 text-[13px]">
+                Review
+              </StatusDot>
+              <span className="min-w-0 flex-1 truncate">{eps(pending)} waiting for review</span>
+              <Link to="/review" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7")}>
+                Open
+              </Link>
+            </li>
+          )}
+        </ul>
+      </section>
+    </>
   )
 }
 
@@ -163,7 +189,6 @@ export function ConvertPage() {
   const skip = new Set(excluded)
   const targets = accepted.filter((r) => !skip.has(r.id))
   const pages = Math.ceil(accepted.length / PICKER_PAGE)
-  const toggle = (id: string) => setExcluded((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
   // LeRobot 은 fps 가 하나라 action 을 영상 fps 로 줄여 맞춘다 (원본 MCAP 은 그대로 남는다)
   const fps = task?.videoFps ?? 30
   const actionHz = task?.actionHz ?? 60
@@ -174,8 +199,6 @@ export function ConvertPage() {
   const included = [...topics.values()]
     .map(({ topic, rec }) => ({ topic, feature: autoFeature(topic, rec) }))
     .filter((m) => m.feature !== SKIP)
-  const totalS = targets.reduce((a, r) => a + r.durationS, 0)
-  const totalMB = targets.reduce((a, r) => a + r.sizeMB, 0)
   const rig = task ? getRig(task.rigId) : undefined
 
   const preview = [
@@ -194,7 +217,7 @@ export function ConvertPage() {
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         {/* ── 왼쪽: 무엇을 변환하나 (Task · 에피소드) ── */}
         <section className="flex min-h-0 flex-col gap-4">
-          <Panel title="Task" className="min-h-0 flex-1 gap-3 overflow-y-auto">
+          <Panel title="Task" className="@container min-h-0 flex-1 gap-4 overflow-y-auto">
             <Select value={taskId} onValueChange={(v) => v && changeTask(v as string)}>
               <SelectTrigger aria-label="Task" className="h-9 w-full text-[13px]">
                 <SelectValue />
@@ -238,10 +261,15 @@ export function ConvertPage() {
                 </dd>
               </div>
             </dl>
-            <EpisodeStrip episodes={accepted} excluded={skip} onToggle={toggle} summary={`${fmtLength(totalS)}, ${fmtSize(totalMB)}`} />
-            {(accepted.length === 0 || pending > 0) && (
+            <ConvertSummary
+              targets={targets}
+              fps={fps}
+              pending={pending}
+              onExclude={(ids) => setExcluded((cur) => [...new Set([...cur, ...ids])])}
+            />
+            {accepted.length === 0 && (
               <p className="text-xs text-muted-foreground">
-                {accepted.length === 0 ? "승인된 에피소드가 없습니다. " : `검수를 기다리는 에피소드가 ${pending}개 있습니다. `}
+                승인된 에피소드가 없습니다.{" "}
                 <Link to="/review" className="text-foreground underline underline-offset-4">
                   Review 에서 검수하기
                 </Link>
