@@ -1,8 +1,8 @@
 import { useState } from "react"
 
 /**
- * 모달 편집용 초안. 모달이 열릴 때마다 value 로 다시 시작하고, 닫히기 전까지는 draft 만 바뀐다.
- * (React 문서의 "prop 이 바뀔 때 state 조정" 패턴을 한 곳에 모은 것)
+ * Draft state for dialogs. Restarts from value each time the dialog opens; only the draft changes until it closes.
+ * (The "adjusting state when a prop changes" pattern from the React docs, in one place)
  */
 export function useDraftOnOpen<T>(open: boolean, value: T) {
   const [draft, setDraft] = useState(value)

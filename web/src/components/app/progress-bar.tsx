@@ -8,7 +8,7 @@ const TONE = {
   muted: "bg-muted-foreground/40",
 } as const
 
-/** 가는 진행 막대. value 는 0–100 */
+/** Thin progress bar. value is 0–100 */
 export function ProgressBar({
   value,
   label,

@@ -1,5 +1,5 @@
-// 스테이션 설정 더미. 실제로는 백엔드(FastAPI)가 보관하고, 비밀 키는 끝 4자리만 내려준다.
-// 작업자는 가명 ID 로만 관리한다 (실명 · 이메일은 받지 않는다).
+// Mock station settings. The backend (FastAPI) will own these and only return the last 4 chars of secrets.
+// Operators are pseudonymous IDs only (no real names or emails).
 
 export type Secret = { set: boolean; last4?: string }
 export type ConnState = "ok" | "error" | "unknown"
@@ -101,7 +101,7 @@ export const SETTINGS: Settings = {
   },
 }
 
-/** 저장 공간 사용량 (GB) */
+/** Disk usage (GB) */
 export const DISK = {
   totalGB: 2000,
   parts: [
@@ -112,7 +112,7 @@ export const DISK = {
   ],
 }
 
-/** 단축키 안내 */
+/** Keyboard shortcut reference */
 export const SHORTCUTS = [
   {
     page: "Capture",

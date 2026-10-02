@@ -1,5 +1,5 @@
 dist
 node_modules
 package-lock.json
-# shadcn CLI 가 생성 · 갱신하는 파일은 원본 형식 그대로 둔다
+# Files generated and updated by the shadcn CLI keep their original formatting
 src/components/ui

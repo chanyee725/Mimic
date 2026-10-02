@@ -54,8 +54,8 @@ function Button({
   )
 }
 
-// cva 결과를 그대로 쓰면 border-transparent 와 border-border 가 함께 남아
-// Link 등에 붙였을 때 테두리가 사라진다. 항상 cn 으로 병합해서 내보낸다.
+// Using the raw cva output keeps both border-transparent and border-border,
+// so the border disappears on Links. Always merge through cn.
 function buttonVariants(props?: Parameters<typeof buttonCva>[0]) {
   return cn(buttonCva(props))
 }

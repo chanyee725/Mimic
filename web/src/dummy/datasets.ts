@@ -1,11 +1,11 @@
-// 데이터셋 더미. LeRobot 은 Convert 로 만든 것, MCAP 은 변환 없이 원본 에피소드를 묶어 올린 것.
-// 실제로는 LeRobot 은 meta/info.json, MCAP 은 각 파일의 요약(summary) 섹션을 읽어 채운다.
-// 썸네일은 첫 에피소드의 첫 카메라 프레임을 쓴다 (더미에서는 그림으로 대신한다).
+// Mock datasets. LeRobot ones come from Convert; MCAP ones bundle raw episodes without conversion.
+// For real: LeRobot reads meta/info.json, MCAP reads each file's summary section.
+// The thumbnail is the first camera frame of the first episode (drawn shapes in the mock).
 
 export type DatasetKind = "lerobot" | "mcap"
 export type DatasetStatus = "ready" | "converting" | "failed"
 
-/** LeRobot 은 feature, MCAP 은 topic 한 줄 */
+/** One LeRobot feature or one MCAP topic */
 export type DatasetFeature = {
   key: string
   dtype: string
@@ -15,7 +15,7 @@ export type DatasetFeature = {
 
 export type DatasetEpisode = {
   index: number
-  source: string // 원본 MCAP
+  source: string // source MCAP
   lengthS: number
   frames: number
 }
@@ -28,7 +28,7 @@ export type Dataset = {
   format: string
   fps: number
   status: DatasetStatus
-  progress?: number // converting 일 때 0–100
+  progress?: number // 0–100 while converting
   createdAt: string
   sizeGB: number
   hub: { pushed: boolean; private: boolean }

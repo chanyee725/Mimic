@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 
 export type Stat = { label: string; value: React.ReactNode; sub?: React.ReactNode; icon?: IconType }
 
-/** 지표를 카드 대신 구분선으로 나뉜 한 줄 스트립으로 보여준다. */
+/** Shows metrics as a single strip split by dividers instead of cards. */
 export function StatStrip({ items, className }: { items: Stat[]; className?: string }) {
   return (
     <div

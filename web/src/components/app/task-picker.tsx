@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { TASKS, type Task } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 
-/** 선택된 Task 표시 + 검색 모달로 다른 Task 선택 */
+/** Shows the selected task; pick another one from a search dialog */
 export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect: (id: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")

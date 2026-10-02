@@ -7,16 +7,16 @@ type Props = {
   resolution: string
   measuredFps: number | null
   targetFps: number | null
-  /** 녹화 중이면 카메라 뷰파인더처럼 빨간 테두리와 REC 타임코드를 띄운다. 아니면 타임코드만 (재생용) */
+  /** While recording, show a red viewfinder border and REC timecode; otherwise only the timecode (playback) */
   recording?: boolean
-  /** mm:ss:ff (ff = 프레임) */
+  /** mm:ss:ff (ff = frame) */
   timecode?: string
-  /** 영상이 붙기 전 자리 표시 문구 */
+  /** Placeholder text shown before the video is attached */
   placeholder?: string
   className?: string
 }
 
-/** WebRTC 영상 트랙이 붙을 자리. 지금은 플레이스홀더만 그린다. */
+/** Slot for the WebRTC video track. Only draws a placeholder for now. */
 export function VideoTile({
   label,
   resolution,

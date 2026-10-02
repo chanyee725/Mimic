@@ -1,4 +1,4 @@
-# ── 비밀 정보 (HF 토큰, RunPod / W&B 키, Slack webhook 등은 절대 올리지 않는다) ──
+# ── Secrets (never commit HF tokens, RunPod / W&B keys, Slack webhooks, …) ──
 .env
 .env.*
 !.env.example
@@ -9,8 +9,8 @@ credentials*.json
 .huggingface/
 .netrc
 
-# ── 수집 · 학습 산출물 (용량이 크고 작업자 데이터가 들어 있다) ──
-# 폴더 이름은 저장소 루트 기준으로만 막는다 (web/src/features/models 같은 소스 폴더와 겹치지 않게)
+# ── Recordings and training outputs (large, and they contain operator data) ──
+# Folder names are anchored to the repo root so source folders like web/src/features/models stay tracked
 *.mcap
 *.bag
 *.db3
@@ -30,15 +30,15 @@ credentials*.json
 *.avi
 wandb/
 /runs/
-# 단, 예제 · 테스트용 작은 파일은 fixtures/ 에 두고 올린다
+# Small example / test files go in fixtures/ and are committed
 !**/fixtures/**
 
-# ── 캘리브레이션 · 장치 로컬 설정 (스테이션마다 다름) ──
+# ── Calibration and device-local settings (differ per station) ──
 /calibration/
 *.local.yaml
 *.local.json
 
-# ── Node / 프론트엔드 ──
+# ── Node / frontend ──
 node_modules/
 dist/
 dist-ssr/
@@ -49,7 +49,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ── Python / 백엔드 ──
+# ── Python / backend ──
 __pycache__/
 *.py[cod]
 .venv/
@@ -62,19 +62,19 @@ venv/
 htmlcov/
 .ipynb_checkpoints/
 
-# ── Isaac Sim / Omniverse 캐시 ──
+# ── Isaac Sim / Omniverse caches ──
 .cache/
 kit/logs/
 *.usd.bak
 
-# ── Claude Code (공유 설정 settings.json 만 올리고, 개인 설정 · worktree 는 제외) ──
+# ── Claude Code (commit only shared settings.json, commands and agents; not personal settings or worktrees) ──
 .claude/*
 !.claude/settings.json
 !.claude/commands/
 !.claude/agents/
 CLAUDE.local.md
 
-# ── 에디터 · OS ──
+# ── Editors / OS ──
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json

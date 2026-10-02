@@ -5,21 +5,21 @@ import { cn } from "@/lib/utils"
 import { drawCursor, drawLegend, drawLine, drawXGrid, drawYGrid, prepareCanvas } from "./plot-canvas"
 
 type Props = {
-  /** Rig 에 정의된 joint 이름 (action / observation.state 벡터 순서) */
+  /** Joint names defined by the rig (action / observation.state vector order) */
   joints: readonly string[]
-  /** 샘플 주기 (Hz). 목업 데이터 생성에만 사용 */
+  /** Sample rate (Hz). Only used to generate mock data */
   hz: number
-  /** 화면에 보여줄 시간 창 (초) */
+  /** Visible time window (seconds) */
   windowSec?: number
-  /** 범례에 붙는 장치 이름 (예: SO-101 Leader / SO-101 Follower) */
+  /** Device names shown in the legend (e.g. SO-101 Leader / SO-101 Follower) */
   actionSource?: string
   stateSource?: string
   /**
-   * 재생 모드: 현재 재생 위치(초)를 돌려주는 함수. 주면 실시간 수신 대신
-   * 재생 위치까지의 최근 windowSec 구간을 그린다 (Review 의 MCAP 재생용)
+   * Playback mode: returns the current playback position (s). When given, draws the
+   * last windowSec up to that position instead of live data (MCAP playback in Review)
    */
   playhead?: () => number
-  /** 재생 모드에서 파일마다 다른 궤적을 만들기 위한 값 (0–1) */
+  /** Per-file value (0–1) so each recording replays a different trajectory */
   seed?: number
   className?: string
 }
@@ -29,14 +29,14 @@ const Y_MAX = 90
 const PAD_LEFT = 30
 
 /**
- * Rerun 의 time series view 를 본뜬 joint 별 플롯.
- * joint 하나당 플롯 하나에 action(실선)과 observation.state(점선)를 겹쳐 그리고,
- * 공통 시간축 · y 눈금 · 현재 시각 커서 · 최신 값 범례를 표시한다.
- * 모든 플롯은 하나의 rAF 루프와 ring buffer 를 공유한다 (샘플마다 React state 를 쓰지 않음).
+ * Per-joint plots modelled on Rerun's time series view.
+ * Each joint gets one plot with action (solid) over observation.state (dashed),
+ * a shared time axis, y ticks, a current-time cursor and a latest-value legend.
+ * All plots share one rAF loop and ring buffer (no React state per sample).
  */
 export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSource, playhead, seed = 0, className }: Props) {
   const canvases = useRef<(HTMLCanvasElement | null)[]>([])
-  // 실측 수신 주기. 0.5 s 마다 DOM 텍스트만 갱신한다 (React state 를 쓰지 않음)
+  // Measured receive rate. Only the DOM text is updated every 0.5 s (no React state)
   const actionRate = useRef<HTMLSpanElement>(null)
   const stateRate = useRef<HTMLSpanElement>(null)
 
@@ -60,11 +60,11 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
     let t = 0
     let last = performance.now()
     let raf = 0
-    // 수신 타임스탬프(ms). 최근 2 s 구간으로 실측 주기를 계산한다
+    // Receive timestamps (ms); the measured rate uses the last 2 s
     const stamps = { action: [] as number[], state: [] as number[] }
     let rateAt = last
 
-    // 목업 신호: joint 마다 주기·위상이 다른 각도(°). state 는 action 을 0.15 s 늦게 따라간다
+    // Mock signal: angles (°) with a different period/phase per joint; state lags action by 0.15 s
     const sample = (i: number, time: number) =>
       (Math.sin(time * (0.55 + (i % 6) * 0.22) + i + seed * 6) * 0.7 + Math.sin(time * 2.7 + i + seed) * 0.08) * Y_MAX
 
@@ -84,14 +84,14 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
       const xOf = (j: number) => x0 + (j / (capacity - 1)) * (x1 - x0)
       ctx.font = `10px ${font}`
 
-      // y 눈금: -90 · 0 · 90°
+      // y ticks: -90 / 0 / 90°
       drawYGrid(
         f,
         [Y_MIN, 0, Y_MAX].map((v) => ({ y: yOf(v), label: `${v}°` })),
         color.grid,
         color.text,
       )
-      // x 눈금: 1 초 간격, 오른쪽 끝이 현재 시각. 가장 왼쪽 라벨은 y 눈금(-90°)과 겹치므로 생략
+      // x ticks every second, right edge is now; the leftmost label is skipped because it overlaps the -90° tick
       drawXGrid(
         f,
         Array.from({ length: windowSec + 1 }, (_, s) => ({
@@ -109,7 +109,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
       drawLine(f, points(action[i]), color.action)
       drawCursor(f, color.cursor)
 
-      // 범례 + 최신 값 (오른쪽 위)
+      // Legend with latest values (top right)
       const latest = (buf: Float32Array) => {
         const v = buf[(head - 1 + capacity) % capacity]
         return Number.isNaN(v) ? 0 : v
@@ -126,7 +126,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
 
     const draw = (now: number) => {
       if (playhead) {
-        // 재생 모드: 재생 위치까지의 최근 구간을 다시 채운다 (0 초 이전은 비움)
+        // Playback mode: refill the window ending at the playhead (empty before 0 s)
         const end = playhead()
         for (let k = 0; k < capacity; k++) {
           const tk = end - windowSec + (k + 1) / hz
@@ -141,7 +141,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
         return
       }
       const n = Math.floor(((now - last) / 1000) * hz)
-      // 남는 소수 구간을 버리지 않도록 생성한 샘플 수만큼만 시간을 진행시킨다
+      // Advance time only by the samples generated so fractional remainders are kept
       last += (n * 1000) / hz
       for (let k = 0; k < Math.min(n, capacity); k++) {
         t += 1 / hz
@@ -150,7 +150,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
           state[i][head] = sample(i, t - 0.15)
         }
         head = (head + 1) % capacity
-        // 목업 수신: 약간의 지터와 드물게 빠지는 패킷을 흉내 낸다
+        // Mock receive: simulate slight jitter and occasional dropped packets
         const ts = t * 1000
         if (Math.random() > 0.01) stamps.action.push(ts + (Math.random() - 0.5) * 2)
         if (Math.random() > 0.015) stamps.state.push(ts + 150 + (Math.random() - 0.5) * 3)
@@ -174,7 +174,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
 
   return (
     <div className={cn("flex min-h-0 flex-col gap-2", className)}>
-      {/* 범례 + 실측 수신 주기 */}
+      {/* Legend with measured receive rates */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
         <span className="flex items-center gap-1.5">
           <span className="h-0.5 w-3 rounded-full bg-series-1" />

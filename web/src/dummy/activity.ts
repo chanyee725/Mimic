@@ -1,4 +1,4 @@
-// 일별 에피소드 취득 수 (GitHub 잔디 형태 표시용 더미)
+// Mock daily episode counts for the GitHub-style contribution heatmap
 
 export type DayCount = { date: string; count: number }
 
@@ -13,7 +13,7 @@ function pseudoRandom(seed: number) {
 
 function build(): DayCount[] {
   const end = new Date(`${ACTIVITY_END}T00:00:00`)
-  // 마지막 주가 토요일까지 차도록 시작일을 일요일에 맞춘다
+  // Start on a Sunday so the last week runs through Saturday
   const days = ACTIVITY_WEEKS * 7 - (6 - end.getDay())
   const start = new Date(end)
   start.setDate(end.getDate() - days + 1)
@@ -24,7 +24,7 @@ function build(): DayCount[] {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
     const dow = d.getDay()
-    const ramp = Math.max(0, (i - days * 0.35) / (days * 0.65)) // 취득은 약 4개월 전부터 증가
+    const ramp = Math.max(0, (i - days * 0.35) / (days * 0.65)) // collection ramps up from about four months ago
     const weekend = dow === 0 || dow === 6
     const r = pseudoRandom(i + 7)
     const w = ramp === 0 || (weekend && r < 0.8) || r < 0.12 ? 0 : ramp * (0.4 + r)
@@ -34,7 +34,7 @@ function build(): DayCount[] {
   const sum = weights.reduce((a, b) => a + b, 0)
   const exact = weights.map((w) => (w / sum) * TOTAL_EPISODES)
   const counts = exact.map(Math.floor)
-  // 최대 잔여법: 소수부가 큰 날부터 1씩 더해 총합을 맞춘다
+  // Largest remainder: add 1 to the days with the biggest fractions until the total matches
   const left = TOTAL_EPISODES - counts.reduce((a, b) => a + b, 0)
   exact
     .map((v, i) => ({ i, frac: v - Math.floor(v) }))

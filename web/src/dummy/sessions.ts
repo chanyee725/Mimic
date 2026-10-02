@@ -3,7 +3,7 @@ export type SessionStatus = "recording" | "review" | "converted"
 export type Session = {
   id: string
   taskId: string
-  operator: string // 가명 ID
+  operator: string // pseudonymous ID
   episodes: number
   accepted: number
   successPct: number

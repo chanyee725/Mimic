@@ -12,9 +12,9 @@ export type Task = {
   variants: string[]
   tags: string[]
   rigId: string
-  cameras: string[] // Rig 카메라 중 이 Task 에서 녹화할 것
-  actionHz: number // Rig 의 actionHzOptions 중 선택
-  videoFps: number // Rig 의 videoFpsOptions 중 선택
+  cameras: string[] // rig cameras recorded for this task
+  actionHz: number // one of the rig's actionHzOptions
+  videoFps: number // one of the rig's videoFpsOptions
   targetEpisodes: number
   durationS: number
   resetS: number
@@ -28,7 +28,7 @@ export type Task = {
   collected: number
   version: number
   updatedAt: string
-  updatedBy: string // 가명 operator ID 만 사용 (PII 저장 금지)
+  updatedBy: string // pseudonymous operator ID only (never store PII)
 }
 
 const outcomes: Task["outcomes"] = [

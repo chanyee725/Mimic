@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react"
 
 import { RECORDINGS, type Recording, type RecordingReview } from "@/dummy/recordings"
 
-// Review 와 Convert 가 함께 쓰는 녹화 목록. 백엔드 연결 전까지 메모리에만 둔다.
+// Recording list shared by Review and Convert. Kept in memory until the backend is connected.
 let recordings: Recording[] = RECORDINGS
 const listeners = new Set<() => void>()
 

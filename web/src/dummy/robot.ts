@@ -1,4 +1,4 @@
-// 손(Data Glove) 시각화용 상수. 로봇 관절·주기는 Rig(@/dummy/rigs) 에서 가져온다.
+// Constants for the data-glove hand view. Robot joints and rates come from the rig (@/dummy/rigs).
 
 export const FINGERS = [
   { name: "Thumb", short: "T" },

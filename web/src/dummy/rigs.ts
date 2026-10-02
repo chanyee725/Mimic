@@ -1,10 +1,10 @@
-// Rig 설정: 데이터 취득 단위가 되는 장비 묶음.
-// 어떤 장치가 Robot / Device / Camera 로 속하는지는 이 설정이 기준이 되며,
-// 실제 연결 상태(health, 측정 주기 등)는 @/dummy/devices 에서 장치 id 로 찾는다.
+// Rig config: the set of equipment that makes up one capture unit.
+// This config decides which devices count as Robot / Device / Camera;
+// live state (health, measured rates, …) is looked up by device id in @/dummy/devices.
 
 export type RigCamera = {
-  id: string // 장치 id (@/dummy/devices)
-  key: string // Task 에서 켜고 끄는 카메라 키
+  id: string // device id (@/dummy/devices)
+  key: string // camera key toggled per task
   name: string
   feature: string // LeRobot feature key
   resolution: string
@@ -15,12 +15,12 @@ export type RigCamera = {
 export type Rig = {
   id: string
   name: string
-  master: string // 표시용: teleop (leader)
-  slave: string // 표시용: robot (follower)
-  robots: string[] // Robot 장치 id (slave / follower)
-  devices: string[] // Device 장치 id (master / leader 등 입력 장치)
+  master: string // display name: teleop (leader)
+  slave: string // display name: robot (follower)
+  robots: string[] // robot device ids (slave / follower)
+  devices: string[] // input device ids (master / leader, …)
   cameras: RigCamera[]
-  joints: string[] // action space, 순서 = action 벡터 순서
+  joints: string[] // action space, in action vector order
   targetHz: { action: number; video: number }
   actionHzOptions: number[]
   videoFpsOptions: number[]
@@ -73,7 +73,7 @@ export const RIGS: Rig[] = [
 
 export const getRig = (id: string) => RIGS.find((r) => r.id === id) ?? RIGS[0]
 
-/** Rigs 화면의 구분 (Rig 설정 기준) */
+/** Groups on the Rigs page (from the rig config) */
 export type RigGroupKey = "robot" | "device" | "camera"
 
 export function rigGroups(rig: Rig): { key: RigGroupKey; label: string; ids: string[] }[] {
@@ -84,7 +84,7 @@ export function rigGroups(rig: Rig): { key: RigGroupKey; label: string; ids: str
   ]
 }
 
-/** Rig 기본값으로 Task 의 rig 관련 필드를 채운다 */
+/** Fill a task's rig-related fields from the rig defaults */
 export const rigDefaults = (rig: Rig) => ({
   rigId: rig.id,
   actionHz: rig.targetHz.action,
