@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { LuCable, LuCircleCheck, LuPlus, LuRefreshCw, LuTriangleAlert, LuWifi } from "react-icons/lu"
+import { LuBot, LuBoxes, LuCable, LuCamera, LuPlus, LuRefreshCw } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { StatStrip } from "@/components/app/stat-strip"
@@ -87,7 +87,6 @@ function RigList({ selectedId, onSelect }: { selectedId: string; onSelect: (id: 
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {RIGS.map((r) => {
           const devices = devicesOf(r.id)
-          const online = devices.filter((d) => d.health !== "off").length
           const selected = r.id === selectedId
           return (
             <li key={r.id}>
@@ -108,7 +107,7 @@ function RigList({ selectedId, onSelect }: { selectedId: string; onSelect: (id: 
                   {r.master} → {r.slave}
                 </span>
                 <span className="pl-3.5 text-[11px] text-muted-foreground/80 tabular-nums">
-                  {online}/{devices.length} online · {r.joints.length} DoF
+                  {r.robots.length} robot · {r.devices.length} device · {r.cameras.length} cam · {r.joints.length} DoF
                 </span>
               </button>
             </li>
@@ -194,22 +193,19 @@ export function RigsPage() {
     if (first) setSelectedId(first)
   }
 
+  // 장치는 테스트할 때만 USB 로 연결되므로 연결 상태 대신 Rig 설정 기준 등록 현황을 보여준다
   const stats = [
-    { label: "Devices", value: devices.length, icon: LuCable },
-    { label: "Online", value: devices.filter((d) => d.health !== "off").length, icon: LuWifi },
-    { label: "Warnings", value: devices.filter((d) => d.health === "warn").length, icon: LuTriangleAlert },
-    {
-      label: "Calibrated",
-      value: `${devices.filter((d) => d.calibration.done).length} / ${devices.length}`,
-      icon: LuCircleCheck,
-    },
+    { label: "Rigs", value: RIGS.length, icon: LuBoxes },
+    { label: "Robots", value: RIGS.reduce((n, r) => n + r.robots.length, 0), icon: LuBot },
+    { label: "Devices", value: RIGS.reduce((n, r) => n + r.devices.length, 0), icon: LuCable },
+    { label: "Cameras", value: RIGS.reduce((n, r) => n + r.cameras.length, 0), icon: LuCamera },
   ]
 
   return (
     <Page
       fit
       title="Rigs"
-      description="Rig 별 Robot · Device · Camera 의 연결 상태와 캘리브레이션을 관리합니다."
+      description="Rig 별로 Robot · Device · Camera 구성을 등록하고 관리합니다."
       actions={
         <>
           <Button variant="outline" size="lg">
