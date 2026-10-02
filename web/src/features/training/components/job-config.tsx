@@ -3,7 +3,7 @@ import { POLICY_BASE, type TrainJob } from "@/dummy/training"
 
 import { computeText } from "../lib"
 
-/** Job 설정 요약 (모델 · 데이터셋 · 컴퓨트 · step 수 등) */
+/** Job config summary (model, dataset, compute, steps, ...) */
 export function JobConfig({ job }: { job: TrainJob }) {
   return (
     <DetailList

@@ -22,7 +22,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   )
 }
 
-/** RunPod pod 설정 모달 */
+/** RunPod pod options dialog */
 export function RunPodDialog({
   open,
   onOpenChange,
@@ -38,7 +38,7 @@ export function RunPodDialog({
   basePrice: number
   options: RunPodOptions
   onSave: (o: RunPodOptions) => void
-  /** 고른 GPU 를 Community cloud 에서도 빌릴 수 있는지 */
+  /** Whether the chosen GPU is also available on Community cloud */
   communityOk?: boolean
 }) {
   const [draft, setDraft] = useDraftOnOpen(open, options)

@@ -41,7 +41,7 @@ function ParamField({ param, value, onChange }: { param: Param; value: ParamValu
   )
 }
 
-/** 학습 파라미터 모달. 바꾼 값만 overrides 로 돌려준다 */
+/** Training parameters dialog. Returns only changed values as overrides */
 export function ParamsDialog({
   open,
   onOpenChange,
@@ -53,7 +53,7 @@ export function ParamsDialog({
   overrides: Overrides
   onSave: (o: Overrides) => void
 }) {
-  // 열 때마다 저장된 값에서 시작한다
+  // Start from the saved values each time it opens
   const [draft, setDraft] = useDraftOnOpen<Overrides>(open, overrides)
 
   const valueOf = (p: Param) => (p.key in draft ? draft[p.key] : p.default)

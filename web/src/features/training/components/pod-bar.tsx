@@ -5,7 +5,7 @@ import { StatusDot } from "@/components/app/status-dot"
 import type { PodState, TrainJob } from "@/dummy/training"
 import { formatRate, formatUsd, parseDuration } from "@/lib/format"
 
-/** RunPod pod 상태 줄. 학습이 끝났는데 켜져 있는 pod 는 요금이 새지 않도록 강조한다 */
+/** RunPod pod status bar. Highlights a pod still running after training so it does not keep billing */
 export function PodBar({ job, pod, onTerminate }: { job: TrainJob; pod?: PodState; onTerminate: () => void }) {
   const rate = formatRate(job.pricePerHr ?? 0)
   if (!pod)

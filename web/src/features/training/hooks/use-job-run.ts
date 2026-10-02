@@ -5,7 +5,7 @@ import { parseDuration } from "@/lib/format"
 
 import { createRun, type JobRun } from "../lib"
 
-/** 지금까지의 step 로그를 채운 run */
+/** A run filled with the steps logged so far */
 function startRun(job: TrainJob) {
   const run = createRun(job)
   run.advanceTo(job.step)
@@ -13,15 +13,15 @@ function startRun(job: TrainJob) {
 }
 
 /**
- * Job 의 step 로그를 만든다. 돌고 있는 Job 은 실제 속도(남은 step / ETA)로 step 이 하나씩 늘어난다.
- * 그래프는 run.data 를 직접 읽고, React 는 step 이 바뀔 때만 다시 그린다.
+ * Builds the job's step log. A running job advances at its real speed (remaining steps / ETA).
+ * Plots read run.data directly; React only re-renders when the step changes.
  */
 export function useJobRun(job: TrainJob) {
-  // run 은 제자리에서 계속 늘어나는 typed array 묶음이라 state 가 아닌 ref 에 둔다.
-  // 플롯이 run.data 를 직접 읽으므로 step 마다 복사하거나 다시 렌더할 필요가 없다 (성능)
+  // The run is a set of typed arrays mutated in place, so it lives in a ref rather than state.
+  // Plots read run.data directly, so nothing is copied or re-rendered per step (performance).
   const runRef = useRef<JobRun | null>(null)
   if (runRef.current === null) runRef.current = startRun(job)
-  // 처음 한 번 만든 뒤 바뀌지 않는 객체라 렌더 중에 읽어도 안전하다
+  // Created once and never replaced, so reading it during render is safe
   // oxlint-disable-next-line react/refs
   const run = runRef.current
   const [step, setStep] = useState(job.step)

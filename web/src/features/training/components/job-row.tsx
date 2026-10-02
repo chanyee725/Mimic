@@ -8,7 +8,7 @@ import { formatRate } from "@/lib/format"
 
 import { JOB_STATUS, computeText, jobPct } from "../lib"
 
-/** Job 목록의 한 줄. 누르면 Job 상세로 간다 */
+/** One row in the job list. Links to the job detail page */
 export function JobRow({ job }: { job: TrainJob }) {
   const pct = jobPct(job)
   const status = JOB_STATUS[job.status]

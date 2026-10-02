@@ -13,9 +13,9 @@ const STEP_TICKS = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
 const stepLabel = (s: number) => (s >= 1000 ? `${s / 1000}k` : String(s))
 
 /**
- * Capture 의 JointPlots 와 같은 모양의 학습 지표 플롯.
- * 지표 하나당 플롯 하나, x 축은 step (0 → 현재), 오른쪽 위에 최신 값.
- * 하나의 rAF 루프가 step 이 늘어날 때만 다시 그린다 (step 마다 React state 를 쓰지 않음).
+ * Training metric plots styled like Capture's JointPlots.
+ * One plot per metric, x axis is step (0 → now), latest value at the top right.
+ * A single rAF loop redraws only when the step advances (no React state per step).
  */
 export function MetricPlots({
   run,
@@ -27,7 +27,7 @@ export function MetricPlots({
   run: JobRun
   metrics: Metric[]
   live: boolean
-  /** 확대 모달 안의 플롯 하나 */
+  /** A single plot inside the expand dialog */
   single?: boolean
   className?: string
 }) {
@@ -49,7 +49,7 @@ export function MetricPlots({
       ctx.font = `10px ${font}`
       if (n < 2) return
 
-      // 화면 폭(px) 만큼의 구간 평균으로 줄여서 그린다
+      // Downsample to one bucket average per pixel of width
       const cols = Math.max(2, Math.floor(x1 - x0))
       const reduce = (buf: Float32Array) => {
         const out = new Float32Array(Math.min(cols, n))
@@ -79,7 +79,7 @@ export function MetricPlots({
       if (!m.zero) lo -= span * 0.08
       const yOf = (val: number) => y0 + ((hi - val) / (hi - lo)) * (y1 - y0)
 
-      // y 눈금: 아래 · 가운데 · 위
+      // y ticks: bottom, middle, top
       drawYGrid(
         f,
         [lo, (lo + hi) / 2, hi].map((val) => ({ y: yOf(val), label: m.format(val) })),
@@ -87,7 +87,7 @@ export function MetricPlots({
         color.text,
       )
 
-      // x 눈금: step, 최대 5개. 오른쪽 끝에 붙은 라벨은 생략
+      // x ticks: steps, at most 5. Labels too close to the right edge are skipped
       const tick = STEP_TICKS.find((t) => n / t <= 5) ?? 100000
       const xTicks: { x: number; label?: string }[] = []
       for (let s = 0; s < n; s += tick) {
@@ -101,10 +101,10 @@ export function MetricPlots({
       }
       for (const l of lines) drawLine(f, points(l.pts), v(l.color), { dashed: l.dashed, alpha: l.faint ? 0.25 : 1 })
 
-      // 현재 step 커서
+      // Current step cursor
       if (live) drawCursor(f, color.cursor)
 
-      // 범례 + 최신 값 (오른쪽 위). 옅은 원본 선은 범례에서 뺀다
+      // Legend + latest values (top right). Faint raw lines are left out
       drawLegend(
         f,
         [...m.lines]

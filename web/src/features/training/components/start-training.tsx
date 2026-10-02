@@ -16,7 +16,7 @@ import { GpuPickerDialog } from "./gpu-picker-dialog"
 import { ParamsDialog } from "./params-dialog"
 import { RunPodDialog } from "./runpod-dialog"
 
-/** 학습 시작 폼. 데이터셋 · 컴퓨트 · 파라미터를 고르고 확인 모달을 거쳐 시작한다 */
+/** Start training form. Pick dataset, compute and parameters, then confirm in a dialog */
 export function StartTraining() {
   const [compute, setCompute] = useState<Compute>("local")
   const [dataset, setDataset] = useState(TRAINABLE[0])
@@ -180,7 +180,7 @@ export function StartTraining() {
         value={cloud.name}
         onSelect={(name) => {
           setCloudGpu(name)
-          // Community 에 없는 GPU 면 Secure 로 돌린다
+          // Fall back to Secure cloud if the GPU is not on Community cloud
           if (!RUNPOD_GPUS.find((g) => g.name === name)?.community) setPodOpts((o) => ({ ...o, cloud: "secure" }))
         }}
       />

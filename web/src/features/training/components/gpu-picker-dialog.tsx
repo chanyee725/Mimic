@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 
 import { GPU_STOCK, TIERS, TIGHT_VRAM, type Tier } from "../lib"
 
-/** RunPod GPU 고르기. VRAM 구간으로 거르고 가격순으로 보여준다 */
+/** RunPod GPU picker. Filters by VRAM tier and sorts by price */
 export function GpuPickerDialog({
   open,
   onOpenChange,

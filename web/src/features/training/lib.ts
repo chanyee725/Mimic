@@ -14,7 +14,7 @@ import {
 import { formatRate } from "@/lib/format"
 
 // ---------------------------------------------------------------------------
-// Job 상태 · 표시
+// Job status and display
 
 export const JOB_STATUS: Record<JobStatus, { tone: Tone; label: string }> = {
   running: { tone: "info", label: "Running" },
@@ -33,18 +33,18 @@ export function computeText(j: TrainJob) {
   return [COMPUTE_LABEL[j.compute], j.gpu, j.pricePerHr && formatRate(j.pricePerHr)].filter(Boolean).join(", ")
 }
 
-// 학습에 쓸 수 있는 데이터셋: 변환이 끝난 LeRobot 만
+// Datasets that can be trained on: converted LeRobot datasets only
 export const TRAINABLE = DATASETS.filter((d) => d.kind === "lerobot" && d.status === "ready").map((d) => d.repoId)
 
 // ---------------------------------------------------------------------------
 // RunPod
 
-/** 옵션을 반영한 시간당 요금 */
+/** Hourly rate with the pod options applied */
 export function runpodRate(base: number, o: RunPodOptions) {
   return base * o.gpuCount * RUNPOD_PRICE_FACTOR.cloud[o.cloud] * RUNPOD_PRICE_FACTOR.pricing[o.pricing]
 }
 
-/** 최대 실행 시간과 예산 중 먼저 닿는 쪽의 시간 (0 이면 제한 없음) */
+/** Hours until the max runtime or the budget is hit, whichever comes first (0 = no limit) */
 export function runpodCapHours(o: RunPodOptions, rate: number) {
   return o.budget ? Math.min(o.maxHours || Infinity, o.budget / rate) : o.maxHours
 }
@@ -64,7 +64,7 @@ export function runpodSummary(o: RunPodOptions) {
 
 export type Tier = "all" | "small" | "mid" | "large"
 
-/** GPU 고르기 모달의 VRAM 구간 */
+/** VRAM tiers in the GPU picker */
 export const TIERS: { id: Tier; label: string; fits: (g: RunPodGpu) => boolean }[] = [
   { id: "all", label: "All", fits: () => true },
   { id: "small", label: "≤ 24 GB", fits: (g) => g.vramGB <= 24 },
@@ -78,12 +78,12 @@ export const GPU_STOCK: Record<GpuStock, { tone: Tone; label: string }> = {
   none: { tone: "muted", label: "Unavailable" },
 }
 
-/** SmolVLA 를 기본 batch 로 돌리기에 빠듯한 VRAM (대략치) */
+/** VRAM that is tight for SmolVLA at the default batch size (rough) */
 export const TIGHT_VRAM = 20
 
 // ---------------------------------------------------------------------------
-// lerobot-train 파라미터. key 는 CLI 플래그 이름 그대로 쓴다 (--key=value).
-// 기본값은 lerobot TrainPipelineConfig / SmolVLAConfig 기준이며, 고정한 lerobot 버전에 맞춰 확인해야 한다.
+// lerobot-train parameters. key is the CLI flag name as is (--key=value).
+// Defaults follow lerobot TrainPipelineConfig / SmolVLAConfig; verify them against the pinned lerobot version.
 
 export type ParamValue = number | boolean | string
 
@@ -146,22 +146,22 @@ const ALL_PARAMS = PARAM_GROUPS.flatMap((g) => g.params)
 
 export type Overrides = Record<string, ParamValue>
 
-/** 기본값과 다른 값만 CLI 플래그로 */
+/** CLI flags for values that differ from the defaults */
 export function overrideFlags(o: Overrides) {
   return ALL_PARAMS.filter((p) => p.key in o && o[p.key] !== p.default).map((p) => `--${p.key}=${o[p.key]}`)
 }
 
-/** 화면에 보여줄 lerobot-train 명령 (플래그마다 줄바꿈) */
+/** lerobot-train command for display (one flag per line) */
 export function trainCommand(dataset: string, flags: string[]) {
   return ["lerobot-train", `--policy.path=${POLICY_BASE}`, `--dataset.repo_id=${dataset}`, ...flags].join(" \\\n  ")
 }
 
-/** 학습 시작 전 확인 모달에 넘기는 값 */
+/** Values passed to the confirm dialog before training starts */
 export type TrainingPlan = {
   dataset: string
   compute: "local" | "runpod"
   gpu: string
-  /** 로컬 GPU 가 사용 중이면 그 Job id (대기열로 들어간다) */
+  /** Job id holding the local GPU, if busy (the new job is queued) */
   queuedBehind?: string
   runpod?: { options: RunPodOptions; rate: number; capHours: number }
   flags: string[]
@@ -172,7 +172,7 @@ export type TrainingPlan = {
 
 const SAVE_EVERY = 5000
 
-/** 저장된 checkpoint + 학습 중 새로 지난 저장 지점 */
+/** Saved checkpoints plus save points passed while training */
 export function checkpointsAt(job: TrainJob, step: number): Checkpoint[] {
   const saved = [...job.checkpoints]
   const last = saved.at(-1)?.step ?? 0
@@ -183,17 +183,17 @@ export function checkpointsAt(job: TrainJob, step: number): Checkpoint[] {
 }
 
 // ---------------------------------------------------------------------------
-// 학습 중 매 step 기록되는 값 (목업).
-// 실제로는 lerobot-train 의 step 로그(loss, grad_norm, lr, update_s, data_s)와 nvidia-smi 값을 받아 채운다.
+// Values logged every training step (mock).
+// The real app fills them from lerobot-train step logs (loss, grad_norm, lr, update_s, data_s) and nvidia-smi.
 
 const SERIES = ["loss_raw", "loss", "grad_norm", "lr", "update_s", "data_s", "gpu_util", "gpu_mem"] as const
 type SeriesKey = (typeof SERIES)[number]
 
 export type JobRun = {
-  /** 기록된 step 수 (0..count-1 이 채워져 있다) */
+  /** Number of logged steps (0..count-1 are filled) */
   count: number
   data: Record<SeriesKey, Float32Array>
-  /** target step 직전까지 기록을 채운다 */
+  /** Fills the log up to (not including) the target step */
   advanceTo: (target: number) => void
 }
 
@@ -202,7 +202,7 @@ const DECAY_LR = 2.5e-6
 const WARMUP = 1000
 const DECAY_STEPS = 30000
 
-/** 시드 고정 난수 (같은 Job 은 항상 같은 곡선) */
+/** Seeded random (the same job always gets the same curves) */
 function rng(seed: number) {
   let a = seed >>> 0
   return () => {
@@ -255,15 +255,15 @@ export function createRun(job: TrainJob): JobRun {
 }
 
 // ---------------------------------------------------------------------------
-// 지표 플롯
+// Metric plots
 
 type MetricLine = {
   key: SeriesKey
   label: string
-  /** CSS 변수 이름 (--series-1 등) */
+  /** CSS variable name (--series-1, ...) */
   color: string
   dashed?: boolean
-  /** 원본 값을 옅게 깔 때 (smoothing 된 선 아래) */
+  /** Draw raw values faintly (under the smoothed line) */
   faint?: boolean
 }
 
@@ -271,9 +271,9 @@ export type Metric = {
   title: string
   lines: MetricLine[]
   format: (v: number) => string
-  /** y 축 하한을 0 으로 고정 */
+  /** Pin the y axis minimum to 0 */
   zero?: boolean
-  /** y 축 상한 (예: 100%) */
+  /** y axis maximum (e.g. 100%) */
   max?: number
 }
 

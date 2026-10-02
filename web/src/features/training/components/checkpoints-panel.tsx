@@ -8,7 +8,7 @@ import type { Checkpoint, TrainJob } from "@/dummy/training"
 import type { JobRun } from "../lib"
 import { CheckpointsDialog } from "./checkpoints-dialog"
 
-/** Job 상세 옆의 checkpoint 목록. View all 로 전체 모달을 연다 */
+/** Checkpoint list beside the job detail. View all opens the full dialog */
 export function CheckpointsPanel({ job, run, checkpoints }: { job: TrainJob; run: JobRun; checkpoints: Checkpoint[] }) {
   const [open, setOpen] = useState(false)
   return (

@@ -8,10 +8,10 @@ import { formatRate, formatUsd } from "@/lib/format"
 
 import { runpodSummary, trainCommand, type TrainingPlan } from "../lib"
 
-// 값이 여러 줄이거나 길 수 있어 줄바꿈을 허용하고 간격을 넓힌다
+// Values can be long or multi-line, so allow wrapping and use a wider gap
 const ROWS = "[&_dd]:overflow-visible [&_dd]:whitespace-normal [&>div]:gap-6"
 
-/** 학습 시작 전 고른 값을 한 번 더 보여준다 */
+/** Shows the chosen settings once more before training starts */
 export function ConfirmTrainingDialog({
   open,
   onOpenChange,

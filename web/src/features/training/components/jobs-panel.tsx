@@ -8,7 +8,7 @@ import { JobRow } from "./job-row"
 
 type Tab = "all" | "active" | "finished"
 
-/** Job 목록. 전체 · 돌고 있는 것 · 끝난 것으로 거른다 */
+/** Job list, filtered by all, running or finished */
 export function JobsPanel() {
   const [tab, setTab] = useState<Tab>("all")
   const active = JOBS.filter(isActive)
