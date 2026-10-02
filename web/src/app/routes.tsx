@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom"
 import { AppLayout } from "@/app/layout"
 import { PlaceholderPage } from "@/app/placeholder"
 import { CapturePage } from "@/features/capture/page"
+import { ConvertPage } from "@/features/convert/page"
 import { DashboardPage } from "@/features/dashboard/page"
 import { DevicesPage } from "@/features/devices/page"
 import { SessionsPage } from "@/features/sessions/page"
@@ -18,7 +19,7 @@ export function AppRoutes() {
         <Route path="devices" element={<DevicesPage />} />
         <Route path="capture" element={<CapturePage />} />
         <Route path="sessions" element={<SessionsPage />} />
-        <Route path="convert" element={<PlaceholderPage title="Convert" />} />
+        <Route path="convert" element={<ConvertPage />} />
         <Route path="datasets" element={<PlaceholderPage group="Data" title="Datasets" />} />
         <Route path="training" element={<PlaceholderPage title="Training" />} />
         <Route path="simulation" element={<PlaceholderPage group="Train & Evaluate" title="Simulation" />} />
