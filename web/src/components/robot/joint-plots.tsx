@@ -12,6 +12,13 @@ type Props = {
   /** 범례에 붙는 장치 이름 (예: SO-101 Leader / SO-101 Follower) */
   actionSource?: string
   stateSource?: string
+  /**
+   * 재생 모드: 현재 재생 위치(초)를 돌려주는 함수. 주면 실시간 수신 대신
+   * 재생 위치까지의 최근 windowSec 구간을 그린다 (Review 의 MCAP 재생용)
+   */
+  playhead?: () => number
+  /** 재생 모드에서 파일마다 다른 궤적을 만들기 위한 값 (0–1) */
+  seed?: number
   className?: string
 }
 
@@ -25,7 +32,16 @@ const PAD = { left: 30, right: 8, top: 18, bottom: 16 }
  * 공통 시간축 · y 눈금 · 현재 시각 커서 · 최신 값 범례를 표시한다.
  * 모든 플롯은 하나의 rAF 루프와 ring buffer 를 공유한다 (샘플마다 React state 를 쓰지 않음).
  */
-export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSource, className }: Props) {
+export function JointPlots({
+  joints,
+  hz,
+  windowSec = 5,
+  actionSource,
+  stateSource,
+  playhead,
+  seed = 0,
+  className,
+}: Props) {
   const canvases = useRef<(HTMLCanvasElement | null)[]>([])
   // 실측 수신 주기. 0.5 s 마다 DOM 텍스트만 갱신한다 (React state 를 쓰지 않음)
   const actionRate = useRef<HTMLSpanElement>(null)
@@ -57,7 +73,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
 
     // 목업 신호: joint 마다 주기·위상이 다른 각도(°). state 는 action 을 0.15 s 늦게 따라간다
     const sample = (i: number, time: number) =>
-      (Math.sin(time * (0.55 + (i % 6) * 0.22) + i) * 0.7 + Math.sin(time * 2.7 + i) * 0.08) * Y_MAX
+      (Math.sin(time * (0.55 + (i % 6) * 0.22) + i + seed * 6) * 0.7 + Math.sin(time * 2.7 + i + seed) * 0.08) * Y_MAX
 
     for (let k = 0; k < capacity; k++) {
       t += 1 / hz
@@ -128,11 +144,18 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
         ctx.lineWidth = dashed ? 1.25 : 1.5
         ctx.setLineDash(dashed ? [4, 3] : [])
         ctx.beginPath()
+        let pen = false
         for (let j = 0; j < capacity; j++) {
+          const v = buf[(head + j) % capacity]
+          if (Number.isNaN(v)) {
+            pen = false
+            continue
+          }
           const x = xOf(j)
-          const y = yOf(buf[(head + j) % capacity])
-          if (j === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
+          const y = yOf(v)
+          if (pen) ctx.lineTo(x, y)
+          else ctx.moveTo(x, y)
+          pen = true
         }
         ctx.stroke()
         ctx.setLineDash([])
@@ -150,7 +173,10 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
       ctx.globalAlpha = 1
 
       // 범례 + 최신 값 (오른쪽 위)
-      const latest = (buf: Float32Array) => buf[(head - 1 + capacity) % capacity]
+      const latest = (buf: Float32Array) => {
+        const v = buf[(head - 1 + capacity) % capacity]
+        return Number.isNaN(v) ? 0 : v
+      }
       ctx.textBaseline = "middle"
       ctx.textAlign = "right"
       const entries = [
@@ -169,6 +195,21 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
     }
 
     const draw = (now: number) => {
+      if (playhead) {
+        // 재생 모드: 재생 위치까지의 최근 구간을 다시 채운다 (0 초 이전은 비움)
+        const end = playhead()
+        for (let k = 0; k < capacity; k++) {
+          const tk = end - windowSec + (k + 1) / hz
+          for (let i = 0; i < joints.length; i++) {
+            action[i][k] = tk < 0 ? Number.NaN : sample(i, tk)
+            state[i][k] = tk < 0.15 ? Number.NaN : sample(i, tk - 0.15)
+          }
+        }
+        head = 0
+        canvases.current.forEach((c, i) => c && i < joints.length && drawPlot(c, i))
+        raf = requestAnimationFrame(draw)
+        return
+      }
       const n = Math.floor(((now - last) / 1000) * hz)
       // 남는 소수 구간을 버리지 않도록 생성한 샘플 수만큼만 시간을 진행시킨다
       last += (n * 1000) / hz
@@ -199,7 +240,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [joints, hz, windowSec])
+  }, [joints, hz, windowSec, playhead, seed])
 
   return (
     <div className={cn("flex min-h-0 flex-col gap-2", className)}>
@@ -219,7 +260,7 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
             {hz.toFixed(1)} Hz
           </span>
         </span>
-        <span className="ml-auto">Target {hz} Hz</span>
+        <span className="ml-auto">{playhead ? `Recorded at ${hz} Hz` : `Target ${hz} Hz`}</span>
       </div>
 
       <div className="grid min-h-0 flex-1 auto-rows-[minmax(7rem,1fr)] gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
