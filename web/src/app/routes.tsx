@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 
 import { AppLayout } from "@/app/layout"
-import { PlaceholderPage } from "@/app/placeholder"
 import { CapturePage } from "@/features/capture/page"
 import { ConvertPage } from "@/features/convert/page"
 import { DashboardPage } from "@/features/dashboard/page"
@@ -12,6 +11,8 @@ import { TasksPage } from "@/features/tasks/page"
 import { EvaluatePage } from "@/features/evaluate/page"
 import { ModelsPage } from "@/features/models/page"
 import { SettingsPage } from "@/features/settings/page"
+import { SimJobPage } from "@/features/simulation/job-page"
+import { SimulationPage } from "@/features/simulation/page"
 import { JobPage } from "@/features/training/job-page"
 import { TrainingPage } from "@/features/training/page"
 
@@ -32,7 +33,8 @@ export function AppRoutes() {
         <Route path="training/:jobId" element={<JobPage />} />
         <Route path="models" element={<ModelsPage />} />
         <Route path="evaluate" element={<EvaluatePage />} />
-        <Route path="simulation" element={<PlaceholderPage group="Train & Evaluate" title="Simulation" />} />
+        <Route path="simulation" element={<SimulationPage />} />
+        <Route path="simulation/:jobId" element={<SimJobPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>
