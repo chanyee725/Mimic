@@ -31,9 +31,7 @@ function NavBadge({ badge }: { badge: NavItem["badge"] }) {
   if (badge === undefined) return null
   if (badge === "rec") {
     return (
-      <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad">
-        REC
-      </SidebarMenuBadge>
+      <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad">REC</SidebarMenuBadge>
     )
   }
   return <SidebarMenuBadge className="font-mono font-normal text-muted-foreground">{badge}</SidebarMenuBadge>
