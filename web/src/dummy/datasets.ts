@@ -1,8 +1,6 @@
 // Convert 로 만든 LeRobot 데이터셋 더미.
 // 실제로는 변환 작업이 끝나면 meta/info.json 을 읽어 채운다.
 
-import type { Alignment } from "@/dummy/tasks"
-
 export type DatasetStatus = "ready" | "converting" | "failed"
 
 export type DatasetFeature = {
@@ -25,7 +23,6 @@ export type Dataset = {
   rigId: string
   format: string
   fps: number
-  alignment: Alignment
   status: DatasetStatus
   progress?: number // converting 일 때 0–100
   createdAt: string
@@ -36,7 +33,7 @@ export type Dataset = {
 }
 
 const SO101_FEATURES = (cameras: string[]): DatasetFeature[] => [
-  { key: "action", dtype: "float32", shape: "[2, 6]", note: "60 Hz, 2 samples per frame" },
+  { key: "action", dtype: "float32", shape: "[6]", note: "60 Hz → 30 Hz" },
   { key: "observation.state", dtype: "float32", shape: "[6]" },
   ...cameras.map((c) => ({ key: `observation.images.${c}`, dtype: "video", shape: "[480, 640, 3]", note: "AV1" })),
   { key: "subtask_index", dtype: "int64", shape: "[1]" },
@@ -61,7 +58,6 @@ export const DATASETS: Dataset[] = [
     rigId: "so101-kit",
     format: "LeRobot v3.0",
     fps: 30,
-    alignment: "chunk",
     status: "ready",
     createdAt: "2026-10-01 18:20",
     sizeGB: 1.4,
@@ -75,7 +71,6 @@ export const DATASETS: Dataset[] = [
     rigId: "so101-kit",
     format: "LeRobot v3.0",
     fps: 30,
-    alignment: "chunk",
     status: "ready",
     createdAt: "2026-09-30 21:05",
     sizeGB: 2.3,
@@ -89,7 +84,6 @@ export const DATASETS: Dataset[] = [
     rigId: "so101-kit",
     format: "LeRobot v3.0",
     fps: 30,
-    alignment: "chunk",
     status: "converting",
     progress: 37,
     createdAt: "2026-10-02 11:40",
@@ -103,8 +97,7 @@ export const DATASETS: Dataset[] = [
     taskId: "pour-into-cup",
     rigId: "so101-kit",
     format: "LeRobot v3.0",
-    fps: 60,
-    alignment: "duplicate",
+    fps: 30,
     status: "failed",
     createdAt: "2026-09-29 16:12",
     sizeGB: 0,

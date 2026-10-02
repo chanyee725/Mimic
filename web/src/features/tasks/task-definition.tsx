@@ -4,9 +4,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { ALIGNMENT_MODES } from "@/dummy/convert"
 import { getRig, rigDefaults, RIGS } from "@/dummy/rigs"
-import type { Alignment, Task } from "@/dummy/tasks"
+import type { Task } from "@/dummy/tasks"
 
 type Props = {
   task: Task
@@ -208,21 +207,13 @@ export function TaskDefinition({ task, onChange }: Props) {
       </SettingsSection>
 
       <SettingsSection title="Output">
-        <div className="grid gap-3 @md:grid-cols-2">
+        <div className="grid gap-3">
           <Field label="repo_id" htmlFor="o-repo">
             <Input
               id="o-repo"
               className="h-9 font-mono text-[13px]"
               value={task.repoId}
               onChange={(e) => onChange({ repoId: e.target.value })}
-            />
-          </Field>
-          <Field label="Alignment" htmlFor="o-align">
-            <SimpleSelect
-              id="o-align"
-              value={task.alignment}
-              options={ALIGNMENT_MODES.map((m) => ({ value: m.id, label: m.title }))}
-              onChange={(v) => onChange({ alignment: v as Alignment })}
             />
           </Field>
         </div>

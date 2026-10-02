@@ -1,12 +1,6 @@
 import { getRig } from "@/dummy/rigs"
 import type { Task } from "@/dummy/tasks"
 
-const ALIGNMENT_YAML: Record<Task["alignment"], string> = {
-  chunk: "{ fps: 30, action_chunk: 2 }",
-  duplicate: "{ fps: 60, video: duplicate }",
-  downsample: "{ fps: 30, action: downsample }",
-}
-
 /** Task 정의를 YAML 텍스트로 직렬화 (표시용 간단 serializer) */
 export function taskToYaml(t: Task): string {
   const rig = getRig(t.rigId)
@@ -23,7 +17,7 @@ export function taskToYaml(t: Task): string {
     "output:",
     `  repo_id: ${t.repoId}`,
     "  format: lerobot_v3",
-    `  alignment: ${ALIGNMENT_YAML[t.alignment]}`,
+    `  fps: ${t.videoFps}  # action ${t.actionHz} Hz → ${t.videoFps} Hz`,
     `  push_to_hub: ${t.pushToHub ? "private" : "false"}`,
   ].join("\n")
 }

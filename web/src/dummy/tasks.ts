@@ -2,7 +2,6 @@ import { getRig, rigDefaults } from "@/dummy/rigs"
 
 export type TaskStatus = "active" | "draft" | "completed"
 export type Outcome = "success" | "fail" | "partial"
-export type Alignment = "chunk" | "duplicate" | "downsample"
 
 export type Subtask = { key: string; name: string; description: string }
 
@@ -24,7 +23,6 @@ export type Task = {
   subtasks: Subtask[]
   successCriteria: string
   repoId: string
-  alignment: Alignment
   pushToHub: boolean
   status: TaskStatus
   collected: number
@@ -44,7 +42,6 @@ const base = {
   resetS: 10,
   countdownS: 3,
   outcomes,
-  alignment: "chunk" as Alignment,
   pushToHub: true,
 }
 
