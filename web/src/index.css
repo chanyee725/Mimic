@@ -2,14 +2,14 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
-@import "@fontsource-variable/geist-mono";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
-    --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+    /* 사이드바와 같은 Pretendard 로 통일. 숫자 정렬은 tabular-nums 로 맞춘다 */
+    --font-mono: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
     --color-ok: var(--ok);
     --color-ok-muted: var(--ok-muted);
     --color-warn: var(--warn);
@@ -161,5 +161,8 @@
     }
   html {
     @apply font-sans;
+    }
+  .font-mono {
+    font-variant-numeric: tabular-nums;
     }
 }
