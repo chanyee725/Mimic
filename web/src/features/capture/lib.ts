@@ -1,5 +1,14 @@
 import type { Outcome } from "@/dummy/tasks"
 
+/** 에피소드 상태 머신의 단계 */
+export type Phase = "idle" | "recording" | "review"
+
+export const PHASE: Record<Phase, { label: string; className: string }> = {
+  idle: { label: "READY", className: "bg-muted text-muted-foreground" },
+  recording: { label: "REC", className: "bg-bad-muted text-bad" },
+  review: { label: "REVIEW", className: "bg-warn-muted text-warn" },
+}
+
 export type Review = "pending" | "accepted" | "rejected"
 
 /** 저장된 에피소드 한 건. 저장 직후 자동 검증 결과를 함께 가진다 */
@@ -17,10 +26,10 @@ export type CapturedEpisode = {
   review: Review
 }
 
-export type Check = { label: string; value: string; ok: boolean }
+type Check = { label: string; value: string; ok: boolean }
 
 /** 자동 검증 항목. 타임스탬프 간격은 프레임 주기의 1.5배를 허용 범위로 본다 */
-export function checksOf(e: CapturedEpisode, videoFps: number): Check[] {
+function checksOf(e: CapturedEpisode, videoFps: number): Check[] {
   const tolerance = (1000 / videoFps) * 1.5
   return [
     {

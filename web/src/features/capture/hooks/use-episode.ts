@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { Outcome } from "@/dummy/tasks"
 
-import { measureEpisode, recentEpisodes, type CapturedEpisode, type Review } from "./episode-review"
-
-export type Phase = "idle" | "recording" | "review"
+import { measureEpisode, recentEpisodes, type CapturedEpisode, type Phase, type Review } from "../lib"
 
 /**
  * 에피소드 상태 머신: idle → recording → review → (save | re-record | discard)
@@ -35,9 +33,15 @@ export function useEpisode({ durationS, startEpisode, subtasksTotal, actionHz, v
     setHistory(recentEpisodes(startEpisode, durationS, subtasksTotal, actionHz, videoFps))
   }, [startEpisode, durationS, subtasksTotal, actionHz, videoFps])
 
+  // 재개 시점 계산용. 타이머 effect 보다 먼저 선언해 같은 커밋에서 최신 값을 읽게 한다
+  const elapsedRef = useRef(elapsedMs)
+  useEffect(() => {
+    elapsedRef.current = elapsedMs
+  })
+
   useEffect(() => {
     if (phase !== "recording") return
-    const started = performance.now() - elapsedMs
+    const started = performance.now() - elapsedRef.current
     const id = setInterval(() => {
       const ms = performance.now() - started
       if (ms >= durationS * 1000) {
@@ -48,8 +52,6 @@ export function useEpisode({ durationS, startEpisode, subtasksTotal, actionHz, v
       }
     }, 100)
     return () => clearInterval(id)
-    // elapsedMs 는 재개 시점 계산용으로만 읽는다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, durationS])
 
   const start = useCallback(() => {
@@ -95,3 +97,5 @@ export function useEpisode({ durationS, startEpisode, subtasksTotal, actionHz, v
 
   return { phase, episode, elapsedMs, subtask, setSubtask, lastOutcome, history, review, toggle, start, save, discard }
 }
+
+export type EpisodeState = ReturnType<typeof useEpisode>
