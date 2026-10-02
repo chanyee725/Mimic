@@ -1,5 +1,5 @@
 export type RigCamera = {
-  id: string // device id (@/dummy/devices)
+  id: string // device id (see Device)
   key: string // camera key toggled per task
   name: string
   feature: string // LeRobot feature key

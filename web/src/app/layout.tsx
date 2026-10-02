@@ -17,7 +17,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { APP_NAME, NAV, type NavItem } from "@/app/nav"
-import { STATION } from "@/dummy/station"
+import { getStation } from "@/api/station"
 
 // Light sidebar: regular weight and thin icons, only the active item is emphasised
 const NAV_ITEM_CLASS =
@@ -34,7 +34,7 @@ function NavBadge({ badge }: { badge: NavItem["badge"] }) {
       <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad">REC</SidebarMenuBadge>
     )
   }
-  return <SidebarMenuBadge className="font-mono font-normal text-muted-foreground">{badge}</SidebarMenuBadge>
+  return <SidebarMenuBadge className="font-mono font-normal text-muted-foreground">{badge()}</SidebarMenuBadge>
 }
 
 function AppSidebar() {
@@ -50,7 +50,7 @@ function AppSidebar() {
                 <div className="grid text-left leading-tight">
                   <span className="truncate font-medium tracking-tight">{APP_NAME}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {STATION.id} · {STATION.robot}
+                    {getStation().id} · {getStation().robot}
                   </span>
                 </div>
               </SidebarMenuButton>
