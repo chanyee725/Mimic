@@ -1,5 +1,5 @@
 import type { Tone } from "@/components/app/status-dot"
-import type { Compute, JobStatus, TrainJob } from "@/dummy/training"
+import { RUNPOD_PRICE_FACTOR, type Compute, type JobStatus, type RunPodOptions, type TrainJob } from "@/dummy/training"
 
 export const JOB_STATUS: Record<JobStatus, { tone: Tone; label: string }> = {
   running: { tone: "info", label: "Running" },
@@ -18,10 +18,20 @@ export function computeText(j: TrainJob) {
   return [COMPUTE_LABEL[j.compute], j.gpu, j.pricePerHr && `$${j.pricePerHr.toFixed(2)}/h`].filter(Boolean).join(", ")
 }
 
-/** "2h 08m" → 시간(소수) */
-export function hoursOf(elapsed?: string) {
-  if (!elapsed) return 0
-  const h = Number(elapsed.match(/(\d+)h/)?.[1] ?? 0)
-  const m = Number(elapsed.match(/(\d+)m/)?.[1] ?? 0)
-  return h + m / 60
+/** 옵션을 반영한 시간당 요금 */
+export function runpodRate(base: number, o: RunPodOptions) {
+  return base * o.gpuCount * RUNPOD_PRICE_FACTOR.cloud[o.cloud] * RUNPOD_PRICE_FACTOR.pricing[o.pricing]
+}
+
+/** "Secure, on-demand, 1 GPU, stop after 6 h" */
+export function runpodSummary(o: RunPodOptions) {
+  return [
+    o.cloud === "secure" ? "Secure cloud" : "Community cloud",
+    o.pricing,
+    `${o.gpuCount} GPU${o.gpuCount > 1 ? "s" : ""}`,
+    o.maxHours ? `stop after ${o.maxHours} h` : "no time limit",
+    o.budget ? `budget $${o.budget}` : "",
+  ]
+    .filter(Boolean)
+    .join(", ")
 }

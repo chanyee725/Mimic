@@ -41,6 +41,44 @@ export const RUNPOD_GPUS = [
   { name: "H100", vram: "80 GB", pricePerHr: 2.99 },
 ]
 
+export type RunPodOptions = {
+  cloud: "secure" | "community"
+  pricing: "on-demand" | "spot"
+  gpuCount: 1 | 2 | 4
+  /** 이 시간이 지나면 학습을 멈추고 pod 를 끈다 */
+  maxHours: number
+  /** 누적 비용이 넘으면 멈춘다 (USD, 0 = 제한 없음) */
+  budget: number
+  diskGB: number
+  volume: string
+  region: string
+  terminateOnFinish: boolean
+  pushToHub: boolean
+}
+
+export const RUNPOD_DEFAULTS: RunPodOptions = {
+  cloud: "secure",
+  pricing: "on-demand",
+  gpuCount: 1,
+  maxHours: 6,
+  budget: 0,
+  diskGB: 50,
+  volume: "none",
+  region: "any",
+  terminateOnFinish: true,
+  pushToHub: false,
+}
+
+/** 요금 배율 (예시). Community 는 개인 호스트, Spot 은 중간에 회수될 수 있다 */
+export const RUNPOD_PRICE_FACTOR = { cloud: { secure: 1, community: 0.8 }, pricing: { "on-demand": 1, spot: 0.5 } }
+
+export const RUNPOD_VOLUMES = [
+  { id: "none", label: "None", note: "pod 를 끄면 데이터가 지워집니다" },
+  { id: "vla-datasets", label: "vla-datasets (200 GB, EU-RO-1)", note: "데이터셋 캐시 + checkpoint 보관" },
+]
+
+export const RUNPOD_REGIONS = ["any", "EU-RO-1", "EU-SE-1", "US-TX-3", "US-CA-2"]
+
 const ckpts = (steps: number[], day: string, sizeMB = 1850): Checkpoint[] =>
   steps.map((step, i) => ({ step, savedAt: `${day} ${String(9 + i).padStart(2, "0")}:${String((i * 23) % 60).padStart(2, "0")}`, sizeMB }))
 
@@ -141,16 +179,3 @@ export const JOBS: TrainJob[] = [
 export const getJob = (id: string) => JOBS.find((j) => j.id === id)
 
 export const isActive = (j: TrainJob) => j.status === "running" || j.status === "queued"
-
-export type LossPoint = { step: number; train: number; val: number }
-
-/** loss 곡선 더미. decay 가 클수록 천천히 수렴, points 는 1k step 간격 개수 */
-export function lossCurve(decay = 14, points = 65): LossPoint[] {
-  return Array.from({ length: points }, (_, i) => ({
-    step: i * 1000,
-    train: 0.08 + 0.9 * Math.exp(-i / decay) + Math.sin(i * 1.9) * 0.02,
-    val: 0.13 + 0.9 * Math.exp(-i / (decay + 3)) + Math.sin(i * 1.3) * 0.01,
-  }))
-}
-
-export const LOSS_CURVE = lossCurve()
