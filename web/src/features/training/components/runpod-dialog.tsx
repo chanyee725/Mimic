@@ -1,15 +1,14 @@
-import { useState } from "react"
-
-import { Segmented } from "@/components/app/segmented"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { Segmented } from "@/components/app/segmented"
 import { RUNPOD_DEFAULTS, RUNPOD_REGIONS, RUNPOD_VOLUMES, type RunPodOptions } from "@/dummy/training"
+import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { formatRate, formatUsd } from "@/lib/format"
 
-import { runpodRate } from "./jobs"
+import { runpodCapHours, runpodRate } from "../lib"
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -42,15 +41,10 @@ export function RunPodDialog({
   /** 고른 GPU 를 Community cloud 에서도 빌릴 수 있는지 */
   communityOk?: boolean
 }) {
-  const [draft, setDraft] = useState(options)
-  const [lastOpen, setLastOpen] = useState(open)
-  if (open !== lastOpen) {
-    setLastOpen(open)
-    if (open) setDraft(options)
-  }
+  const [draft, setDraft] = useDraftOnOpen(open, options)
   const set = <K extends keyof RunPodOptions>(k: K, v: RunPodOptions[K]) => setDraft((d) => ({ ...d, [k]: v }))
   const rate = runpodRate(basePrice, draft)
-  const capHours = draft.budget ? Math.min(draft.maxHours || Infinity, draft.budget / rate) : draft.maxHours
+  const capHours = runpodCapHours(draft, rate)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

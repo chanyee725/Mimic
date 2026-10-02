@@ -2,33 +2,14 @@ import { LuPlay } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { POLICY, POLICY_BASE, RUNPOD_VOLUMES, type RunPodOptions } from "@/dummy/training"
+import { DetailList } from "@/components/app/detail-list"
+import { POLICY, POLICY_BASE, RUNPOD_VOLUMES } from "@/dummy/training"
 import { formatRate, formatUsd } from "@/lib/format"
 
-import { runpodSummary } from "./jobs"
+import { runpodSummary, trainCommand, type TrainingPlan } from "../lib"
 
-export type TrainingPlan = {
-  dataset: string
-  compute: "local" | "runpod"
-  gpu: string
-  /** 로컬 GPU 가 사용 중이면 그 Job id (대기열로 들어간다) */
-  queuedBehind?: string
-  runpod?: { options: RunPodOptions; rate: number; capHours: number }
-  flags: string[]
-}
-
-function Rows({ rows }: { rows: { k: string; v: React.ReactNode }[] }) {
-  return (
-    <dl className="divide-y">
-      {rows.map((r) => (
-        <div key={r.k} className="flex justify-between gap-6 py-2 text-[13px]">
-          <dt className="shrink-0 text-muted-foreground">{r.k}</dt>
-          <dd className="min-w-0 text-right tabular-nums">{r.v}</dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
+// 값이 여러 줄이거나 길 수 있어 줄바꿈을 허용하고 간격을 넓힌다
+const ROWS = "[&_dd]:overflow-visible [&_dd]:whitespace-normal [&>div]:gap-6"
 
 /** 학습 시작 전 고른 값을 한 번 더 보여준다 */
 export function ConfirmTrainingDialog({
@@ -43,13 +24,7 @@ export function ConfirmTrainingDialog({
   onConfirm: () => void
 }) {
   const pod = plan.runpod
-  const command = [
-    "lerobot-train",
-    `--policy.path=${POLICY_BASE}`,
-    `--dataset.repo_id=${plan.dataset}`,
-    ...(plan.compute === "local" ? ["--policy.device=cuda"] : []),
-    ...plan.flags,
-  ].join(" \\\n  ")
+  const command = trainCommand(plan.dataset, [...(plan.compute === "local" ? ["--policy.device=cuda"] : []), ...plan.flags])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,7 +43,8 @@ export function ConfirmTrainingDialog({
         <div className="-mx-4 grid min-h-0 content-start gap-4 overflow-y-auto px-4">
           <section className="grid gap-1">
             <h3 className="text-xs font-medium text-muted-foreground">Training</h3>
-            <Rows
+            <DetailList
+              className={ROWS}
               rows={[
                 { k: "Model", v: `${POLICY} (${POLICY_BASE})` },
                 { k: "Dataset", v: plan.dataset },
@@ -90,7 +66,8 @@ export function ConfirmTrainingDialog({
 
           <section className="grid gap-1">
             <h3 className="text-xs font-medium text-muted-foreground">Compute</h3>
-            <Rows
+            <DetailList
+              className={ROWS}
               rows={[
                 { k: "Where", v: plan.compute === "local" ? "Local GPU" : "RunPod" },
                 { k: "GPU", v: pod ? `${pod.options.gpuCount} × ${plan.gpu}` : plan.gpu },

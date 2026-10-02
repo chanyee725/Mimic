@@ -1,29 +1,15 @@
 import { useState } from "react"
 
-import { Segmented } from "@/components/app/segmented"
-import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { RUNPOD_GPUS, type GpuStock, type RunPodGpu } from "@/dummy/training"
+import { Segmented } from "@/components/app/segmented"
+import { StatusDot } from "@/components/app/status-dot"
+import { RUNPOD_GPUS } from "@/dummy/training"
+import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { formatRate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-type Tier = "all" | "small" | "mid" | "large"
-const TIERS: { id: Tier; label: string; fits: (g: RunPodGpu) => boolean }[] = [
-  { id: "all", label: "All", fits: () => true },
-  { id: "small", label: "≤ 24 GB", fits: (g) => g.vramGB <= 24 },
-  { id: "mid", label: "32–48 GB", fits: (g) => g.vramGB > 24 && g.vramGB <= 48 },
-  { id: "large", label: "80 GB+", fits: (g) => g.vramGB > 48 },
-]
-
-const STOCK: Record<GpuStock, { tone: Tone; label: string }> = {
-  high: { tone: "ok", label: "Available" },
-  low: { tone: "warn", label: "Low stock" },
-  none: { tone: "muted", label: "Unavailable" },
-}
-
-/** SmolVLA 를 기본 batch 로 돌리기에 빠듯한 VRAM (대략치) */
-const TIGHT_VRAM = 20
+import { GPU_STOCK, TIERS, TIGHT_VRAM, type Tier } from "../lib"
 
 /** RunPod GPU 고르기. VRAM 구간으로 거르고 가격순으로 보여준다 */
 export function GpuPickerDialog({
@@ -38,12 +24,7 @@ export function GpuPickerDialog({
   onSelect: (name: string) => void
 }) {
   const [tier, setTier] = useState<Tier>("all")
-  const [draft, setDraft] = useState(value)
-  const [lastOpen, setLastOpen] = useState(open)
-  if (open !== lastOpen) {
-    setLastOpen(open)
-    if (open) setDraft(value)
-  }
+  const [draft, setDraft] = useDraftOnOpen(open, value)
   const rows = RUNPOD_GPUS.filter(TIERS.find((t) => t.id === tier)!.fits).sort((a, b) => a.pricePerHr - b.pricePerHr)
 
   return (
@@ -116,8 +97,8 @@ export function GpuPickerDialog({
                     <td className="px-3 py-2 text-right tabular-nums">{formatRate(g.pricePerHr)}</td>
                     <td className="px-3 py-2 text-muted-foreground">{g.community ? "Yes" : "—"}</td>
                     <td className="px-3 py-2">
-                      <StatusDot tone={STOCK[g.stock].tone} className="text-xs text-muted-foreground">
-                        {STOCK[g.stock].label}
+                      <StatusDot tone={GPU_STOCK[g.stock].tone} className="text-xs text-muted-foreground">
+                        {GPU_STOCK[g.stock].label}
                       </StatusDot>
                     </td>
                   </tr>

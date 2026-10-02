@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { Checkpoint, TrainJob } from "@/dummy/training"
 
-import type { JobRun } from "./job-run"
+import type { JobRun } from "../lib"
 
 /** Job 의 checkpoint 전체. 골라서 내려받거나 HF Hub 에 올린다 */
 export function CheckpointsDialog({

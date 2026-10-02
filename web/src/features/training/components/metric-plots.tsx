@@ -2,31 +2,12 @@ import { useEffect, useRef, useState } from "react"
 import { LuMaximize2 } from "react-icons/lu"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { cssVar, drawCursor, drawLegend, drawLine, drawXGrid, drawYGrid, prepareCanvas } from "@/components/robot/plot-canvas"
 import { cn } from "@/lib/utils"
 
-import type { JobRun, SeriesKey } from "./job-run"
+import type { JobRun, Metric } from "../lib"
 
-export type MetricLine = {
-  key: SeriesKey
-  label: string
-  /** CSS 변수 이름 (--series-1 등) */
-  color: string
-  dashed?: boolean
-  /** 원본 값을 옅게 깔 때 (smoothing 된 선 아래) */
-  faint?: boolean
-}
-
-export type Metric = {
-  title: string
-  lines: MetricLine[]
-  format: (v: number) => string
-  /** y 축 하한을 0 으로 고정 */
-  zero?: boolean
-  /** y 축 상한 (예: 100%) */
-  max?: number
-}
-
-const PAD = { left: 40, right: 8, top: 18, bottom: 16 }
+const PAD_LEFT = 40
 const STEP_TICKS = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
 
 const stepLabel = (s: number) => (s >= 1000 ? `${s / 1000}k` : String(s))
@@ -56,31 +37,16 @@ export function MetricPlots({
   useEffect(() => {
     const first = canvases.current[0]
     if (!first) return
-    const css = getComputedStyle(first)
-    const v = (name: string) => css.getPropertyValue(name).trim()
+    const v = (name: string) => cssVar(first, name)
     const color = { grid: v("--border"), text: v("--muted-foreground"), cursor: v("--foreground") }
-    const font = css.fontFamily
+    const font = getComputedStyle(first).fontFamily
 
     const drawPlot = (canvas: HTMLCanvasElement, m: Metric) => {
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return
-      const dpr = window.devicePixelRatio || 1
-      const w = canvas.clientWidth
-      const h = canvas.clientHeight
-      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-        canvas.width = Math.round(w * dpr)
-        canvas.height = Math.round(h * dpr)
-      }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, h)
-
+      const f = prepareCanvas(canvas, PAD_LEFT)
+      if (!f) return
+      const { ctx, x0, x1, y0, y1 } = f
       const n = run.count
-      const x0 = PAD.left
-      const x1 = w - PAD.right
-      const y0 = PAD.top
-      const y1 = h - PAD.bottom
       ctx.font = `10px ${font}`
-      ctx.lineWidth = 1
       if (n < 2) return
 
       // 화면 폭(px) 만큼의 구간 평균으로 줄여서 그린다
@@ -114,78 +80,39 @@ export function MetricPlots({
       const yOf = (val: number) => y0 + ((hi - val) / (hi - lo)) * (y1 - y0)
 
       // y 눈금: 아래 · 가운데 · 위
-      ctx.textAlign = "right"
-      ctx.textBaseline = "middle"
-      for (const val of [lo, (lo + hi) / 2, hi]) {
-        ctx.strokeStyle = color.grid
-        ctx.beginPath()
-        ctx.moveTo(x0, yOf(val))
-        ctx.lineTo(x1, yOf(val))
-        ctx.stroke()
-        ctx.fillStyle = color.text
-        ctx.fillText(m.format(val), x0 - 4, yOf(val))
-      }
+      drawYGrid(
+        f,
+        [lo, (lo + hi) / 2, hi].map((val) => ({ y: yOf(val), label: m.format(val) })),
+        color.grid,
+        color.text,
+      )
 
-      // x 눈금: step, 최대 5개
+      // x 눈금: step, 최대 5개. 오른쪽 끝에 붙은 라벨은 생략
       const tick = STEP_TICKS.find((t) => n / t <= 5) ?? 100000
-      ctx.textAlign = "center"
-      ctx.textBaseline = "top"
+      const xTicks: { x: number; label?: string }[] = []
       for (let s = 0; s < n; s += tick) {
         const x = x0 + (s / (n - 1)) * (x1 - x0)
-        ctx.strokeStyle = color.grid
-        ctx.globalAlpha = 0.5
-        ctx.beginPath()
-        ctx.moveTo(x, y0)
-        ctx.lineTo(x, y1)
-        ctx.stroke()
-        ctx.globalAlpha = 1
-        if (x < x1 - 24) {
-          ctx.fillStyle = color.text
-          ctx.fillText(stepLabel(s), x, y1 + 3)
-        }
+        xTicks.push({ x, label: x < x1 - 24 ? stepLabel(s) : undefined })
       }
+      drawXGrid(f, xTicks, color.grid, color.text)
 
-      for (const l of lines) {
-        ctx.strokeStyle = v(l.color)
-        ctx.globalAlpha = l.faint ? 0.25 : 1
-        ctx.lineWidth = l.dashed ? 1.25 : 1.5
-        ctx.setLineDash(l.dashed ? [4, 3] : [])
-        ctx.beginPath()
-        l.pts.forEach((p, c) => {
-          const x = x0 + (c / (l.pts.length - 1)) * (x1 - x0)
-          if (c) ctx.lineTo(x, yOf(p))
-          else ctx.moveTo(x, yOf(p))
-        })
-        ctx.stroke()
+      const points = function* (pts: Float32Array): Generator<[number, number]> {
+        for (let c = 0; c < pts.length; c++) yield [x0 + (c / (pts.length - 1)) * (x1 - x0), yOf(pts[c])]
       }
-      ctx.setLineDash([])
-      ctx.globalAlpha = 1
+      for (const l of lines) drawLine(f, points(l.pts), v(l.color), { dashed: l.dashed, alpha: l.faint ? 0.25 : 1 })
 
       // 현재 step 커서
-      if (live) {
-        ctx.strokeStyle = color.cursor
-        ctx.globalAlpha = 0.35
-        ctx.beginPath()
-        ctx.moveTo(x1, y0 - 4)
-        ctx.lineTo(x1, y1)
-        ctx.stroke()
-        ctx.globalAlpha = 1
-      }
+      if (live) drawCursor(f, color.cursor)
 
       // 범례 + 최신 값 (오른쪽 위). 옅은 원본 선은 범례에서 뺀다
-      ctx.textBaseline = "middle"
-      ctx.textAlign = "right"
-      let x = x1
-      for (const l of [...m.lines].reverse()) {
-        if (l.faint) continue
-        const label = `${l.label} ${m.format(run.data[l.key][n - 1])}`
-        ctx.fillStyle = color.cursor
-        ctx.fillText(label, x, PAD.top / 2)
-        const tw = ctx.measureText(label).width
-        ctx.fillStyle = v(l.color)
-        ctx.fillRect(x - tw - 10, PAD.top / 2 - 3, 6, 6)
-        x -= tw + 20
-      }
+      drawLegend(
+        f,
+        [...m.lines]
+          .reverse()
+          .filter((l) => !l.faint)
+          .map((l) => ({ label: `${l.label} ${m.format(run.data[l.key][n - 1])}`, color: v(l.color) })),
+        color.cursor,
+      )
     }
 
     let drawn = -1
