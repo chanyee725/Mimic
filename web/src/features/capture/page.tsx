@@ -12,7 +12,7 @@ import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 import { EpisodeList } from "./components/episode-list"
-import { TimeSeries } from "./components/timeseries"
+import { JointPlots } from "./components/joint-plots"
 import { VideoTile } from "./components/video-tile"
 import { useEpisode, type Phase } from "./use-episode"
 
@@ -205,20 +205,26 @@ export function CapturePage() {
             ))}
           </div>
 
-          <div className="grid min-h-56 flex-1 gap-4 md:grid-cols-2">
-            <Panel
-              title="Action"
-              action={<span className="text-xs text-muted-foreground tabular-nums">{rig.master} · {task.actionHz} Hz</span>}
-            >
-              <TimeSeries series={rig.joints} hz={task.actionHz} signal="action" className="min-h-0 flex-1" />
-            </Panel>
-            <Panel
-              title="Observation"
-              action={<span className="text-xs text-muted-foreground tabular-nums">{rig.slave} · {task.actionHz} Hz</span>}
-            >
-              <TimeSeries series={rig.joints} hz={task.actionHz} signal="state" className="min-h-0 flex-1" />
-            </Panel>
-          </div>
+          {/* Rerun time series 처럼 joint 별 플롯 (action 실선 · observation 점선) */}
+          <Panel
+            title="Joints"
+            className="min-h-72 flex-1"
+            action={
+              <span className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-3 rounded-full bg-series-1" />
+                  action · {rig.master}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-3 rounded-full border-t border-dashed border-series-3" />
+                  observation.state · {rig.slave}
+                </span>
+                <span>{task.actionHz} Hz</span>
+              </span>
+            }
+          >
+            <JointPlots joints={rig.joints} hz={task.actionHz} className="flex-1" />
+          </Panel>
         </div>
 
         {/* 녹화 직후 검수: 저장 시 자동 검증 결과를 보고 Accept / Reject */}
