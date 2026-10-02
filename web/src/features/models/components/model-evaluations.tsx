@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/app/empty-state"
 import type { Model } from "@/dummy/models"
 import { formatPct } from "@/lib/format"
 
-/** 이 모델로 돌린 평가 기록. 없으면 Evaluate 로 가는 링크 */
+/** Evaluation history for this model; links to Evaluate when empty */
 export function ModelEvaluations({ model: m }: { model: Model }) {
   return (
     <section className="grid gap-2">

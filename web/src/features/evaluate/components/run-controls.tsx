@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 import type { RunPhase, TrialResult } from "../lib"
 
-/** 실행 상태 · 경과 시간 · 단계별 조작 버튼 (실행 → 멈춤 → Success / Fail 판정) */
+/** Run status, elapsed time and per-phase buttons (run -> stop -> judge Success / Fail) */
 export function RunControls({
   phase,
   elapsed,

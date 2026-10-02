@@ -3,7 +3,7 @@ import { LuChevronRight } from "react-icons/lu"
 import type { Model } from "@/dummy/models"
 import { LOCAL_GPUS } from "@/dummy/training"
 
-/** 고른 모델 요약. 누르면 모델 고르기 창을 연다 */
+/** Summary of the selected model; click to open the model picker */
 export function ModelField({ model, disabled, onOpen }: { model: Model; disabled: boolean; onOpen: () => void }) {
   return (
     <div className="grid gap-1.5">

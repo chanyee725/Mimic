@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 
 const TASKS = [...new Set(MODELS.map((m) => m.taskId))]
 
-/** 저장한 모델 고르기. Task 로 거르고 이름 · 데이터셋으로 찾는다 */
+/** Pick a saved model. Filter by task, search by name, dataset or job */
 export function ModelPickerDialog({
   open,
   onOpenChange,

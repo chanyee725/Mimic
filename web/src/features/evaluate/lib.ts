@@ -1,4 +1,4 @@
-/** 한 번 돌리는 흐름: 대기 → 정책 실행 → 사람이 결과 판정 */
+/** One run: idle -> policy running -> human judges the result */
 export type RunPhase = "idle" | "running" | "judging"
 
 export type TrialResult = "success" | "fail"

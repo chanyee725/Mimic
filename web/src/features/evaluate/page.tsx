@@ -20,11 +20,11 @@ import { RunControls } from "./components/run-controls"
 import { TrialsList } from "./components/trials-list"
 import { useEvalRun } from "./hooks/use-eval-run"
 
-// Models 에 저장한 checkpoint 를 실제 로봇에 올려 바로 돌려 보는 페이지.
-// 정책이 카메라 · 관절 상태 · 지시문을 받아 action 을 내고, 결과를 Success / Fail 로 기록한다.
+// Runs a checkpoint saved in Models on the real robot.
+// The policy takes cameras, joint state and an instruction, outputs actions, and each run is judged Success / Fail.
 
 export function EvaluatePage() {
-  // Models 의 Evaluate 버튼에서 오면 ?model= 로 미리 고른다
+  // Preselect via ?model= when coming from the Evaluate button in Models
   const [params] = useSearchParams()
   const [modelId, setModelId] = useState(() => getModel(params.get("model") ?? "")?.id ?? MODELS[0].id)
   const model = getModel(modelId) ?? MODELS[0]
@@ -61,7 +61,7 @@ export function EvaluatePage() {
               />
             ))}
           </div>
-          {/* Capture 와 같은 그래프. Action 은 정책 출력, Observation 은 follower 관절 */}
+          {/* Same plots as Capture. Action is the policy output, Observation is the follower joints */}
           <JointPlots
             joints={rig.joints}
             hz={task?.actionHz ?? 60}

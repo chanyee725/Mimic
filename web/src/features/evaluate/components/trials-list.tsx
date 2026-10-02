@@ -3,7 +3,7 @@ import { StatusDot } from "@/components/app/status-dot"
 
 import type { Trial } from "../lib"
 
-/** 이번 세션의 시도 기록. 최근 것부터 */
+/** Trials from this session, newest first */
 export function TrialsList({ trials }: { trials: Trial[] }) {
   const wins = trials.filter((t) => t.result === "success").length
 

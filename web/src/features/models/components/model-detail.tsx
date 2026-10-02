@@ -13,7 +13,7 @@ import { formatPct } from "@/lib/format"
 import { ModelEvaluations } from "./model-evaluations"
 import { ModelFiles } from "./model-files"
 
-/** 오른쪽 모델 상세. 요약 수치 · 상세 정보 · 평가 기록 · 파일 */
+/** Right-hand model detail: stats, details, evaluations and files */
 export function ModelDetail({ model: m }: { model: Model }) {
   const rate = successRate(m)
   const details = [

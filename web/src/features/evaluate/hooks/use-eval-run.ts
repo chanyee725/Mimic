@@ -5,8 +5,8 @@ import { useHotkeys } from "@/hooks/use-hotkeys"
 import type { RunPhase, Trial, TrialResult } from "../lib"
 
 /**
- * 정책 실행 상태. 시작하면 경과 시간을 재고, 제한 시간이 되거나 멈추면 판정을 기다린다.
- * 판정한 결과는 이번 세션의 trials 에 쌓인다.
+ * Policy run state. Tracks elapsed time once started and waits for a verdict when stopped or at the time limit.
+ * Judged results accumulate in this session's trials.
  */
 export function useEvalRun(instruction: string, initialLimitS: number) {
   const [limitS, setLimitS] = useState(initialLimitS)
@@ -28,7 +28,7 @@ export function useEvalRun(instruction: string, initialLimitS: number) {
   }
   const clearTrials = () => setTrials([])
 
-  // 경과 시간, 제한 시간이 되면 멈춘다
+  // Tick elapsed time; stop at the time limit
   useEffect(() => {
     if (phase !== "running") return
     const id = setInterval(() => {
@@ -39,7 +39,7 @@ export function useEvalRun(instruction: string, initialLimitS: number) {
     return () => clearInterval(id)
   }, [phase, startedAt, limitS])
 
-  // Space 시작 · Esc 멈춤 · S / F 판정
+  // Space starts, Esc stops, S / F judges
   useHotkeys((e) => {
     if (phase === "idle" && e.code === "Space" && canStart) start()
     else if (phase === "running" && (e.code === "Escape" || e.code === "Space")) stop()

@@ -2,7 +2,7 @@ import { MODEL_FILES } from "@/dummy/models"
 
 import { formatFileSize } from "../lib"
 
-/** checkpoint 폴더 안의 파일 목록 */
+/** Files inside the checkpoint folder */
 export function ModelFiles() {
   return (
     <section className="grid gap-2">

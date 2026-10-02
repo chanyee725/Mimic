@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 
 import { FILTERS, SORTED, type Filter } from "../lib"
 
-/** 왼쪽 모델 목록. 저장 위치로 거르고 이름 · Task · 데이터셋으로 찾는다 */
+/** Left-hand model list. Filter by location, search by name, task or dataset */
 export function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
