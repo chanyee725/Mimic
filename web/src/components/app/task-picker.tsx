@@ -1,10 +1,10 @@
 import { useState } from "react"
 import { LuSearch } from "react-icons/lu"
 
+import { SearchInput } from "@/components/app/search-input"
 import { ProgressRing } from "@/components/app/progress-ring"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { TASKS, type Task } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 
@@ -46,14 +46,11 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
             <DialogTitle>Select task</DialogTitle>
             <DialogDescription>녹화할 Task 를 검색해서 선택합니다.</DialogDescription>
           </DialogHeader>
-          <div className="relative">
-            <LuSearch className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
+          <div>
+            <SearchInput
               autoFocus
-              type="search"
               aria-label="Search tasks"
               placeholder="Task id, name, label…"
-              className="h-9 pl-8 text-[13px]"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {

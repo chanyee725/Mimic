@@ -1,27 +1,18 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import {
-  LuArrowRightLeft,
-  LuClock,
-  LuCloudUpload,
-  LuCpu,
-  LuFilm,
-  LuHardDrive,
-  LuListVideo,
-  LuRotateCcw,
-  LuSearch,
-  LuTrash2,
-} from "react-icons/lu"
+import { LuArrowRightLeft, LuClock, LuCloudUpload, LuCpu, LuFilm, LuHardDrive, LuListVideo, LuRotateCcw, LuTrash2 } from "react-icons/lu"
 
+import { Segmented } from "@/components/app/segmented"
+import { SearchInput } from "@/components/app/search-input"
 import { Page, Panel } from "@/components/app/page"
 import { HfBadge } from "@/components/app/hf-badge"
 import { StatStrip } from "@/components/app/stat-strip"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { DATASETS, type Dataset, type DatasetKind, type DatasetStatus } from "@/dummy/datasets"
 import { getRig } from "@/dummy/rigs"
 import { getTask } from "@/dummy/tasks"
+import { formatLength } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { DatasetThumb } from "./thumbnail"
@@ -45,8 +36,6 @@ const KIND_DOT: Record<DatasetKind, string> = { lerobot: "bg-yellow-400", mcap: 
 // 최근 것부터
 const SORTED = [...DATASETS].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
-const minutes = (sec: number) => (sec >= 60 ? `${(sec / 60).toFixed(1)} min` : `${sec.toFixed(0)} s`)
-
 function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
@@ -64,37 +53,24 @@ function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: 
         </span>
       }
     >
-      <div className="relative">
-        <LuSearch className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search datasets or tasks"
-          aria-label="Search datasets"
-          className="h-8 border-transparent bg-muted pl-8 text-[13px]"
-        />
-      </div>
-      <div className="grid grid-cols-3 rounded-md bg-muted p-0.5" role="tablist" aria-label="Format">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            role="tab"
-            aria-selected={filter === f.id}
-            onClick={() => setFilter(f.id)}
-            className={cn(
-              "h-7 rounded-[5px] text-xs transition-colors",
-              filter === f.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {f.id !== "all" && (
-              <span className={cn("mr-1.5 inline-block size-1.5 rounded-full align-middle", KIND_DOT[f.id])} aria-hidden />
-            )}
-            {f.label}
-            <span className="ml-1 text-muted-foreground tabular-nums">{byKind(f.id).length}</span>
-          </button>
-        ))}
-      </div>
+      <SearchInput
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search datasets or tasks"
+        aria-label="Search datasets"
+      />
+      <Segmented
+        label="Format"
+        fill
+        value={filter}
+        onChange={setFilter}
+        options={FILTERS.map((f) => ({
+          value: f.id,
+          label: f.label,
+          count: byKind(f.id).length,
+          dot: f.id === "all" ? undefined : KIND_DOT[f.id],
+        }))}
+      />
 
       <ul className="-mx-1 grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto px-1">
         {shown.map((d) => {
@@ -223,7 +199,7 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
           items={[
             { label: "Episodes", value: dataset.episodes.length, icon: LuListVideo },
             { label: dataset.kind === "mcap" ? "Video frames" : "Frames", value: frames.toLocaleString(), icon: LuFilm },
-            { label: "Length", value: minutes(lengthS), icon: LuClock },
+            { label: "Length", value: formatLength(lengthS), icon: LuClock },
             { label: "Size", value: `${dataset.sizeGB} GB`, icon: LuHardDrive },
           ]}
         />

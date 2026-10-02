@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { LuCircle, LuSquare } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { devicesOf, type DeviceStream } from "@/dummy/devices"
 import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
+import { useHotkeys } from "@/hooks/use-hotkeys"
+import { formatClock, formatTimecode } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { TaskPicker } from "@/components/app/task-picker"
@@ -30,26 +32,6 @@ function rateTone(s: DeviceStream): Tone {
   if (s.measuredHz === null || s.targetHz === null) return "muted"
   return s.measuredHz >= s.targetHz * 0.98 ? "ok" : "warn"
 }
-
-/** 카메라 타임코드 mm:ss:ff */
-function timecode(ms: number, fps: number) {
-  const totalFrames = Math.floor((ms / 1000) * fps)
-  const ff = totalFrames % fps
-  const sec = Math.floor(totalFrames / fps)
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}:${pad(ff)}`
-}
-
-function fmt(ms: number) {
-  const sec = Math.floor(ms / 1000)
-  return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`
-}
-
-const isTyping = (el: EventTarget | null) =>
-  el instanceof HTMLInputElement ||
-  el instanceof HTMLTextAreaElement ||
-  el instanceof HTMLSelectElement ||
-  (el instanceof HTMLElement && el.isContentEditable)
 
 export function CapturePage() {
   const [taskId, setTaskId] = useState(TASKS[0].id)
@@ -73,26 +55,22 @@ export function CapturePage() {
     .flatMap((d) => d.streams.map((s) => ({ ...s, key: s.key.replace(/^(images|hand)\./, "") })))
 
   // 작업자는 양손으로 leader 암을 잡고 있으므로 키보드 / 풋 페달 입력이 기본
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.repeat) return
-      if (e.code === "Space") {
-        e.preventDefault()
-        toggle()
-      } else if (e.key === "ArrowRight") save("success")
-      else if (e.key === "f" || e.key === "F") save("fail")
-      else if (e.key === "p" || e.key === "P") save("partial")
-      else if (e.key === "ArrowLeft") {
-        if (phase !== "idle") start()
-      } else if (e.key === "Escape") discard()
-      else if (phase === "recording") {
-        const idx = task.subtasks.findIndex((s) => s.key === e.key)
-        if (idx >= 0) setSubtask(idx)
-      }
+  useHotkeys((e) => {
+    if (e.code === "Space") {
+      toggle()
+      return true
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [toggle, save, start, discard, setSubtask, phase, task.subtasks])
+    if (e.key === "ArrowRight") save("success")
+    else if (e.key === "f" || e.key === "F") save("fail")
+    else if (e.key === "p" || e.key === "P") save("partial")
+    else if (e.key === "ArrowLeft") {
+      if (phase !== "idle") start()
+    } else if (e.key === "Escape") discard()
+    else if (phase === "recording") {
+      const idx = task.subtasks.findIndex((s) => s.key === e.key)
+      if (idx >= 0) setSubtask(idx)
+    }
+  })
 
   const pct = Math.min(100, (ep.elapsedMs / (task.durationS * 1000)) * 100)
   const recording = phase === "recording"
@@ -142,7 +120,7 @@ export function CapturePage() {
               <span className="flex justify-between text-xs text-muted-foreground">
                 <span>Duration</span>
                 <span className="font-mono">
-                  {fmt(ep.elapsedMs)} / {fmt(task.durationS * 1000)}
+                  {formatClock(ep.elapsedMs / 1000)} / {formatClock(task.durationS)}
                 </span>
               </span>
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -209,7 +187,7 @@ export function CapturePage() {
               <VideoTile
                 className="aspect-auto h-full min-h-48"
                 recording={recording}
-                timecode={recording ? timecode(ep.elapsedMs, task.videoFps) : undefined}
+                timecode={recording ? formatTimecode(ep.elapsedMs, task.videoFps) : undefined}
                 key={c.id}
                 label={c.name.replace(/ camera$/, "")}
                 resolution={c.stats.find((s) => s.label === "Resolution")?.value ?? ""}
@@ -267,7 +245,7 @@ export function CapturePage() {
                 {ep.lastOutcome ? ` · ${ep.lastOutcome}` : ""}
               </span>
               <span>
-                {fmt(ep.elapsedMs)} / {fmt(task.durationS * 1000)}
+                {formatClock(ep.elapsedMs / 1000)} / {formatClock(task.durationS)}
               </span>
             </div>
           </div>

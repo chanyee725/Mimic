@@ -18,10 +18,11 @@ import { StatStrip } from "@/components/app/stat-strip"
 import { StatusDot } from "@/components/app/status-dot"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { POLICY_BASE, getJob, type Checkpoint, type PodState, type TrainJob } from "@/dummy/training"
+import { formatDuration, formatRate, formatUsd, parseDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { CheckpointsDialog } from "./checkpoints-dialog"
-import { formatDuration, parseDuration, useJobRun } from "./job-run"
+import { useJobRun } from "./job-run"
 import { JOB_STATUS, computeText } from "./jobs"
 import { MetricPlots, type Metric } from "./metric-plots"
 
@@ -103,7 +104,7 @@ function JobConfig({ job }: { job: TrainJob }) {
 
 /** RunPod pod 상태 줄. 학습이 끝났는데 켜져 있는 pod 는 요금이 새지 않도록 강조한다 */
 function PodBar({ job, pod, onTerminate }: { job: TrainJob; pod?: PodState; onTerminate: () => void }) {
-  const rate = `$${job.pricePerHr?.toFixed(2)}/h`
+  const rate = formatRate(job.pricePerHr ?? 0)
   if (!pod)
     return (
       <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-[13px] text-muted-foreground">
@@ -118,7 +119,7 @@ function PodBar({ job, pod, onTerminate }: { job: TrainJob; pod?: PodState; onTe
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-warn-muted px-3 py-2 text-[13px] text-warn">
         <LuCloud className="size-4 shrink-0" aria-hidden />
         <span className="min-w-0 flex-1">
-          학습은 {pod.since} 에 끝났지만 {job.pod} 가 아직 켜져 있습니다 ({rate}). {pod.idleFor} 동안 약 ${idleCost.toFixed(2)} 가 더
+          학습은 {pod.since} 에 끝났지만 {job.pod} 가 아직 켜져 있습니다 ({rate}). {pod.idleFor} 동안 약 {formatUsd(idleCost)} 가 더
           나갔습니다.
         </span>
         <Button size="sm" variant="outline" className="h-7 border-warn/40 bg-background text-warn hover:text-warn" onClick={onTerminate}>
@@ -211,8 +212,8 @@ function JobView({ job }: { job: TrainJob }) {
           job.compute === "runpod"
             ? {
                 label: live ? "Cost so far" : "Cost",
-                value: cost ? `$${cost.toFixed(2)}` : "$0.00",
-                sub: `$${job.pricePerHr?.toFixed(2)}/h`,
+                value: formatUsd(cost ?? 0),
+                sub: formatRate(job.pricePerHr ?? 0),
                 icon: LuDollarSign,
               }
             : { label: "Cost", value: "Local", sub: "no rental fee", icon: LuDollarSign },

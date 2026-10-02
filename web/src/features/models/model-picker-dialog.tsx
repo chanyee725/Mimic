@@ -1,11 +1,12 @@
 import { useState } from "react"
-import { LuHardDrive, LuSearch } from "react-icons/lu"
+import { LuHardDrive } from "react-icons/lu"
 
+import { Segmented } from "@/components/app/segmented"
+import { SearchInput } from "@/components/app/search-input"
 import { HfBadge } from "@/components/app/hf-badge"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { MODELS, successRate, type Model } from "@/dummy/models"
 import { cn } from "@/lib/utils"
 
@@ -47,36 +48,19 @@ export function ModelPickerDialog({
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-48 flex-1">
-            <LuSearch
-              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search models, datasets or jobs"
-              aria-label="Search models"
-              className="h-8 border-transparent bg-muted pl-8 text-[13px]"
-            />
-          </div>
-          <div className="flex rounded-md bg-muted p-0.5" role="tablist" aria-label="Task">
-            {["all", ...TASKS].map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                aria-selected={task === t}
-                onClick={() => setTask(t)}
-                className={cn(
-                  "h-7 rounded-[5px] px-2.5 text-xs whitespace-nowrap transition-colors",
-                  task === t ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t === "all" ? "All tasks" : t}
-              </button>
-            ))}
-          </div>
+          <SearchInput
+            className="min-w-48 flex-1"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search models, datasets or jobs"
+            aria-label="Search models"
+          />
+          <Segmented
+            label="Task"
+            value={task}
+            onChange={setTask}
+            options={["all", ...TASKS].map((t) => ({ value: t, label: t === "all" ? "All tasks" : t }))}
+          />
         </div>
 
         <div className="min-h-0 overflow-y-auto rounded-md border">

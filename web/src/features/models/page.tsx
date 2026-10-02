@@ -1,24 +1,16 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import {
-  LuCloudUpload,
-  LuDownload,
-  LuFlaskConical,
-  LuFootprints,
-  LuHardDrive,
-  LuSearch,
-  LuTarget,
-  LuTrash2,
-  LuTrendingDown,
-} from "react-icons/lu"
+import { LuCloudUpload, LuDownload, LuFlaskConical, LuFootprints, LuHardDrive, LuTarget, LuTrash2, LuTrendingDown } from "react-icons/lu"
 
+import { Segmented } from "@/components/app/segmented"
+import { SearchInput } from "@/components/app/search-input"
 import { Page, Panel } from "@/components/app/page"
 import { HfBadge } from "@/components/app/hf-badge"
 import { StatStrip } from "@/components/app/stat-strip"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { MODELS, MODEL_FILES, successRate, type Model } from "@/dummy/models"
 import { POLICY, POLICY_BASE } from "@/dummy/training"
+import { formatPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Filter = "all" | "local" | "hub"
@@ -30,8 +22,6 @@ const FILTERS: { id: Filter; label: string; fits: (m: Model) => boolean }[] = [
 
 // 최근 저장한 것부터
 const SORTED = [...MODELS].sort((a, b) => b.savedAt.localeCompare(a.savedAt))
-
-const pct = (r?: number) => (r === undefined ? "—" : `${Math.round(r * 100)}%`)
 
 function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all")
@@ -51,34 +41,19 @@ function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: st
         </span>
       }
     >
-      <div className="relative">
-        <LuSearch className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search models or tasks"
-          aria-label="Search models"
-          className="h-8 border-transparent bg-muted pl-8 text-[13px]"
-        />
-      </div>
-      <div className="grid grid-cols-3 rounded-md bg-muted p-0.5" role="tablist" aria-label="Location">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            role="tab"
-            aria-selected={filter === f.id}
-            onClick={() => setFilter(f.id)}
-            className={cn(
-              "h-7 rounded-[5px] text-xs transition-colors",
-              filter === f.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {f.label}
-            <span className="ml-1 text-muted-foreground tabular-nums">{MODELS.filter(f.fits).length}</span>
-          </button>
-        ))}
-      </div>
+      <SearchInput
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search models or tasks"
+        aria-label="Search models"
+      />
+      <Segmented
+        label="Location"
+        fill
+        value={filter}
+        onChange={setFilter}
+        options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: MODELS.filter(f.fits).length }))}
+      />
 
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {shown.map((m) => {
@@ -101,7 +76,7 @@ function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: st
                 </span>
                 <span className="truncate text-xs text-muted-foreground">{m.taskId}</span>
                 <span className="text-[11px] text-muted-foreground/80 tabular-nums">
-                  Step {m.step.toLocaleString()}, loss {m.loss.toFixed(3)}, success {pct(successRate(m))}
+                  Step {m.step.toLocaleString()}, loss {m.loss.toFixed(3)}, success {formatPct(successRate(m))}
                 </span>
               </button>
             </li>
@@ -169,7 +144,7 @@ function ModelDetail({ model: m }: { model: Model }) {
           { label: "Train loss", value: m.loss.toFixed(3), icon: LuTrendingDown },
           {
             label: "Success rate",
-            value: pct(rate),
+            value: formatPct(rate),
             sub: m.evals.length ? `${m.evals.reduce((a, e) => a + e.trials, 0)} trials` : "not evaluated",
             icon: LuTarget,
           },
@@ -207,7 +182,7 @@ function ModelDetail({ model: m }: { model: Model }) {
                     <span className="truncate">{e.instruction}</span>
                     <span className="text-right tabular-nums">
                       {e.success} / {e.trials}
-                      <span className="text-muted-foreground"> ({pct(e.success / e.trials)})</span>
+                      <span className="text-muted-foreground"> ({formatPct(e.success / e.trials)})</span>
                     </span>
                     <span className="text-xs text-muted-foreground tabular-nums">{e.at}</span>
                   </li>

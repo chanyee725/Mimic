@@ -1,9 +1,11 @@
 import { useState } from "react"
 
+import { Segmented } from "@/components/app/segmented"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { RUNPOD_GPUS, type GpuStock, type RunPodGpu } from "@/dummy/training"
+import { formatRate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Tier = "all" | "small" | "mid" | "large"
@@ -54,24 +56,13 @@ export function GpuPickerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex rounded-md bg-muted p-0.5" role="tablist" aria-label="VRAM">
-          {TIERS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tier === t.id}
-              onClick={() => setTier(t.id)}
-              className={cn(
-                "h-7 flex-1 rounded-[5px] text-xs transition-colors",
-                tier === t.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.label}
-              <span className="ml-1 text-muted-foreground tabular-nums">{RUNPOD_GPUS.filter(t.fits).length}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="VRAM"
+          fill
+          value={tier}
+          onChange={setTier}
+          options={TIERS.map((t) => ({ value: t.id, label: t.label, count: RUNPOD_GPUS.filter(t.fits).length }))}
+        />
 
         <div className="min-h-0 overflow-y-auto rounded-md border">
           <table className="w-full text-[13px]">
@@ -122,7 +113,7 @@ export function GpuPickerDialog({
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{g.vramGB} GB</td>
-                    <td className="px-3 py-2 text-right tabular-nums">${g.pricePerHr.toFixed(2)}/h</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatRate(g.pricePerHr)}</td>
                     <td className="px-3 py-2 text-muted-foreground">{g.community ? "Yes" : "—"}</td>
                     <td className="px-3 py-2">
                       <StatusDot tone={STOCK[g.stock].tone} className="text-xs text-muted-foreground">

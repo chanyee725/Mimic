@@ -16,6 +16,8 @@ import { getRig } from "@/dummy/rigs"
 import { getTask } from "@/dummy/tasks"
 import { MODELS, getModel } from "@/dummy/models"
 import { LOCAL_GPUS, POLICY } from "@/dummy/training"
+import { useHotkeys } from "@/hooks/use-hotkeys"
+import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ModelPickerDialog } from "@/features/models/model-picker-dialog"
 
@@ -24,12 +26,6 @@ import { ModelPickerDialog } from "@/features/models/model-picker-dialog"
 
 type Phase = "idle" | "running" | "judging"
 type Trial = { n: number; instruction: string; seconds: number; result: "success" | "fail" }
-
-const pad = (n: number) => String(n).padStart(2, "0")
-const clock = (ms: number) => `${pad(Math.floor(ms / 60000))}:${pad(Math.floor(ms / 1000) % 60)}`
-
-const isTyping = (el: EventTarget | null) =>
-  el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable)
 
 export function EvaluatePage() {
   // Models 의 Evaluate 버튼에서 오면 ?model= 로 미리 고른다
@@ -77,18 +73,13 @@ export function EvaluatePage() {
   }, [phase, startedAt, limitS])
 
   // Space 시작 · Esc 멈춤 · S / F 판정
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target)) return
-      if (phase === "idle" && e.code === "Space" && instruction.trim()) start()
-      else if (phase === "running" && (e.code === "Escape" || e.code === "Space")) stop()
-      else if (phase === "judging" && e.key.toLowerCase() === "s") judge("success")
-      else if (phase === "judging" && e.key.toLowerCase() === "f") judge("fail")
-      else return
-      e.preventDefault()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
+  useHotkeys((e) => {
+    if (phase === "idle" && e.code === "Space" && instruction.trim()) start()
+    else if (phase === "running" && (e.code === "Escape" || e.code === "Space")) stop()
+    else if (phase === "judging" && e.key.toLowerCase() === "s") judge("success")
+    else if (phase === "judging" && e.key.toLowerCase() === "f") judge("fail")
+    else return false
+    return true
   })
 
   const wins = trials.filter((t) => t.result === "success").length
@@ -108,7 +99,7 @@ export function EvaluatePage() {
                 measuredFps={c.fps}
                 targetFps={c.fps}
                 recording={running && record}
-                timecode={running ? clock(elapsed) : undefined}
+                timecode={running ? formatClock(elapsed / 1000) : undefined}
               />
             ))}
           </div>
@@ -189,7 +180,7 @@ export function EvaluatePage() {
               >
                 {running ? "Policy running" : phase === "judging" ? "Did it work?" : "Ready"}
               </StatusDot>
-              <span className="font-mono text-2xl font-medium tabular-nums">{clock(elapsed)}</span>
+              <span className="font-mono text-2xl font-medium tabular-nums">{formatClock(elapsed / 1000)}</span>
             </div>
             {running && (
               <div className="h-1 overflow-hidden rounded-full bg-muted">

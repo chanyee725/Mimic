@@ -1,46 +1,15 @@
 import { useState } from "react"
 
+import { Segmented } from "@/components/app/segmented"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { RUNPOD_DEFAULTS, RUNPOD_REGIONS, RUNPOD_VOLUMES, type RunPodOptions } from "@/dummy/training"
-import { cn } from "@/lib/utils"
+import { formatRate, formatUsd } from "@/lib/format"
 
 import { runpodRate } from "./jobs"
-
-function Segmented<T extends string | number>({
-  value,
-  options,
-  onChange,
-  label,
-}: {
-  value: T
-  options: { id: T; label: string }[]
-  onChange: (v: T) => void
-  label: string
-}) {
-  return (
-    <div className="flex rounded-md bg-muted p-0.5" role="radiogroup" aria-label={label}>
-      {options.map((o) => (
-        <button
-          key={String(o.id)}
-          type="button"
-          role="radio"
-          aria-checked={value === o.id}
-          onClick={() => onChange(o.id)}
-          className={cn(
-            "h-7 flex-1 rounded-[5px] px-2.5 text-xs whitespace-nowrap transition-colors",
-            value === o.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -101,32 +70,41 @@ export function RunPodDialog({
               }
             >
               <Segmented
+                role="radiogroup"
+                fill
                 label="Cloud"
                 value={draft.cloud}
                 onChange={(v) => set("cloud", v)}
-                options={[{ id: "secure", label: "Secure" }, ...(communityOk ? [{ id: "community" as const, label: "Community" }] : [])]}
+                options={[
+                  { value: "secure", label: "Secure" },
+                  ...(communityOk ? [{ value: "community" as const, label: "Community" }] : []),
+                ]}
               />
             </Row>
             <Row label="Pricing" hint="Spot 은 절반 가격이지만 중간에 회수될 수 있습니다. 마지막 checkpoint 에서 이어 학습합니다">
               <Segmented
+                role="radiogroup"
+                fill
                 label="Pricing"
                 value={draft.pricing}
                 onChange={(v) => set("pricing", v)}
                 options={[
-                  { id: "on-demand", label: "On-demand" },
-                  { id: "spot", label: "Spot" },
+                  { value: "on-demand", label: "On-demand" },
+                  { value: "spot", label: "Spot" },
                 ]}
               />
             </Row>
             <Row label="GPU count">
               <Segmented
+                role="radiogroup"
+                fill
                 label="GPU count"
                 value={draft.gpuCount}
                 onChange={(v) => set("gpuCount", v)}
                 options={[
-                  { id: 1, label: "1" },
-                  { id: 2, label: "2" },
-                  { id: 4, label: "4" },
+                  { value: 1, label: "1" },
+                  { value: 2, label: "2" },
+                  { value: 4, label: "4" },
                 ]}
               />
             </Row>
@@ -217,7 +195,7 @@ export function RunPodDialog({
 
         <div className="flex items-baseline justify-between gap-3 rounded-md bg-muted px-3 py-2.5 text-[13px] tabular-nums">
           <span>
-            ${rate.toFixed(2)}/h
+            {formatRate(rate)}
             <span className="text-muted-foreground">
               {" "}
               ({draft.gpuCount} × {gpu})
@@ -226,7 +204,7 @@ export function RunPodDialog({
           <span className="text-muted-foreground">
             {capHours ? (
               <>
-                max <span className="text-foreground">${(rate * capHours).toFixed(2)}</span> for {capHours.toFixed(1)} h
+                max <span className="text-foreground">{formatUsd(rate * capHours)}</span> for {capHours.toFixed(1)} h
               </>
             ) : (
               "no limit"

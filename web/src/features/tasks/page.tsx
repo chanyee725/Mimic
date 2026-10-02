@@ -1,16 +1,17 @@
 import { useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { LuCircle, LuPlus, LuSearch, LuUpload } from "react-icons/lu"
+import { LuCircle, LuPlus, LuUpload } from "react-icons/lu"
 
+import { SearchInput } from "@/components/app/search-input"
 import { Page, Panel } from "@/components/app/page"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SESSIONS } from "@/dummy/sessions"
 import { CURRENT_TASK_ID } from "@/dummy/station"
 import { TASKS, type Task, type TaskStatus } from "@/dummy/tasks"
+import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ProgressRing } from "@/components/app/progress-ring"
 import { TaskDefinition } from "@/features/tasks/task-definition"
@@ -51,17 +52,13 @@ function TaskList({ selectedId }: { selectedId: string }) {
         </Button>
       }
     >
-      <div className="relative px-1">
-        <LuSearch className="pointer-events-none absolute top-1/2 left-3.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          aria-label="Search tasks"
-          placeholder="Search tasks…"
-          className="h-8 border-transparent bg-muted/60 pl-8 text-[13px] shadow-none focus-visible:bg-background"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
+      <SearchInput
+        className="px-1"
+        aria-label="Search tasks"
+        placeholder="Search tasks…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {tasks.map((t) => {
           const selected = t.id === selectedId
@@ -88,8 +85,7 @@ function TaskList({ selectedId }: { selectedId: string }) {
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{t.instruction}</p>
                   <p className="truncate text-[11px] text-muted-foreground/80 tabular-nums">
-                    {t.collected}/{t.targetEpisodes} · {sessions} {sessions === 1 ? "session" : "sessions"} · success{" "}
-                    {success === null ? "—" : `${success}%`}
+                    {t.collected}/{t.targetEpisodes} · {plural(sessions, "session")} · success {success === null ? "—" : `${success}%`}
                   </p>
                 </div>
                 <ProgressRing pct={pct} status={t.status} label={`${t.id} progress`} thin className="size-10" />

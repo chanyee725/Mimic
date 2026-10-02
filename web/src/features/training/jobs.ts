@@ -1,5 +1,6 @@
 import type { Tone } from "@/components/app/status-dot"
 import { RUNPOD_PRICE_FACTOR, type Compute, type JobStatus, type RunPodOptions, type TrainJob } from "@/dummy/training"
+import { formatRate } from "@/lib/format"
 
 export const JOB_STATUS: Record<JobStatus, { tone: Tone; label: string }> = {
   running: { tone: "info", label: "Running" },
@@ -15,7 +16,7 @@ export const jobPct = (j: TrainJob) => Math.round((j.step / j.total) * 100)
 
 /** "Local GPU, RTX 4090" / "RunPod, A100 80GB, $1.89/h" */
 export function computeText(j: TrainJob) {
-  return [COMPUTE_LABEL[j.compute], j.gpu, j.pricePerHr && `$${j.pricePerHr.toFixed(2)}/h`].filter(Boolean).join(", ")
+  return [COMPUTE_LABEL[j.compute], j.gpu, j.pricePerHr && formatRate(j.pricePerHr)].filter(Boolean).join(", ")
 }
 
 /** 옵션을 반영한 시간당 요금 */
