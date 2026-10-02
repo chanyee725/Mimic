@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 
-// 더미 썸네일: 실제로는 첫 에피소드의 top 카메라 첫 프레임 JPEG 를 쓴다.
-// 여기서는 Task 별 작업대 장면을 단순한 도형으로 그린다.
+// Dummy thumbnail: the real one is the first top-camera frame (JPEG) of the first episode.
+// Here each task's workbench scene is drawn with simple shapes.
 
 type Shape =
   | { t: "box"; x: number; y: number; w: number; h: number; c: string }
@@ -52,9 +52,9 @@ export function DatasetThumb({ taskId, className }: { taskId: string; className?
       role="img"
       aria-label="Thumbnail"
     >
-      {/* 작업대 */}
+      {/* Workbench */}
       <path d="M0 120 L22 34 L138 34 L160 120 Z" fill="#f4f4f5" />
-      {/* 물체는 작은 썸네일에서도 보이도록 화면 가운데 기준으로 키운다 */}
+      {/* Scale objects up around the centre so they stay visible in small thumbnails */}
       <g transform="translate(80 70) scale(1.7) translate(-80 -68)">
         {shapes.map((s, i) =>
           s.t === "box" ? (
