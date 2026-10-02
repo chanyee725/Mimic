@@ -11,6 +11,7 @@ export type DeviceStream = {
 
 export type Device = {
   id: string
+  rigId: string // 소속 Rig (@/dummy/rigs)
   name: string
   type: DeviceType
   port: string
@@ -23,6 +24,7 @@ export type Device = {
 export const DEVICES: Device[] = [
   {
     id: "leader",
+    rigId: "so101-kit",
     name: "SO-101 Leader",
     type: "teleop",
     port: "/dev/so101_leader",
@@ -37,6 +39,7 @@ export const DEVICES: Device[] = [
   },
   {
     id: "follower",
+    rigId: "so101-kit",
     name: "SO-101 Follower",
     type: "robot",
     port: "/dev/so101_follower",
@@ -51,6 +54,7 @@ export const DEVICES: Device[] = [
   },
   {
     id: "front",
+    rigId: "so101-kit",
     name: "Front camera",
     type: "camera",
     port: "/dev/cam_front",
@@ -65,6 +69,7 @@ export const DEVICES: Device[] = [
   },
   {
     id: "wrist",
+    rigId: "so101-kit",
     name: "Wrist camera",
     type: "camera",
     port: "/dev/cam_wrist",
@@ -79,6 +84,7 @@ export const DEVICES: Device[] = [
   },
   {
     id: "glove",
+    rigId: "so101-kit",
     name: "Data Glove (R)",
     type: "glove",
     port: "ble://glove-r",
@@ -97,6 +103,7 @@ export const DEVICES: Device[] = [
   },
   {
     id: "pedal",
+    rigId: "so101-kit",
     name: "Foot pedal",
     type: "input",
     port: "/dev/input/pedal",
@@ -106,6 +113,57 @@ export const DEVICES: Device[] = [
     stats: [{ label: "Mapping", value: "3 keys" }],
   },
 ]
+
+const offlineArm = (id: string, name: string, type: DeviceType, key: string): Device => ({
+  id,
+  rigId: "so101-bimanual-kit",
+  name,
+  type,
+  port: `/dev/${id.replaceAll("-", "_")}`,
+  health: "off",
+  calibration: { done: false, note: "Calibration required" },
+  streams: [{ key, shape: "[6]", targetHz: 60, measuredHz: null, unit: "Hz" }],
+  stats: [
+    { label: "Max motor temp", value: "—" },
+    { label: "Voltage", value: "—" },
+    { label: "Bus latency", value: "—" },
+  ],
+})
+
+const bimanualCamera = (id: string, name: string, key: string, health: Health): Device => ({
+  id,
+  rigId: "so101-bimanual-kit",
+  name,
+  type: "camera",
+  port: `/dev/${id.replaceAll("-", "_")}`,
+  health,
+  calibration: { done: health !== "off", note: health === "off" ? "Not registered" : "Intrinsics registered" },
+  streams: [{ key, shape: "480×640×3", targetHz: 30, measuredHz: health === "off" ? null : 30.0, unit: "fps" }],
+  stats: [
+    { label: "Resolution", value: "640×480" },
+    { label: "Exposure", value: "auto" },
+    { label: "USB", value: "3.0" },
+  ],
+})
+
+DEVICES.push(
+  offlineArm("bi-leader-l", "SO-101 Leader (L)", "teleop", "action.left"),
+  offlineArm("bi-leader-r", "SO-101 Leader (R)", "teleop", "action.right"),
+  offlineArm("bi-follower-l", "SO-101 Follower (L)", "robot", "observation.state.left"),
+  offlineArm("bi-follower-r", "SO-101 Follower (R)", "robot", "observation.state.right"),
+  bimanualCamera("bi-cam-top", "Top camera", "images.top", "ok"),
+  bimanualCamera("bi-cam-wrist-l", "Left wrist camera", "images.left_wrist", "off"),
+  bimanualCamera("bi-cam-wrist-r", "Right wrist camera", "images.right_wrist", "off"),
+)
+
+/** Devices 화면의 구분: 로봇 암 / 카메라 / 그 외 입력 장치 */
+export const DEVICE_GROUPS: { key: string; label: string; types: DeviceType[] }[] = [
+  { key: "robot", label: "Robot", types: ["teleop", "robot"] },
+  { key: "camera", label: "Camera", types: ["camera"] },
+  { key: "device", label: "Device", types: ["glove", "input"] },
+]
+
+export const devicesOf = (rigId: string) => DEVICES.filter((d) => d.rigId === rigId)
 
 export const CALIBRATION_STEPS: Record<"arm" | "glove", string[]> = {
   arm: ["Check port · motor IDs", "Record middle pose", "Sweep full joint range", "Save · version"],
