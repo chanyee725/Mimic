@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-/** 설정 화면 형식: 섹션 제목 아래 입력. 섹션 사이는 구분선. */
+/** Settings layout: inputs below a section title, dividers between sections. */
 export function SettingsGroup({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn("divide-y rounded-lg border", className)}>{children}</div>
 }

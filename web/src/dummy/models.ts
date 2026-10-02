@@ -1,5 +1,5 @@
-// 저장한 모델 더미. Job 의 checkpoint 중 골라 저장한 것 (lerobot checkpoint 폴더 하나 = 모델 하나).
-// 실제로는 저장 폴더를 훑고, HF Hub 에 올린 것은 Hub API 로 확인한다.
+// Mock saved models: checkpoints picked from jobs (one lerobot checkpoint folder = one model).
+// For real: scan the models folder and check uploads through the HF Hub API.
 
 export type ModelEval = { at: string; trials: number; success: number; instruction: string }
 
@@ -10,13 +10,13 @@ export type Model = {
   dataset: string
   jobId: string
   step: number
-  /** 저장 시점의 smoothed train loss */
+  /** Smoothed train loss when saved */
   loss: number
   sizeMB: number
   savedAt: string
-  /** 이 스테이션에 있는 폴더 */
+  /** Folder on this station */
   localPath?: string
-  /** HF Hub 저장소 (private) */
+  /** HF Hub repository (private) */
   hubRepo?: string
   evals: ModelEval[]
 }
@@ -84,13 +84,13 @@ export const MODELS: Model[] = [
 
 export const getModel = (id: string) => MODELS.find((m) => m.id === id)
 
-/** 저장된 평가 전체의 성공률 (0–1), 평가가 없으면 undefined */
+/** Success rate (0–1) over all saved evaluations, undefined if none */
 export function successRate(m: Model) {
   const trials = m.evals.reduce((a, e) => a + e.trials, 0)
   return trials ? m.evals.reduce((a, e) => a + e.success, 0) / trials : undefined
 }
 
-/** lerobot checkpoint 폴더 구성 */
+/** Layout of a lerobot checkpoint folder */
 export const MODEL_FILES = [
   { path: "pretrained_model/model.safetensors", sizeMB: 1790 },
   { path: "pretrained_model/config.json", sizeMB: 0.01 },

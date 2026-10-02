@@ -19,7 +19,7 @@ import {
 import { APP_NAME, NAV, type NavItem } from "@/app/nav"
 import { STATION } from "@/dummy/station"
 
-// 사이드바는 얇게: 보통 굵기 + 가는 아이콘, 활성 항목만 살짝 강조
+// Light sidebar: regular weight and thin icons, only the active item is emphasised
 const NAV_ITEM_CLASS =
   "text-[13px] font-normal text-sidebar-foreground/75 data-active:font-medium data-active:text-sidebar-foreground [&_svg]:size-[15px] [&_svg]:stroke-[1.75]"
 

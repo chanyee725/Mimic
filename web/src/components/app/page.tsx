@@ -4,7 +4,7 @@ import { LuArrowRight } from "react-icons/lu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
-/** 페이지 본문 상단 제목 */
+/** Page title at the top of the content */
 function PageTitle({ title, description }: { title: React.ReactNode; description?: React.ReactNode }) {
   return (
     <div className="grid gap-1">
@@ -15,9 +15,9 @@ function PageTitle({ title, description }: { title: React.ReactNode; description
 }
 
 /**
- * Dashboard 형식의 페이지 틀.
- * 상단 바 없이 제목·설명(+우측 액션)을 두고, 그 아래를 패널로 채운다.
- * fit 이면 데스크톱(lg)에서 화면 높이에 맞추고 패널 내부만 스크롤한다.
+ * Dashboard-style page frame.
+ * Title and description (plus actions on the right) without a top bar, then panels below.
+ * With fit, it fills the viewport height on desktop (lg) and only panels scroll.
  */
 export function Page({
   title,
@@ -37,7 +37,7 @@ export function Page({
   return (
     <div className={cn("flex flex-col gap-4 p-4 md:p-6", fit && "lg:h-svh", className)}>
       <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-        {/* 데스크톱은 사이드바 안의 토글을 쓰고, 모바일(오프캔버스)에서만 노출 */}
+        {/* Desktop uses the toggle inside the sidebar; this one only shows on mobile (off-canvas) */}
         <SidebarTrigger className="mt-1 md:hidden" />
         <div className="min-w-0 flex-1">
           <PageTitle title={title} description={description} />
@@ -49,7 +49,7 @@ export function Page({
   )
 }
 
-/** 테두리 패널. 제목(text-sm semibold)과 우측 보조 액션 */
+/** Bordered panel with a title (text-sm semibold) and an optional action on the right */
 export function Panel({
   title,
   action,
@@ -74,7 +74,7 @@ export function Panel({
   )
 }
 
-/** 패널 우측 상단의 "더 보기" 링크 */
+/** "View more" link in the top right of a panel */
 export function PanelLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <Link to={to} className="inline-flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground">

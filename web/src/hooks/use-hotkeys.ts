@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
 
-/** 입력 중인 칸에서는 단축키를 받지 않는다 */
+/** Ignore shortcuts while typing in a field */
 export const isTypingTarget = (el: EventTarget | null) =>
   el instanceof HTMLInputElement ||
   el instanceof HTMLTextAreaElement ||
@@ -8,8 +8,8 @@ export const isTypingTarget = (el: EventTarget | null) =>
   (el instanceof HTMLElement && el.isContentEditable)
 
 /**
- * window keydown 단축키. handler 는 ref 로 들고 있어서 렌더마다 다시 등록하지 않는다.
- * handler 가 true 를 돌려주면 처리한 것으로 보고 기본 동작을 막는다.
+ * Window keydown shortcuts. The handler is kept in a ref so the listener isn't re-registered every render.
+ * Return true from the handler to mark the key as handled and prevent the default action.
  */
 export function useHotkeys(handler: (e: KeyboardEvent) => boolean | void, { ignoreRepeat = true } = {}) {
   const ref = useRef(handler)

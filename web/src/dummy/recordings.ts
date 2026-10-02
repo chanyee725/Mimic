@@ -1,5 +1,5 @@
-// Capture 가 저장한 원본 MCAP 파일 (에피소드 1개 = 파일 1개) 과 외부에서 가져온 MCAP 파일 더미.
-// 우리 녹화 파일은 Task / Rig 메타데이터를 함께 담고 있어 변환 매핑이 자동으로 채워진다.
+// Mock raw MCAP files saved by Capture (one episode per file) plus externally imported MCAP files.
+// Our recordings carry task / rig metadata, so the conversion mapping is filled in automatically.
 
 import type { Outcome } from "@/dummy/tasks"
 
@@ -7,9 +7,9 @@ export type TopicKind = "action" | "state" | "video" | "label" | "glove" | "othe
 
 export type McapTopic = {
   name: string
-  schema: string // protobuf 메시지 타입
+  schema: string // protobuf message type
   kind: TopicKind
-  rateHz: number | null // null = 이벤트
+  rateHz: number | null // null = event-based
   messages: number
 }
 
@@ -21,7 +21,7 @@ export type Recording = {
   id: string
   file: string
   source: "capture" | "external"
-  taskId?: string // capture 파일만
+  taskId?: string // capture files only
   rigId?: string
   episode?: number
   recordedAt: string
@@ -31,7 +31,7 @@ export type Recording = {
   review: RecordingReview
   topics: McapTopic[]
   subtasks: { name: string; startS: number; endS: number }[]
-  /** 영상 프레임이 빠진 시각(초) */
+  /** Times (s) where video frames were dropped */
   drops: number[]
   checks: RecordingCheck[]
 }
@@ -63,7 +63,7 @@ function captureRecording(
   outcome: Outcome,
   review: RecordingReview,
 ): Recording {
-  // 승인되지 않은 에피소드 일부에만 프레임 드랍을 넣는다
+  // Only some non-accepted episodes get frame drops
   const dropped = review !== "accepted" && k % 4 === 2 ? 14 : 0
   const names = ["reach", "grasp", "lift", "place"]
   const done = outcome === "success" ? 4 : outcome === "partial" ? 3 : 2
@@ -95,7 +95,7 @@ function captureRecording(
   }
 }
 
-// stack-two-blocks: ep 30–46. 오래된 에피소드는 대부분 검수가 끝났고 최근 것은 대기 중
+// stack-two-blocks: ep 30–46. older episodes are mostly reviewed, recent ones are pending
 const STACK: [number, number, Outcome, RecordingReview][] = Array.from({ length: 17 }, (_, i) => {
   const ep = 30 + i
   const outcome: Outcome = ep % 7 === 3 ? "fail" : ep % 9 === 0 ? "partial" : "success"

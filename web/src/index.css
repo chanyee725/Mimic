@@ -8,7 +8,7 @@
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, system-ui, sans-serif;
-  /* 사이드바와 같은 Pretendard 로 통일. 숫자 정렬은 tabular-nums 로 맞춘다 */
+  /* Use Pretendard everywhere, like the sidebar; align digits with tabular-nums */
   --font-mono: "Pretendard Variable", Pretendard, -apple-system, system-ui, sans-serif;
   --color-ok: var(--ok);
   --color-ok-muted: var(--ok-muted);
@@ -91,7 +91,7 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.5rem;
-  /* 상태 / 시계열 색 (디자인 Light 테마 기준) */
+  /* Status and time-series colours (light theme) */
   --ok: #15803d;
   --ok-muted: #dcfce7;
   --warn: #b45309;

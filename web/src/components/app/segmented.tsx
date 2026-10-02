@@ -5,16 +5,16 @@ import { cn } from "@/lib/utils"
 export type SegmentedOption<T> = {
   value: T
   label: React.ReactNode
-  /** 라벨 뒤 회색 숫자 */
+  /** Grey count after the label */
   count?: number
   icon?: IconType
-  /** 라벨 앞 색 점 (bg-* 클래스) */
+  /** Coloured dot before the label (bg-* class) */
   dot?: string
 }
 
 /**
- * 회색 바탕 위 알약 버튼 묶음. 목록 거르기(tablist) 와 값 고르기(radiogroup) 둘 다 쓴다.
- * fill 이면 버튼이 폭을 나눠 갖고, 아니면 내용 폭만큼만 차지한다.
+ * Pill buttons on a grey track, used both to filter lists (tablist) and to pick a value (radiogroup).
+ * With fill the buttons share the width; otherwise they take their content width.
  */
 export function Segmented<T extends string | number>({
   value,

@@ -6,7 +6,7 @@ export type Health = "ok" | "warn" | "off"
 export type DeviceStream = {
   key: string
   shape: string
-  targetHz: number | null // null = event 기반
+  targetHz: number | null // null = event-based
   measuredHz: number | null
   unit: "Hz" | "fps"
 }
@@ -121,7 +121,7 @@ DEVICES.push(
   bimanualCamera("bi-cam-wrist-r", "Right wrist camera", "images.right_wrist", "off"),
 )
 
-/** Rig 설정에 등록된 장치를 Robot → Device → Camera 순서로 돌려준다 */
+/** Return the rig's devices in Robot → Device → Camera order */
 export function devicesOf(rigId: string): Device[] {
   return rigGroups(getRig(rigId))
     .flatMap((g) => g.ids)

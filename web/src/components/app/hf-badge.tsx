@@ -2,7 +2,7 @@ import { SiHuggingface } from "react-icons/si"
 
 import { cn } from "@/lib/utils"
 
-/** HF Hub 에 올라간 항목 표시. 검은 바탕에 노란 Hugging Face 로고 */
+/** Marks items uploaded to HF Hub: yellow Hugging Face logo on black */
 export function HfBadge({ className, title = "On HF Hub" }: { className?: string; title?: string }) {
   return (
     <span

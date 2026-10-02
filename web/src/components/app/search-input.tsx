@@ -3,7 +3,7 @@ import { LuSearch } from "react-icons/lu"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
-/** 돋보기 아이콘이 붙은 회색 검색 칸 */
+/** Grey search field with a magnifier icon */
 export function SearchInput({ className, ...props }: React.ComponentProps<typeof Input>) {
   return (
     <div className={cn("relative", className)}>

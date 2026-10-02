@@ -1,17 +1,17 @@
-// 학습 Job 더미. 모델은 SmolVLA 하나만 쓴다.
-// Job 은 이 스테이션의 로컬 GPU 또는 RunPod 에서 빌린 GPU 에서 돈다.
+// Mock training jobs. SmolVLA is the only model.
+// Jobs run on this station's local GPU or on a GPU rented from RunPod.
 
 export type JobStatus = "running" | "queued" | "done" | "failed" | "stopped"
 export type Compute = "local" | "runpod"
 
-/** RunPod pod 상태. idle = 학습은 끝났는데 pod 가 켜져 있어 요금이 나가는 중 */
+/** RunPod pod state. idle = training finished but the pod is still up and billing */
 export type PodState = {
   state: "running" | "idle" | "terminated"
-  /** 학습이 끝나면 pod 를 끌지 */
+  /** Terminate the pod when training ends */
   autoTerminate: boolean
-  /** idle · terminated 가 된 시각 */
+  /** When it became idle / terminated */
   since?: string
-  /** idle 로 켜져 있던 시간 */
+  /** How long it has been idle */
   idleFor?: string
 }
 
@@ -24,9 +24,9 @@ export type TrainJob = {
   taskId: string
   compute: Compute
   gpu: string
-  pod?: string // RunPod pod 이름 (runpod 만)
-  pricePerHr?: number // RunPod 시간당 요금 (USD)
-  podState?: PodState // runpod 만
+  pod?: string // RunPod pod name (runpod only)
+  pricePerHr?: number // RunPod hourly price (USD)
+  podState?: PodState // runpod only
   status: JobStatus
   step: number
   total: number
@@ -34,7 +34,7 @@ export type TrainJob = {
   epoch: number
   epochs: number
   startedAt?: string
-  elapsed?: string // 학습 경과 시간
+  elapsed?: string // training time so far
   eta?: string
   checkpoints: Checkpoint[]
   error?: string
@@ -43,7 +43,7 @@ export type TrainJob = {
 export const POLICY = "SmolVLA"
 export const POLICY_BASE = "lerobot/smolvla_base"
 
-/** 이 스테이션에 꽂힌 GPU */
+/** GPUs installed in this station */
 export const LOCAL_GPUS = [{ id: "cuda:0", name: "RTX 4090", vram: "24 GB" }]
 
 export type GpuStock = "high" | "low" | "none"
@@ -51,14 +51,14 @@ export type GpuStock = "high" | "low" | "none"
 export type RunPodGpu = {
   name: string
   vramGB: number
-  /** Secure cloud on-demand 시간당 요금 (USD, 예시 값) */
+  /** Secure cloud on-demand hourly price (USD, example values) */
   pricePerHr: number
-  /** Community cloud 에서도 빌릴 수 있는지 */
+  /** Also available on Community cloud */
   community: boolean
   stock: GpuStock
 }
 
-/** RunPod 에서 빌릴 수 있는 NVIDIA GPU (lerobot 은 CUDA 기준). 요금 · 재고는 예시 값 */
+/** NVIDIA GPUs rentable on RunPod (lerobot targets CUDA). Prices and stock are example values */
 export const RUNPOD_GPUS: RunPodGpu[] = [
   { name: "RTX A4000", vramGB: 16, pricePerHr: 0.25, community: true, stock: "high" },
   { name: "RTX A4500", vramGB: 20, pricePerHr: 0.34, community: true, stock: "high" },
@@ -85,9 +85,9 @@ export type RunPodOptions = {
   cloud: "secure" | "community"
   pricing: "on-demand" | "spot"
   gpuCount: 1 | 2 | 4
-  /** 이 시간이 지나면 학습을 멈추고 pod 를 끈다 */
+  /** Stop training and terminate the pod after this many hours */
   maxHours: number
-  /** 누적 비용이 넘으면 멈춘다 (USD, 0 = 제한 없음) */
+  /** Stop when the total cost exceeds this (USD, 0 = no limit) */
   budget: number
   diskGB: number
   volume: string
@@ -109,7 +109,7 @@ export const RUNPOD_DEFAULTS: RunPodOptions = {
   pushToHub: false,
 }
 
-/** 요금 배율 (예시). Community 는 개인 호스트, Spot 은 중간에 회수될 수 있다 */
+/** Price multipliers (examples). Community = individual hosts; Spot can be reclaimed mid-run */
 export const RUNPOD_PRICE_FACTOR = { cloud: { secure: 1, community: 0.8 }, pricing: { "on-demand": 1, spot: 0.5 } }
 
 export const RUNPOD_VOLUMES = [
@@ -187,7 +187,7 @@ export const JOBS: TrainJob[] = [
     gpu: "RTX 4090",
     pod: "pod-4090-02",
     pricePerHr: 0.69,
-    // 자동 종료를 꺼 둬서 학습이 끝난 뒤에도 pod 가 켜져 있다
+    // Auto-terminate is off, so the pod is still up after training
     podState: { state: "idle", autoTerminate: false, since: "2026-10-01 23:11", idleFor: "15h 49m" },
     status: "done",
     step: 20000,
