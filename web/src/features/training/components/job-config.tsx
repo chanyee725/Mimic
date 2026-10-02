@@ -1,5 +1,6 @@
 import { DetailList } from "@/components/common/detail-list"
-import { POLICY_BASE, type TrainJob } from "@/dummy/training"
+import { POLICY_BASE } from "@/api/training"
+import type { TrainJob } from "@/domain/training"
 
 import { computeText } from "../lib"
 

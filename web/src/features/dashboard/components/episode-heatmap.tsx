@@ -1,4 +1,5 @@
-import { EPISODE_ACTIVITY, type DayCount } from "@/dummy/activity"
+import { getEpisodeActivity } from "@/api/station"
+import type { DayCount } from "@/domain/activity"
 import { cn } from "@/lib/utils"
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -21,7 +22,7 @@ function level(count: number, max: number) {
 
 /** GitHub-style contribution grid of episodes collected per day, one column per week. SVG, so it scales to the panel width. */
 export function EpisodeHeatmap() {
-  const days = EPISODE_ACTIVITY
+  const days = getEpisodeActivity()
   const firstDow = new Date(`${days[0].date}T00:00:00`).getDay()
   const cells: (DayCount | null)[] = [...Array(firstDow).fill(null), ...days]
   const weeks: (DayCount | null)[][] = []

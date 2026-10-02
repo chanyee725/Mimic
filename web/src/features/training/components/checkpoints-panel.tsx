@@ -3,7 +3,7 @@ import { LuBox, LuDownload } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
-import type { Checkpoint, TrainJob } from "@/dummy/training"
+import type { Checkpoint, TrainJob } from "@/domain/training"
 
 import type { JobRun } from "../lib"
 import { CheckpointsDialog } from "./checkpoints-dialog"

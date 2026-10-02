@@ -4,7 +4,7 @@ import { LuBox, LuCloudUpload, LuDownload, LuSave } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { Checkpoint, TrainJob } from "@/dummy/training"
+import type { Checkpoint, TrainJob } from "@/domain/training"
 
 import type { JobRun } from "../lib"
 

@@ -1,4 +1,4 @@
-import type { TrainJob } from "@/dummy/training"
+import type { TrainJob } from "@/domain/training"
 
 // Values logged every training step (mock).
 // The real app fills them from lerobot-train step logs (loss, grad_norm, lr, update_s, data_s) and nvidia-smi.

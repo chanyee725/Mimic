@@ -1,4 +1,5 @@
-import { POLICY_BASE, type RunPodOptions } from "@/dummy/training"
+import { POLICY_BASE } from "@/api/training"
+import type { RunPodOptions } from "@/domain/training"
 
 // lerobot-train parameters. key is the CLI flag name as is (--key=value).
 // Defaults follow lerobot TrainPipelineConfig / SmolVLAConfig; verify them against the pinned lerobot version.

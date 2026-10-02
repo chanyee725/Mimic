@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Panel } from "@/components/layout/page-layout"
 import { Segmented } from "@/components/common/segmented"
 import { StatusDot } from "@/components/common/status-dot"
-import { JOBS, LOCAL_GPUS, POLICY, POLICY_BASE, RUNPOD_DEFAULTS, RUNPOD_GPUS, type Compute, type RunPodOptions } from "@/dummy/training"
+import { LOCAL_GPUS, POLICY, POLICY_BASE, RUNPOD_DEFAULTS, RUNPOD_GPUS, listJobs } from "@/api/training"
+import type { Compute, RunPodOptions } from "@/domain/training"
 import { formatRate, formatUsd } from "@/lib/format"
 
-import { TRAINABLE, overrideFlags, runpodCapHours, runpodRate, runpodSummary, type Overrides, type TrainingPlan } from "../lib"
+import { overrideFlags, runpodCapHours, runpodRate, runpodSummary, type Overrides, type TrainingPlan, trainableDatasets } from "../lib"
 import { ConfirmTrainingDialog } from "./confirm-dialog"
 import { GpuPickerDialog } from "./gpu-picker-dialog"
 import { ParamsDialog } from "./params-dialog"
@@ -18,8 +19,9 @@ import { RunPodDialog } from "./runpod-dialog"
 
 /** Start training form. Pick dataset, compute and parameters, then confirm in a dialog */
 export function StartTraining() {
+  const trainable = trainableDatasets()
   const [compute, setCompute] = useState<Compute>("local")
-  const [dataset, setDataset] = useState(TRAINABLE[0])
+  const [dataset, setDataset] = useState(trainable[0])
   const [cloudGpu, setCloudGpu] = useState("A100 SXM")
   const [gpuOpen, setGpuOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -28,7 +30,7 @@ export function StartTraining() {
   const cloud = RUNPOD_GPUS.find((g) => g.name === cloudGpu) ?? RUNPOD_GPUS[0]
   const podRate = runpodRate(cloud.pricePerHr, podOpts)
   const podCap = runpodCapHours(podOpts, podRate)
-  const localBusy = JOBS.find((j) => j.compute === "local" && j.status === "running")
+  const localBusy = listJobs().find((j) => j.compute === "local" && j.status === "running")
   const [paramsOpen, setParamsOpen] = useState(false)
   const [overrides, setOverrides] = useState<Overrides>({})
   const changed = overrideFlags(overrides)
@@ -61,7 +63,7 @@ export function StartTraining() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TRAINABLE.map((d) => (
+              {trainable.map((d) => (
                 <SelectItem key={d} value={d} className="text-[13px]">
                   {d}
                 </SelectItem>

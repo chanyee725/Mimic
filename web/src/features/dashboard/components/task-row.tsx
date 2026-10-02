@@ -1,18 +1,17 @@
 import { Link } from "react-router-dom"
 
 import { ProgressRing } from "@/components/common/progress-ring"
-import { TASK_RING_TONE } from "@/dummy/tasks"
-import { SESSIONS } from "@/dummy/sessions"
-import { CURRENT_TASK_ID } from "@/dummy/station"
-import type { Task } from "@/dummy/tasks"
+import { listSessions } from "@/api/sessions"
+import { getCurrentTaskId } from "@/api/tasks"
+import { TASK_RING_TONE, type Task } from "@/domain/task"
 import { plural } from "@/lib/format"
 
 export function TaskRow({ task }: { task: Task }) {
-  const sessions = SESSIONS.filter((s) => s.taskId === task.id)
+  const sessions = listSessions().filter((s) => s.taskId === task.id)
   const episodes = sessions.reduce((a, s) => a + s.episodes, 0)
   const success = episodes ? Math.round(sessions.reduce((a, s) => a + s.successPct * s.episodes, 0) / episodes) : null
   const pct = Math.min(100, Math.round((task.collected / task.targetEpisodes) * 100))
-  const current = task.id === CURRENT_TASK_ID
+  const current = task.id === getCurrentTaskId()
 
   return (
     <li className="flex min-h-16 flex-1">

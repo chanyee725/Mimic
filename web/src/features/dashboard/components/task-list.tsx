@@ -1,14 +1,14 @@
 import { Panel, PanelLink } from "@/components/layout/page-layout"
-import { CURRENT_TASK_ID } from "@/dummy/station"
-import { TASKS } from "@/dummy/tasks"
+import { getCurrentTaskId, listTasks } from "@/api/tasks"
 
 import { MAX_TASKS, STATUS_ORDER } from "../lib"
 import { TaskRow } from "./task-row"
 
 export function TaskList() {
   // Task currently being captured first, the rest by status
-  const tasks = [...TASKS].sort((a, b) =>
-    a.id === CURRENT_TASK_ID ? -1 : b.id === CURRENT_TASK_ID ? 1 : STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
+  const currentId = getCurrentTaskId()
+  const tasks = [...listTasks()].sort((a, b) =>
+    a.id === currentId ? -1 : b.id === currentId ? 1 : STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
   )
   const shown = tasks.slice(0, MAX_TASKS)
   const hidden = tasks.length - shown.length

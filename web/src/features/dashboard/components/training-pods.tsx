@@ -1,11 +1,11 @@
 import { Panel, PanelLink } from "@/components/layout/page-layout"
-import { JOBS } from "@/dummy/training"
+import { listJobs } from "@/api/training"
 
 import { MAX_PODS } from "../lib"
 import { PodRow } from "./pod-row"
 
 export function TrainingPods() {
-  const running = JOBS.filter((j) => j.status === "running")
+  const running = listJobs().filter((j) => j.status === "running")
   const hidden = running.length - MAX_PODS
 
   return (
