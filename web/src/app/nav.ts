@@ -29,7 +29,7 @@ export const NAV: NavGroup[] = [
     items: [
       { to: "/", label: "Dashboard", icon: LuLayoutDashboard },
       { to: "/tasks", label: "Tasks", icon: LuListChecks, badge: TASKS.length },
-      { to: "/devices", label: "Devices", icon: LuCable },
+      { to: "/rigs", label: "Rigs", icon: LuCable },
       { to: "/capture", label: "Capture", icon: LuRadioTower, badge: "rec" },
     ],
   },
