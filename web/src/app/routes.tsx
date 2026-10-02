@@ -4,6 +4,7 @@ import { AppLayout } from "@/app/layout"
 import { PlaceholderPage } from "@/app/placeholder"
 import { CapturePage } from "@/features/capture/page"
 import { DashboardPage } from "@/features/dashboard/page"
+import { DevicesPage } from "@/features/devices/page"
 import { SessionsPage } from "@/features/sessions/page"
 import { TasksPage } from "@/features/tasks/page"
 
@@ -14,7 +15,7 @@ export function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="tasks/:taskId" element={<TasksPage />} />
-        <Route path="devices" element={<PlaceholderPage title="Devices" />} />
+        <Route path="devices" element={<DevicesPage />} />
         <Route path="capture" element={<CapturePage />} />
         <Route path="sessions" element={<SessionsPage />} />
         <Route path="convert" element={<PlaceholderPage title="Convert" />} />
