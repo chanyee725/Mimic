@@ -152,7 +152,3 @@ export const TASKS: Task[] = [
 ]
 
 export const getTask = (id: string) => TASKS.find((t) => t.id === id)
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { TaskStatus, Outcome, Subtask, Task } from "@/domain/task"
-export { TASK_RING_TONE } from "@/domain/task"

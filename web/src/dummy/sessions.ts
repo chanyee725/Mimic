@@ -68,6 +68,3 @@ export const SESSIONS: Session[] = [
     date: "2026-09-27",
   },
 ]
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { SessionStatus, Session } from "@/domain/session"

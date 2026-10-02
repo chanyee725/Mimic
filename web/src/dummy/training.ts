@@ -1,6 +1,7 @@
-import type { Checkpoint, TrainJob, RunPodGpu, RunPodOptions } from "@/domain/training"
 // Mock training jobs. SmolVLA is the only model.
 // Jobs run on this station's local GPU or on a GPU rented from RunPod.
+
+import type { Checkpoint, TrainJob, RunPodGpu, RunPodOptions } from "@/domain/training"
 
 export const POLICY = "SmolVLA"
 export const POLICY_BASE = "lerobot/smolvla_base"
@@ -175,7 +176,3 @@ export const JOBS: TrainJob[] = [
 ]
 
 export const getJob = (id: string) => JOBS.find((j) => j.id === id)
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { JobStatus, Compute, PodState, Checkpoint, TrainJob, GpuStock, RunPodGpu, RunPodOptions } from "@/domain/training"
-export { isActive } from "@/domain/training"
