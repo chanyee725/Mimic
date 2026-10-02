@@ -1,30 +1,7 @@
+import type { RigCamera, Rig } from "@/domain/rig"
 // Rig config: the set of equipment that makes up one capture unit.
 // This config decides which devices count as Robot / Device / Camera;
 // live state (health, measured rates, …) is looked up by device id in @/dummy/devices.
-
-export type RigCamera = {
-  id: string // device id (@/dummy/devices)
-  key: string // camera key toggled per task
-  name: string
-  feature: string // LeRobot feature key
-  resolution: string
-  fps: number
-  defaultOn: boolean
-}
-
-export type Rig = {
-  id: string
-  name: string
-  master: string // display name: teleop (leader)
-  slave: string // display name: robot (follower)
-  robots: string[] // robot device ids (slave / follower)
-  devices: string[] // input device ids (master / leader, …)
-  cameras: RigCamera[]
-  joints: string[] // action space, in action vector order
-  targetHz: { action: number; video: number }
-  actionHzOptions: number[]
-  videoFpsOptions: number[]
-}
 
 const SO101_ARM = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 
@@ -73,21 +50,6 @@ export const RIGS: Rig[] = [
 
 export const getRig = (id: string) => RIGS.find((r) => r.id === id) ?? RIGS[0]
 
-/** Groups on the Rigs page (from the rig config) */
-export type RigGroupKey = "robot" | "device" | "camera"
-
-export function rigGroups(rig: Rig): { key: RigGroupKey; label: string; ids: string[] }[] {
-  return [
-    { key: "robot", label: "Robot", ids: rig.robots },
-    { key: "device", label: "Device", ids: rig.devices },
-    { key: "camera", label: "Camera", ids: rig.cameras.map((c) => c.id) },
-  ]
-}
-
-/** Fill a task's rig-related fields from the rig defaults */
-export const rigDefaults = (rig: Rig) => ({
-  rigId: rig.id,
-  actionHz: rig.targetHz.action,
-  videoFps: rig.targetHz.video,
-  cameras: rig.cameras.filter((c) => c.defaultOn).map((c) => c.key),
-})
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { RigCamera, Rig, RigGroupKey } from "@/domain/rig"
+export { rigGroups, rigDefaults } from "@/domain/rig"

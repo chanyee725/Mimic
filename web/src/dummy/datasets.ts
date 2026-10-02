@@ -1,40 +1,7 @@
+import type { DatasetFeature, DatasetEpisode, Dataset } from "@/domain/dataset"
 // Mock datasets. LeRobot ones come from Convert; MCAP ones bundle raw episodes without conversion.
 // For real: LeRobot reads meta/info.json, MCAP reads each file's summary section.
 // The thumbnail is the first camera frame of the first episode (drawn shapes in the mock).
-
-export type DatasetKind = "lerobot" | "mcap"
-export type DatasetStatus = "ready" | "converting" | "failed"
-
-/** One LeRobot feature or one MCAP topic */
-export type DatasetFeature = {
-  key: string
-  dtype: string
-  shape: string
-  note?: string
-}
-
-export type DatasetEpisode = {
-  index: number
-  source: string // source MCAP
-  lengthS: number
-  frames: number
-}
-
-export type Dataset = {
-  kind: DatasetKind
-  repoId: string
-  taskId: string
-  rigId: string
-  format: string
-  fps: number
-  status: DatasetStatus
-  progress?: number // 0–100 while converting
-  createdAt: string
-  sizeGB: number
-  hub: { pushed: boolean; private: boolean }
-  features: DatasetFeature[]
-  episodes: DatasetEpisode[]
-}
 
 const SO101_FEATURES = (cameras: string[]): DatasetFeature[] => [
   { key: "action", dtype: "float32", shape: "[6]", note: "60 Hz → 30 Hz" },
@@ -165,3 +132,6 @@ export const DATASETS: Dataset[] = [
     episodes: episodes("wipe-table", 1, [15.4, 17.0, 16.2]),
   },
 ]
+
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { DatasetKind, DatasetStatus, DatasetFeature, DatasetEpisode, Dataset } from "@/domain/dataset"

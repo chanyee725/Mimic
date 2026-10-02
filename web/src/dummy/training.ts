@@ -1,62 +1,12 @@
+import type { Checkpoint, TrainJob, RunPodGpu, RunPodOptions } from "@/domain/training"
 // Mock training jobs. SmolVLA is the only model.
 // Jobs run on this station's local GPU or on a GPU rented from RunPod.
-
-export type JobStatus = "running" | "queued" | "done" | "failed" | "stopped"
-export type Compute = "local" | "runpod"
-
-/** RunPod pod state. idle = training finished but the pod is still up and billing */
-export type PodState = {
-  state: "running" | "idle" | "terminated"
-  /** Terminate the pod when training ends */
-  autoTerminate: boolean
-  /** When it became idle / terminated */
-  since?: string
-  /** How long it has been idle */
-  idleFor?: string
-}
-
-export type Checkpoint = { step: number; savedAt: string; sizeMB: number }
-
-export type TrainJob = {
-  id: string
-  policy: string
-  dataset: string
-  taskId: string
-  compute: Compute
-  gpu: string
-  pod?: string // RunPod pod name (runpod only)
-  pricePerHr?: number // RunPod hourly price (USD)
-  podState?: PodState // runpod only
-  status: JobStatus
-  step: number
-  total: number
-  batch: number
-  epoch: number
-  epochs: number
-  startedAt?: string
-  elapsed?: string // training time so far
-  eta?: string
-  checkpoints: Checkpoint[]
-  error?: string
-}
 
 export const POLICY = "SmolVLA"
 export const POLICY_BASE = "lerobot/smolvla_base"
 
 /** GPUs installed in this station */
 export const LOCAL_GPUS = [{ id: "cuda:0", name: "RTX 4090", vram: "24 GB" }]
-
-export type GpuStock = "high" | "low" | "none"
-
-export type RunPodGpu = {
-  name: string
-  vramGB: number
-  /** Secure cloud on-demand hourly price (USD, example values) */
-  pricePerHr: number
-  /** Also available on Community cloud */
-  community: boolean
-  stock: GpuStock
-}
 
 /** NVIDIA GPUs rentable on RunPod (lerobot targets CUDA). Prices and stock are example values */
 export const RUNPOD_GPUS: RunPodGpu[] = [
@@ -80,21 +30,6 @@ export const RUNPOD_GPUS: RunPodGpu[] = [
   { name: "H200 SXM", vramGB: 141, pricePerHr: 3.99, community: false, stock: "low" },
   { name: "B200", vramGB: 180, pricePerHr: 5.99, community: false, stock: "none" },
 ]
-
-export type RunPodOptions = {
-  cloud: "secure" | "community"
-  pricing: "on-demand" | "spot"
-  gpuCount: 1 | 2 | 4
-  /** Stop training and terminate the pod after this many hours */
-  maxHours: number
-  /** Stop when the total cost exceeds this (USD, 0 = no limit) */
-  budget: number
-  diskGB: number
-  volume: string
-  region: string
-  terminateOnFinish: boolean
-  pushToHub: boolean
-}
 
 export const RUNPOD_DEFAULTS: RunPodOptions = {
   cloud: "secure",
@@ -241,4 +176,6 @@ export const JOBS: TrainJob[] = [
 
 export const getJob = (id: string) => JOBS.find((j) => j.id === id)
 
-export const isActive = (j: TrainJob) => j.status === "running" || j.status === "queued"
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { JobStatus, Compute, PodState, Checkpoint, TrainJob, GpuStock, RunPodGpu, RunPodOptions } from "@/domain/training"
+export { isActive } from "@/domain/training"

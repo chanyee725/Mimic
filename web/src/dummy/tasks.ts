@@ -1,38 +1,6 @@
-import { getRig, rigDefaults } from "@/dummy/rigs"
-
-export type TaskStatus = "active" | "draft" | "completed"
-
-/** Progress ring tone for each task status */
-export const TASK_RING_TONE = { active: "foreground", completed: "ok", draft: "muted" } as const satisfies Record<TaskStatus, string>
-export type Outcome = "success" | "fail" | "partial"
-
-export type Subtask = { key: string; name: string; description: string }
-
-export type Task = {
-  id: string
-  name: string
-  instruction: string
-  variants: string[]
-  tags: string[]
-  rigId: string
-  cameras: string[] // rig cameras recorded for this task
-  actionHz: number // one of the rig's actionHzOptions
-  videoFps: number // one of the rig's videoFpsOptions
-  targetEpisodes: number
-  durationS: number
-  resetS: number
-  countdownS: number
-  outcomes: { value: Outcome; key: string }[]
-  subtasks: Subtask[]
-  successCriteria: string
-  repoId: string
-  pushToHub: boolean
-  status: TaskStatus
-  collected: number
-  version: number
-  updatedAt: string
-  updatedBy: string // pseudonymous operator ID only (never store PII)
-}
+import type { Task } from "@/domain/task"
+import { rigDefaults } from "@/domain/rig"
+import { getRig } from "@/dummy/rigs"
 
 const outcomes: Task["outcomes"] = [
   { value: "success", key: "→" },
@@ -184,3 +152,7 @@ export const TASKS: Task[] = [
 ]
 
 export const getTask = (id: string) => TASKS.find((t) => t.id === id)
+
+// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
+export type { TaskStatus, Outcome, Subtask, Task } from "@/domain/task"
+export { TASK_RING_TONE } from "@/domain/task"

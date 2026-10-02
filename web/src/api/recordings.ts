@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react"
 
-import { RECORDINGS, type Recording, type RecordingReview } from "@/dummy/recordings"
+import type { Recording, RecordingReview } from "@/domain/recording"
+import { RECORDINGS } from "@/dummy/recordings"
 
 // Recording list shared by Review and Convert. Kept in memory until the backend is connected.
 let recordings: Recording[] = RECORDINGS
