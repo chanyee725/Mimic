@@ -35,7 +35,17 @@ function autoFeature(t: McapTopic, rec: Recording): string {
   }
 }
 
-/** 승인된 에피소드 길이 막대. 막대를 누르면 변환 대상에서 빼거나 다시 넣는다 */
+/** 막대를 개별로 그리는 최대 개수. 넘으면 연속된 에피소드를 묶어 한 막대로 그린다 */
+const MAX_BARS = 60
+const TICK_STEPS = [5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600]
+
+const fmtLength = (sec: number) => (sec < 3600 ? `${(sec / 60).toFixed(1)} min` : `${(sec / 3600).toFixed(1)} h`)
+const fmtSize = (mb: number) => (mb < 1024 ? `${mb.toFixed(1)} MB` : `${(mb / 1024).toFixed(1)} GB`)
+const PICKER_PAGE = 50
+
+const secLabel = (s: number) => (s < 60 ? `${s}s` : s < 3600 ? `${s / 60}m` : `${s / 3600}h`)
+
+/** 승인된 에피소드 길이 막대. 개별 막대를 누르면 변환 대상에서 빼거나 다시 넣는다 */
 function EpisodeStrip({
   episodes,
   excluded,
@@ -43,46 +53,87 @@ function EpisodeStrip({
   summary,
 }: {
   episodes: Recording[]
-  excluded: string[]
+  excluded: Set<string>
   onToggle: (id: string) => void
   summary: string
 }) {
   if (episodes.length === 0) return <div className="min-h-16 flex-1 rounded-md border border-dashed" />
-  const max = Math.max(...episodes.map((r) => r.durationS))
+
+  // 세로축: 최대 4칸이 되는 눈금 간격을 고른다
+  const longest = Math.max(...episodes.map((r) => r.durationS))
+  const step = TICK_STEPS.find((t) => longest / t <= 4) ?? 3600
+  const top = Math.ceil(longest / step) * step
+  const ticks = Array.from({ length: top / step }, (_, i) => (i + 1) * step)
+  const pct = (sec: number) => `${(sec / top) * 100}%`
+
   const name = (r: Recording) => r.file.split("/").pop()!.replace(".mcap", "")
+  const per = Math.ceil(episodes.length / MAX_BARS)
+  const groups = Array.from({ length: Math.ceil(episodes.length / per) }, (_, i) => episodes.slice(i * per, (i + 1) * per))
+
   return (
-    <div className="flex min-h-16 flex-1 flex-col gap-1.5">
-      <div className="relative flex min-h-0 flex-1 items-end justify-between gap-1 border-b" role="group" aria-label="Episode lengths">
-        {/* 25% 간격 보조선 */}
-        {[25, 50, 75, 100].map((y) => (
-          <span key={y} className="pointer-events-none absolute inset-x-0 border-t border-dashed" style={{ bottom: `${y}%` }} aria-hidden />
+    <div className="grid min-h-16 flex-1 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-x-2 gap-y-1.5">
+      {/* 세로축 시간 눈금 */}
+      <div className="relative w-7 text-right text-[11px] text-muted-foreground tabular-nums" aria-hidden>
+        {[0, ...ticks].map((t) => (
+          <span key={t} className="absolute right-0 translate-y-1/2 leading-none" style={{ bottom: pct(t) }}>
+            {secLabel(t)}
+          </span>
         ))}
-        {episodes.map((r) => {
-          const on = !excluded.includes(r.id)
-          return (
-            <button
-              key={r.id}
-              type="button"
-              aria-pressed={on}
-              aria-label={`${name(r)}, ${r.durationS.toFixed(1)} s`}
-              title={`${name(r)}, ${r.durationS.toFixed(1)} s${on ? "" : " (excluded)"}`}
-              onClick={() => onToggle(r.id)}
-              className="group relative flex h-full max-w-6 min-w-2 flex-1 items-end justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-            >
-              <span
-                className={cn(
-                  "w-2 rounded-t-sm transition-colors",
-                  on ? "bg-foreground/70 group-hover:bg-foreground" : "bg-foreground/10 group-hover:bg-foreground/25",
-                )}
-                style={{ height: `${(r.durationS / max) * 100}%` }}
-              />
-            </button>
-          )
-        })}
       </div>
-      <div className="flex justify-between text-[11px] text-muted-foreground tabular-nums">
+      <div className="relative flex min-h-0 items-end justify-between gap-px border-b" role="group" aria-label="Episode lengths">
+        {ticks.map((t) => (
+          <span key={t} className="pointer-events-none absolute inset-x-0 border-t border-dashed" style={{ bottom: pct(t) }} aria-hidden />
+        ))}
+        {per === 1
+          ? episodes.map((r) => {
+              const on = !excluded.has(r.id)
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={`${name(r)}, ${r.durationS.toFixed(1)} s`}
+                  title={`${name(r)}, ${r.durationS.toFixed(1)} s${on ? "" : " (excluded)"}`}
+                  onClick={() => onToggle(r.id)}
+                  className="group relative flex h-full max-w-6 min-w-1 flex-1 items-end justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <span
+                    className={cn(
+                      "w-full max-w-2 rounded-t-sm transition-colors",
+                      on ? "bg-foreground/70 group-hover:bg-foreground" : "bg-foreground/10 group-hover:bg-foreground/25",
+                    )}
+                    style={{ height: pct(r.durationS) }}
+                  />
+                </button>
+              )
+            })
+          : groups.map((g) => {
+              // 묶음 막대: 연한 부분은 최소~최대 범위, 진한 부분은 선택된 에피소드의 평균
+              const picked = g.filter((r) => !excluded.has(r.id))
+              const lens = g.map((r) => r.durationS)
+              const mean = picked.length ? picked.reduce((a, r) => a + r.durationS, 0) / picked.length : 0
+              return (
+                <span
+                  key={g[0].id}
+                  title={`${name(g[0])} – ${name(g[g.length - 1])}\n${picked.length}/${g.length} selected, mean ${mean.toFixed(1)} s, range ${Math.min(...lens).toFixed(1)}–${Math.max(...lens).toFixed(1)} s`}
+                  className="relative h-full max-w-2 min-w-px flex-1"
+                >
+                  <span
+                    className="absolute inset-x-0 rounded-sm bg-foreground/15"
+                    style={{ bottom: pct(Math.min(...lens)), height: `calc(${pct(Math.max(...lens))} - ${pct(Math.min(...lens))})` }}
+                  />
+                  <span className="absolute inset-x-0 bottom-0 rounded-t-sm bg-foreground/70" style={{ height: pct(mean) }} />
+                </span>
+              )
+            })}
+      </div>
+      <span />
+      <div className="flex justify-between gap-2 text-[11px] text-muted-foreground tabular-nums">
         <span>{name(episodes[0])}</span>
-        <span className="text-foreground">{summary}</span>
+        <span className="truncate text-foreground">
+          {summary}
+          {per > 1 && <span className="text-muted-foreground">, {per.toLocaleString()} episodes per bar</span>}
+        </span>
         <span>{name(episodes[episodes.length - 1])}</span>
       </div>
     </div>
@@ -102,15 +153,19 @@ export function ConvertPage() {
   const [mode, setMode] = useState<Alignment>(task?.alignment ?? "chunk")
   const [repoId, setRepoId] = useState(task?.repoId ?? "")
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerPage, setPickerPage] = useState(0)
 
   const changeTask = (id: string) => {
     setTaskId(id)
     setExcluded([])
+    setPickerPage(0)
     setMode(getTask(id)?.alignment ?? "chunk")
     setRepoId(getTask(id)?.repoId ?? "")
   }
 
-  const targets = accepted.filter((r) => !excluded.includes(r.id))
+  const skip = new Set(excluded)
+  const targets = accepted.filter((r) => !skip.has(r.id))
+  const pages = Math.ceil(accepted.length / PICKER_PAGE)
   const toggle = (id: string) => setExcluded((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
   const fps = ALIGNMENT_MODES.find((m) => m.id === mode)!.fps
   const topics = new Map<string, { topic: McapTopic; rec: Recording }>()
@@ -177,19 +232,14 @@ export function ConvertPage() {
                   >
                     <span className="text-muted-foreground">Episodes</span>
                     <span className="flex items-center gap-1.5 tabular-nums">
-                      {targets.length} of {accepted.length} accepted
+                      {targets.length.toLocaleString()} of {accepted.length.toLocaleString()} accepted
                       <LuChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
                     </span>
                   </button>
                 </dd>
               </div>
             </dl>
-            <EpisodeStrip
-              episodes={accepted}
-              excluded={excluded}
-              onToggle={toggle}
-              summary={`${(totalS / 60).toFixed(1)} min, ${totalMB.toFixed(1)} MB`}
-            />
+            <EpisodeStrip episodes={accepted} excluded={skip} onToggle={toggle} summary={`${fmtLength(totalS)}, ${fmtSize(totalMB)}`} />
             {(accepted.length === 0 || pending > 0) && (
               <p className="text-xs text-muted-foreground">
                 {accepted.length === 0 ? "승인된 에피소드가 없습니다. " : `검수를 기다리는 에피소드가 ${pending}개 있습니다. `}
@@ -253,9 +303,21 @@ export function ConvertPage() {
                 onChange={(e) => setRepoId(e.target.value)}
               />
             </div>
-            <div className="flex justify-between gap-3 border-y py-2.5 text-[13px]">
-              <span className="text-muted-foreground">Format</span>
-              <span>LeRobot v3.0, AV1</span>
+            <div className="grid gap-1.5">
+              <Label htmlFor="format" className="text-xs font-normal text-muted-foreground">
+                Format
+              </Label>
+              {/* 지금은 LeRobot 만 지원. 변환하지 않으면 원본 MCAP 을 그대로 올린다 */}
+              <Select value="LeRobot v3.0">
+                <SelectTrigger id="format" className="h-9 w-full text-[13px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LeRobot v3.0" className="text-[13px]">
+                    LeRobot v3.0
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex min-h-0 flex-1 flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">Features</span>
@@ -265,7 +327,7 @@ export function ConvertPage() {
             </div>
             <Button size="lg" className="w-full" disabled={targets.length === 0 || !repoId.trim()}>
               <LuPlay />
-              Convert {targets.length} {targets.length === 1 ? "episode" : "episodes"}
+              Convert {targets.length.toLocaleString()} {targets.length === 1 ? "episode" : "episodes"}
             </Button>
           </Panel>
         </section>
@@ -280,7 +342,7 @@ export function ConvertPage() {
           </DialogHeader>
           <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
             <span>
-              {targets.length} of {accepted.length} selected
+              {targets.length.toLocaleString()} of {accepted.length.toLocaleString()} selected
             </span>
             <span className="flex gap-1">
               <Button variant="ghost" size="sm" className="h-7" onClick={() => setExcluded([])}>
@@ -292,8 +354,8 @@ export function ConvertPage() {
             </span>
           </div>
           <ul className="-mx-2 grid max-h-80 content-start gap-0.5 overflow-y-auto">
-            {accepted.map((r) => {
-              const on = !excluded.includes(r.id)
+            {accepted.slice(pickerPage * PICKER_PAGE, (pickerPage + 1) * PICKER_PAGE).map((r) => {
+              const on = !skip.has(r.id)
               return (
                 <li key={r.id}>
                   <Label className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 font-normal hover:bg-accent/60">
@@ -309,7 +371,26 @@ export function ConvertPage() {
               )
             })}
           </ul>
-          <DialogFooter>
+          <DialogFooter className="items-center sm:justify-between">
+            {pages > 1 ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                <Button variant="outline" size="sm" className="h-7" disabled={pickerPage === 0} onClick={() => setPickerPage((n) => n - 1)}>
+                  Prev
+                </Button>
+                {pickerPage + 1} / {pages}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7"
+                  disabled={pickerPage >= pages - 1}
+                  onClick={() => setPickerPage((n) => n + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            ) : (
+              <span />
+            )}
             <DialogClose render={<Button />}>Done</DialogClose>
           </DialogFooter>
         </DialogContent>
