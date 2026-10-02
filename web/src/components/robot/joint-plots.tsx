@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react"
 
 import { cn } from "@/lib/utils"
 
+import { drawCursor, drawLegend, drawLine, drawXGrid, drawYGrid, prepareCanvas } from "./plot-canvas"
+
 type Props = {
   /** Rig 에 정의된 joint 이름 (action / observation.state 벡터 순서) */
   joints: readonly string[]
@@ -24,7 +26,7 @@ type Props = {
 
 const Y_MIN = -90
 const Y_MAX = 90
-const PAD = { left: 30, right: 8, top: 18, bottom: 16 }
+const PAD_LEFT = 30
 
 /**
  * Rerun 의 time series view 를 본뜬 joint 별 플롯.
@@ -75,114 +77,51 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
     }
 
     const drawPlot = (canvas: HTMLCanvasElement, i: number) => {
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return
-      const dpr = window.devicePixelRatio || 1
-      const w = canvas.clientWidth
-      const h = canvas.clientHeight
-      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-        canvas.width = Math.round(w * dpr)
-        canvas.height = Math.round(h * dpr)
-      }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, h)
-
-      const x0 = PAD.left
-      const x1 = w - PAD.right
-      const y0 = PAD.top
-      const y1 = h - PAD.bottom
+      const f = prepareCanvas(canvas, PAD_LEFT)
+      if (!f) return
+      const { ctx, x0, x1, y0, y1 } = f
       const yOf = (v: number) => y0 + ((Y_MAX - v) / (Y_MAX - Y_MIN)) * (y1 - y0)
       const xOf = (j: number) => x0 + (j / (capacity - 1)) * (x1 - x0)
-
       ctx.font = `10px ${font}`
-      ctx.lineWidth = 1
-      ctx.setLineDash([])
 
       // y 눈금: -90 · 0 · 90°
-      ctx.textAlign = "right"
-      ctx.textBaseline = "middle"
-      for (const v of [Y_MIN, 0, Y_MAX]) {
-        ctx.strokeStyle = color.grid
-        ctx.beginPath()
-        ctx.moveTo(x0, yOf(v))
-        ctx.lineTo(x1, yOf(v))
-        ctx.stroke()
-        ctx.fillStyle = color.text
-        ctx.fillText(`${v}°`, x0 - 4, yOf(v))
-      }
+      drawYGrid(
+        f,
+        [Y_MIN, 0, Y_MAX].map((v) => ({ y: yOf(v), label: `${v}°` })),
+        color.grid,
+        color.text,
+      )
+      // x 눈금: 1 초 간격, 오른쪽 끝이 현재 시각. 가장 왼쪽 라벨은 y 눈금(-90°)과 겹치므로 생략
+      drawXGrid(
+        f,
+        Array.from({ length: windowSec + 1 }, (_, s) => ({
+          x: x1 - (s / windowSec) * (x1 - x0),
+          label: s === windowSec ? undefined : s === 0 ? "now" : `-${s}s`,
+        })),
+        color.grid,
+        color.text,
+      )
 
-      // x 눈금: 1 초 간격, 오른쪽 끝이 현재 시각
-      ctx.textAlign = "center"
-      ctx.textBaseline = "top"
-      for (let s = 0; s <= windowSec; s++) {
-        const x = x1 - (s / windowSec) * (x1 - x0)
-        ctx.strokeStyle = color.grid
-        ctx.globalAlpha = 0.5
-        ctx.beginPath()
-        ctx.moveTo(x, y0)
-        ctx.lineTo(x, y1)
-        ctx.stroke()
-        ctx.globalAlpha = 1
-        // 가장 왼쪽 라벨은 y 축 눈금(-90°)과 겹치므로 생략
-        if (s < windowSec) {
-          ctx.fillStyle = color.text
-          ctx.fillText(s === 0 ? "now" : `-${s}s`, x, y1 + 3)
-        }
+      const points = function* (buf: Float32Array): Generator<[number, number]> {
+        for (let j = 0; j < capacity; j++) yield [xOf(j), yOf(buf[(head + j) % capacity])]
       }
-
-      const line = (buf: Float32Array, stroke: string, dashed: boolean) => {
-        ctx.strokeStyle = stroke
-        ctx.lineWidth = dashed ? 1.25 : 1.5
-        ctx.setLineDash(dashed ? [4, 3] : [])
-        ctx.beginPath()
-        let pen = false
-        for (let j = 0; j < capacity; j++) {
-          const v = buf[(head + j) % capacity]
-          if (Number.isNaN(v)) {
-            pen = false
-            continue
-          }
-          const x = xOf(j)
-          const y = yOf(v)
-          if (pen) ctx.lineTo(x, y)
-          else ctx.moveTo(x, y)
-          pen = true
-        }
-        ctx.stroke()
-        ctx.setLineDash([])
-      }
-      line(state[i], color.state, true)
-      line(action[i], color.action, false)
-
-      // 현재 시각 커서
-      ctx.strokeStyle = color.cursor
-      ctx.globalAlpha = 0.35
-      ctx.beginPath()
-      ctx.moveTo(x1, y0 - 4)
-      ctx.lineTo(x1, y1)
-      ctx.stroke()
-      ctx.globalAlpha = 1
+      drawLine(f, points(state[i]), color.state, { dashed: true })
+      drawLine(f, points(action[i]), color.action)
+      drawCursor(f, color.cursor)
 
       // 범례 + 최신 값 (오른쪽 위)
       const latest = (buf: Float32Array) => {
         const v = buf[(head - 1 + capacity) % capacity]
         return Number.isNaN(v) ? 0 : v
       }
-      ctx.textBaseline = "middle"
-      ctx.textAlign = "right"
-      const entries = [
-        { label: `obs ${latest(state[i]).toFixed(1)}°`, c: color.state },
-        { label: `act ${latest(action[i]).toFixed(1)}°`, c: color.action },
-      ]
-      let x = x1
-      for (const e of entries) {
-        ctx.fillStyle = color.cursor
-        ctx.fillText(e.label, x, PAD.top / 2)
-        const tw = ctx.measureText(e.label).width
-        ctx.fillStyle = e.c
-        ctx.fillRect(x - tw - 10, PAD.top / 2 - 3, 6, 6)
-        x -= tw + 20
-      }
+      drawLegend(
+        f,
+        [
+          { label: `obs ${latest(state[i]).toFixed(1)}°`, color: color.state },
+          { label: `act ${latest(action[i]).toFixed(1)}°`, color: color.action },
+        ],
+        color.cursor,
+      )
     }
 
     const draw = (now: number) => {
