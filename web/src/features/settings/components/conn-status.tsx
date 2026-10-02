@@ -1,7 +1,7 @@
 import { useState } from "react"
 
-import { StatusDot } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
+import { StatusDot } from "@/components/app/status-dot"
 import type { ConnState } from "@/dummy/settings"
 
 const LABEL: Record<ConnState, { tone: "ok" | "bad" | "muted"; text: string }> = {
@@ -10,7 +10,7 @@ const LABEL: Record<ConnState, { tone: "ok" | "bad" | "muted"; text: string }> =
   unknown: { tone: "muted", text: "Not tested" },
 }
 
-/** 연결 상태 + Test 버튼 (더미: 잠깐 기다렸다 결과를 보여준다) */
+/** Connection status + Test button (dummy: shows a result after a short wait) */
 export function ConnStatus({ state, detail, canTest = true }: { state: ConnState; detail?: string; canTest?: boolean }) {
   const [testing, setTesting] = useState(false)
   const [result, setResult] = useState(state)

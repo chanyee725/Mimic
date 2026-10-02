@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 
-/** 바뀐 값이 있을 때만 섹션 아래에 뜬다 */
+/** Shown below the section only when there are unsaved changes */
 export function SaveBar({ dirty, onSave, onReset }: { dirty: boolean; onSave: () => void; onReset: () => void }) {
   if (!dirty) return null
   return (

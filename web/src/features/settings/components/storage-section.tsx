@@ -1,6 +1,6 @@
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { DISK, SETTINGS } from "@/dummy/settings"
 import { cn } from "@/lib/utils"
 

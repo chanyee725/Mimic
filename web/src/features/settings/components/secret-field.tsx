@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { Secret } from "@/dummy/settings"
 
-/** 비밀 키. 저장된 값은 끝 4자리만 보이고, 바꿀 때만 입력칸을 연다 (값은 백엔드에만 저장) */
+/** Secret key. A saved value shows only its last 4 chars; the input opens only when changing it (stored on the backend only) */
 export function SecretField({
   id,
   secret,
