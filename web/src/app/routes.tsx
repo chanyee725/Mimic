@@ -8,6 +8,7 @@ import { DashboardPage } from "@/features/dashboard/page"
 import { DevicesPage } from "@/features/devices/page"
 import { SessionsPage } from "@/features/sessions/page"
 import { TasksPage } from "@/features/tasks/page"
+import { TrainingPage } from "@/features/training/page"
 
 export function AppRoutes() {
   return (
@@ -21,7 +22,7 @@ export function AppRoutes() {
         <Route path="sessions" element={<SessionsPage />} />
         <Route path="convert" element={<ConvertPage />} />
         <Route path="datasets" element={<PlaceholderPage group="Data" title="Datasets" />} />
-        <Route path="training" element={<PlaceholderPage title="Training" />} />
+        <Route path="training" element={<TrainingPage />} />
         <Route path="simulation" element={<PlaceholderPage group="Train & Evaluate" title="Simulation" />} />
         <Route path="settings" element={<PlaceholderPage group="System" title="Settings" />} />
       </Route>
