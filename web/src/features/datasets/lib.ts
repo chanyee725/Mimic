@@ -1,4 +1,4 @@
-import type { Tone } from "@/components/app/status-dot"
+import type { Tone } from "@/components/common/status-dot"
 import { DATASETS, type DatasetKind, type DatasetStatus } from "@/dummy/datasets"
 
 export const STATUS: Record<DatasetStatus, { tone: Tone; label: string }> = {

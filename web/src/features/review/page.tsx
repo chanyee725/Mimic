@@ -2,9 +2,9 @@ import { useState } from "react"
 import { LuUpload } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "@/components/app/empty-state"
-import { Page, Panel } from "@/components/app/page"
-import { TaskPicker } from "@/components/app/task-picker"
+import { EmptyState } from "@/components/common/empty-state"
+import { Page, Panel } from "@/components/layout/page-layout"
+import { TaskPicker } from "@/components/pickers/task-picker"
 import { getTask, TASKS } from "@/dummy/tasks"
 import { deleteRecording, useRecordings } from "@/lib/recordings-store"
 

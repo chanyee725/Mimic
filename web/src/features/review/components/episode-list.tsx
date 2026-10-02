@@ -3,7 +3,7 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { StatusDot } from "@/components/app/status-dot"
+import { StatusDot } from "@/components/common/status-dot"
 import type { Recording } from "@/dummy/recordings"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"

@@ -2,8 +2,8 @@ import { LuCheck, LuPlay, LuSquare, LuX } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
-import { ProgressBar } from "@/components/app/progress-bar"
-import { StatusDot } from "@/components/app/status-dot"
+import { ProgressBar } from "@/components/common/progress-bar"
+import { StatusDot } from "@/components/common/status-dot"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 

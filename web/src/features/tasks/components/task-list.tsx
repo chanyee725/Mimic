@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom"
 import { LuPlus } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
-import { Panel } from "@/components/app/page"
-import { ProgressRing } from "@/components/app/progress-ring"
-import { SearchInput } from "@/components/app/search-input"
+import { Panel } from "@/components/layout/page-layout"
+import { ProgressRing } from "@/components/common/progress-ring"
+import { SearchInput } from "@/components/common/search-input"
 import { CURRENT_TASK_ID } from "@/dummy/station"
-import { TASKS } from "@/dummy/tasks"
+import { TASKS, TASK_RING_TONE } from "@/dummy/tasks"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -71,7 +71,7 @@ export function TaskList({ selectedId }: { selectedId: string }) {
                     {t.collected}/{t.targetEpisodes} · {plural(sessions, "session")} · success {success === null ? "—" : `${success}%`}
                   </p>
                 </div>
-                <ProgressRing pct={pct} status={t.status} label={`${t.id} progress`} thin className="size-10" />
+                <ProgressRing pct={pct} tone={TASK_RING_TONE[t.status]} label={`${t.id} progress`} thin className="size-10" />
               </button>
             </li>
           )

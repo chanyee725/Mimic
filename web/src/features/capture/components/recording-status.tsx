@@ -1,4 +1,4 @@
-import { ProgressBar } from "@/components/app/progress-bar"
+import { ProgressBar } from "@/components/common/progress-bar"
 import type { Outcome, Task } from "@/dummy/tasks"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"

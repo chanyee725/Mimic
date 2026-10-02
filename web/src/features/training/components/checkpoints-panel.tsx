@@ -2,7 +2,7 @@ import { useState } from "react"
 import { LuBox, LuDownload } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
-import { Panel } from "@/components/app/page"
+import { Panel } from "@/components/layout/page-layout"
 import type { Checkpoint, TrainJob } from "@/dummy/training"
 
 import type { JobRun } from "../lib"

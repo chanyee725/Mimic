@@ -1,4 +1,4 @@
-import { Panel, PanelLink } from "@/components/app/page"
+import { Panel, PanelLink } from "@/components/layout/page-layout"
 import { JOBS } from "@/dummy/training"
 
 import { MAX_PODS } from "../lib"

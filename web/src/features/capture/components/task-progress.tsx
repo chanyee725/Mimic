@@ -1,4 +1,5 @@
-import { ProgressRing } from "@/components/app/progress-ring"
+import { ProgressRing } from "@/components/common/progress-ring"
+import { TASK_RING_TONE } from "@/dummy/tasks"
 import type { Task } from "@/dummy/tasks"
 
 /** Collection progress, including episodes saved in this session */
@@ -6,7 +7,7 @@ export function TaskProgress({ task, collected }: { task: Task; collected: numbe
   const pct = Math.min(100, Math.round((collected / task.targetEpisodes) * 100))
   return (
     <div className="flex items-center gap-4">
-      <ProgressRing pct={pct} status={task.status} label="Task progress" className="size-16" />
+      <ProgressRing pct={pct} tone={TASK_RING_TONE[task.status]} label="Task progress" className="size-16" />
       <div className="grid gap-0.5">
         <span className="text-xs text-muted-foreground">Progress</span>
         <span className="text-xl font-semibold tabular-nums">

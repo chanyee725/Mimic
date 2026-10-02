@@ -1,4 +1,4 @@
-import { Page } from "@/components/app/page"
+import { Page } from "@/components/layout/page-layout"
 
 import { JobsPanel } from "./components/jobs-panel"
 import { StartTraining } from "./components/start-training"

@@ -1,9 +1,9 @@
 import { useState } from "react"
 
-import { HfBadge } from "@/components/app/hf-badge"
-import { Panel } from "@/components/app/page"
-import { SearchInput } from "@/components/app/search-input"
-import { Segmented } from "@/components/app/segmented"
+import { HfBadge } from "@/components/common/hf-badge"
+import { Panel } from "@/components/layout/page-layout"
+import { SearchInput } from "@/components/common/search-input"
+import { Segmented } from "@/components/common/segmented"
 import { DATASETS } from "@/dummy/datasets"
 import { cn } from "@/lib/utils"
 

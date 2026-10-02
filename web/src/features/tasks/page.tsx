@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom"
 
-import { Page } from "@/components/app/page"
+import { Page } from "@/components/layout/page-layout"
 import { TASKS } from "@/dummy/tasks"
 
 import { TaskDetail } from "./components/task-detail"

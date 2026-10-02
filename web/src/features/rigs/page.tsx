@@ -1,8 +1,8 @@
 import { LuBot, LuBoxes, LuCable, LuCamera, LuPlus, LuRefreshCw } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
-import { Page } from "@/components/app/page"
-import { StatStrip } from "@/components/app/stat-strip"
+import { Page } from "@/components/layout/page-layout"
+import { StatStrip } from "@/components/common/stat-strip"
 import { RIGS } from "@/dummy/rigs"
 
 import { DeviceDetail } from "./components/device-detail"

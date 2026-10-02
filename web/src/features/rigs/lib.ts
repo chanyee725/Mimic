@@ -1,4 +1,4 @@
-import type { Tone } from "@/components/app/status-dot"
+import type { Tone } from "@/components/common/status-dot"
 import { DEVICES, type Device, type DeviceStream, type Health } from "@/dummy/devices"
 import type { Rig } from "@/dummy/rigs"
 

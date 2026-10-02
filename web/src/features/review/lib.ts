@@ -1,4 +1,4 @@
-import type { Tone } from "@/components/app/status-dot"
+import type { Tone } from "@/components/common/status-dot"
 import type { RecordingReview } from "@/dummy/recordings"
 import type { Outcome } from "@/dummy/tasks"
 

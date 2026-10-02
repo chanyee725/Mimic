@@ -1,4 +1,4 @@
-import { DetailList } from "@/components/app/detail-list"
+import { DetailList } from "@/components/common/detail-list"
 import { POLICY_BASE, type TrainJob } from "@/dummy/training"
 
 import { computeText } from "../lib"

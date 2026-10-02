@@ -1,5 +1,5 @@
-import { Page, Panel } from "@/components/app/page"
-import { StatStrip } from "@/components/app/stat-strip"
+import { Page, Panel } from "@/components/layout/page-layout"
+import { StatStrip } from "@/components/common/stat-strip"
 import { DATA_TOTALS, STATION } from "@/dummy/station"
 
 import { EpisodeHeatmap } from "./components/episode-heatmap"

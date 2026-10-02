@@ -1,5 +1,5 @@
-import { DetailList } from "@/components/app/detail-list"
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
+import { DetailList } from "@/components/common/detail-list"
+import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 import { VERSIONS } from "@/dummy/settings"
 
 export function AboutSection() {

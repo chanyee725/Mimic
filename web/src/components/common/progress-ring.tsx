@@ -1,16 +1,17 @@
-import type { TaskStatus } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 
-const RING_CLASS: Record<TaskStatus, string> = {
-  active: "stroke-foreground",
-  completed: "stroke-ok",
-  draft: "stroke-muted-foreground/40",
+export type RingTone = "foreground" | "ok" | "muted"
+
+const RING_CLASS: Record<RingTone, string> = {
+  foreground: "stroke-foreground",
+  ok: "stroke-ok",
+  muted: "stroke-muted-foreground/40",
 }
 
 /** Circular progress (same look as the Dashboard task list) */
 export function ProgressRing({
   pct,
-  status,
+  tone = "foreground",
   label,
   thin = false,
   radius,
@@ -18,7 +19,7 @@ export function ProgressRing({
   labelClassName,
 }: {
   pct: number
-  status: TaskStatus
+  tone?: RingTone
   label: string
   /** Thin ring for lists */
   thin?: boolean
@@ -51,7 +52,7 @@ export function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - pct / 100)}
-          className={RING_CLASS[status]}
+          className={RING_CLASS[tone]}
         />
       </svg>
       <span

@@ -3,7 +3,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Segmented } from "@/components/app/segmented"
+import { Segmented } from "@/components/common/segmented"
 import { RUNPOD_DEFAULTS, RUNPOD_REGIONS, RUNPOD_VOLUMES, type RunPodOptions } from "@/dummy/training"
 import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { formatRate, formatUsd } from "@/lib/format"

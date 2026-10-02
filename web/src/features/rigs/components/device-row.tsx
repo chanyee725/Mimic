@@ -1,4 +1,4 @@
-import { StatusDot } from "@/components/app/status-dot"
+import { StatusDot } from "@/components/common/status-dot"
 import type { Device } from "@/dummy/devices"
 import { cn } from "@/lib/utils"
 

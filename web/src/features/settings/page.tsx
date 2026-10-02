@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom"
 
-import { Page, Panel } from "@/components/app/page"
+import { Page, Panel } from "@/components/layout/page-layout"
 import { cn } from "@/lib/utils"
 
 import { SECTIONS } from "./sections"

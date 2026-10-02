@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { LuChevronRight } from "react-icons/lu"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Page, Panel } from "@/components/app/page"
+import { Page, Panel } from "@/components/layout/page-layout"
 import { getRig } from "@/dummy/rigs"
 import { TASKS, getTask } from "@/dummy/tasks"
 import { useRecordings } from "@/lib/recordings-store"

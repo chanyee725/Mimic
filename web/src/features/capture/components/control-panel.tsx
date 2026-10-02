@@ -1,5 +1,5 @@
-import { Panel } from "@/components/app/page"
-import { TaskPicker } from "@/components/app/task-picker"
+import { Panel } from "@/components/layout/page-layout"
+import { TaskPicker } from "@/components/pickers/task-picker"
 import type { Task } from "@/dummy/tasks"
 
 import type { EpisodeState } from "../hooks/use-episode"

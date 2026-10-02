@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom"
 import { LuChevronRight, LuCloud, LuServer } from "react-icons/lu"
 
-import { ProgressBar } from "@/components/app/progress-bar"
-import { StatusDot } from "@/components/app/status-dot"
+import { ProgressBar } from "@/components/common/progress-bar"
+import { StatusDot } from "@/components/common/status-dot"
 import type { TrainJob } from "@/dummy/training"
 import { formatRate } from "@/lib/format"
 

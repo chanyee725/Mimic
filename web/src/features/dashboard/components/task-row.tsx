@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 
-import { ProgressRing } from "@/components/app/progress-ring"
+import { ProgressRing } from "@/components/common/progress-ring"
+import { TASK_RING_TONE } from "@/dummy/tasks"
 import { SESSIONS } from "@/dummy/sessions"
 import { CURRENT_TASK_ID } from "@/dummy/station"
 import type { Task } from "@/dummy/tasks"
@@ -33,7 +34,7 @@ export function TaskRow({ task }: { task: Task }) {
         {/* Dashboard uses a slightly smaller ring and a monospace % label */}
         <ProgressRing
           pct={pct}
-          status={task.status}
+          tone={TASK_RING_TONE[task.status]}
           label={`${task.id} progress`}
           radius={22}
           labelClassName="font-mono text-xs tracking-normal"

@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
+import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 import { getRig, rigDefaults, RIGS } from "@/dummy/rigs"
 import type { Task } from "@/dummy/tasks"
 

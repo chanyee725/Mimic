@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 
-import { EmptyState } from "@/components/app/empty-state"
+import { EmptyState } from "@/components/common/empty-state"
 import type { Model } from "@/dummy/models"
 import { formatPct } from "@/lib/format"
 

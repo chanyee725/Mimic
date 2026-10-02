@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { Page } from "@/components/app/page"
+import { Page } from "@/components/layout/page-layout"
 import { DATASETS } from "@/dummy/datasets"
 
 import { DatasetDetail } from "./components/dataset-detail"

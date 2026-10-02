@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Panel } from "@/components/app/page"
+import { Panel } from "@/components/layout/page-layout"
 import { plural } from "@/lib/format"
 
 /** Output settings (dataset name · format · feature preview) and the convert button */

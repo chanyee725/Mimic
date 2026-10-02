@@ -1,8 +1,8 @@
 import { LuPlus } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
-import { Panel } from "@/components/app/page"
-import { StatusDot } from "@/components/app/status-dot"
+import { Panel } from "@/components/layout/page-layout"
+import { StatusDot } from "@/components/common/status-dot"
 import { devicesOf } from "@/dummy/devices"
 import { RIGS } from "@/dummy/rigs"
 import { cn } from "@/lib/utils"

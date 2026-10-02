@@ -1,14 +1,14 @@
 import { useState } from "react"
-import { Link, Navigate, useParams } from "react-router-dom"
+import { Navigate, useParams } from "react-router-dom"
 import { LuArrowLeft, LuClock, LuDollarSign, LuFootprints, LuHourglass, LuSquare } from "react-icons/lu"
 
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Page, Panel } from "@/components/app/page"
-import { StatStrip } from "@/components/app/stat-strip"
-import { StatusDot } from "@/components/app/status-dot"
+import { Button } from "@/components/ui/button"
+import { LinkButton } from "@/components/common/link-button"
+import { Page, Panel } from "@/components/layout/page-layout"
+import { StatStrip } from "@/components/common/stat-strip"
+import { StatusDot } from "@/components/common/status-dot"
 import { getJob, type TrainJob } from "@/dummy/training"
 import { formatDuration, formatRate, formatUsd } from "@/lib/format"
-import { cn } from "@/lib/utils"
 
 import { CheckpointsPanel } from "./components/checkpoints-panel"
 import { JobConfig } from "./components/job-config"
@@ -37,14 +37,16 @@ function JobView({ job }: { job: TrainJob }) {
       fit
       title={
         <span className="flex min-w-0 items-center gap-3">
-          <Link
+          <LinkButton
             to="/training"
-            className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-ml-1.5")}
+            variant="ghost"
+            size="icon-sm"
+            className="-ml-1.5"
             aria-label="Back to training"
             title="Back to training"
           >
             <LuArrowLeft />
-          </Link>
+          </LinkButton>
           <span className="truncate">{job.taskId}</span>
           <StatusDot tone={status.tone} className="text-sm font-normal text-muted-foreground">
             {status.label}

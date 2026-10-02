@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { LuCircle, LuUpload } from "react-icons/lu"
 
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Panel } from "@/components/app/page"
-import { StatusDot } from "@/components/app/status-dot"
+import { LinkButton } from "@/components/common/link-button"
+import { Panel } from "@/components/layout/page-layout"
+import { StatusDot } from "@/components/common/status-dot"
 import type { Task } from "@/dummy/tasks"
 
 import { STATUS, taskToYaml } from "../lib"
@@ -48,10 +48,10 @@ export function TaskDetail({ initial }: { initial: Task }) {
           <Button variant="outline" size="sm">
             Save
           </Button>
-          <Link to="/capture" className={buttonVariants({ size: "sm" })}>
+          <LinkButton to="/capture" size="sm">
             <LuCircle className="size-2.5 fill-current" />
             Start capture
-          </Link>
+          </LinkButton>
         </div>
       </div>
 

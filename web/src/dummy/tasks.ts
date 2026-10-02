@@ -1,6 +1,9 @@
 import { getRig, rigDefaults } from "@/dummy/rigs"
 
 export type TaskStatus = "active" | "draft" | "completed"
+
+/** Progress ring tone for each task status */
+export const TASK_RING_TONE = { active: "foreground", completed: "ok", draft: "muted" } as const satisfies Record<TaskStatus, string>
 export type Outcome = "success" | "fail" | "partial"
 
 export type Subtask = { key: string; name: string; description: string }
