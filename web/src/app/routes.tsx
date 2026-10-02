@@ -9,6 +9,7 @@ import { DatasetsPage } from "@/features/datasets/page"
 import { ReviewPage } from "@/features/review/page"
 import { RigsPage } from "@/features/rigs/page"
 import { TasksPage } from "@/features/tasks/page"
+import { JobPage } from "@/features/training/job-page"
 import { TrainingPage } from "@/features/training/page"
 
 export function AppRoutes() {
@@ -25,6 +26,7 @@ export function AppRoutes() {
         <Route path="convert" element={<ConvertPage />} />
         <Route path="datasets" element={<DatasetsPage />} />
         <Route path="training" element={<TrainingPage />} />
+        <Route path="training/:jobId" element={<JobPage />} />
         <Route path="simulation" element={<PlaceholderPage group="Train & Evaluate" title="Simulation" />} />
         <Route path="settings" element={<PlaceholderPage group="System" title="Settings" />} />
       </Route>
