@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { ProgressRing } from "@/components/common/progress-ring"
 import { SearchInput } from "@/components/common/search-input"
-import { CURRENT_TASK_ID } from "@/dummy/station"
-import { TASKS, TASK_RING_TONE } from "@/dummy/tasks"
+import { getCurrentTaskId, listTasks } from "@/api/tasks"
+import { TASK_RING_TONE } from "@/domain/task"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -17,7 +17,11 @@ export function TaskList({ selectedId }: { selectedId: string }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const tasks = TASKS.filter((t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q))
+  const allTasks = listTasks()
+  const currentTaskId = getCurrentTaskId()
+  const tasks = allTasks.filter(
+    (t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q),
+  )
 
   // Same tone as the app sidebar: no dividers, light text, only the selected row gets a background
   return (
@@ -26,7 +30,7 @@ export function TaskList({ selectedId }: { selectedId: string }) {
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           All tasks
-          <span className="font-normal text-muted-foreground tabular-nums">{TASKS.length}</span>
+          <span className="font-normal text-muted-foreground tabular-nums">{allTasks.length}</span>
         </span>
       }
       action={
@@ -45,7 +49,7 @@ export function TaskList({ selectedId }: { selectedId: string }) {
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {tasks.map((t) => {
           const selected = t.id === selectedId
-          const current = t.id === CURRENT_TASK_ID
+          const current = t.id === currentTaskId
           const pct = Math.min(100, Math.round((t.collected / t.targetEpisodes) * 100))
           const { sessions, success } = successOf(t.id)
           return (

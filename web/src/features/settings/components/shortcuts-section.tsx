@@ -1,11 +1,11 @@
 import { Kbd } from "@/components/ui/kbd"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { SHORTCUTS } from "@/dummy/settings"
+import { getShortcuts } from "@/api/settings"
 
 export function ShortcutsSection() {
   return (
     <SettingsGroup>
-      {SHORTCUTS.map((g) => (
+      {getShortcuts().map((g) => (
         <SettingsSection key={g.page} title={g.page}>
           <dl className="divide-y">
             {g.keys.map((k) => (

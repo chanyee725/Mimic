@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/common/status-dot"
-import type { ConnState } from "@/dummy/settings"
+import type { ConnState } from "@/domain/settings"
 
 const LABEL: Record<ConnState, { tone: "ok" | "bad" | "muted"; text: string }> = {
   ok: { tone: "ok", text: "Connected" },

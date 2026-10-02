@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { SETTINGS } from "@/dummy/settings"
+import { getSettings } from "@/api/settings"
 
 import { useDraft } from "../hooks/use-draft"
 import { ChoiceSelect } from "./choice-select"
@@ -8,7 +8,7 @@ import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 
 export function TrainingSection() {
-  const { draft, set, dirty, save, reset } = useDraft(SETTINGS.training)
+  const { draft, set, dirty, save, reset } = useDraft(getSettings().training)
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Training defaults">

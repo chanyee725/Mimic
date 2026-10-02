@@ -1,6 +1,7 @@
 import type { Tone } from "@/components/common/status-dot"
-import { DEVICES, type Device, type DeviceStream, type Health } from "@/dummy/devices"
-import type { Rig } from "@/dummy/rigs"
+import { listDevices } from "@/api/devices"
+import type { Device, DeviceStream, Health } from "@/domain/device"
+import type { Rig } from "@/domain/rig"
 
 export const HEALTH_TONE: Record<Health, Tone> = { ok: "ok", warn: "warn", off: "muted" }
 
@@ -32,8 +33,8 @@ export function rigHealth(devices: Device[]): Health {
   return "ok"
 }
 
-const portOf = (id: string) => DEVICES.find((d) => d.id === id)?.port ?? "—"
-const modelOf = (id: string) => DEVICES.find((d) => d.id === id)?.name ?? id
+const portOf = (id: string) => listDevices().find((d) => d.id === id)?.port ?? "—"
+const modelOf = (id: string) => listDevices().find((d) => d.id === id)?.name ?? id
 
 /** Display-only serializer for the rig config file (YAML) */
 export function rigToYaml(rig: Rig): string {

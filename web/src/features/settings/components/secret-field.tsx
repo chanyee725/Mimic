@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { Secret } from "@/dummy/settings"
+import type { Secret } from "@/domain/settings"
 
 /** Secret key. A saved value shows only its last 4 chars; the input opens only when changing it (stored on the backend only) */
 export function SecretField({

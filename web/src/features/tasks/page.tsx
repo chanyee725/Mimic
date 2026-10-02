@@ -1,14 +1,15 @@
 import { useParams } from "react-router-dom"
 
 import { Page } from "@/components/layout/page-layout"
-import { TASKS } from "@/dummy/tasks"
+import { listTasks } from "@/api/tasks"
 
 import { TaskDetail } from "./components/task-detail"
 import { TaskList } from "./components/task-list"
 
 export function TasksPage() {
   const { taskId } = useParams()
-  const selected = TASKS.find((t) => t.id === taskId) ?? TASKS[0]
+  const tasks = listTasks()
+  const selected = tasks.find((t) => t.id === taskId) ?? tasks[0]
 
   return (
     <Page fit title="Tasks" description="취득할 데이터를 Task 단위로 정의합니다. Capture와 Sessions는 Task를 기준으로 묶입니다.">

@@ -1,11 +1,12 @@
 import { useState } from "react"
 
-import { devicesOf } from "@/dummy/devices"
-import { getRig, rigGroups, RIGS } from "@/dummy/rigs"
+import { devicesOf } from "@/api/devices"
+import { getRig, listRigs } from "@/api/rigs"
+import { rigGroups } from "@/domain/rig"
 
 /** Selected rig, device group (tab) and device. Changing the rig or group selects its first device */
 export function useRigSelection() {
-  const [rigId, setRigId] = useState(RIGS[0].id)
+  const [rigId, setRigId] = useState(() => listRigs()[0].id)
   const rig = getRig(rigId)
   const devices = devicesOf(rig.id)
   const groups = rigGroups(rig)

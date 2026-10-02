@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LinkButton } from "@/components/common/link-button"
 import { Panel } from "@/components/layout/page-layout"
 import { StatusDot } from "@/components/common/status-dot"
-import type { Task } from "@/dummy/tasks"
+import type { Task } from "@/domain/task"
 
 import { STATUS, taskToYaml } from "../lib"
 import { TaskDefinition } from "./task-definition"
