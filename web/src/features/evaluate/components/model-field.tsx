@@ -1,7 +1,7 @@
 import { LuChevronRight } from "react-icons/lu"
 
-import type { Model } from "@/dummy/models"
-import { LOCAL_GPUS } from "@/dummy/training"
+import { LOCAL_GPUS } from "@/api/training"
+import type { Model } from "@/domain/model"
 
 /** Summary of the selected model; click to open the model picker */
 export function ModelField({ model, disabled, onOpen }: { model: Model; disabled: boolean; onOpen: () => void }) {

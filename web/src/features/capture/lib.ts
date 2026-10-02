@@ -1,4 +1,4 @@
-import type { Outcome } from "@/dummy/tasks"
+import type { Outcome } from "@/domain/task"
 
 /** Phase of the episode state machine */
 export type Phase = "idle" | "recording" | "review"

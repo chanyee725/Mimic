@@ -1,4 +1,4 @@
-import type { McapTopic } from "@/dummy/recordings"
+import type { McapTopic } from "@/domain/recording"
 
 /** Table of non-video topics (shown when there are no joint plots) */
 export function StreamList({ topics }: { topics: McapTopic[] }) {

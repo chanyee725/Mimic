@@ -1,6 +1,6 @@
 import { Panel } from "@/components/layout/page-layout"
 import { TaskPicker } from "@/components/pickers/task-picker"
-import type { Task } from "@/dummy/tasks"
+import type { Task } from "@/domain/task"
 
 import type { EpisodeState } from "../hooks/use-episode"
 import { EpisodeControls } from "./episode-controls"

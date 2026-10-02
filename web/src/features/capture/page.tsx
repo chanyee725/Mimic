@@ -2,9 +2,9 @@ import { useState } from "react"
 
 import { Page } from "@/components/layout/page-layout"
 import { JointPlots } from "@/components/robot/joint-plots"
-import { devicesOf } from "@/dummy/devices"
-import { getRig } from "@/dummy/rigs"
-import { TASKS } from "@/dummy/tasks"
+import { devicesOf } from "@/api/devices"
+import { getRig } from "@/api/rigs"
+import { listTasks } from "@/api/tasks"
 import { useHotkeys } from "@/hooks/use-hotkeys"
 import { formatTimecode } from "@/lib/format"
 
@@ -13,8 +13,9 @@ import { ControlPanel } from "./components/control-panel"
 import { useEpisode } from "./hooks/use-episode"
 
 export function CapturePage() {
-  const [taskId, setTaskId] = useState(TASKS[0].id)
-  const task = TASKS.find((t) => t.id === taskId) ?? TASKS[0]
+  const tasks = listTasks()
+  const [taskId, setTaskId] = useState(tasks[0].id)
+  const task = tasks.find((t) => t.id === taskId) ?? tasks[0]
   const rig = getRig(task.rigId)
 
   const ep = useEpisode({

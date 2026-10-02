@@ -2,7 +2,7 @@ import { LuCircle, LuSquare } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
-import type { Outcome } from "@/dummy/tasks"
+import type { Outcome } from "@/domain/task"
 import { cn } from "@/lib/utils"
 
 import type { Phase } from "../lib"

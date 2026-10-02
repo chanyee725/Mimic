@@ -2,8 +2,8 @@ import { LuCheck, LuTrash2, LuX } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/common/status-dot"
-import type { Recording } from "@/dummy/recordings"
 import { setReview } from "@/api/recordings"
+import type { Recording } from "@/domain/recording"
 import { cn } from "@/lib/utils"
 
 import { REVIEW_TONE } from "../lib"

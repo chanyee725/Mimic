@@ -1,6 +1,5 @@
 import { ProgressRing } from "@/components/common/progress-ring"
-import { TASK_RING_TONE } from "@/dummy/tasks"
-import type { Task } from "@/dummy/tasks"
+import { TASK_RING_TONE, type Task } from "@/domain/task"
 
 /** Collection progress, including episodes saved in this session */
 export function TaskProgress({ task, collected }: { task: Task; collected: number }) {
