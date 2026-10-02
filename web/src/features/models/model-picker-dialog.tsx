@@ -1,5 +1,7 @@
 import { useState } from "react"
-import { LuCloud, LuHardDrive, LuSearch } from "react-icons/lu"
+import { LuHardDrive, LuSearch } from "react-icons/lu"
+
+import { HfBadge } from "@/components/app/hf-badge"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -149,7 +151,7 @@ function ModelRow({ model: m, on, onPick }: { model: Model; on: boolean; onPick:
             <span className="flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
               {m.jobId}, {m.dataset}
               {m.localPath && <LuHardDrive className="size-3" aria-label="Local" />}
-              {m.hubRepo && <LuCloud className="size-3" aria-label="HF Hub" />}
+              {m.hubRepo && <HfBadge title={m.hubRepo} />}
             </span>
           </span>
         </span>

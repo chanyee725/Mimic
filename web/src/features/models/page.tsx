@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import {
-  LuCloud,
   LuCloudUpload,
   LuDownload,
   LuFlaskConical,
@@ -14,6 +13,7 @@ import {
 } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
+import { HfBadge } from "@/components/app/hf-badge"
 import { StatStrip } from "@/components/app/stat-strip"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -97,7 +97,7 @@ function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: st
                 <span className="flex min-w-0 items-center gap-1.5">
                   <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{m.name}</span>
                   {m.localPath && <LuHardDrive className="size-3 shrink-0 text-muted-foreground" aria-label="Local" />}
-                  {m.hubRepo && <LuCloud className="size-3 shrink-0 text-muted-foreground" aria-label="HF Hub" />}
+                  {m.hubRepo && <HfBadge title={m.hubRepo} />}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">{m.taskId}</span>
                 <span className="text-[11px] text-muted-foreground/80 tabular-nums">
@@ -136,7 +136,10 @@ function ModelDetail({ model: m }: { model: Model }) {
     <Panel className="min-h-0 gap-4 overflow-y-auto">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h2 className="truncate text-lg font-semibold">{m.name}</h2>
+          <h2 className="flex min-w-0 items-center gap-2 text-lg font-semibold">
+            <span className="truncate">{m.name}</span>
+            {m.hubRepo && <HfBadge title={m.hubRepo} />}
+          </h2>
           <p className="truncate text-[13px] text-muted-foreground">
             {m.dataset}, {m.jobId}, step {m.step.toLocaleString()}
           </p>
