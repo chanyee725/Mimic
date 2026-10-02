@@ -252,7 +252,7 @@ export function CapturePage() {
                   {glove?.streams.map((s) => `${s.key.replace("hand.", "")} ${s.targetHz}`).join(" · ")} Hz
                 </span>
               ) : (
-                <PanelLink to="/devices">Devices</PanelLink>
+                <PanelLink to="/rigs">Rigs</PanelLink>
               )
             }
           >

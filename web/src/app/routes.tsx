@@ -1,11 +1,11 @@
-import { Route, Routes } from "react-router-dom"
+import { Navigate, Route, Routes } from "react-router-dom"
 
 import { AppLayout } from "@/app/layout"
 import { PlaceholderPage } from "@/app/placeholder"
 import { CapturePage } from "@/features/capture/page"
 import { ConvertPage } from "@/features/convert/page"
 import { DashboardPage } from "@/features/dashboard/page"
-import { DevicesPage } from "@/features/devices/page"
+import { RigsPage } from "@/features/rigs/page"
 import { TasksPage } from "@/features/tasks/page"
 import { TrainingPage } from "@/features/training/page"
 
@@ -16,7 +16,8 @@ export function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="tasks/:taskId" element={<TasksPage />} />
-        <Route path="devices" element={<DevicesPage />} />
+        <Route path="rigs" element={<RigsPage />} />
+        <Route path="devices" element={<Navigate to="/rigs" replace />} />
         <Route path="capture" element={<CapturePage />} />
         <Route path="convert" element={<ConvertPage />} />
         <Route path="datasets" element={<PlaceholderPage group="Data" title="Datasets" />} />

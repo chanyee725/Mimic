@@ -5,6 +5,7 @@ import { Page, Panel } from "@/components/app/page"
 import { StatStrip } from "@/components/app/stat-strip"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CALIBRATION_STEPS, DEVICE_GROUPS, devicesOf, type Device, type DeviceStream, type Health } from "@/dummy/devices"
 import { getRig, RIGS } from "@/dummy/rigs"
 import { cn } from "@/lib/utils"
@@ -118,8 +119,7 @@ function RigList({ selectedId, onSelect }: { selectedId: string; onSelect: (id: 
 }
 
 function DeviceDetail({ device }: { device: Device }) {
-  const isGlove = device.type === "glove"
-  const steps = CALIBRATION_STEPS[isGlove ? "glove" : "arm"]
+  const steps = CALIBRATION_STEPS[device.type]
   const done = device.calibration.done ? steps.length : 0
 
   return (
@@ -172,16 +172,24 @@ function DeviceDetail({ device }: { device: Device }) {
   )
 }
 
-export function DevicesPage() {
+export function RigsPage() {
   const [rigId, setRigId] = useState(RIGS[0].id)
   const rig = getRig(rigId)
   const devices = devicesOf(rig.id)
+  const [group, setGroup] = useState(DEVICE_GROUPS[0].key)
+  const groupDevices = devices.filter((d) => DEVICE_GROUPS.find((g) => g.key === group)?.types.includes(d.type))
   const [selectedId, setSelectedId] = useState("follower")
-  const selected = devices.find((d) => d.id === selectedId) ?? devices[0]
+  const selected = devices.find((d) => d.id === selectedId) ?? groupDevices[0] ?? devices[0]
 
   const selectRig = (id: string) => {
     setRigId(id)
+    setGroup(DEVICE_GROUPS[0].key)
     setSelectedId(devicesOf(id)[0]?.id ?? "")
+  }
+  const selectGroup = (key: string) => {
+    setGroup(key)
+    const types = DEVICE_GROUPS.find((g) => g.key === key)?.types ?? []
+    setSelectedId(devices.find((d) => types.includes(d.type))?.id ?? "")
   }
 
   const stats = [
@@ -198,8 +206,8 @@ export function DevicesPage() {
   return (
     <Page
       fit
-      title="Devices"
-      description="Rig 별로 연결된 로봇 · 카메라 · 입력 장치의 상태와 캘리브레이션을 관리합니다."
+      title="Rigs"
+      description="Rig 별 Robot · Device · Camera 의 연결 상태와 캘리브레이션을 관리합니다."
       actions={
         <>
           <Button variant="outline" size="lg">
@@ -223,30 +231,36 @@ export function DevicesPage() {
           title={rig.name}
           action={
             <span className="text-[13px] text-muted-foreground tabular-nums">
-              {rig.targetHz.action} Hz · {rig.targetHz.video} fps
+              {rig.joints.length} DoF · {rig.targetHz.action} Hz · {rig.targetHz.video} fps
             </span>
           }
         >
-          {/* 장치를 Robot / Camera / Device 로 나눠 보여준다 */}
-          <div className="-mx-2 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto">
-            {DEVICE_GROUPS.map((g) => {
-              const items = devices.filter((d) => g.types.includes(d.type))
-              if (items.length === 0) return null
-              return (
-                <section key={g.key} className="grid gap-1">
-                  <h3 className="flex items-baseline gap-1.5 px-2 text-xs text-muted-foreground">
-                    {g.label}
-                    <span className="tabular-nums">{items.length}</span>
-                  </h3>
+          {/* Rig 안의 장치를 Robot / Device / Camera 탭으로 나눠 본다 */}
+          <Tabs value={group} onValueChange={(v) => selectGroup(String(v))} className="min-h-0 flex-1">
+            <TabsList>
+              {DEVICE_GROUPS.map((g) => (
+                <TabsTrigger key={g.key} value={g.key} className="gap-1.5 px-3">
+                  {g.label}
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {devices.filter((d) => g.types.includes(d.type)).length}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {DEVICE_GROUPS.map((g) => (
+              <TabsContent key={g.key} value={g.key} className="-mx-2 min-h-0 flex-1 overflow-y-auto">
+                {groupDevices.length === 0 ? (
+                  <p className="px-2 py-6 text-center text-[13px] text-muted-foreground">이 Rig 에 {g.label} 장치가 없습니다.</p>
+                ) : (
                   <ul className="grid gap-0.5">
-                    {items.map((d) => (
+                    {groupDevices.map((d) => (
                       <DeviceRow key={d.id} device={d} selected={d.id === selected?.id} onSelect={() => setSelectedId(d.id)} />
                     ))}
                   </ul>
-                </section>
-              )
-            })}
-          </div>
+                )}
+              </TabsContent>
+            ))}
+          </Tabs>
         </Panel>
 
         {selected && <DeviceDetail device={selected} />}

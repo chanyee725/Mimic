@@ -156,18 +156,22 @@ DEVICES.push(
   bimanualCamera("bi-cam-wrist-r", "Right wrist camera", "images.right_wrist", "off"),
 )
 
-/** Devices 화면의 구분: 로봇 암 / 카메라 / 그 외 입력 장치 */
+/** Rigs 화면의 구분: 로봇 암 / 그 외 입력 장치 / 카메라 */
 export const DEVICE_GROUPS: { key: string; label: string; types: DeviceType[] }[] = [
   { key: "robot", label: "Robot", types: ["teleop", "robot"] },
-  { key: "camera", label: "Camera", types: ["camera"] },
   { key: "device", label: "Device", types: ["glove", "input"] },
+  { key: "camera", label: "Camera", types: ["camera"] },
 ]
 
 export const devicesOf = (rigId: string) => DEVICES.filter((d) => d.rigId === rigId)
 
-export const CALIBRATION_STEPS: Record<"arm" | "glove", string[]> = {
-  arm: ["Check port · motor IDs", "Record middle pose", "Sweep full joint range", "Save · version"],
+/** 장치 종류별 캘리브레이션 절차 */
+export const CALIBRATION_STEPS: Record<DeviceType, string[]> = {
+  robot: ["Check port · motor IDs", "Record middle pose", "Sweep full joint range", "Save · version"],
+  teleop: ["Check port · motor IDs", "Record middle pose", "Sweep full joint range", "Save · version"],
+  camera: ["Detect device", "Set resolution · fps", "Intrinsic calibration", "Save · version"],
   glove: ["Flat hand", "Fist", "Thumb pinch", "IMU reference pose"],
+  input: ["Detect device", "Map keys"],
 }
 
 export const STATION_WARNINGS = [
