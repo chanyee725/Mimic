@@ -1,5 +1,6 @@
 import type { DeviceType, Health, Device } from "@/domain/device"
-import { getRig, rigGroups } from "@/dummy/rigs"
+import { rigGroups } from "@/domain/rig"
+import { getRig } from "@/dummy/rigs"
 
 export const DEVICES: Device[] = [
   {
@@ -109,6 +110,3 @@ export function devicesOf(rigId: string): Device[] {
 }
 
 export const STATION_WARNINGS = ["Wrist camera 28.7 fps (target 30)", "Follower wrist_roll motor 52°C"]
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { DeviceType, Health, DeviceStream, Device } from "@/domain/device"

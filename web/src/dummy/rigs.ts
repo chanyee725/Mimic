@@ -1,7 +1,8 @@
-import type { RigCamera, Rig } from "@/domain/rig"
 // Rig config: the set of equipment that makes up one capture unit.
 // This config decides which devices count as Robot / Device / Camera;
 // live state (health, measured rates, …) is looked up by device id in @/dummy/devices.
+
+import type { RigCamera, Rig } from "@/domain/rig"
 
 const SO101_ARM = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 
@@ -49,7 +50,3 @@ export const RIGS: Rig[] = [
 ]
 
 export const getRig = (id: string) => RIGS.find((r) => r.id === id) ?? RIGS[0]
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { RigCamera, Rig, RigGroupKey } from "@/domain/rig"
-export { rigGroups, rigDefaults } from "@/domain/rig"

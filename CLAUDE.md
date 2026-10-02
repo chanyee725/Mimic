@@ -16,7 +16,7 @@ Guidance for working in this repository.
 - Conversion: LeRobot v3.0 only. The dataset fps follows the camera fps and action is downsampled (no time-alignment options).
 - Model: SmolVLA (`lerobot/smolvla_base`) only. Training runs on the local GPU or RunPod.
 - Simulation: Isaac Sim on the local RTX 4090, evaluation only (no data generation, no RunPod).
-- Backend (planned): FastAPI (REST), gRPC (60 Hz robot data), WebRTC (cameras). The frontend currently runs on mocks in `web/src/dummy`.
+- Backend (planned): FastAPI (REST), gRPC (60 Hz robot data), WebRTC (cameras). The frontend currently runs on mocks in `web/src/dummy`, read through `web/src/api`.
 - A data glove (tactile / flex / IMU) is planned later; keep it out of the UI for now.
 
 ## Privacy
@@ -59,15 +59,17 @@ src/
   components/pickers/  shared pickers that know domain data: TaskPicker, ModelPickerDialog
   components/robot/    VideoTile, JointPlots, plot-canvas.ts (canvas drawing helpers)
   hooks/               use-hotkeys, use-draft-on-open, use-mobile
-  lib/                 utils (cn), format (time, size, price, plural), recordings-store
-  dummy/               mock data and (for now) domain types
+  domain/              entity types + pure rules (Task, Rig, Recording, Dataset, Model, TrainJob, … · successRate, isActive, jobPct)
+  api/                 data access: listX() / getX(id) / config exports / useRecordings — the only layer that touches mocks
+  dummy/               mock data only (lint blocks imports from anywhere except src/api)
+  lib/                 domain-free helpers: utils (cn), format (time, size, price, plural)
 ```
 
 - Named exports only. Inside a feature use relative imports; never import from another feature — anything used in two places moves to `components/common` (or `pickers`) or `lib`.
 - Use `LinkButton` for links styled as buttons (not `buttonVariants` on a `Link`).
-- Import order: external → `@/components/ui` → `@/components/layout` / `common` / `pickers` / `robot` → `@/dummy` → `@/hooks` → `@/lib` → relative.
+- Import order: external → `@/components/ui` → `@/components/layout` / `common` / `pickers` / `robot` → `@/api` → `@/domain` → `@/hooks` → `@/lib` → relative.
 - Before writing new UI or helpers, check the shared components, `lib/format` and `use-hotkeys`. Don't rebuild tab bars, search fields, empty states, progress bars or time formatting.
-- Next step: move domain types to `src/domain` and data access to `src/api` (mocks in `api/mock`) so connecting the backend touches one layer.
+- Types come from `@/domain/<entity>`, data from `@/api/<module>`. Call api functions inside components, hooks or small functions (not at module top level) so they can become async query hooks when the backend lands. Connecting FastAPI / gRPC / WebRTC should only change `src/api`.
 
 ## UI
 

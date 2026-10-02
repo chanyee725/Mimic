@@ -1,8 +1,9 @@
-import type { McapTopic, RecordingReview, Recording } from "@/domain/recording"
 // Mock raw MCAP files saved by Capture (one episode per file) plus externally imported MCAP files.
 // Our recordings carry task / rig metadata, so the conversion mapping is filled in automatically.
 
-import type { Outcome } from "@/dummy/tasks"
+import type { McapTopic, RecordingReview, Recording } from "@/domain/recording"
+
+import type { Outcome } from "@/domain/task"
 
 const pad = (n: number, w = 4) => String(n).padStart(w, "0")
 
@@ -118,6 +119,3 @@ export const RECORDINGS: Recording[] = [
     ],
   },
 ]
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { TopicKind, McapTopic, RecordingReview, RecordingCheck, Recording } from "@/domain/recording"

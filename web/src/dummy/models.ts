@@ -1,6 +1,7 @@
-import type { Model } from "@/domain/model"
 // Mock saved models: checkpoints picked from jobs (one lerobot checkpoint folder = one model).
 // For real: scan the models folder and check uploads through the HF Hub API.
+
+import type { Model } from "@/domain/model"
 
 const dir = (task: string, job: string, step: number) => `~/vla/models/${task}/${job}-${String(step).padStart(6, "0")}`
 
@@ -73,7 +74,3 @@ export const MODEL_FILES = [
   { path: "training_state/optimizer_state.safetensors", sizeMB: 58 },
   { path: "training_state/training_step.json", sizeMB: 0.01 },
 ]
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { ModelEval, Model } from "@/domain/model"
-export { successRate } from "@/domain/model"

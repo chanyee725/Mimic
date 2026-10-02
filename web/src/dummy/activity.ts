@@ -1,5 +1,6 @@
-import type { DayCount } from "@/domain/activity"
 // Mock daily episode counts for the GitHub-style contribution heatmap
+
+import type { DayCount } from "@/domain/activity"
 
 export const ACTIVITY_END = "2026-10-02"
 export const ACTIVITY_WEEKS = 52
@@ -44,6 +45,3 @@ function build(): DayCount[] {
 }
 
 export const EPISODE_ACTIVITY: DayCount[] = build()
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { DayCount } from "@/domain/activity"

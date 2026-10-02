@@ -1,6 +1,7 @@
-import type { Settings } from "@/domain/settings"
 // Mock station settings. The backend (FastAPI) will own these and only return the last 4 chars of secrets.
 // Operators are pseudonymous IDs only (no real names or emails).
+
+import type { Settings } from "@/domain/settings"
 
 export const SETTINGS: Settings = {
   station: {
@@ -106,6 +107,3 @@ export const VERSIONS = [
   { k: "CUDA driver", v: "560.35" },
   { k: "Isaac Sim", v: "4.5" },
 ]
-
-// TEMP: re-exports for code that still imports from @/dummy (removed once everything uses @/domain and @/api)
-export type { Secret, ConnState, Settings } from "@/domain/settings"
