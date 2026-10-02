@@ -12,7 +12,7 @@ import { SESSIONS } from "@/dummy/sessions"
 import { CURRENT_TASK_ID } from "@/dummy/station"
 import { TASKS, type Task, type TaskStatus } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
-import { ProgressRing } from "@/features/tasks/progress-ring"
+import { ProgressRing } from "@/components/app/progress-ring"
 import { TaskDefinition } from "@/features/tasks/task-definition"
 import { taskToYaml } from "@/features/tasks/yaml"
 
