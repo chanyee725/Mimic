@@ -51,7 +51,7 @@ npm run format       # prettier --write src
 ```
 src/
   app/                 routes.tsx, nav.ts, layout.tsx
-  features/<name>/     page.tsx (XxxPage, composition only) · components/ · hooks/use-*.ts · lib.ts (helpers, status→tone maps, constants, local types)
+  features/<name>/     page.tsx (XxxPage, composition only) · components/ · hooks/use-*.ts · lib.ts (helpers, status→tone maps, constants, local types; becomes lib/ with an index.ts when it grows past ~200 lines)
   components/ui/       owned by the shadcn CLI — never hand-edit (theme via index.css tokens / data-slot rules, behaviour via wrappers)
   components/layout/   page-layout.tsx: Page, Panel, PanelLink
   components/common/   domain-free building blocks: StatusDot, StatStrip, Segmented, SearchInput, EmptyState, ProgressBar,
