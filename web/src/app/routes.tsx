@@ -6,7 +6,6 @@ import { CapturePage } from "@/features/capture/page"
 import { ConvertPage } from "@/features/convert/page"
 import { DashboardPage } from "@/features/dashboard/page"
 import { DevicesPage } from "@/features/devices/page"
-import { SessionsPage } from "@/features/sessions/page"
 import { TasksPage } from "@/features/tasks/page"
 import { TrainingPage } from "@/features/training/page"
 
@@ -19,7 +18,6 @@ export function AppRoutes() {
         <Route path="tasks/:taskId" element={<TasksPage />} />
         <Route path="devices" element={<DevicesPage />} />
         <Route path="capture" element={<CapturePage />} />
-        <Route path="sessions" element={<SessionsPage />} />
         <Route path="convert" element={<ConvertPage />} />
         <Route path="datasets" element={<PlaceholderPage group="Data" title="Datasets" />} />
         <Route path="training" element={<TrainingPage />} />
