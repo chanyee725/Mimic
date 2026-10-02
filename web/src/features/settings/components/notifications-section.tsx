@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { SETTINGS } from "@/dummy/settings"
+import { getSettings } from "@/api/settings"
 
 import { useDraft } from "../hooks/use-draft"
 import { SaveBar } from "./save-bar"
@@ -9,7 +9,7 @@ import { SecretField } from "./secret-field"
 import { SettingRow } from "./setting-row"
 
 export function NotificationsSection() {
-  const { draft, set, dirty, save, reset } = useDraft(SETTINGS.notifications)
+  const { draft, set, dirty, save, reset } = useDraft(getSettings().notifications)
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Slack">

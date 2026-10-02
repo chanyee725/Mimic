@@ -1,8 +1,8 @@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { RUNPOD_REGIONS, RUNPOD_VOLUMES } from "@/dummy/training"
-import { SETTINGS } from "@/dummy/settings"
+import { getSettings } from "@/api/settings"
+import { RUNPOD_REGIONS, RUNPOD_VOLUMES } from "@/api/training"
 
 import { useDraft } from "../hooks/use-draft"
 import { ChoiceSelect } from "./choice-select"
@@ -12,7 +12,7 @@ import { SecretField } from "./secret-field"
 import { SettingRow } from "./setting-row"
 
 export function IntegrationsSection() {
-  const { draft, set, dirty, save, reset } = useDraft(SETTINGS.integrations)
+  const { draft, set, dirty, save, reset } = useDraft(getSettings().integrations)
   const { hf, runpod, wandb } = draft
 
   return (

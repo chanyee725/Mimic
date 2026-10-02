@@ -3,7 +3,7 @@ import { LuBot, LuBoxes, LuCable, LuCamera, LuPlus, LuRefreshCw } from "react-ic
 import { Button } from "@/components/ui/button"
 import { Page } from "@/components/layout/page-layout"
 import { StatStrip } from "@/components/common/stat-strip"
-import { RIGS } from "@/dummy/rigs"
+import { listRigs } from "@/api/rigs"
 
 import { DeviceDetail } from "./components/device-detail"
 import { RigDevices } from "./components/rig-devices"
@@ -13,12 +13,14 @@ import { useRigSelection } from "./hooks/use-rig-selection"
 export function RigsPage() {
   const { rig, groups, group, groupDevices, selected, selectRig, selectGroup, selectDevice } = useRigSelection()
 
+  const rigs = listRigs()
+
   // Devices are only plugged in over USB for testing, so show registered counts from the rig config instead of connection state
   const stats = [
-    { label: "Rigs", value: RIGS.length, icon: LuBoxes },
-    { label: "Robots", value: RIGS.reduce((n, r) => n + r.robots.length, 0), icon: LuBot },
-    { label: "Devices", value: RIGS.reduce((n, r) => n + r.devices.length, 0), icon: LuCable },
-    { label: "Cameras", value: RIGS.reduce((n, r) => n + r.cameras.length, 0), icon: LuCamera },
+    { label: "Rigs", value: rigs.length, icon: LuBoxes },
+    { label: "Robots", value: rigs.reduce((n, r) => n + r.robots.length, 0), icon: LuBot },
+    { label: "Devices", value: rigs.reduce((n, r) => n + r.devices.length, 0), icon: LuCable },
+    { label: "Cameras", value: rigs.reduce((n, r) => n + r.cameras.length, 0), icon: LuCamera },
   ]
 
   return (

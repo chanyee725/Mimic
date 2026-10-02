@@ -3,8 +3,9 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getRig, rigDefaults, RIGS } from "@/dummy/rigs"
-import type { Task } from "@/dummy/tasks"
+import { getRig, listRigs } from "@/api/rigs"
+import { rigDefaults } from "@/domain/rig"
+import type { Task } from "@/domain/task"
 
 import { rateOptions } from "../lib"
 import { Field } from "./field"
@@ -53,7 +54,7 @@ export function TaskDefinition({ task, onChange }: Props) {
           <SimpleSelect
             id="t-rig"
             value={rig.id}
-            options={RIGS.map((r) => ({ value: r.id, label: r.name }))}
+            options={listRigs().map((r) => ({ value: r.id, label: r.name }))}
             onChange={(id) => onChange(rigDefaults(getRig(id)))}
           />
         </div>

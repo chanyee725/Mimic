@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Panel } from "@/components/layout/page-layout"
-import type { Device } from "@/dummy/devices"
-import type { Rig, rigGroups } from "@/dummy/rigs"
+import type { Device } from "@/domain/device"
+import type { Rig, rigGroups } from "@/domain/rig"
 
 import { rigToYaml } from "../lib"
 import { DeviceRow } from "./device-row"

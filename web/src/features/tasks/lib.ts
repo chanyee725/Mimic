@@ -1,7 +1,7 @@
 import type { Tone } from "@/components/common/status-dot"
-import { getRig } from "@/dummy/rigs"
-import { SESSIONS } from "@/dummy/sessions"
-import type { Task, TaskStatus } from "@/dummy/tasks"
+import { getRig } from "@/api/rigs"
+import { listSessions } from "@/api/sessions"
+import type { Task, TaskStatus } from "@/domain/task"
 
 export const STATUS: Record<TaskStatus, { tone: Tone; label: string }> = {
   active: { tone: "ok", label: "Active" },
@@ -11,7 +11,7 @@ export const STATUS: Record<TaskStatus, { tone: Tone; label: string }> = {
 
 /** Session count and episode-weighted success rate for a task (null when there are no episodes) */
 export function successOf(taskId: string) {
-  const sessions = SESSIONS.filter((s) => s.taskId === taskId)
+  const sessions = listSessions().filter((s) => s.taskId === taskId)
   const episodes = sessions.reduce((a, s) => a + s.episodes, 0)
   const success = episodes ? Math.round(sessions.reduce((a, s) => a + s.successPct * s.episodes, 0) / episodes) : null
   return { sessions: sessions.length, success }

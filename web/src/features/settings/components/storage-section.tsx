@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { DISK, SETTINGS } from "@/dummy/settings"
+import { getDiskUsage, getSettings } from "@/api/settings"
 import { cn } from "@/lib/utils"
 
 import { useDraft } from "../hooks/use-draft"
@@ -16,24 +16,25 @@ const PART_COLOR: Record<string, string> = {
 }
 
 function DiskUsage({ warnAtPct }: { warnAtPct: number }) {
-  const used = DISK.parts.reduce((a, p) => a + p.gb, 0)
-  const pct = (used / DISK.totalGB) * 100
+  const disk = getDiskUsage()
+  const used = disk.parts.reduce((a, p) => a + p.gb, 0)
+  const pct = (used / disk.totalGB) * 100
   return (
     <div className="grid gap-2">
       <div className="flex items-baseline justify-between text-[13px] tabular-nums">
         <span>
-          {used.toLocaleString()} GB <span className="text-muted-foreground">of {DISK.totalGB.toLocaleString()} GB used</span>
+          {used.toLocaleString()} GB <span className="text-muted-foreground">of {disk.totalGB.toLocaleString()} GB used</span>
         </span>
         <span className={cn(pct >= warnAtPct ? "text-warn" : "text-muted-foreground")}>{pct.toFixed(0)}%</span>
       </div>
       <div className="relative flex h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${pct.toFixed(0)}% of disk used`}>
-        {DISK.parts.map((p) => (
-          <span key={p.key} className={PART_COLOR[p.key]} style={{ width: `${(p.gb / DISK.totalGB) * 100}%` }} />
+        {disk.parts.map((p) => (
+          <span key={p.key} className={PART_COLOR[p.key]} style={{ width: `${(p.gb / disk.totalGB) * 100}%` }} />
         ))}
         <span className="absolute inset-y-0 w-px bg-warn" style={{ left: `${warnAtPct}%` }} title={`Warn at ${warnAtPct}%`} />
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
-        {DISK.parts.map((p) => (
+        {disk.parts.map((p) => (
           <span key={p.key} className="inline-flex items-center gap-1.5">
             <span className={cn("size-2 rounded-sm", PART_COLOR[p.key])} />
             {p.label} {p.gb} GB
@@ -45,7 +46,7 @@ function DiskUsage({ warnAtPct }: { warnAtPct: number }) {
 }
 
 export function StorageSection() {
-  const { draft, set, dirty, save, reset } = useDraft(SETTINGS.storage)
+  const { draft, set, dirty, save, reset } = useDraft(getSettings().storage)
   const path = (key: "rawPath" | "datasetsPath" | "modelsPath", label: string, hint: string) => (
     <SettingRow label={label} hint={hint} htmlFor={`st-${key}`}>
       <Input id={`st-${key}`} className="h-8 font-mono text-[13px]" value={draft[key]} onChange={(e) => set(key, e.target.value)} />

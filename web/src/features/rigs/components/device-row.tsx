@@ -1,5 +1,5 @@
 import { StatusDot } from "@/components/common/status-dot"
-import type { Device } from "@/dummy/devices"
+import type { Device } from "@/domain/device"
 import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rateClass, rateText } from "../lib"

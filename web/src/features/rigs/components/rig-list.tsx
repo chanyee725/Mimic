@@ -3,20 +3,22 @@ import { LuPlus } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { StatusDot } from "@/components/common/status-dot"
-import { devicesOf } from "@/dummy/devices"
-import { RIGS } from "@/dummy/rigs"
+import { devicesOf } from "@/api/devices"
+import { listRigs } from "@/api/rigs"
 import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rigHealth } from "../lib"
 
 export function RigList({ selectedId, onSelect }: { selectedId: string; onSelect: (id: string) => void }) {
+  const rigs = listRigs()
+
   return (
     <Panel
       className="gap-2 p-3"
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           Rigs
-          <span className="font-normal text-muted-foreground tabular-nums">{RIGS.length}</span>
+          <span className="font-normal text-muted-foreground tabular-nums">{rigs.length}</span>
         </span>
       }
       action={
@@ -26,7 +28,7 @@ export function RigList({ selectedId, onSelect }: { selectedId: string; onSelect
       }
     >
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
-        {RIGS.map((r) => {
+        {rigs.map((r) => {
           const devices = devicesOf(r.id)
           const selected = r.id === selectedId
           return (

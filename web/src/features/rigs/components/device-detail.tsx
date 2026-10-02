@@ -1,7 +1,7 @@
 import { DetailList } from "@/components/common/detail-list"
 import { Panel } from "@/components/layout/page-layout"
 import { StatusDot } from "@/components/common/status-dot"
-import type { Device } from "@/dummy/devices"
+import type { Device } from "@/domain/device"
 import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rateClass, rateText, TYPE_LABEL } from "../lib"
