@@ -46,7 +46,7 @@ export function GpuPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="grid max-h-[85svh] grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-3 sm:max-w-2xl">
+      <DialogContent className="grid h-[min(40rem,85svh)] grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-3 sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Choose a GPU</DialogTitle>
           <DialogDescription>
