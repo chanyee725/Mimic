@@ -12,13 +12,6 @@ const SPEEDS = [0.5, 1, 2] as const
 
 const pad2 = (n: number) => String(n).padStart(2, "0")
 
-/** mm:ss:ff (프레임) */
-function timecode(sec: number, fps = 30) {
-  const frames = Math.floor(sec * fps)
-  const s = Math.floor(frames / fps)
-  return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}:${pad2(frames % fps)}`
-}
-
 function clock(sec: number) {
   const s = Math.floor(sec)
   return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}.${Math.floor((sec % 1) * 10)}`
@@ -64,7 +57,7 @@ function StreamList({ topics }: { topics: McapTopic[] }) {
   )
 }
 
-/** 재생 위치 탐색 바. 프레임 드랍 지점만 빨간 눈금으로 표시한다 */
+/** 재생 위치 탐색 바 */
 function Scrubber({ recording, time, onSeek }: { recording: Recording; time: number; onSeek: (t: number) => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
@@ -108,14 +101,6 @@ function Scrubber({ recording, time, onSeek }: { recording: Recording; time: num
     >
       <div className="relative h-1.5 w-full rounded-full bg-muted">
         <div className="absolute inset-y-0 left-0 rounded-full bg-foreground" style={{ width: pct(time) }} />
-        {recording.drops.map((d) => (
-          <span
-            key={d}
-            className="absolute top-1/2 h-3 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-bad"
-            style={{ left: pct(d) }}
-            title={`Frame drop at ${clock(d)}`}
-          />
-        ))}
         <span
           className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground shadow-sm"
           style={{ left: pct(time) }}
@@ -197,7 +182,6 @@ function Player({ recording, className }: { recording: Recording; className?: st
             resolution="640×480"
             measuredFps={v.rateHz}
             targetFps={v.rateHz}
-            timecode={timecode(time, v.rateHz ?? 30)}
             placeholder="Replay"
           />
         ))}
@@ -224,8 +208,8 @@ function Player({ recording, className }: { recording: Recording; className?: st
         </div>
       )}
 
-      {/* 재생 바: 하단 고정 */}
-      <div className="flex shrink-0 items-center gap-3 rounded-lg border px-3 py-2">
+      {/* 재생 바: 상자 없이 그래프 바로 아래에 하단 고정 */}
+      <div className="-mt-2 flex shrink-0 items-center gap-3">
         <Button
           variant="outline"
           size="icon"
