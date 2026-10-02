@@ -4,6 +4,7 @@ import { LuCheck, LuChevronRight, LuPlay, LuSquare, LuX } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { StatusDot } from "@/components/app/status-dot"
+import { ModelPickerDialog } from "@/components/app/model-picker-dialog"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { VideoTile } from "@/components/robot/video-tile"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,6 @@ import { LOCAL_GPUS, POLICY } from "@/dummy/training"
 import { useHotkeys } from "@/hooks/use-hotkeys"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { ModelPickerDialog } from "@/features/models/model-picker-dialog"
 
 // Models 에 저장한 checkpoint 를 실제 로봇에 올려 바로 돌려 보는 페이지.
 // 정책이 카메라 · 관절 상태 · 지시문을 받아 action 을 내고, 결과를 Success / Fail 로 기록한다.
