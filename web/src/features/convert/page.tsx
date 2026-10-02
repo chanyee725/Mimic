@@ -3,8 +3,7 @@ import { Link } from "react-router-dom"
 import { LuChevronRight, LuPlay } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
-import { StatusDot } from "@/components/app/status-dot"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -14,7 +13,6 @@ import type { McapTopic, Recording } from "@/dummy/recordings"
 import { getRig } from "@/dummy/rigs"
 import { TASKS, getTask } from "@/dummy/tasks"
 import { useRecordings } from "@/lib/recordings-store"
-import { cn } from "@/lib/utils"
 
 const SKIP = "skip"
 
@@ -39,32 +37,8 @@ const fmtLength = (sec: number) => (sec < 3600 ? `${(sec / 60).toFixed(1)} min` 
 const fmtSize = (mb: number) => (mb < 1024 ? `${mb.toFixed(1)} MB` : `${(mb / 1024).toFixed(1)} GB`)
 const PICKER_PAGE = 50
 
-/** 짧거나 긴 에피소드: 중앙값의 절반 미만이거나 2배 초과 */
-function lengthOutliers(episodes: Recording[]) {
-  if (episodes.length < 3) return []
-  const sorted = episodes.map((r) => r.durationS).sort((a, b) => a - b)
-  const median = sorted[Math.floor(sorted.length / 2)]
-  return episodes.filter((r) => r.durationS < median * 0.5 || r.durationS > median * 2)
-}
-
-const failed = (r: Recording, label: string) => r.checks.some((c) => c.label === label && !c.ok)
-
-const eps = (n: number) => `${n.toLocaleString()} ${n === 1 ? "episode" : "episodes"}`
-
-type Check = { label: string; okText: string; bad: Recording[]; badText: (n: number) => string }
-
-/** 변환 대상 요약과 변환 전 점검. 에피소드 수와 상관없이 같은 모양이다 */
-function ConvertSummary({
-  targets,
-  fps,
-  pending,
-  onExclude,
-}: {
-  targets: Recording[]
-  fps: number
-  pending: number
-  onExclude: (ids: string[]) => void
-}) {
+/** 변환 대상 요약. 에피소드 수와 상관없이 같은 모양이다 */
+function ConvertSummary({ targets, fps }: { targets: Recording[]; fps: number }) {
   if (targets.length === 0)
     return (
       <p className="rounded-md border border-dashed py-6 text-center text-[13px] text-muted-foreground">변환할 에피소드를 선택하세요.</p>
@@ -74,8 +48,6 @@ function ConvertSummary({
   const totalS = lens.reduce((a, b) => a + b, 0)
   const totalMB = targets.reduce((a, r) => a + r.sizeMB, 0)
   const dates = targets.map((r) => r.recordedAt.slice(5, 10)).sort()
-  const outliers = lengthOutliers(targets)
-
   const summary = [
     { k: "Frames", v: Math.round(totalS * fps).toLocaleString() },
     { k: "Length", v: fmtLength(totalS) },
@@ -89,79 +61,18 @@ function ConvertSummary({
     { k: "Est. output", v: `~${fmtSize(totalMB * 0.6)}`, sub: `MCAP ${fmtSize(totalMB)}` },
   ]
 
-  const checks: Check[] = [
-    {
-      label: "Video frames",
-      okText: "All complete",
-      bad: targets.filter((r) => failed(r, "Video frames")),
-      badText: (n) => `${eps(n)} with dropped frames`,
-    },
-    {
-      label: "Timestamps",
-      okText: "No gaps",
-      bad: targets.filter((r) => failed(r, "Timestamp gap")),
-      badText: (n) => `${eps(n)} with gaps over 50 ms`,
-    },
-    {
-      label: "Subtasks",
-      okText: "All labeled",
-      bad: targets.filter((r) => failed(r, "Subtasks")),
-      badText: (n) => `${eps(n)} missing subtasks`,
-    },
-    {
-      label: "Length",
-      okText: "No outliers",
-      bad: outliers,
-      badText: (n) => `${eps(n)} much shorter or longer than usual`,
-    },
-  ]
-
   return (
-    <>
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 @md:grid-cols-3 @2xl:grid-cols-5">
-        {summary.map((m) => (
-          <div key={m.k} className="grid content-start gap-0.5">
-            <dt className="text-xs text-muted-foreground">{m.k}</dt>
-            <dd className="text-[13px] whitespace-nowrap tabular-nums">
-              {m.v}
-              {m.sub && <span className="block text-xs text-muted-foreground">{m.sub}</span>}
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <section className="grid gap-1.5">
-        <h3 className="text-xs text-muted-foreground">Checks</h3>
-        <ul className="divide-y rounded-md border">
-          {checks.map((c) => (
-            <li key={c.label} className="flex min-h-10 items-center gap-3 px-3 py-1.5 text-[13px]">
-              <StatusDot tone={c.bad.length ? "warn" : "ok"} className="w-28 shrink-0 text-[13px]">
-                {c.label}
-              </StatusDot>
-              <span className={cn("min-w-0 flex-1 truncate", !c.bad.length && "text-muted-foreground")}>
-                {c.bad.length ? c.badText(c.bad.length) : c.okText}
-              </span>
-              {c.bad.length > 0 && (
-                <Button variant="outline" size="sm" className="h-7" onClick={() => onExclude(c.bad.map((r) => r.id))}>
-                  Exclude
-                </Button>
-              )}
-            </li>
-          ))}
-          {pending > 0 && (
-            <li className="flex min-h-10 items-center gap-3 px-3 py-1.5 text-[13px]">
-              <StatusDot tone="muted" className="w-28 shrink-0 text-[13px]">
-                Review
-              </StatusDot>
-              <span className="min-w-0 flex-1 truncate">{eps(pending)} waiting for review</span>
-              <Link to="/review" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7")}>
-                Open
-              </Link>
-            </li>
-          )}
-        </ul>
-      </section>
-    </>
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-3 @md:grid-cols-3 @2xl:grid-cols-5">
+      {summary.map((m) => (
+        <div key={m.k} className="grid content-start gap-0.5">
+          <dt className="text-xs text-muted-foreground">{m.k}</dt>
+          <dd className="text-[13px] whitespace-nowrap tabular-nums">
+            {m.v}
+            {m.sub && <span className="block text-xs text-muted-foreground">{m.sub}</span>}
+          </dd>
+        </div>
+      ))}
+    </dl>
   )
 }
 
@@ -213,11 +124,11 @@ export function ConvertPage() {
   ].join("\n")
 
   return (
-    <Page fit title="Convert" description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다.">
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <Page title="Convert" description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다.">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         {/* ── 왼쪽: 무엇을 변환하나 (Task · 에피소드) ── */}
         <section className="flex min-h-0 flex-col gap-4">
-          <Panel title="Task" className="@container min-h-0 flex-1 gap-4 overflow-y-auto">
+          <Panel title="Task" className="@container flex-1 gap-4">
             <Select value={taskId} onValueChange={(v) => v && changeTask(v as string)}>
               <SelectTrigger aria-label="Task" className="h-9 w-full text-[13px]">
                 <SelectValue />
@@ -261,15 +172,10 @@ export function ConvertPage() {
                 </dd>
               </div>
             </dl>
-            <ConvertSummary
-              targets={targets}
-              fps={fps}
-              pending={pending}
-              onExclude={(ids) => setExcluded((cur) => [...new Set([...cur, ...ids])])}
-            />
-            {accepted.length === 0 && (
+            <ConvertSummary targets={targets} fps={fps} />
+            {(accepted.length === 0 || pending > 0) && (
               <p className="text-xs text-muted-foreground">
-                승인된 에피소드가 없습니다.{" "}
+                {accepted.length === 0 ? "승인된 에피소드가 없습니다. " : `검수를 기다리는 에피소드가 ${pending}개 있습니다. `}
                 <Link to="/review" className="text-foreground underline underline-offset-4">
                   Review 에서 검수하기
                 </Link>
@@ -280,7 +186,7 @@ export function ConvertPage() {
 
         {/* ── 오른쪽: 결과 (Output · Convert) ── */}
         <section className="flex min-h-0 flex-col gap-4">
-          <Panel title="Output" className="min-h-0 flex-1">
+          <Panel title="Output" className="flex-1">
             <div className="grid gap-1.5">
               <Label htmlFor="repo" className="text-xs font-normal text-muted-foreground">
                 Dataset name
@@ -312,9 +218,9 @@ export function ConvertPage() {
                 {fps} fps. Action {actionHz} Hz is downsampled to {fps} Hz to match the cameras.
               </p>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+            <div className="flex flex-1 flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">Features</span>
-              <pre className="min-h-24 flex-1 overflow-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
+              <pre className="flex-1 overflow-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
                 {preview}
               </pre>
             </div>
