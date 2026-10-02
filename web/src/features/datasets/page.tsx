@@ -1,15 +1,29 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { LuClock, LuCloudUpload, LuCpu, LuFilm, LuHardDrive, LuListVideo, LuRotateCcw, LuTrash2 } from "react-icons/lu"
+import {
+  LuArrowRightLeft,
+  LuClock,
+  LuCloudUpload,
+  LuCpu,
+  LuFilm,
+  LuHardDrive,
+  LuListVideo,
+  LuRotateCcw,
+  LuSearch,
+  LuTrash2,
+} from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
 import { StatStrip } from "@/components/app/stat-strip"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { DATASETS, type Dataset, type DatasetStatus } from "@/dummy/datasets"
+import { Input } from "@/components/ui/input"
+import { DATASETS, type Dataset, type DatasetKind, type DatasetStatus } from "@/dummy/datasets"
 import { getRig } from "@/dummy/rigs"
 import { getTask } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
+
+import { DatasetThumb } from "./thumbnail"
 
 const STATUS: Record<DatasetStatus, { tone: Tone; label: string }> = {
   ready: { tone: "ok", label: "Ready" },
@@ -17,12 +31,29 @@ const STATUS: Record<DatasetStatus, { tone: Tone; label: string }> = {
   failed: { tone: "bad", label: "Failed" },
 }
 
+type Filter = "all" | DatasetKind
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "lerobot", label: "LeRobot" },
+  { id: "mcap", label: "MCAP" },
+]
+const KIND_LABEL: Record<DatasetKind, string> = { lerobot: "LeRobot", mcap: "MCAP" }
+
+// 최근 것부터
+const SORTED = [...DATASETS].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
 const minutes = (sec: number) => (sec >= 60 ? `${(sec / 60).toFixed(1)} min` : `${sec.toFixed(0)} s`)
 
 function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
+  const [filter, setFilter] = useState<Filter>("all")
+  const [query, setQuery] = useState("")
+  const q = query.trim().toLowerCase()
+  const byKind = (f: Filter) => SORTED.filter((d) => f === "all" || d.kind === f)
+  const shown = byKind(filter).filter((d) => !q || d.repoId.toLowerCase().includes(q) || d.taskId.includes(q))
+
   return (
     <Panel
-      className="gap-2 p-3"
+      className="@container gap-2 p-3"
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           Datasets
@@ -30,10 +61,38 @@ function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: 
         </span>
       }
     >
-      <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
-        {DATASETS.map((d) => {
+      <div className="relative">
+        <LuSearch className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search datasets or tasks"
+          aria-label="Search datasets"
+          className="h-8 border-transparent bg-muted pl-8 text-[13px]"
+        />
+      </div>
+      <div className="grid grid-cols-3 rounded-md bg-muted p-0.5" role="tablist" aria-label="Format">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            role="tab"
+            aria-selected={filter === f.id}
+            onClick={() => setFilter(f.id)}
+            className={cn(
+              "h-7 rounded-[5px] text-xs transition-colors",
+              filter === f.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {f.label}
+            <span className="ml-1 text-muted-foreground tabular-nums">{byKind(f.id).length}</span>
+          </button>
+        ))}
+      </div>
+
+      <ul className="-mx-1 grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto px-1">
+        {shown.map((d) => {
           const on = d.repoId === selected
-          const frames = d.episodes.reduce((a, e) => a + e.frames, 0)
           return (
             <li key={d.repoId}>
               <button
@@ -41,26 +100,30 @@ function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: 
                 aria-pressed={on}
                 onClick={() => onSelect(d.repoId)}
                 className={cn(
-                  "grid w-full gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/60",
+                  "flex w-full items-center gap-3 rounded-md p-1.5 text-left transition-colors hover:bg-accent/60",
                   on && "bg-accent hover:bg-accent",
                 )}
               >
-                <span className="flex min-w-0 items-center gap-2">
-                  <StatusDot tone={STATUS[d.status].tone} />
-                  <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{d.repoId}</span>
-                </span>
-                <span className="truncate pl-3.5 text-xs text-muted-foreground">{d.taskId}</span>
-                <span className="pl-3.5 text-[11px] text-muted-foreground/80 tabular-nums">
-                  {d.status === "converting"
-                    ? `Converting ${d.progress}%`
-                    : d.status === "failed"
-                      ? "Conversion failed"
-                      : `${d.episodes.length} episodes, ${frames.toLocaleString()} frames, ${d.sizeGB} GB`}
+                <DatasetThumb taskId={d.taskId} className="w-14" />
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <StatusDot tone={STATUS[d.status].tone} />
+                    <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{d.repoId}</span>
+                  </span>
+                  <span className="truncate text-[11px] text-muted-foreground tabular-nums">
+                    {KIND_LABEL[d.kind]},{" "}
+                    {d.status === "converting"
+                      ? `converting ${d.progress}%`
+                      : d.status === "failed"
+                        ? "conversion failed"
+                        : `${d.episodes.length} episodes, ${d.sizeGB} GB`}
+                  </span>
                 </span>
               </button>
             </li>
           )
         })}
+        {shown.length === 0 && <li className="py-8 text-center text-[13px] text-muted-foreground">일치하는 데이터셋이 없습니다.</li>}
       </ul>
     </Panel>
   )
@@ -76,30 +139,42 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
   return (
     <Panel className="min-h-0 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid min-w-0 gap-1">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <h2 className="truncate text-lg font-semibold">{dataset.repoId}</h2>
-            <StatusDot tone={status.tone} className="shrink-0 text-[13px]">
-              {status.label}
-            </StatusDot>
+        <div className="flex min-w-0 items-center gap-4">
+          <DatasetThumb taskId={dataset.taskId} className="w-24" />
+          <div className="grid min-w-0 gap-1">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <h2 className="truncate text-lg font-semibold">{dataset.repoId}</h2>
+              <StatusDot tone={status.tone} className="shrink-0 text-[13px]">
+                {status.label}
+              </StatusDot>
+            </div>
+            <p className="truncate text-[13px] text-muted-foreground">{task?.instruction ?? dataset.taskId}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {rig.name}, {dataset.format}
+              {dataset.kind === "lerobot" && `, ${dataset.fps} fps`}, created {dataset.createdAt}
+            </p>
           </div>
-          <p className="truncate text-[13px] text-muted-foreground">
-            {task?.instruction ?? dataset.taskId}. {rig.name}, {dataset.format}, {dataset.fps} fps, created {dataset.createdAt}.
-          </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <Button variant="outline" size="sm" disabled={dataset.status !== "ready" || dataset.hub.pushed}>
             <LuCloudUpload />
             {dataset.hub.pushed ? "On HF Hub (private)" : "Push to HF Hub"}
           </Button>
-          <Link
-            to="/training"
-            className={cn(buttonVariants({ size: "sm" }), dataset.status !== "ready" && "pointer-events-none opacity-50")}
-            aria-disabled={dataset.status !== "ready"}
-          >
-            <LuCpu />
-            Train with this
-          </Link>
+          {dataset.kind === "lerobot" ? (
+            <Link
+              to="/training"
+              className={cn(buttonVariants({ size: "sm" }), dataset.status !== "ready" && "pointer-events-none opacity-50")}
+              aria-disabled={dataset.status !== "ready"}
+            >
+              <LuCpu />
+              Train with this
+            </Link>
+          ) : (
+            <Link to="/convert" className={buttonVariants({ size: "sm" })}>
+              <LuArrowRightLeft />
+              Convert to LeRobot
+            </Link>
+          )}
           <Button variant="ghost" size="icon-sm" aria-label="Delete dataset" title="Delete dataset" className="text-bad hover:text-bad">
             <LuTrash2 />
           </Button>
@@ -136,26 +211,26 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
       )}
 
       {dataset.episodes.length > 0 && (
-      <StatStrip
-        items={[
-          { label: "Episodes", value: dataset.episodes.length, icon: LuListVideo },
-          { label: "Frames", value: frames.toLocaleString(), icon: LuFilm },
-          { label: "Length", value: minutes(lengthS), icon: LuClock },
-          { label: "Size", value: `${dataset.sizeGB} GB`, icon: LuHardDrive },
-        ]}
-      />
+        <StatStrip
+          items={[
+            { label: "Episodes", value: dataset.episodes.length, icon: LuListVideo },
+            { label: dataset.kind === "mcap" ? "Video frames" : "Frames", value: frames.toLocaleString(), icon: LuFilm },
+            { label: "Length", value: minutes(lengthS), icon: LuClock },
+            { label: "Size", value: `${dataset.sizeGB} GB`, icon: LuHardDrive },
+          ]}
+        />
       )}
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="flex min-h-0 flex-col gap-2">
-          <h3 className="text-sm font-semibold">Features</h3>
-          <div className="min-h-0 overflow-y-auto rounded-md border">
+          <h3 className="text-sm font-semibold">{dataset.kind === "mcap" ? "Topics" : "Features"}</h3>
+          <div className="min-h-0 overflow-auto rounded-md border">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="px-3 py-2 font-normal">Key</th>
-                  <th className="px-3 py-2 font-normal">Type</th>
-                  <th className="px-3 py-2 font-normal">Shape</th>
+                  <th className="px-3 py-2 font-normal">{dataset.kind === "mcap" ? "Topic" : "Key"}</th>
+                  <th className="px-3 py-2 font-normal">{dataset.kind === "mcap" ? "Schema" : "Type"}</th>
+                  <th className="px-3 py-2 font-normal">{dataset.kind === "mcap" ? "Rate" : "Shape"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -165,8 +240,10 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
                       <span className="block truncate">{f.key}</span>
                       {f.note && <span className="block truncate text-[11px] text-muted-foreground">{f.note}</span>}
                     </td>
-                    <td className="px-3 py-1.5 text-muted-foreground">{f.dtype}</td>
-                    <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{f.shape}</td>
+                    <td className="max-w-36 truncate px-3 py-1.5 text-muted-foreground" title={f.dtype}>
+                      {f.dtype}
+                    </td>
+                    <td className="px-3 py-1.5 whitespace-nowrap text-muted-foreground tabular-nums">{f.shape}</td>
                   </tr>
                 ))}
               </tbody>
@@ -199,12 +276,12 @@ function DatasetDetail({ dataset }: { dataset: Dataset }) {
 }
 
 export function DatasetsPage() {
-  const [selected, setSelected] = useState(DATASETS[0].repoId)
-  const dataset = DATASETS.find((d) => d.repoId === selected) ?? DATASETS[0]
+  const [selected, setSelected] = useState(SORTED[0].repoId)
+  const dataset = DATASETS.find((d) => d.repoId === selected) ?? SORTED[0]
 
   return (
-    <Page fit title="Datasets" description="Convert 로 만든 LeRobot 데이터셋을 확인하고 HF Hub 에 올리거나 학습에 사용합니다.">
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
+    <Page fit title="Datasets" description="변환한 LeRobot 데이터셋과 원본 MCAP 묶음을 확인하고 HF Hub 에 올리거나 학습에 사용합니다.">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
         <DatasetList selected={dataset.repoId} onSelect={setSelected} />
         <DatasetDetail dataset={dataset} />
       </div>

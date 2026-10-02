@@ -1,8 +1,11 @@
-// Convert 로 만든 LeRobot 데이터셋 더미.
-// 실제로는 변환 작업이 끝나면 meta/info.json 을 읽어 채운다.
+// 데이터셋 더미. LeRobot 은 Convert 로 만든 것, MCAP 은 변환 없이 원본 에피소드를 묶어 올린 것.
+// 실제로는 LeRobot 은 meta/info.json, MCAP 은 각 파일의 요약(summary) 섹션을 읽어 채운다.
+// 썸네일은 첫 에피소드의 첫 카메라 프레임을 쓴다 (더미에서는 그림으로 대신한다).
 
+export type DatasetKind = "lerobot" | "mcap"
 export type DatasetStatus = "ready" | "converting" | "failed"
 
+/** LeRobot 은 feature, MCAP 은 topic 한 줄 */
 export type DatasetFeature = {
   key: string
   dtype: string
@@ -18,6 +21,7 @@ export type DatasetEpisode = {
 }
 
 export type Dataset = {
+  kind: DatasetKind
   repoId: string
   taskId: string
   rigId: string
@@ -43,6 +47,15 @@ const SO101_FEATURES = (cameras: string[]): DatasetFeature[] => [
   { key: "task_index", dtype: "int64", shape: "[1]" },
 ]
 
+const MCAP_TOPICS: DatasetFeature[] = [
+  { key: "/so101_leader/action", dtype: "vla.robot.JointCommand", shape: "60 Hz" },
+  { key: "/so101_follower/state", dtype: "vla.robot.JointState", shape: "60 Hz" },
+  { key: "/cam_top/image", dtype: "foxglove.CompressedVideo", shape: "30 fps" },
+  { key: "/cam_wrist/image", dtype: "foxglove.CompressedVideo", shape: "30 fps" },
+  { key: "/labels/subtask", dtype: "vla.session.SubtaskEvent", shape: "event" },
+  { key: "/labels/outcome", dtype: "vla.session.OutcomeEvent", shape: "event" },
+]
+
 const episodes = (taskId: string, from: number, lengths: number[]): DatasetEpisode[] =>
   lengths.map((lengthS, i) => ({
     index: i,
@@ -53,6 +66,7 @@ const episodes = (taskId: string, from: number, lengths: number[]): DatasetEpiso
 
 export const DATASETS: Dataset[] = [
   {
+    kind: "lerobot",
     repoId: "local/stack_two_blocks",
     taskId: "stack-two-blocks",
     rigId: "so101-kit",
@@ -66,6 +80,7 @@ export const DATASETS: Dataset[] = [
     episodes: episodes("stack-two-blocks", 30, [24.0, 27.5, 22.1, 21.0, 26.5, 23.5, 25.0, 20.5, 28.0, 22.5]),
   },
   {
+    kind: "lerobot",
     repoId: "local/open_drawer",
     taskId: "open-drawer",
     rigId: "so101-kit",
@@ -79,6 +94,7 @@ export const DATASETS: Dataset[] = [
     episodes: episodes("open-drawer", 1, [18.5, 20.0, 19.2, 21.8, 17.9, 22.4, 20.6, 19.0]),
   },
   {
+    kind: "lerobot",
     repoId: "local/pick_red_cube",
     taskId: "pick-red-cube",
     rigId: "so101-kit",
@@ -93,6 +109,7 @@ export const DATASETS: Dataset[] = [
     episodes: episodes("pick-red-cube", 1, [18.2, 19.0, 17.5]),
   },
   {
+    kind: "lerobot",
     repoId: "local/pour_into_cup",
     taskId: "pour-into-cup",
     rigId: "so101-kit",
@@ -104,5 +121,47 @@ export const DATASETS: Dataset[] = [
     hub: { pushed: false, private: true },
     features: SO101_FEATURES(["top", "wrist"]),
     episodes: [],
+  },
+  {
+    kind: "mcap",
+    repoId: "raw/stack_two_blocks",
+    taskId: "stack-two-blocks",
+    rigId: "so101-kit",
+    format: "MCAP",
+    fps: 30,
+    status: "ready",
+    createdAt: "2026-10-01 18:02",
+    sizeGB: 0.9,
+    hub: { pushed: true, private: true },
+    features: MCAP_TOPICS,
+    episodes: episodes("stack-two-blocks", 30, [24.0, 27.5, 22.1, 21.0, 26.5, 23.5, 25.0, 20.5, 28.0, 22.5, 21.5, 29.0]),
+  },
+  {
+    kind: "mcap",
+    repoId: "raw/sort_by_color",
+    taskId: "sort-by-color",
+    rigId: "so101-kit",
+    format: "MCAP",
+    fps: 30,
+    status: "ready",
+    createdAt: "2026-09-27 10:44",
+    sizeGB: 0.4,
+    hub: { pushed: false, private: true },
+    features: MCAP_TOPICS,
+    episodes: episodes("sort-by-color", 1, [31.0, 34.5, 29.8, 33.2, 30.6]),
+  },
+  {
+    kind: "mcap",
+    repoId: "raw/wipe_table",
+    taskId: "wipe-table",
+    rigId: "so101-kit",
+    format: "MCAP",
+    fps: 30,
+    status: "ready",
+    createdAt: "2026-09-25 14:20",
+    sizeGB: 0.2,
+    hub: { pushed: false, private: true },
+    features: MCAP_TOPICS,
+    episodes: episodes("wipe-table", 1, [15.4, 17.0, 16.2]),
   },
 ]
