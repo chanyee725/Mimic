@@ -1,21 +1,18 @@
 import { useState } from "react"
-import { LuCheck, LuTrash2, LuUpload, LuX } from "react-icons/lu"
+import { LuUpload } from "react-icons/lu"
 
-import { Page, Panel } from "@/components/app/page"
-import { StatusDot } from "@/components/app/status-dot"
-import { TaskPicker } from "@/components/app/task-picker"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { EmptyState } from "@/components/app/empty-state"
+import { Page, Panel } from "@/components/app/page"
+import { TaskPicker } from "@/components/app/task-picker"
 import { getTask, TASKS } from "@/dummy/tasks"
-import { deleteRecording, setReview, useRecordings } from "@/lib/recordings-store"
-import { cn } from "@/lib/utils"
+import { deleteRecording, useRecordings } from "@/lib/recordings-store"
+
+import { DeleteRecordingDialog } from "./components/delete-recording-dialog"
 import { EpisodeList } from "./components/episode-list"
 import { McapPlayer } from "./components/mcap-player"
-
-const REVIEW_TONE = { pending: "muted", accepted: "ok", rejected: "bad" } as const
-
-/** 가장 최근 에피소드부터 */
-const latestFirst = <T extends { episode?: number }>(xs: T[]) => [...xs].sort((a, b) => (b.episode ?? 0) - (a.episode ?? 0))
+import { ReviewActions } from "./components/review-actions"
+import { latestFirst } from "./lib"
 
 export function ReviewPage() {
   const recordings = useRecordings()
@@ -52,15 +49,16 @@ export function ReviewPage() {
         </Button>
       }
     >
-      {/* Capture 와 같은 배치: 좌 7 재생 · 우 3 Task / 목록 / 검수 */}
+      {/* Same layout as Capture: playback on the left 7, task / list / review on the right 3 */}
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-[28rem] min-w-0 flex-col">
           {selected ? (
+            // Keyed so playback restarts from the beginning whenever the file changes
             <McapPlayer key={selected.id} recording={selected} className="min-h-0 flex-1" />
           ) : (
-            <div className="grid flex-1 place-items-center rounded-lg border border-dashed text-sm text-muted-foreground">
+            <EmptyState className="grid flex-1 place-items-center rounded-lg py-0 text-sm">
               이 Task 에는 아직 녹화된 에피소드가 없습니다.
-            </div>
+            </EmptyState>
           )}
         </div>
 
@@ -78,75 +76,16 @@ export function ReviewPage() {
             className="min-h-40 flex-1"
           />
 
-          {selected && (
-            <div className="grid shrink-0 gap-3 border-t pt-4">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-[13px] font-medium">{selected.file.split("/").pop()}</span>
-                <StatusDot tone={REVIEW_TONE[selected.review]} className="shrink-0 text-xs text-muted-foreground">
-                  {selected.review}
-                </StatusDot>
-              </div>
-              <dl className="grid gap-1">
-                {selected.checks.map((c) => (
-                  <div key={c.label} className="flex justify-between gap-3 text-xs">
-                    <dt>
-                      <StatusDot tone={c.ok ? "ok" : "bad"} className="text-xs text-muted-foreground">
-                        {c.label}
-                      </StatusDot>
-                    </dt>
-                    <dd className={cn("tabular-nums", c.ok ? "text-muted-foreground" : "text-bad")}>{c.value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5">
-                <Button
-                  variant="outline"
-                  className="h-9"
-                  onClick={() => setReview(selected.id, "accepted")}
-                  disabled={selected.review === "accepted"}
-                >
-                  <LuCheck />
-                  Accept
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-9"
-                  onClick={() => setReview(selected.id, "rejected")}
-                  disabled={selected.review === "rejected"}
-                >
-                  <LuX />
-                  Reject
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="Delete recording"
-                  title="Delete recording"
-                  className="size-9 text-bad hover:text-bad"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  <LuTrash2 />
-                </Button>
-              </div>
-            </div>
-          )}
+          {selected && <ReviewActions recording={selected} onDelete={() => setConfirmDelete(true)} />}
         </Panel>
       </div>
 
-      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete recording?</DialogTitle>
-            <DialogDescription>{selected?.file} 파일을 삭제합니다. 삭제한 MCAP 은 되돌릴 수 없습니다.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-            <Button className="bg-destructive text-white hover:bg-destructive/90" onClick={() => selected && remove(selected.id)}>
-              Delete recording
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteRecordingDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        file={selected?.file}
+        onConfirm={() => selected && remove(selected.id)}
+      />
     </Page>
   )
 }
