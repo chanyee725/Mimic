@@ -85,6 +85,7 @@ function JobRow({ job }: { job: TrainJob }) {
           {job.elapsed && <span>Elapsed {job.elapsed}</span>}
           {job.eta && <span>ETA {job.eta}</span>}
           {job.status === "queued" && <span>Waiting for a GPU</span>}
+          {job.podState?.state === "idle" && <span className="text-warn">Pod still running, ${job.pricePerHr?.toFixed(2)}/h</span>}
         </div>
       </Link>
     </li>

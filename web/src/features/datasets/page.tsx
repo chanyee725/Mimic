@@ -38,6 +38,8 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "mcap", label: "MCAP" },
 ]
 const KIND_LABEL: Record<DatasetKind, string> = { lerobot: "LeRobot", mcap: "MCAP" }
+// 목록 점 색은 형식을 나타낸다 (상태는 상세 헤더와 아래 줄 글자로)
+const KIND_DOT: Record<DatasetKind, string> = { lerobot: "bg-yellow-400", mcap: "bg-zinc-400" }
 
 // 최근 것부터
 const SORTED = [...DATASETS].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -84,6 +86,9 @@ function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: 
               filter === f.id ? "bg-background font-medium shadow-xs" : "text-muted-foreground hover:text-foreground",
             )}
           >
+            {f.id !== "all" && (
+              <span className={cn("mr-1.5 inline-block size-1.5 rounded-full align-middle", KIND_DOT[f.id])} aria-hidden />
+            )}
             {f.label}
             <span className="ml-1 text-muted-foreground tabular-nums">{byKind(f.id).length}</span>
           </button>
@@ -107,7 +112,7 @@ function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: 
                 <DatasetThumb taskId={d.taskId} className="w-20" />
                 <span className="grid min-w-0 flex-1 gap-0.5">
                   <span className="flex min-w-0 items-center gap-1.5">
-                    <StatusDot tone={STATUS[d.status].tone} />
+                    <span className={cn("size-1.5 shrink-0 rounded-full", KIND_DOT[d.kind])} aria-hidden />
                     <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{d.repoId}</span>
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground tabular-nums">

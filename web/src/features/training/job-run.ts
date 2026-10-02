@@ -73,7 +73,7 @@ export function createRun(job: TrainJob): JobRun {
   return run
 }
 
-function parseDuration(s?: string) {
+export function parseDuration(s?: string) {
   if (!s) return 0
   const h = Number(s.match(/(\d+)h/)?.[1] ?? 0)
   const m = Number(s.match(/(\d+)m/)?.[1] ?? 0)

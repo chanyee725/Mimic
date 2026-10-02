@@ -4,6 +4,17 @@
 export type JobStatus = "running" | "queued" | "done" | "failed" | "stopped"
 export type Compute = "local" | "runpod"
 
+/** RunPod pod 상태. idle = 학습은 끝났는데 pod 가 켜져 있어 요금이 나가는 중 */
+export type PodState = {
+  state: "running" | "idle" | "terminated"
+  /** 학습이 끝나면 pod 를 끌지 */
+  autoTerminate: boolean
+  /** idle · terminated 가 된 시각 */
+  since?: string
+  /** idle 로 켜져 있던 시간 */
+  idleFor?: string
+}
+
 export type Checkpoint = { step: number; savedAt: string; sizeMB: number }
 
 export type TrainJob = {
@@ -15,6 +26,7 @@ export type TrainJob = {
   gpu: string
   pod?: string // RunPod pod 이름 (runpod 만)
   pricePerHr?: number // RunPod 시간당 요금 (USD)
+  podState?: PodState // runpod 만
   status: JobStatus
   step: number
   total: number
@@ -92,6 +104,7 @@ export const JOBS: TrainJob[] = [
     gpu: "A100 80GB",
     pod: "pod-a100-01",
     pricePerHr: 1.89,
+    podState: { state: "running", autoTerminate: true },
     status: "running",
     step: 12800,
     total: 20000,
@@ -146,6 +159,8 @@ export const JOBS: TrainJob[] = [
     gpu: "RTX 4090",
     pod: "pod-4090-02",
     pricePerHr: 0.69,
+    // 자동 종료를 꺼 둬서 학습이 끝난 뒤에도 pod 가 켜져 있다
+    podState: { state: "idle", autoTerminate: false, since: "2026-10-01 23:11", idleFor: "15h 49m" },
     status: "done",
     step: 20000,
     total: 20000,
@@ -155,6 +170,26 @@ export const JOBS: TrainJob[] = [
     startedAt: "2026-10-01 18:40",
     elapsed: "4h 31m",
     checkpoints: ckpts([5000, 10000, 15000, 20000], "2026-10-01"),
+  },
+  {
+    id: "job_033",
+    policy: POLICY,
+    dataset: "local/stack_two_blocks",
+    taskId: "stack-two-blocks",
+    compute: "runpod",
+    gpu: "A100 80GB",
+    pod: "pod-a100-02",
+    pricePerHr: 1.89,
+    podState: { state: "terminated", autoTerminate: true, since: "2026-09-30 21:40" },
+    status: "done",
+    step: 20000,
+    total: 20000,
+    batch: 64,
+    epoch: 30,
+    epochs: 30,
+    startedAt: "2026-09-30 18:02",
+    elapsed: "3h 36m",
+    checkpoints: ckpts([5000, 10000, 15000, 20000], "2026-09-30"),
   },
   {
     id: "job_034",

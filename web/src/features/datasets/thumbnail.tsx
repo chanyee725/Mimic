@@ -46,7 +46,12 @@ const SCENES: Record<string, Shape[]> = {
 export function DatasetThumb({ taskId, className }: { taskId: string; className?: string }) {
   const shapes = SCENES[taskId] ?? []
   return (
-    <svg viewBox="0 0 160 120" className={cn("aspect-[4/3] shrink-0 rounded-md border bg-[#d4d4d8]", className)} role="img" aria-label="Thumbnail">
+    <svg
+      viewBox="0 0 160 120"
+      className={cn("aspect-[4/3] shrink-0 rounded-md border bg-[#d4d4d8]", className)}
+      role="img"
+      aria-label="Thumbnail"
+    >
       {/* 작업대 */}
       <path d="M0 120 L22 34 L138 34 L160 120 Z" fill="#f4f4f5" />
       {/* 물체는 작은 썸네일에서도 보이도록 화면 가운데 기준으로 키운다 */}
