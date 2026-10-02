@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { LuCircle, LuOctagonX, LuSquare } from "react-icons/lu"
+import { LuCircle, LuSquare } from "react-icons/lu"
 
-import { Page, Panel, PanelLink } from "@/components/app/page"
+import { Page, Panel } from "@/components/app/page"
+import { ProgressRing } from "@/components/app/progress-ring"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
@@ -11,13 +12,13 @@ import { devicesOf, type DeviceStream } from "@/dummy/devices"
 import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
-import { AlignmentStrip } from "./components/alignment-strip"
-import { EpisodeList } from "./components/episode-list"
-import { HandPanel } from "./components/hand-panel"
-import { TimeSeries } from "./components/timeseries"
+import { JointPlots } from "./components/joint-plots"
+import { TaskPicker } from "./components/task-picker"
 import { VideoTile } from "./components/video-tile"
-import { Viewer3D } from "./components/viewer3d"
 import { useEpisode, type Phase } from "./use-episode"
+
+// 상단 Task 요약 패널 노출 여부 (레이아웃 정리 중이라 잠시 끔)
+const SHOW_TASK_SUMMARY = false
 
 const PHASE: Record<Phase, { label: string; className: string }> = {
   idle: { label: "READY", className: "bg-muted text-muted-foreground" },
@@ -28,6 +29,15 @@ const PHASE: Record<Phase, { label: string; className: string }> = {
 function rateTone(s: DeviceStream): Tone {
   if (s.measuredHz === null || s.targetHz === null) return "muted"
   return s.measuredHz >= s.targetHz * 0.98 ? "ok" : "warn"
+}
+
+/** 카메라 타임코드 mm:ss:ff */
+function timecode(ms: number, fps: number) {
+  const totalFrames = Math.floor((ms / 1000) * fps)
+  const ff = totalFrames % fps
+  const sec = Math.floor(totalFrames / fps)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}:${pad(ff)}`
 }
 
 function fmt(ms: number) {
@@ -45,7 +55,6 @@ export function CapturePage() {
   const [taskId, setTaskId] = useState(TASKS[0].id)
   const task = TASKS.find((t) => t.id === taskId) ?? TASKS[0]
   const rig = getRig(task.rigId)
-  const [gloveDemo, setGloveDemo] = useState(false)
 
   const ep = useEpisode({
     durationS: task.durationS,
@@ -58,12 +67,9 @@ export function CapturePage() {
 
   const rigDevices = devicesOf(rig.id)
   const cameras = rigDevices.filter((d) => d.type === "camera")
-  const glove = rigDevices.find((d) => d.type === "glove")
-  const pedal = rigDevices.find((d) => d.type === "input")
-  const gloveOn = gloveDemo || glove?.health === "ok"
 
   const streams = rigDevices
-    .filter((d) => d.type !== "input" && (d.type !== "glove" || gloveOn))
+    .filter((d) => d.type !== "input")
     .flatMap((d) => d.streams.map((s) => ({ ...s, key: s.key.replace(/^(images|hand)\./, "") })))
 
   // 작업자는 양손으로 leader 암을 잡고 있으므로 키보드 / 풋 페달 입력이 기본
@@ -90,28 +96,18 @@ export function CapturePage() {
 
   const pct = Math.min(100, (ep.elapsedMs / (task.durationS * 1000)) * 100)
   const recording = phase === "recording"
+  // 이번 세션에서 저장한 에피소드까지 포함한 수집 진행도
+  const collected = ep.episode - 1
+  const progressPct = Math.min(100, Math.round((collected / task.targetEpisodes) * 100))
 
   return (
     <Page
       fit
       title="Capture"
-      description={`${rig.name} · ${rig.master} → ${rig.slave} · action ${task.actionHz} Hz / video ${task.videoFps} fps`}
-      actions={
-        <>
-          <span className="flex h-8 items-center rounded-md border px-2.5">
-            <StatusDot tone={pedal?.health === "ok" ? "ok" : "muted"} className="text-xs font-medium">
-              Foot pedal
-            </StatusDot>
-          </span>
-          {/* UI 와 무관하게 동작하는 물리 E-Stop 을 함께 둘 것 */}
-          <Button size="lg" className="bg-destructive text-white hover:bg-destructive/90">
-            <LuOctagonX />
-            E-Stop
-          </Button>
-        </>
-      }
+      description={`${rig.name}: ${rig.master} drives ${rig.slave}. Action ${task.actionHz} Hz, video ${task.videoFps} fps.`}
     >
-      {/* Session */}
+      {/* Task 요약 (Task · Instruction · Episode · Duration · Subtask · Streams) — 잠시 숨김 */}
+      {SHOW_TASK_SUMMARY && (
       <Panel className="shrink-0 gap-4">
         <div className="flex flex-wrap items-end gap-5">
           <div className="grid w-56 gap-1.5">
@@ -205,13 +201,18 @@ export function CapturePage() {
           </div>
         </div>
       </Panel>
+      )}
 
-      {/* Live — 데스크톱에서는 남은 높이 안에서만 스크롤 */}
-      <div className="grid min-h-0 flex-1 gap-4 lg:overflow-y-auto xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="grid content-start gap-4">
-          <div className="grid gap-3 md:grid-cols-2">
+      {/* Live — 좌 7 : 우 3. 좌측은 카메라 2대를 크게, 아래에 Action / Observation 그래프 */}
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+        <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
+          {/* 카메라가 남은 높이를 채우고, 그래프는 고정 높이 */}
+          <div className="grid min-h-48 flex-1 gap-3 md:grid-cols-2">
             {cameras.map((c) => (
               <VideoTile
+                className="aspect-auto h-full min-h-48"
+                recording={recording}
+                timecode={timecode(ep.elapsedMs, task.videoFps)}
                 key={c.id}
                 label={c.name.replace(/ camera$/, "")}
                 resolution={c.stats.find((s) => s.label === "Resolution")?.value ?? ""}
@@ -221,74 +222,101 @@ export function CapturePage() {
             ))}
           </div>
 
-          <Panel
-            title="Action / State"
-            action={<span className="text-xs text-muted-foreground">solid = leader action · dashed = follower state</span>}
-          >
-            <TimeSeries series={rig.joints} hz={task.actionHz} height={120} />
-            <AlignmentStrip actionHz={task.actionHz} videoFps={task.videoFps} />
-          </Panel>
+          {/* Rerun time series 처럼 joint 별 플롯. 바깥 패널 없이 플롯 칸에만 테두리 */}
+          <JointPlots
+            joints={rig.joints}
+            hz={task.actionHz}
+            actionSource={rig.master}
+            stateSource={rig.slave}
+            className="h-64 shrink-0"
+          />
         </div>
 
-        <div className="grid content-start gap-4">
-          <Viewer3D />
-          {/* 녹화 직후 검수: 저장 시 자동 검증 결과를 보고 Accept / Reject */}
-          <Panel
-            title="Episodes"
-            action={
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {ep.history.filter((e) => e.review === "accepted").length} accepted ·{" "}
-                {ep.history.filter((e) => e.review === "pending").length} pending
+        {/* 우측: 진행도 · Task 정보 · 녹화 상태 · 조작 */}
+        <Panel className="gap-5 overflow-y-auto">
+          <div className="flex items-center gap-4">
+            <ProgressRing pct={progressPct} status={task.status} label="Task progress" className="size-16" />
+            <div className="grid gap-0.5">
+              <span className="text-xs text-muted-foreground">Progress</span>
+              <span className="text-xl font-semibold tabular-nums">
+                {collected}
+                <span className="text-sm font-normal text-muted-foreground"> / {task.targetEpisodes}</span>
               </span>
-            }
-          >
-            <EpisodeList episodes={ep.history} videoFps={task.videoFps} onReview={ep.review} />
-          </Panel>
-          <Panel
-            title={`Hand · ${glove?.name ?? "Data Glove"}`}
-            action={
-              gloveOn ? (
-                <span className="font-mono text-[11px] text-muted-foreground">
-                  {glove?.streams.map((s) => `${s.key.replace("hand.", "")} ${s.targetHz}`).join(" · ")} Hz
-                </span>
-              ) : (
-                <PanelLink to="/rigs">Rigs</PanelLink>
-              )
-            }
-          >
-            <HandPanel connected={gloveOn} onDemo={() => setGloveDemo(true)} />
-          </Panel>
-        </div>
-      </div>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {Math.max(0, task.targetEpisodes - collected)} remaining
+              </span>
+            </div>
+          </div>
 
-      {/* Episode controls — 좁은 화면에서는 하단에 붙어 따라온다 */}
-      <div className="sticky bottom-0 shrink-0 bg-background lg:static">
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
-          <Button
-            onClick={toggle}
-            className={cn("h-11 px-4.5", recording && "bg-destructive text-white hover:bg-destructive/90")}
-          >
-            {recording ? <LuSquare /> : <LuCircle />}
-            {recording ? "Stop" : "Start"}
-            <Kbd className="ml-1 bg-transparent text-current opacity-60">Space</Kbd>
-          </Button>
-          <Button variant="outline" className="h-11" disabled={phase === "idle"} onClick={() => save("success")}>
-            Save · success <Kbd>→</Kbd>
-          </Button>
-          <Button variant="outline" className="h-11" disabled={phase === "idle"} onClick={() => save("fail")}>
-            Save · fail <Kbd>F</Kbd>
-          </Button>
-          <Button variant="outline" className="h-11" disabled={phase === "idle"} onClick={start}>
-            Re-record <Kbd>←</Kbd>
-          </Button>
-          <Button variant="outline" className="h-11 text-bad" disabled={phase === "idle"} onClick={discard}>
-            Discard <Kbd>Esc</Kbd>
-          </Button>
-          <span className="ml-auto text-xs text-muted-foreground">
-            {ep.lastOutcome ? `Last saved: ${ep.lastOutcome} · ` : ""}
-            Reset {task.resetS}s · auto-validate on save
-          </span>
-        </div>
+          <div className="grid gap-3">
+            <div className="grid gap-1.5">
+              <span className="text-xs text-muted-foreground">Task</span>
+              <TaskPicker task={task} onSelect={setTaskId} disabled={phase !== "idle"} />
+            </div>
+            <div className="grid gap-1">
+              <span className="text-xs text-muted-foreground">Label</span>
+              <p className="text-[13px] leading-snug">{task.instruction}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <span
+              className={cn(
+                "flex h-10 items-center rounded-md px-3 text-[13px] font-semibold tracking-wider",
+                PHASE[phase].className,
+              )}
+              aria-live="polite"
+            >
+              <span className="flex items-center gap-2">
+                <span className={cn("size-2 rounded-full bg-current", recording && "animate-pulse")} />
+                {PHASE[phase].label}
+              </span>
+            </span>
+            <div className="h-1 overflow-hidden rounded-full bg-muted">
+              <div className="h-full bg-foreground transition-[width]" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="flex justify-between gap-2 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+              <span className="truncate">
+                Episode {ep.episode}
+                {ep.lastOutcome ? ` · ${ep.lastOutcome}` : ""}
+              </span>
+              <span>
+                {fmt(ep.elapsedMs)} / {fmt(task.durationS * 1000)}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-auto grid gap-2">
+            <Button
+              onClick={toggle}
+              className={cn("h-11 w-full", recording && "bg-destructive text-white hover:bg-destructive/90")}
+            >
+              {recording ? <LuSquare /> : <LuCircle />}
+              {recording ? "Stop" : "Start"}
+              <Kbd className="ml-auto bg-transparent text-current opacity-60">Space</Kbd>
+            </Button>
+            {/* 좁은 열이라 한 줄에 하나씩 */}
+            <div className="grid gap-1.5">
+              <Button variant="outline" className="h-9 justify-between px-3" disabled={phase === "idle"} onClick={() => save("success")}>
+                Save as success <Kbd>→</Kbd>
+              </Button>
+              <Button variant="outline" className="h-9 justify-between px-3" disabled={phase === "idle"} onClick={() => save("fail")}>
+                Save as fail <Kbd>F</Kbd>
+              </Button>
+              <Button variant="outline" className="h-9 justify-between px-3" disabled={phase === "idle"} onClick={start}>
+                Re-record <Kbd>←</Kbd>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-9 justify-between px-3 text-bad"
+                disabled={phase === "idle"}
+                onClick={discard}
+              >
+                Discard <Kbd>Esc</Kbd>
+              </Button>
+            </div>
+          </div>
+        </Panel>
       </div>
     </Page>
   )
