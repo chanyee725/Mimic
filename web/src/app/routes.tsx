@@ -2,12 +2,13 @@ import { Route, Routes } from "react-router-dom"
 
 import { AppLayout } from "@/app/layout"
 import { PlaceholderPage } from "@/app/placeholder"
+import { DashboardPage } from "@/features/dashboard/page"
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route index element={<PlaceholderPage title="Dashboard" />} />
+        <Route index element={<DashboardPage />} />
         <Route path="tasks" element={<PlaceholderPage title="Tasks" />} />
         <Route path="tasks/:taskId" element={<PlaceholderPage title="Tasks" />} />
         <Route path="devices" element={<PlaceholderPage title="Devices" />} />
