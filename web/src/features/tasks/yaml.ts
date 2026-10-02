@@ -9,15 +9,12 @@ const ALIGNMENT_YAML: Record<Task["alignment"], string> = {
 
 /** Task 정의를 YAML 텍스트로 직렬화 (표시용 간단 serializer) */
 export function taskToYaml(t: Task): string {
-  const list = (items: string[], indent = "  ") =>
-    items.length ? items.map((v) => `\n${indent}- ${v}`).join("") : " []"
   const rig = getRig(t.rigId)
 
   return [
     `task_id: ${t.id}`,
     `name: ${t.name}`,
-    `instruction: ${t.instruction}`,
-    `variants:${list(t.variants)}`,
+    `label: ${t.instruction}`,
     `tags: [${t.tags.join(", ")}]`,
     `rig: ${rig.id}  # ${rig.master} → ${rig.slave}, ${rig.joints.length} DoF`,
     `cameras: [${t.cameras.join(", ")}]`,
