@@ -19,6 +19,10 @@ import {
 import { APP_NAME, NAV, type NavItem } from "@/app/nav"
 import { STATION } from "@/dummy/station"
 
+// 사이드바는 얇게: 보통 굵기 + 가는 아이콘, 활성 항목만 살짝 강조
+const NAV_ITEM_CLASS =
+  "text-[13px] font-normal text-sidebar-foreground/75 data-active:font-medium data-active:text-sidebar-foreground [&_svg]:size-[15px] [&_svg]:stroke-[1.75]"
+
 function isActive(pathname: string, to: string) {
   return to === "/" ? pathname === "/" : pathname.startsWith(to)
 }
@@ -27,12 +31,12 @@ function NavBadge({ badge }: { badge: NavItem["badge"] }) {
   if (badge === undefined) return null
   if (badge === "rec") {
     return (
-      <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[11px] font-medium text-bad">
+      <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad">
         REC
       </SidebarMenuBadge>
     )
   }
-  return <SidebarMenuBadge className="font-mono text-muted-foreground">{badge}</SidebarMenuBadge>
+  return <SidebarMenuBadge className="font-mono font-normal text-muted-foreground">{badge}</SidebarMenuBadge>
 }
 
 function AppSidebar() {
@@ -46,7 +50,7 @@ function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<NavLink to="/" />}>
                 <div className="grid text-left leading-tight">
-                  <span className="truncate font-semibold tracking-tight">{APP_NAME}</span>
+                  <span className="truncate font-medium tracking-tight">{APP_NAME}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {STATION.id} · {STATION.robot}
                   </span>
@@ -61,7 +65,7 @@ function AppSidebar() {
       <SidebarContent>
         {NAV.map((group) => (
           <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[11px] font-normal text-muted-foreground">{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
@@ -70,6 +74,7 @@ function AppSidebar() {
                       render={<NavLink to={item.to} />}
                       isActive={isActive(pathname, item.to)}
                       tooltip={item.label}
+                      className={NAV_ITEM_CLASS}
                     >
                       <item.icon />
                       <span>{item.label}</span>
