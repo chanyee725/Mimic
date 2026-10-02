@@ -12,6 +12,7 @@ import { getRig } from "@/dummy/rigs"
 import { TASKS } from "@/dummy/tasks"
 import { cn } from "@/lib/utils"
 import { AlignmentStrip } from "./components/alignment-strip"
+import { EpisodeList } from "./components/episode-list"
 import { HandPanel } from "./components/hand-panel"
 import { TimeSeries } from "./components/timeseries"
 import { VideoTile } from "./components/video-tile"
@@ -46,7 +47,13 @@ export function CapturePage() {
   const rig = getRig(task.rigId)
   const [gloveDemo, setGloveDemo] = useState(false)
 
-  const ep = useEpisode({ durationS: task.durationS, startEpisode: task.collected + 1 })
+  const ep = useEpisode({
+    durationS: task.durationS,
+    startEpisode: task.collected + 1,
+    subtasksTotal: task.subtasks.length,
+    actionHz: task.actionHz,
+    videoFps: task.videoFps,
+  })
   const { phase, toggle, save, start, discard, setSubtask } = ep
 
   const rigDevices = devicesOf(rig.id)
@@ -225,6 +232,18 @@ export function CapturePage() {
 
         <div className="grid content-start gap-4">
           <Viewer3D />
+          {/* 녹화 직후 검수: 저장 시 자동 검증 결과를 보고 Accept / Reject */}
+          <Panel
+            title="Episodes"
+            action={
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {ep.history.filter((e) => e.review === "accepted").length} accepted ·{" "}
+                {ep.history.filter((e) => e.review === "pending").length} pending
+              </span>
+            }
+          >
+            <EpisodeList episodes={ep.history} videoFps={task.videoFps} onReview={ep.review} />
+          </Panel>
           <Panel
             title={`Hand · ${glove?.name ?? "Data Glove"}`}
             action={
