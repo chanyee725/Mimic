@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Link } from "react-router-dom"
 import { LuArrowRight, LuPlay } from "react-icons/lu"
 
 import { Page, Panel } from "@/components/app/page"
@@ -7,121 +8,227 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ALIGNMENT_MODES, RAW_STREAMS, RETARGET_OPTIONS, type RawStream } from "@/dummy/convert"
-import { getTask, type Alignment } from "@/dummy/tasks"
+import { ALIGNMENT_MODES, RETARGET_OPTIONS } from "@/dummy/convert"
+import type { McapTopic, Recording } from "@/dummy/recordings"
+import { getRig } from "@/dummy/rigs"
+import { TASKS, getTask, type Alignment } from "@/dummy/tasks"
+import { useRecordings } from "@/lib/recordings-store"
 import { cn } from "@/lib/utils"
 
-const TASK = getTask("stack-two-blocks")!
+const SKIP = "skip"
 
-/** 선택한 정렬 방식에 따라 LeRobot feature 이름과 변환 내용을 정한다. */
-function mapStream(s: RawStream, mode: Alignment, fps: number) {
-  switch (s.kind) {
+/** 외부 파일처럼 메타데이터가 없을 때 사람이 고를 수 있는 LeRobot feature */
+const FEATURE_OPTIONS = [
+  SKIP,
+  "action",
+  "observation.state",
+  "observation.images.top",
+  "observation.images.wrist",
+  "observation.images.main",
+  "observation.hand.imu",
+  "observation.hand.flex",
+  "observation.hand.tactile",
+]
+
+/** 우리 녹화 파일은 Rig 메타데이터가 있으므로 토픽 종류로 feature 를 자동으로 정한다 */
+function autoFeature(t: McapTopic, rec: Recording): string {
+  if (rec.source !== "capture") return SKIP
+  switch (t.kind) {
     case "action":
-      if (mode === "chunk") return { feature: "action [2,6]", transform: "chunk 2 samples" }
-      return { feature: "action [6]", transform: mode === "duplicate" ? "as is" : "downsample" }
+      return "action"
     case "state":
-      if (mode === "chunk") return { feature: s.feature, transform: "sample at frame time" }
-      return { feature: s.feature, transform: mode === "duplicate" ? "as is" : "downsample" }
+      return "observation.state"
     case "video":
-      return { feature: s.feature, transform: mode === "duplicate" ? "duplicate frames" : "as is" }
+      return `observation.images.${t.name.match(/^\/cam_([^/]+)/)?.[1] ?? "main"}`
     case "label":
-      return { feature: s.feature, transform: "segment → per-frame" }
+      return t.name.endsWith("subtask") ? "subtask_index" : SKIP
     case "glove":
-      return {
-        feature: s.feature,
-        transform: `${s.raw.includes("tactile") ? "max-pool" : "interpolate"} → ${fps} Hz`,
-      }
+      return `observation.hand.${t.name.split("/").pop()}`
+    default:
+      return SKIP
   }
 }
 
-function previewType(kind: RawStream["kind"], feature: string) {
-  if (kind === "video") return "video"
-  if (kind === "label") return "int64"
-  if (feature.includes("[")) return "float32"
-  return "float32 [6]"
+/** 정렬 방식과 토픽 주기에 따른 변환 내용 */
+function transformOf(t: McapTopic, mode: Alignment, fps: number) {
+  if (t.rateHz === null) return "event → per-frame"
+  if (t.kind === "video") return mode === "duplicate" ? "duplicate frames" : t.rateHz === fps ? "as is" : `resample → ${fps} fps`
+  // chunk 모드에서 action 만 2 샘플씩 묶고, state 는 프레임 시각의 값을 쓴다
+  if (t.rateHz === fps * 2 && mode === "chunk") return t.kind === "action" ? "chunk 2 samples" : "sample at frame time"
+  if (t.rateHz === fps) return "as is"
+  if (t.kind === "glove") return `${t.name.includes("tactile") ? "max-pool" : "interpolate"} → ${fps} Hz`
+  return `resample ${t.rateHz} → ${fps} Hz`
 }
 
+const IMPORTED = "__imported__"
+
 export function ConvertPage() {
-  const [mode, setMode] = useState<Alignment>("chunk")
-  const [included, setIncluded] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(RAW_STREAMS.map((s) => [s.raw, s.included])),
-  )
+  const recordings = useRecordings()
+  const [taskId, setTaskId] = useState<string>(TASKS[0].id)
+  const task = getTask(taskId)
+  const pool = recordings.filter((r) => (taskId === IMPORTED ? r.source === "external" : r.taskId === taskId))
+  const accepted = pool.filter((r) => r.review === "accepted")
+  const pending = pool.filter((r) => r.review === "pending").length
+
+  // 기본은 승인된 에피소드 전부. Task 를 바꾸면 다시 전부 선택
+  const [excluded, setExcluded] = useState<string[]>([])
+  const [mode, setMode] = useState<Alignment>(task?.alignment ?? "chunk")
+  const [manual, setManual] = useState<Record<string, string>>({})
   const [push, setPush] = useState(true)
 
-  const current = ALIGNMENT_MODES.find((m) => m.id === mode)!
-  const fps = current.fps
-  const rows = RAW_STREAMS.map((s) => ({ ...s, ...mapStream(s, mode, fps), on: included[s.raw] }))
-  const active = rows.filter((r) => r.on)
-  const videoCount = active.filter((r) => r.kind === "video").length
-  const estGb = (videoCount * (mode === "duplicate" ? 3.1 : 2.5) + 0.2).toFixed(1)
+  const changeTask = (id: string) => {
+    setTaskId(id)
+    setExcluded([])
+    setManual({})
+    setMode(getTask(id)?.alignment ?? "chunk")
+  }
+
+  const targets = accepted.filter((r) => !excluded.includes(r.id))
+  const fps = ALIGNMENT_MODES.find((m) => m.id === mode)!.fps
+  const topics = new Map<string, { topic: McapTopic; rec: Recording }>()
+  for (const r of (targets.length ? targets : accepted)) for (const t of r.topics) if (!topics.has(t.name)) topics.set(t.name, { topic: t, rec: r })
+  const mapping = [...topics.values()].map(({ topic, rec }) => {
+    const auto = autoFeature(topic, rec)
+    const feature = manual[topic.name] ?? auto
+    return { topic, feature, auto: rec.source === "capture", transform: transformOf(topic, mode, fps) }
+  })
+  const included = mapping.filter((m) => m.feature !== SKIP)
+  const totalS = targets.reduce((a, r) => a + r.durationS, 0)
+  const totalMB = targets.reduce((a, r) => a + r.sizeMB, 0)
+  const rig = task ? getRig(task.rigId) : undefined
 
   const preview = [
     `fps: ${fps}`,
     "features:",
-    ...active.map((r) => {
-      const name = r.feature.replace(/ \[.*\]$/, "")
-      const shape = r.feature.match(/\[.*\]$/)?.[0]
-      return `  ${name}: ${shape ? `float32 ${shape}` : previewType(r.kind, r.feature)}`
-    }),
-    `task: ${TASK.instruction}`,
+    ...included.map((m) =>
+      m.feature === "action" && mode === "chunk"
+        ? `  action: float32 [2, ${rig?.joints.length ?? 6}]`
+        : `  ${m.feature}: ${m.topic.kind === "video" ? "video" : m.topic.kind === "label" ? "int64" : "float32"}`,
+    ),
+    ...(task ? [`task: ${task.instruction}`] : []),
   ].join("\n")
-
-  const summary = [
-    { k: "Source", v: "3 sessions · 71 accepted" },
-    { k: "Dataset fps", v: String(fps) },
-    { k: "Format", v: "LeRobot v3.0" },
-    { k: "Video codec", v: "AV1 · svt-av1" },
-    { k: "Est. size", v: `≈ ${estGb} GB` },
-  ]
 
   return (
     <Page
-      fit
       title="Convert"
-      description={
-        <>
-          Raw (MCAP, multi-rate) → LeRobotDataset · task <span className="font-mono">{TASK.id}</span>
-        </>
-      }
+      description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다."
       actions={
-        <Button size="lg">
+        <Button size="lg" disabled={targets.length === 0}>
           <LuPlay />
-          Start conversion
+          Convert {targets.length} {targets.length === 1 ? "episode" : "episodes"}
         </Button>
       }
     >
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <Panel title="Time alignment" action={<span className="text-[13px] text-muted-foreground">action 60 Hz · video 30 fps</span>}>
-            <ul className="-mx-2 divide-y" role="radiogroup" aria-label="Time alignment">
+      {/* ── Task ── */}
+      <Panel className="gap-4">
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+          <div className="grid w-72 gap-1.5">
+            <Label htmlFor="convert-task" className="text-xs text-muted-foreground">
+              Task
+            </Label>
+            <Select value={taskId} onValueChange={(v) => v && changeTask(v as string)}>
+              <SelectTrigger id="convert-task" className="h-9 w-full text-[13px]">
+                <SelectValue>{task ? task.id : "Imported files"}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {TASKS.map((t) => (
+                  <SelectItem key={t.id} value={t.id} className="text-[13px]">
+                    {t.id}
+                  </SelectItem>
+                ))}
+                <SelectItem value={IMPORTED} className="text-[13px]">
+                  Imported files
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid min-w-64 flex-1 gap-1">
+            <span className="text-xs text-muted-foreground">Label</span>
+            <span className="truncate text-[13px]">
+              {task ? task.instruction : "외부에서 가져온 MCAP 은 Task 정보가 없어 토픽을 직접 매핑합니다."}
+            </span>
+          </div>
+          {rig && (
+            <div className="grid gap-1">
+              <span className="text-xs text-muted-foreground">Rig</span>
+              <span className="text-[13px]">
+                {rig.name}, {rig.joints.length} DoF
+              </span>
+            </div>
+          )}
+          <div className="grid gap-1">
+            <span className="text-xs text-muted-foreground">Accepted</span>
+            <span className="text-[13px] tabular-nums">
+              {accepted.length} of {pool.length} recordings
+            </span>
+          </div>
+        </div>
+      </Panel>
+
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid content-start gap-4">
+          <Panel
+            title="Episodes"
+            action={
+              pending > 0 ? (
+                <Link to="/review" className="text-[13px] text-muted-foreground hover:text-foreground">
+                  {pending} waiting for review
+                </Link>
+              ) : undefined
+            }
+          >
+            {accepted.length === 0 ? (
+              <p className="py-4 text-center text-[13px] text-muted-foreground">
+                승인된 에피소드가 없습니다. Review 에서 에피소드를 승인하면 여기서 변환할 수 있습니다.
+              </p>
+            ) : (
+              <ul className="-mx-2 grid gap-0.5">
+                {accepted.map((r) => {
+                  const on = !excluded.includes(r.id)
+                  return (
+                    <li key={r.id}>
+                      <Label className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 font-normal hover:bg-accent/60">
+                        <Checkbox
+                          checked={on}
+                          onCheckedChange={(v) =>
+                            setExcluded((ids) => (v === true ? ids.filter((x) => x !== r.id) : [...ids, r.id]))
+                          }
+                        />
+                        <span className="min-w-0 flex-1 truncate text-[13px]">{r.file}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{r.durationS.toFixed(1)} s</span>
+                        <span className="w-16 text-right text-xs text-muted-foreground tabular-nums">{r.sizeMB} MB</span>
+                      </Label>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Time alignment" action={<span className="text-[13px] text-muted-foreground">Dataset fps {fps}</span>}>
+            <ul className="-mx-2 grid gap-0.5" role="radiogroup" aria-label="Time alignment">
               {ALIGNMENT_MODES.map((m) => {
-                const selected = m.id === mode
+                const on = m.id === mode
                 return (
                   <li key={m.id}>
                     <button
                       type="button"
                       role="radio"
-                      aria-checked={selected}
+                      aria-checked={on}
                       onClick={() => setMode(m.id)}
                       className={cn(
-                        "grid w-full grid-cols-[16px_minmax(0,1fr)_auto] items-start gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-muted/50",
-                        selected && "bg-muted/60 hover:bg-muted/60",
+                        "grid w-full grid-cols-[16px_minmax(0,1fr)_auto] items-start gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/60",
+                        on && "bg-accent hover:bg-accent",
                       )}
                     >
-                      <span
-                        className={cn(
-                          "mt-0.5 grid size-4 place-items-center rounded-full border",
-                          selected && "border-foreground",
-                        )}
-                        aria-hidden
-                      >
-                        {selected && <span className="size-2 rounded-full bg-foreground" />}
+                      <span className={cn("mt-0.5 grid size-4 place-items-center rounded-full border", on && "border-foreground")} aria-hidden>
+                        {on && <span className="size-2 rounded-full bg-foreground" />}
                       </span>
                       <span className="grid min-w-0 gap-0.5">
-                        <span className="text-sm font-semibold">{m.title}</span>
-                        <span className="text-[13px] text-muted-foreground">{m.description}</span>
+                        <span className="text-[13px] font-medium">{m.title}</span>
+                        <span className="text-xs text-muted-foreground">{m.description}</span>
                       </span>
-                      <span className="font-mono text-xs text-muted-foreground">{m.spec}</span>
+                      <span className="text-xs text-muted-foreground">{m.spec}</span>
                     </button>
                   </li>
                 )
@@ -130,40 +237,76 @@ export function ConvertPage() {
           </Panel>
 
           <Panel
-            title="Feature mapping"
-            className="flex-1"
-            action={<span className="text-[13px] text-muted-foreground">{active.length} / {rows.length} included</span>}
+            title="Topic mapping"
+            action={
+              <span className="text-[13px] text-muted-foreground tabular-nums">
+                {included.length} of {mapping.length} topics included
+              </span>
+            }
           >
-            <ul className="-mx-2 min-h-0 flex-1 divide-y overflow-y-auto">
-              {rows.map((r) => (
-                <li
-                  key={r.raw}
-                  className={cn(
-                    "grid grid-cols-[20px_minmax(0,1.1fr)_56px_minmax(0,1.2fr)_minmax(0,1fr)] items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-muted/50",
-                    !r.on && "opacity-55",
-                  )}
-                >
-                  <Checkbox
-                    checked={r.on}
-                    onCheckedChange={(v) => setIncluded((prev) => ({ ...prev, [r.raw]: v === true }))}
-                    aria-label={`Include ${r.raw}`}
-                  />
-                  <span className="truncate font-mono text-xs">{r.raw}</span>
-                  <span className="font-mono text-xs text-muted-foreground">{r.rate}</span>
-                  <span className="flex min-w-0 items-center gap-1.5 font-mono text-xs font-medium">
-                    <LuArrowRight className="size-3 shrink-0 text-muted-foreground" aria-hidden />
-                    <span className="truncate">{r.feature}</span>
-                  </span>
-                  <span className="truncate text-[13px] text-muted-foreground">{r.transform}</span>
-                </li>
-              ))}
-            </ul>
+            {mapping.length === 0 ? (
+              <p className="py-4 text-center text-[13px] text-muted-foreground">
+                변환할 에피소드를 선택하면 MCAP 토픽이 여기에 나옵니다.
+              </p>
+            ) : (
+              <ul className="-mx-2 divide-y">
+                {mapping.map((m) => (
+                  <li
+                    key={m.topic.name}
+                    className={cn(
+                      "grid grid-cols-[minmax(0,1.2fr)_64px_minmax(0,1.3fr)_minmax(0,1fr)] items-center gap-3 px-2 py-2",
+                      m.feature === SKIP && "opacity-55",
+                    )}
+                  >
+                    <span className="grid min-w-0">
+                      <span className="truncate text-[13px]">{m.topic.name}</span>
+                      <span className="truncate text-[11px] text-muted-foreground">{m.topic.schema}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {m.topic.rateHz === null ? "event" : `${m.topic.rateHz} Hz`}
+                    </span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <LuArrowRight className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+                      {m.auto ? (
+                        <span className="truncate text-[13px] font-medium">{m.feature === SKIP ? "not included" : m.feature}</span>
+                      ) : (
+                        <Select
+                          value={m.feature}
+                          onValueChange={(v) => v && setManual((prev) => ({ ...prev, [m.topic.name]: v as string }))}
+                        >
+                          <SelectTrigger className="h-8 w-full text-[13px]" aria-label={`Feature for ${m.topic.name}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FEATURE_OPTIONS.map((f) => (
+                              <SelectItem key={f} value={f} className="text-[13px]">
+                                {f === SKIP ? "not included" : f}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">{m.feature === SKIP ? "" : m.transform}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Panel>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-4">
+        <div className="grid content-start gap-4">
           <Panel title="Output">
             <div className="grid gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="repo">Output repo_id</Label>
+                <Input
+                  id="repo"
+                  key={taskId}
+                  className="h-9 text-[13px]"
+                  defaultValue={task?.repoId ?? "local/imported_dataset"}
+                />
+              </div>
               <div className="grid gap-1.5">
                 <Label>Hand retargeting</Label>
                 <Select defaultValue={RETARGET_OPTIONS[0]}>
@@ -179,54 +322,35 @@ export function ConvertPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="repo">Output repo_id</Label>
-                <Input id="repo" className="h-9 font-mono text-[13px]" defaultValue={TASK.repoId} />
-              </div>
               <Label className="font-normal">
                 <Checkbox checked={push} onCheckedChange={(v) => setPush(v === true)} />
                 Push to HF Hub as private when done
               </Label>
             </div>
           </Panel>
-          <Panel title="Summary" className="flex-1">
-            {/* 높이가 부족하면 요약 전체가 패널 안에서 스크롤된다 */}
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-              <dl className="shrink-0 divide-y">
-                {summary.map((s) => (
-                  <div key={s.k} className="flex justify-between gap-3 py-2 text-sm">
-                    <dt className="text-muted-foreground">{s.k}</dt>
-                    <dd className="font-mono text-[13px]">{s.v}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="grid shrink-0 gap-1.5">
-                <span className="text-xs text-muted-foreground">Features preview</span>
-                <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">
-                  {preview}
-                </pre>
-              </div>
-              <div className="mt-auto grid shrink-0 gap-1.5">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Converting · ep 17 / 46</span>
-                  <span className="font-mono">37%</span>
+
+          <Panel title="Summary">
+            <dl className="divide-y">
+              {[
+                { k: "Episodes", v: String(targets.length) },
+                { k: "Total length", v: `${(totalS / 60).toFixed(1)} min` },
+                { k: "MCAP size", v: `${totalMB.toFixed(1)} MB` },
+                { k: "Format", v: "LeRobot v3.0, AV1" },
+              ].map((s) => (
+                <div key={s.k} className="flex justify-between gap-3 py-2 text-[13px]">
+                  <dt className="text-muted-foreground">{s.k}</dt>
+                  <dd className="tabular-nums">{s.v}</dd>
                 </div>
-                <div
-                  className="h-1 overflow-hidden rounded-full bg-muted"
-                  role="progressbar"
-                  aria-label="Conversion progress"
-                  aria-valuenow={37}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
-                  <div className="h-full rounded-full bg-info" style={{ width: "37%" }} />
-                </div>
-                <span className="text-xs text-muted-foreground">2 videos encoding</span>
-              </div>
+              ))}
+            </dl>
+            <div className="grid gap-1.5">
+              <span className="text-xs text-muted-foreground">Features preview</span>
+              <pre className="rounded-md bg-muted p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">{preview}</pre>
             </div>
           </Panel>
         </div>
-      </div>
+      </section>
+
     </Page>
   )
 }

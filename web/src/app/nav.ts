@@ -2,6 +2,7 @@ import type { IconType } from "react-icons"
 import {
   LuBox,
   LuCable,
+  LuClipboardCheck,
   LuCpu,
   LuDatabase,
   LuLayoutDashboard,
@@ -36,6 +37,7 @@ export const NAV: NavGroup[] = [
   {
     label: "Data",
     items: [
+      { to: "/review", label: "Review", icon: LuClipboardCheck },
       { to: "/convert", label: "Convert", icon: LuRepeat },
       { to: "/datasets", label: "Datasets", icon: LuDatabase },
     ],
