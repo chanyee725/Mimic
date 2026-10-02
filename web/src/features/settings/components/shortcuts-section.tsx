@@ -1,6 +1,6 @@
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { Kbd } from "@/components/ui/kbd"
-import { SHORTCUTS, VERSIONS } from "@/dummy/settings"
+import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
+import { SHORTCUTS } from "@/dummy/settings"
 
 export function ShortcutsSection() {
   return (
@@ -24,23 +24,6 @@ export function ShortcutsSection() {
           </dl>
         </SettingsSection>
       ))}
-    </SettingsGroup>
-  )
-}
-
-export function AboutSection() {
-  return (
-    <SettingsGroup>
-      <SettingsSection title="Versions">
-        <dl className="divide-y">
-          {VERSIONS.map((v) => (
-            <div key={v.k} className="flex justify-between gap-4 py-2 text-[13px]">
-              <dt className="text-muted-foreground">{v.k}</dt>
-              <dd className="font-mono">{v.v}</dd>
-            </div>
-          ))}
-        </dl>
-      </SettingsSection>
     </SettingsGroup>
   )
 }

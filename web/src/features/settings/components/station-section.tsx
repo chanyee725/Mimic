@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { LuPlus, LuTrash2 } from "react-icons/lu"
 
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { SETTINGS } from "@/dummy/settings"
 import { pad } from "@/lib/format"
 

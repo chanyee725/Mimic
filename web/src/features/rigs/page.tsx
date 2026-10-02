@@ -13,7 +13,7 @@ import { useRigSelection } from "./hooks/use-rig-selection"
 export function RigsPage() {
   const { rig, groups, group, groupDevices, selected, selectRig, selectGroup, selectDevice } = useRigSelection()
 
-  // 장치는 테스트할 때만 USB 로 연결되므로 연결 상태 대신 Rig 설정 기준 등록 현황을 보여준다
+  // Devices are only plugged in over USB for testing, so show registered counts from the rig config instead of connection state
   const stats = [
     { label: "Rigs", value: RIGS.length, icon: LuBoxes },
     { label: "Robots", value: RIGS.reduce((n, r) => n + r.robots.length, 0), icon: LuBot },

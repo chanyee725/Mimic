@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-/** 섹션 단위 편집 상태. 저장 전까지는 draft 만 바뀌고, dirty 면 저장 바가 보인다 */
+/** Per-section edit state. Only the draft changes until saved; the save bar shows while dirty */
 export function useDraft<T>(initial: T) {
   const [saved, setSaved] = useState(initial)
   const [draft, setDraft] = useState(initial)

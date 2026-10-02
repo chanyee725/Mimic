@@ -18,14 +18,14 @@ export function rateText(s: DeviceStream) {
   return `${measured} / ${s.targetHz} ${s.unit}`
 }
 
-/** 실측 주기가 목표의 98% 미만이면 경고 색, 미측정이면 흐리게 */
+/** Warn color when the measured rate is below 98% of target, muted when not measured */
 export function rateClass(s: DeviceStream) {
   if (s.targetHz === null) return "text-foreground"
   if (s.measuredHz === null) return "text-muted-foreground"
   return s.measuredHz / s.targetHz < 0.98 ? "text-warn" : "text-foreground"
 }
 
-/** Rig 전체 상태: 하나라도 경고면 warn, 모두 꺼져 있으면 off */
+/** Overall rig health: warn if any device is not ok, off if all are off */
 export function rigHealth(devices: Device[]): Health {
   if (devices.every((d) => d.health === "off")) return "off"
   if (devices.some((d) => d.health !== "ok")) return "warn"
@@ -35,7 +35,7 @@ export function rigHealth(devices: Device[]): Health {
 const portOf = (id: string) => DEVICES.find((d) => d.id === id)?.port ?? "—"
 const modelOf = (id: string) => DEVICES.find((d) => d.id === id)?.name ?? id
 
-/** Rig 설정 파일(YAML) 표시용 serializer */
+/** Display-only serializer for the rig config file (YAML) */
 export function rigToYaml(rig: Rig): string {
   const device = (id: string) => [`  - id: ${id}`, `    model: ${modelOf(id)}`, `    port: ${portOf(id)}`]
   return [

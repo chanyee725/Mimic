@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-/** 값 ↔ 표시 이름이 다른 선택 상자 */
+/** Select whose values differ from their display labels */
 export function ChoiceSelect<T extends string | number>({
   id,
   value,

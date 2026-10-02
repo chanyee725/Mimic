@@ -1,4 +1,4 @@
-/** 오른쪽에 단위가 붙은 숫자 입력 */
+/** Number input with a unit suffix */
 export function UnitInput({ id, value, unit, onChange }: { id: string; value: number; unit: string; onChange?: (v: number) => void }) {
   return (
     <div className="flex h-9 items-center overflow-hidden rounded-md border border-input transition-colors focus-within:border-foreground/25 focus-within:ring-2 focus-within:ring-foreground/5">

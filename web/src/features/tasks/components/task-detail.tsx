@@ -12,7 +12,7 @@ import type { Task } from "@/dummy/tasks"
 import { STATUS, taskToYaml } from "../lib"
 import { TaskDefinition } from "./task-definition"
 
-/** 선택된 Task 의 편집 상태. 부모에서 task id 로 key 를 걸어 Task 전환 시 초기화된다. */
+/** Edit state for the selected task. The parent keys it by task id so it resets when the task changes. */
 export function TaskDetail({ initial }: { initial: Task }) {
   const [task, setTask] = useState<Task>(initial)
   const [tab, setTab] = useState("definition")
@@ -21,12 +21,12 @@ export function TaskDetail({ initial }: { initial: Task }) {
 
   return (
     <Panel className="@container min-w-0 gap-4">
-      {/* 제목 · 메타는 왼쪽, 액션은 오른쪽 위 한 줄. 폭이 모자라면 제목이 말줄임된다 */}
+      {/* Title and meta on the left, actions top-right on one line. The title truncates when space runs out */}
       <div className="flex items-start justify-between gap-4">
         <div className="grid min-w-0 flex-1 gap-1">
           <div className="flex min-w-0 items-center gap-2.5">
             <h2 className="min-w-0 truncate text-lg font-semibold">{task.id}</h2>
-            {/* 패널이 좁으면 제목이 잘리지 않도록 상태·배지를 먼저 숨긴다 */}
+            {/* On narrow panels, hide the status and badge first so the title is not cut off */}
             <StatusDot tone={status.tone} className="hidden shrink-0 text-[13px] @lg:inline-flex">
               {status.label}
             </StatusDot>
@@ -64,7 +64,7 @@ export function TaskDetail({ initial }: { initial: Task }) {
             YAML
           </TabsTrigger>
         </TabsList>
-        {/* 탭 내용만 세로로 스크롤. 가로는 패널 폭에 맞춰 넘치지 않게 한다 */}
+        {/* Only the tab content scrolls vertically; horizontally it stays within the panel width */}
         <TabsContent value="definition" className="@container min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           <TaskDefinition task={task} onChange={(patch) => setTask((t) => ({ ...t, ...patch }))} />
         </TabsContent>

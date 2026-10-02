@@ -19,7 +19,7 @@ export function TaskList({ selectedId }: { selectedId: string }) {
   const q = query.trim().toLowerCase()
   const tasks = TASKS.filter((t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q))
 
-  // 앱 사이드바와 같은 톤: 구분선 없이 얇은 글자, 선택 행만 배경으로 강조
+  // Same tone as the app sidebar: no dividers, light text, only the selected row gets a background
   return (
     <Panel
       className="gap-2 p-3"

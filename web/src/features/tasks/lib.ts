@@ -9,7 +9,7 @@ export const STATUS: Record<TaskStatus, { tone: Tone; label: string }> = {
   completed: { tone: "info", label: "Completed" },
 }
 
-/** Task 에 묶인 세션 수와 에피소드 가중 평균 성공률 (에피소드가 없으면 null) */
+/** Session count and episode-weighted success rate for a task (null when there are no episodes) */
 export function successOf(taskId: string) {
   const sessions = SESSIONS.filter((s) => s.taskId === taskId)
   const episodes = sessions.reduce((a, s) => a + s.episodes, 0)
@@ -17,10 +17,10 @@ export function successOf(taskId: string) {
   return { sessions: sessions.length, success }
 }
 
-/** 주기 목록을 선택 상자 옵션으로 */
+/** Turn a list of rates into select options */
 export const rateOptions = (xs: number[], unit: string) => xs.map((x) => ({ value: String(x), label: `${x} ${unit}` }))
 
-/** Task 정의를 YAML 텍스트로 직렬화 (표시용 간단 serializer) */
+/** Serialize a task definition to YAML text (simple display-only serializer) */
 export function taskToYaml(t: Task): string {
   const rig = getRig(t.rigId)
 

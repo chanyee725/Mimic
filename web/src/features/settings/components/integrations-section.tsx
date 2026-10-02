@@ -1,6 +1,6 @@
-import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { SettingsGroup, SettingsSection } from "@/components/app/settings-section"
 import { RUNPOD_REGIONS, RUNPOD_VOLUMES } from "@/dummy/training"
 import { SETTINGS } from "@/dummy/settings"
 

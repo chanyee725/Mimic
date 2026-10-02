@@ -3,7 +3,7 @@ import { useState } from "react"
 import { devicesOf } from "@/dummy/devices"
 import { getRig, rigGroups, RIGS } from "@/dummy/rigs"
 
-/** 선택한 Rig · 장치 그룹(탭) · 장치. Rig 나 그룹을 바꾸면 첫 장치를 고른다 */
+/** Selected rig, device group (tab) and device. Changing the rig or group selects its first device */
 export function useRigSelection() {
   const [rigId, setRigId] = useState(RIGS[0].id)
   const rig = getRig(rigId)

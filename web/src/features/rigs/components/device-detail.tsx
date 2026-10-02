@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rateClass, rateText, TYPE_LABEL } from "../lib"
 
-/** 선택한 장치의 간단한 정보 */
+/** Basic info for the selected device */
 export function DeviceDetail({ device }: { device: Device }) {
   const info = [
     { k: "Type", v: TYPE_LABEL[device.type] },

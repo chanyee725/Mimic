@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-/** 문자열 값 ↔ 표시 이름 선택 상자 */
+/** Select with string values and display labels */
 export function SimpleSelect({
   id,
   value,

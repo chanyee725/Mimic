@@ -1,4 +1,4 @@
-/** Rig 에서 불러온 읽기 전용 값 */
+/** Read-only value loaded from the rig */
 export function Info({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid min-w-0 gap-0.5">

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-/** 왼쪽 이름 · 설명, 오른쪽 입력 */
+/** Label and hint on the left, input on the right */
 export function SettingRow({
   label,
   hint,

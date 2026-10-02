@@ -45,7 +45,7 @@ export function TaskDefinition({ task, onChange }: Props) {
       </SettingsSection>
 
       <SettingsSection title="Rig">
-        {/* Rig 를 바꾸면 Master/Slave, 주기, 카메라 기본값을 함께 불러온다. 라벨은 섹션 제목과 같아 숨긴다 */}
+        {/* Changing the rig also loads its master/slave, rate and camera defaults. The label repeats the section title, so it is hidden */}
         <div>
           <Label htmlFor="t-rig" className="sr-only">
             Rig

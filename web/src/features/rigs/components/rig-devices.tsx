@@ -16,7 +16,7 @@ type Props = {
   onSelectDevice: (id: string) => void
 }
 
-/** 선택한 Rig 의 장치 목록과 설정 파일 */
+/** Device list and config file for the selected rig */
 export function RigDevices({ rig, groups, group, groupDevices, selectedId, onGroupChange, onSelectDevice }: Props) {
   return (
     <Panel
@@ -28,7 +28,7 @@ export function RigDevices({ rig, groups, group, groupDevices, selectedId, onGro
         </span>
       }
     >
-      {/* Rig 안의 장치를 Robot / Device / Camera 탭으로 나눠 본다 */}
+      {/* Split the rig's devices into Robot / Device / Camera tabs */}
       <Tabs value={group} onValueChange={(v) => onGroupChange(String(v))} className="min-h-0 flex-1">
         <TabsList>
           {groups.map((g) => (
@@ -41,7 +41,7 @@ export function RigDevices({ rig, groups, group, groupDevices, selectedId, onGro
             Config
           </TabsTrigger>
         </TabsList>
-        {/* Rig 설정 파일: Robot / Device / Camera 구성이 여기에 기록된다 */}
+        {/* Rig config file: records the Robot / Device / Camera setup */}
         <TabsContent value="config" className="min-h-0 flex-1 overflow-y-auto">
           <pre className="rounded-md bg-muted p-4 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">{rigToYaml(rig)}</pre>
         </TabsContent>
