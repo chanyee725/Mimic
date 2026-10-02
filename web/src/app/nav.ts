@@ -4,7 +4,6 @@ import {
   LuCable,
   LuCpu,
   LuDatabase,
-  LuHistory,
   LuLayoutDashboard,
   LuListChecks,
   LuRadioTower,
@@ -32,7 +31,6 @@ export const NAV: NavGroup[] = [
       { to: "/tasks", label: "Tasks", icon: LuListChecks, badge: TASKS.length },
       { to: "/devices", label: "Devices", icon: LuCable },
       { to: "/capture", label: "Capture", icon: LuRadioTower, badge: "rec" },
-      { to: "/sessions", label: "Sessions", icon: LuHistory },
     ],
   },
   {
