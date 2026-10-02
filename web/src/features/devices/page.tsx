@@ -5,7 +5,8 @@ import { Page, Panel } from "@/components/app/page"
 import { StatStrip } from "@/components/app/stat-strip"
 import { StatusDot, type Tone } from "@/components/app/status-dot"
 import { Button } from "@/components/ui/button"
-import { CALIBRATION_STEPS, DEVICES, type Device, type DeviceStream, type Health } from "@/dummy/devices"
+import { CALIBRATION_STEPS, DEVICE_GROUPS, devicesOf, type Device, type DeviceStream, type Health } from "@/dummy/devices"
+import { getRig, RIGS } from "@/dummy/rigs"
 import { cn } from "@/lib/utils"
 
 const HEALTH_TONE: Record<Health, Tone> = { ok: "ok", warn: "warn", off: "muted" }
@@ -31,33 +32,88 @@ function DeviceRow({ device, selected, onSelect }: { device: Device; selected: b
         onClick={onSelect}
         aria-pressed={selected}
         className={cn(
-          "grid w-full gap-x-6 gap-y-2 rounded-md px-2 py-3 text-left transition-colors hover:bg-muted/50 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]",
-          selected && "bg-muted/60 hover:bg-muted/60",
+          "grid w-full gap-x-6 gap-y-1.5 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-accent/60 @xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]",
+          selected && "bg-accent hover:bg-accent",
         )}
       >
         <div className="grid min-w-0 gap-0.5">
           <div className="flex min-w-0 items-center gap-2">
             <StatusDot tone={HEALTH_TONE[device.health]} />
-            <span className="truncate text-sm font-semibold">{device.name}</span>
-            <span className="shrink-0 text-xs text-muted-foreground">{device.type}</span>
+            <span className={cn("truncate text-[13px]", selected ? "font-medium" : "font-normal")}>{device.name}</span>
           </div>
-          <span className="truncate pl-3.5 font-mono text-xs text-muted-foreground">{device.port}</span>
-          <span className={cn("pl-3.5 text-xs", device.calibration.done ? "text-muted-foreground" : "text-warn")}>
-            {device.calibration.note}
+          <span className="truncate pl-3.5 text-xs text-muted-foreground">
+            {device.port}
+            {!device.calibration.done && <span className="text-warn"> · {device.calibration.note}</span>}
           </span>
         </div>
-        <div className="grid content-center gap-1">
+        <div className="grid content-center gap-0.5 pl-3.5 @xl:pl-0">
           {device.streams.map((s) => (
-            <div key={s.key} className="flex justify-between gap-3 font-mono text-xs">
-              <span className="min-w-0 truncate">
-                {s.key} <span className="text-muted-foreground">{s.shape}</span>
-              </span>
-              <span className={cn("shrink-0", rateClass(s))}>{rateText(s)}</span>
+            <div key={s.key} className="flex justify-between gap-3 text-xs">
+              <span className="min-w-0 truncate text-muted-foreground">{s.key}</span>
+              <span className={cn("shrink-0 tabular-nums", rateClass(s))}>{rateText(s)}</span>
             </div>
           ))}
         </div>
       </button>
     </li>
+  )
+}
+
+/** Rig 전체 상태: 하나라도 경고면 warn, 모두 꺼져 있으면 off */
+function rigHealth(devices: Device[]): Health {
+  if (devices.every((d) => d.health === "off")) return "off"
+  if (devices.some((d) => d.health !== "ok")) return "warn"
+  return "ok"
+}
+
+function RigList({ selectedId, onSelect }: { selectedId: string; onSelect: (id: string) => void }) {
+  return (
+    <Panel
+      className="gap-2 p-3"
+      title={
+        <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
+          Rigs
+          <span className="font-normal text-muted-foreground tabular-nums">{RIGS.length}</span>
+        </span>
+      }
+      action={
+        <Button variant="ghost" size="icon-sm" aria-label="Add rig" title="Add rig" className="text-muted-foreground">
+          <LuPlus />
+        </Button>
+      }
+    >
+      <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
+        {RIGS.map((r) => {
+          const devices = devicesOf(r.id)
+          const online = devices.filter((d) => d.health !== "off").length
+          const selected = r.id === selectedId
+          return (
+            <li key={r.id}>
+              <button
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onSelect(r.id)}
+                className={cn(
+                  "grid w-full gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/60",
+                  selected && "bg-accent hover:bg-accent",
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <StatusDot tone={HEALTH_TONE[rigHealth(devices)]} />
+                  <span className={cn("truncate text-[13px]", selected ? "font-medium" : "font-normal")}>{r.name}</span>
+                </span>
+                <span className="truncate pl-3.5 text-xs text-muted-foreground">
+                  {r.master} → {r.slave}
+                </span>
+                <span className="pl-3.5 text-[11px] text-muted-foreground/80 tabular-nums">
+                  {online}/{devices.length} online · {r.joints.length} DoF
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </Panel>
   )
 }
 
@@ -117,16 +173,24 @@ function DeviceDetail({ device }: { device: Device }) {
 }
 
 export function DevicesPage() {
+  const [rigId, setRigId] = useState(RIGS[0].id)
+  const rig = getRig(rigId)
+  const devices = devicesOf(rig.id)
   const [selectedId, setSelectedId] = useState("follower")
-  const selected = DEVICES.find((d) => d.id === selectedId) ?? DEVICES[0]
+  const selected = devices.find((d) => d.id === selectedId) ?? devices[0]
+
+  const selectRig = (id: string) => {
+    setRigId(id)
+    setSelectedId(devicesOf(id)[0]?.id ?? "")
+  }
 
   const stats = [
-    { label: "Devices", value: DEVICES.length, icon: LuCable },
-    { label: "Online", value: DEVICES.filter((d) => d.health !== "off").length, icon: LuWifi },
-    { label: "Warnings", value: DEVICES.filter((d) => d.health === "warn").length, icon: LuTriangleAlert },
+    { label: "Devices", value: devices.length, icon: LuCable },
+    { label: "Online", value: devices.filter((d) => d.health !== "off").length, icon: LuWifi },
+    { label: "Warnings", value: devices.filter((d) => d.health === "warn").length, icon: LuTriangleAlert },
     {
       label: "Calibrated",
-      value: `${DEVICES.filter((d) => d.calibration.done).length} / ${DEVICES.length}`,
+      value: `${devices.filter((d) => d.calibration.done).length} / ${devices.length}`,
       icon: LuCircleCheck,
     },
   ]
@@ -135,7 +199,7 @@ export function DevicesPage() {
     <Page
       fit
       title="Devices"
-      description="장치 플러그인의 describe() 결과로 스트림과 패널이 자동 구성됩니다."
+      description="Rig 별로 연결된 로봇 · 카메라 · 입력 장치의 상태와 캘리브레이션을 관리합니다."
       actions={
         <>
           <Button variant="outline" size="lg">
@@ -151,15 +215,41 @@ export function DevicesPage() {
     >
       <StatStrip items={stats} />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <Panel title="Connected devices" action={<span className="text-[13px] text-muted-foreground">{DEVICES.length} devices</span>}>
-          <ul className="-mx-2 min-h-0 flex-1 divide-y overflow-y-auto">
-            {DEVICES.map((d) => (
-              <DeviceRow key={d.id} device={d} selected={d.id === selected.id} onSelect={() => setSelectedId(d.id)} />
-            ))}
-          </ul>
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
+        <RigList selectedId={rig.id} onSelect={selectRig} />
+
+        <Panel
+          className="@container"
+          title={rig.name}
+          action={
+            <span className="text-[13px] text-muted-foreground tabular-nums">
+              {rig.targetHz.action} Hz · {rig.targetHz.video} fps
+            </span>
+          }
+        >
+          {/* 장치를 Robot / Camera / Device 로 나눠 보여준다 */}
+          <div className="-mx-2 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto">
+            {DEVICE_GROUPS.map((g) => {
+              const items = devices.filter((d) => g.types.includes(d.type))
+              if (items.length === 0) return null
+              return (
+                <section key={g.key} className="grid gap-1">
+                  <h3 className="flex items-baseline gap-1.5 px-2 text-xs text-muted-foreground">
+                    {g.label}
+                    <span className="tabular-nums">{items.length}</span>
+                  </h3>
+                  <ul className="grid gap-0.5">
+                    {items.map((d) => (
+                      <DeviceRow key={d.id} device={d} selected={d.id === selected?.id} onSelect={() => setSelectedId(d.id)} />
+                    ))}
+                  </ul>
+                </section>
+              )
+            })}
+          </div>
         </Panel>
-        <DeviceDetail device={selected} />
+
+        {selected && <DeviceDetail device={selected} />}
       </div>
     </Page>
   )
