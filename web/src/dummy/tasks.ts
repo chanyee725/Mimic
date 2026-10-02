@@ -1,15 +1,8 @@
-import { ACTION_HZ, VIDEO_FPS } from "@/dummy/robot"
+import { getRig, rigDefaults } from "@/dummy/rigs"
 
 export type TaskStatus = "active" | "draft" | "completed"
 export type Outcome = "success" | "fail" | "partial"
 export type Alignment = "chunk" | "duplicate" | "downsample"
-
-export type SensorToggle = {
-  key: string
-  name: string
-  spec: string
-  enabled: boolean
-}
 
 export type Subtask = { key: string; name: string; description: string }
 
@@ -19,11 +12,10 @@ export type Task = {
   instruction: string
   variants: string[]
   tags: string[]
-  robot: string
-  teleop: string
-  sensors: SensorToggle[]
-  actionHz: number
-  videoFps: number
+  rigId: string
+  cameras: string[] // Rig 카메라 중 이 Task 에서 녹화할 것
+  actionHz: number // Rig 의 actionHzOptions 중 선택
+  videoFps: number // Rig 의 videoFpsOptions 중 선택
   targetEpisodes: number
   durationS: number
   resetS: number
@@ -41,13 +33,6 @@ export type Task = {
   updatedBy: string // 가명 operator ID 만 사용 (PII 저장 금지)
 }
 
-const defaultSensors = (top = false): SensorToggle[] => [
-  { key: "front", name: "Front camera", spec: "observation.images.front · 640×480 @30", enabled: true },
-  { key: "wrist", name: "Wrist camera", spec: "observation.images.wrist · 640×480 @30", enabled: true },
-  { key: "top", name: "Top camera", spec: "observation.images.top · 640×480 @30", enabled: top },
-  { key: "glove", name: "Data Glove (R)", spec: "hand.imu / flex / tactile · planned", enabled: false },
-]
-
 const outcomes: Task["outcomes"] = [
   { value: "success", key: "→" },
   { value: "fail", key: "F" },
@@ -55,10 +40,7 @@ const outcomes: Task["outcomes"] = [
 ]
 
 const base = {
-  robot: "SO-101 Follower",
-  teleop: "SO-101 Leader",
-  actionHz: ACTION_HZ,
-  videoFps: VIDEO_FPS,
+  ...rigDefaults(getRig("so101-kit")),
   resetS: 10,
   countdownS: 3,
   outcomes,
@@ -74,7 +56,6 @@ export const TASKS: Task[] = [
     instruction: "stack the blue block on top of the red block",
     variants: ["put the blue block on the red one", "place blue cube onto red cube"],
     tags: ["pick-place", "tabletop", "single-arm"],
-    sensors: defaultSensors(),
     targetEpisodes: 50,
     durationS: 30,
     subtasks: [
@@ -98,7 +79,6 @@ export const TASKS: Task[] = [
     instruction: "pick the red cube and place it in the bowl",
     variants: ["put the red cube into the bowl"],
     tags: ["pick-place", "tabletop"],
-    sensors: defaultSensors(),
     targetEpisodes: 50,
     durationS: 20,
     subtasks: [
@@ -121,7 +101,6 @@ export const TASKS: Task[] = [
     instruction: "open the top drawer",
     variants: ["pull the top drawer open"],
     tags: ["articulated"],
-    sensors: defaultSensors(),
     targetEpisodes: 40,
     durationS: 25,
     subtasks: [
@@ -144,7 +123,7 @@ export const TASKS: Task[] = [
     instruction: "sort the blocks into matching color trays",
     variants: [],
     tags: ["sorting", "multi-step"],
-    sensors: defaultSensors(true),
+    cameras: ["front", "wrist", "top"],
     targetEpisodes: 100,
     durationS: 45,
     subtasks: [
@@ -166,7 +145,6 @@ export const TASKS: Task[] = [
     instruction: "pour the beads from the small cup into the large cup",
     variants: ["empty the small cup into the large one"],
     tags: ["pouring", "tabletop"],
-    sensors: defaultSensors(),
     targetEpisodes: 60,
     durationS: 35,
     subtasks: [
@@ -189,7 +167,6 @@ export const TASKS: Task[] = [
     instruction: "wipe the spill with the sponge",
     variants: [],
     tags: ["contact-rich"],
-    sensors: defaultSensors(),
     targetEpisodes: 30,
     durationS: 40,
     subtasks: [

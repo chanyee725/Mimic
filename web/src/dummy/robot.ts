@@ -1,16 +1,4 @@
-// SO-101 기준 상수. 백엔드 연결 전까지 UI 에서 사용하는 더미 값.
-
-export const ACTION_HZ = 60
-export const VIDEO_FPS = 30
-
-export const SO101_JOINTS = [
-  "shoulder_pan",
-  "shoulder_lift",
-  "elbow_flex",
-  "wrist_flex",
-  "wrist_roll",
-  "gripper",
-] as const
+// 손(Data Glove) 시각화용 상수. 로봇 관절·주기는 Rig(@/dummy/rigs) 에서 가져온다.
 
 export const FINGERS = [
   { name: "Thumb", short: "T" },

@@ -7,12 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ALIGNMENT_MODES } from "@/dummy/convert"
-import { SO101_JOINTS } from "@/dummy/robot"
+import { getRig, rigDefaults, RIGS } from "@/dummy/rigs"
 import type { Alignment, Task } from "@/dummy/tasks"
-import { cn } from "@/lib/utils"
-
-const ROBOTS = ["SO-101 Follower", "SO-101 Bimanual"]
-const TELEOPS = ["SO-101 Leader", "Data Glove (R)", "Keyboard / Gamepad"]
 
 type Props = {
   task: Task
@@ -34,28 +30,20 @@ function UnitInput({
   id,
   value,
   unit,
-  locked,
   onChange,
 }: {
   id: string
   value: number
   unit: string
-  locked?: boolean
   onChange?: (v: number) => void
 }) {
   return (
-    <div
-      className={cn(
-        "flex h-9 items-center overflow-hidden rounded-md border border-input",
-        locked && "bg-muted",
-      )}
-    >
+    <div className="flex h-9 items-center overflow-hidden rounded-md border border-input">
       <input
         id={id}
         type="number"
         min={0}
         value={value}
-        readOnly={locked}
         onChange={(e) => onChange?.(Number(e.target.value))}
         className="h-full min-w-0 flex-1 bg-transparent px-2.5 font-mono text-[13px] outline-none"
       />
@@ -91,17 +79,26 @@ function SimpleSelect({
   )
 }
 
-const asOptions = (xs: string[]) => xs.map((x) => ({ value: x, label: x }))
+/** Rig 에서 불러온 읽기 전용 값 */
+function Info({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid min-w-0 gap-0.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="truncate text-[13px]">{children}</span>
+    </div>
+  )
+}
+
+const rateOptions = (xs: number[], unit: string) => xs.map((x) => ({ value: String(x), label: `${x} ${unit}` }))
 
 export function TaskDefinition({ task, onChange }: Props) {
+  const rig = getRig(task.rigId)
   const setVariant = (i: number, v: string) =>
     onChange({ variants: task.variants.map((x, k) => (k === i ? v : x)) })
 
   return (
     <SettingsGroup className="-mx-5 rounded-none border-x-0 border-b-0">
-      <SettingsSection
-        title="General"
-      >
+      <SettingsSection title="General">
         <div className="grid gap-3 @md:grid-cols-2">
           <Field label="Task name" htmlFor="t-name">
             <Input id="t-name" className="h-9" value={task.name} onChange={(e) => onChange({ name: e.target.value })} />
@@ -150,51 +147,76 @@ export function TaskDefinition({ task, onChange }: Props) {
         </Field>
       </SettingsSection>
 
-      <SettingsSection
-        title="Robot & sensors"
-      >
-        <div className="grid gap-3 @md:grid-cols-2">
-          <Field label="Robot" htmlFor="t-robot">
-            <SimpleSelect id="t-robot" value={task.robot} options={asOptions(ROBOTS)} onChange={(robot) => onChange({ robot })} />
-          </Field>
-          <Field label="Teleop" htmlFor="t-teleop">
-            <SimpleSelect id="t-teleop" value={task.teleop} options={asOptions(TELEOPS)} onChange={(teleop) => onChange({ teleop })} />
-          </Field>
+      <SettingsSection title="Rig">
+        {/* Rig 를 바꾸면 Master/Slave, 주기, 카메라 기본값을 함께 불러온다. 라벨은 섹션 제목과 같아 숨긴다 */}
+        <div>
+          <Label htmlFor="t-rig" className="sr-only">
+            Rig
+          </Label>
+          <SimpleSelect
+            id="t-rig"
+            value={rig.id}
+            options={RIGS.map((r) => ({ value: r.id, label: r.name }))}
+            onChange={(id) => onChange(rigDefaults(getRig(id)))}
+          />
+        </div>
+        <div className="grid gap-x-4 gap-y-3 rounded-md bg-muted/50 px-3 py-2.5 @md:grid-cols-3">
+          <Info label="Master">{rig.master}</Info>
+          <Info label="Slave">{rig.slave}</Info>
+          <Info label="Target rate">
+            {rig.targetHz.action} Hz · {rig.targetHz.video} fps
+          </Info>
         </div>
         <div className="grid gap-1.5">
           <span className="text-[13px] font-medium">
-            Action space <span className="font-normal text-muted-foreground">· {SO101_JOINTS.length} DoF</span>
+            Action space <span className="font-normal text-muted-foreground">· {rig.joints.length} DoF</span>
           </span>
-          <span className="font-mono text-xs leading-relaxed text-muted-foreground">{SO101_JOINTS.join(" · ")}</span>
+          <span className="text-xs leading-relaxed text-muted-foreground">{rig.joints.join(" · ")}</span>
         </div>
-        <div className="divide-y rounded-md border">
-          {task.sensors.map((s, i) => (
-            <div key={s.key} className="flex items-center gap-3 px-3 py-2.5">
-              <div className="grid flex-1 gap-0.5">
-                <span className="text-sm">{s.name}</span>
-                <span className="font-mono text-xs text-muted-foreground">{s.spec}</span>
-              </div>
-              <Switch
-                aria-label={s.name}
-                checked={s.enabled}
-                onCheckedChange={(enabled) =>
-                  onChange({ sensors: task.sensors.map((x, k) => (k === i ? { ...x, enabled } : x)) })
-                }
-              />
-            </div>
-          ))}
+        <div className="grid gap-1.5">
+          <span className="text-[13px] font-medium">Cameras</span>
+          <div className="divide-y rounded-md border">
+            {rig.cameras.map((c) => {
+              const on = task.cameras.includes(c.key)
+              return (
+                <div key={c.key} className="flex items-center gap-3 px-3 py-2.5">
+                  <div className="grid min-w-0 flex-1 gap-0.5">
+                    <span className="text-sm">{c.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {c.feature} · {c.resolution} @{c.fps}
+                    </span>
+                  </div>
+                  <Switch
+                    aria-label={c.name}
+                    checked={on}
+                    onCheckedChange={(checked) =>
+                      onChange({ cameras: checked ? [...task.cameras, c.key] : task.cameras.filter((k) => k !== c.key) })
+                    }
+                  />
+                </div>
+              )
+            })}
+          </div>
         </div>
       </SettingsSection>
 
-      <SettingsSection
-        title="Recording"
-      >
+      <SettingsSection title="Recording">
         <div className="grid gap-3 @lg:grid-cols-3">
           <Field label="Action rate" htmlFor="r-action">
-            <UnitInput id="r-action" value={task.actionHz} unit="Hz" locked />
+            <SimpleSelect
+              id="r-action"
+              value={String(task.actionHz)}
+              options={rateOptions(rig.actionHzOptions, "Hz")}
+              onChange={(v) => onChange({ actionHz: Number(v) })}
+            />
           </Field>
           <Field label="Video rate" htmlFor="r-video">
-            <UnitInput id="r-video" value={task.videoFps} unit="fps" locked />
+            <SimpleSelect
+              id="r-video"
+              value={String(task.videoFps)}
+              options={rateOptions(rig.videoFpsOptions, "fps")}
+              onChange={(v) => onChange({ videoFps: Number(v) })}
+            />
           </Field>
           <Field label="Target episodes" htmlFor="r-target">
             <UnitInput id="r-target" value={task.targetEpisodes} unit="ep" onChange={(targetEpisodes) => onChange({ targetEpisodes })} />
