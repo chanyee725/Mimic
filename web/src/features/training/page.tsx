@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils"
 
 import { JOB_STATUS, computeText, jobPct, runpodRate, runpodSummary } from "./jobs"
 import { overrideFlags, type Overrides } from "./params"
+import { ConfirmTrainingDialog, type TrainingPlan } from "./confirm-dialog"
+import { GpuPickerDialog } from "./gpu-picker-dialog"
 import { ParamsDialog } from "./params-dialog"
 import { RunPodDialog } from "./runpod-dialog"
 
@@ -146,7 +148,10 @@ function JobsPanel() {
 
 function StartTraining() {
   const [compute, setCompute] = useState<Compute>("local")
-  const [cloudGpu, setCloudGpu] = useState(RUNPOD_GPUS[1].name)
+  const [dataset, setDataset] = useState(TRAINABLE[0])
+  const [cloudGpu, setCloudGpu] = useState("A100 SXM")
+  const [gpuOpen, setGpuOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [podOpts, setPodOpts] = useState<RunPodOptions>(RUNPOD_DEFAULTS)
   const [podOpen, setPodOpen] = useState(false)
   const cloud = RUNPOD_GPUS.find((g) => g.name === cloudGpu) ?? RUNPOD_GPUS[0]
@@ -156,6 +161,14 @@ function StartTraining() {
   const [paramsOpen, setParamsOpen] = useState(false)
   const [overrides, setOverrides] = useState<Overrides>({})
   const changed = overrideFlags(overrides)
+  const plan: TrainingPlan = {
+    dataset,
+    compute,
+    gpu: compute === "local" ? LOCAL_GPUS[0].name : cloud.name,
+    queuedBehind: compute === "local" ? localBusy?.id : undefined,
+    runpod: compute === "runpod" ? { options: podOpts, rate: podRate, capHours: podCap } : undefined,
+    flags: changed,
+  }
 
   return (
     <Panel title="Start training" className="min-h-0">
@@ -172,7 +185,7 @@ function StartTraining() {
           <Label htmlFor="t-dataset" className="text-xs font-normal text-muted-foreground">
             Dataset
           </Label>
-          <Select defaultValue={TRAINABLE[0]}>
+          <Select value={dataset} onValueChange={(v) => v && setDataset(v as string)}>
             <SelectTrigger id="t-dataset" className="h-9 w-full text-[13px]">
               <SelectValue />
             </SelectTrigger>
@@ -235,31 +248,22 @@ function StartTraining() {
               ))}
             </ul>
           ) : (
-            <ul className="grid gap-1.5" role="radiogroup" aria-label="RunPod GPU">
-              {RUNPOD_GPUS.map((g) => {
-                const on = g.name === cloudGpu
-                return (
-                  <li key={g.name}>
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      onClick={() => setCloudGpu(g.name)}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-accent/60",
-                        on && "border-foreground/40 bg-accent hover:bg-accent",
-                      )}
-                    >
-                      <span className="grid gap-0.5">
-                        <span className="font-medium">{g.name}</span>
-                        <span className="text-xs text-muted-foreground">{g.vram}</span>
-                      </span>
-                      <span className="text-xs text-muted-foreground tabular-nums">${g.pricePerHr.toFixed(2)}/h</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+            <button
+              type="button"
+              onClick={() => setGpuOpen(true)}
+              className="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-accent/60"
+            >
+              <span className="grid gap-0.5">
+                <span className="font-medium">{cloud.name}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {cloud.vramGB} GB, ${cloud.pricePerHr.toFixed(2)}/h
+                </span>
+              </span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                {RUNPOD_GPUS.length} GPUs
+                <LuChevronRight className="size-4" aria-hidden />
+              </span>
+            </button>
           )}
         </div>
 
@@ -306,11 +310,23 @@ function StartTraining() {
       {compute === "local" && localBusy && (
         <p className="text-xs text-muted-foreground">로컬 GPU 가 사용 중이라 {localBusy.id} 가 끝나면 시작합니다.</p>
       )}
-      <Button size="lg" className="w-full">
+      <Button size="lg" className="w-full" onClick={() => setConfirmOpen(true)}>
         <LuPlay />
         {compute === "local" && localBusy ? "Queue training" : "Start training"}
       </Button>
+      <GpuPickerDialog
+        open={gpuOpen}
+        onOpenChange={setGpuOpen}
+        value={cloud.name}
+        onSelect={(name) => {
+          setCloudGpu(name)
+          // Community 에 없는 GPU 면 Secure 로 돌린다
+          if (!RUNPOD_GPUS.find((g) => g.name === name)?.community) setPodOpts((o) => ({ ...o, cloud: "secure" }))
+        }}
+      />
+      <ConfirmTrainingDialog open={confirmOpen} onOpenChange={setConfirmOpen} plan={plan} onConfirm={() => {}} />
       <RunPodDialog
+        communityOk={cloud.community}
         open={podOpen}
         onOpenChange={setPodOpen}
         gpu={cloud.name}
