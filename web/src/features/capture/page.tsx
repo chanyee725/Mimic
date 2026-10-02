@@ -193,8 +193,8 @@ export function CapturePage() {
       </Panel>
       )}
 
-      {/* Live — 좌 8 : 우 2. 좌측은 카메라 2대를 크게, 아래에 Action / Observation 그래프 */}
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,8fr)_minmax(0,2fr)]">
+      {/* Live — 좌 7 : 우 3. 좌측은 카메라 2대를 크게, 아래에 Action / Observation 그래프 */}
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
           <div className="grid shrink-0 gap-3 md:grid-cols-2">
             {cameras.map((c) => (
@@ -208,26 +208,14 @@ export function CapturePage() {
             ))}
           </div>
 
-          {/* Rerun time series 처럼 joint 별 플롯 (action 실선 · observation 점선) */}
-          <Panel
-            title="Joints"
+          {/* Rerun time series 처럼 joint 별 플롯. 바깥 패널 없이 플롯 칸에만 테두리 */}
+          <JointPlots
+            joints={rig.joints}
+            hz={task.actionHz}
+            actionSource={rig.master}
+            stateSource={rig.slave}
             className="min-h-72 flex-1"
-            action={
-              <span className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0.5 w-3 rounded-full bg-series-1" />
-                  action · {rig.master}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0.5 w-3 rounded-full border-t border-dashed border-series-3" />
-                  observation.state · {rig.slave}
-                </span>
-                <span>{task.actionHz} Hz</span>
-              </span>
-            }
-          >
-            <JointPlots joints={rig.joints} hz={task.actionHz} className="flex-1" />
-          </Panel>
+          />
         </div>
 
         {/* 우측: 진행도 · Task 정보 · 녹화 상태 · 조작 */}

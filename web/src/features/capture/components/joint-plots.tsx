@@ -9,6 +9,9 @@ type Props = {
   hz: number
   /** 화면에 보여줄 시간 창 (초) */
   windowSec?: number
+  /** 범례에 붙는 장치 이름 (예: SO-101 Leader / SO-101 Follower) */
+  actionSource?: string
+  stateSource?: string
   className?: string
 }
 
@@ -22,8 +25,11 @@ const PAD = { left: 30, right: 8, top: 18, bottom: 16 }
  * 공통 시간축 · y 눈금 · 현재 시각 커서 · 최신 값 범례를 표시한다.
  * 모든 플롯은 하나의 rAF 루프와 ring buffer 를 공유한다 (샘플마다 React state 를 쓰지 않음).
  */
-export function JointPlots({ joints, hz, windowSec = 5, className }: Props) {
+export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSource, className }: Props) {
   const canvases = useRef<(HTMLCanvasElement | null)[]>([])
+  // 실측 수신 주기. 0.5 s 마다 DOM 텍스트만 갱신한다 (React state 를 쓰지 않음)
+  const actionRate = useRef<HTMLSpanElement>(null)
+  const stateRate = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const first = canvases.current[0]
@@ -45,6 +51,9 @@ export function JointPlots({ joints, hz, windowSec = 5, className }: Props) {
     let t = 0
     let last = performance.now()
     let raf = 0
+    // 수신 타임스탬프(ms). 최근 2 s 구간으로 실측 주기를 계산한다
+    const stamps = { action: [] as number[], state: [] as number[] }
+    let rateAt = last
 
     // 목업 신호: joint 마다 주기·위상이 다른 각도(°). state 는 action 을 0.15 s 늦게 따라간다
     const sample = (i: number, time: number) =>
@@ -161,7 +170,8 @@ export function JointPlots({ joints, hz, windowSec = 5, className }: Props) {
 
     const draw = (now: number) => {
       const n = Math.floor(((now - last) / 1000) * hz)
-      if (n > 0) last = now
+      // 남는 소수 구간을 버리지 않도록 생성한 샘플 수만큼만 시간을 진행시킨다
+      last += (n * 1000) / hz
       for (let k = 0; k < Math.min(n, capacity); k++) {
         t += 1 / hz
         for (let i = 0; i < joints.length; i++) {
@@ -169,6 +179,20 @@ export function JointPlots({ joints, hz, windowSec = 5, className }: Props) {
           state[i][head] = sample(i, t - 0.15)
         }
         head = (head + 1) % capacity
+        // 목업 수신: 약간의 지터와 드물게 빠지는 패킷을 흉내 낸다
+        const ts = t * 1000
+        if (Math.random() > 0.01) stamps.action.push(ts + (Math.random() - 0.5) * 2)
+        if (Math.random() > 0.015) stamps.state.push(ts + 150 + (Math.random() - 0.5) * 3)
+      }
+      if (now - rateAt >= 500) {
+        const rateOf = (xs: number[]) => {
+          const end = xs[xs.length - 1]
+          while (xs.length && xs[0] < end - 2000) xs.shift()
+          return xs.length > 1 ? ((xs.length - 1) * 1000) / (end - xs[0]) : 0
+        }
+        if (actionRate.current) actionRate.current.textContent = `${rateOf(stamps.action).toFixed(1)} Hz`
+        if (stateRate.current) stateRate.current.textContent = `${rateOf(stamps.state).toFixed(1)} Hz`
+        rateAt = now
       }
       canvases.current.forEach((c, i) => c && i < joints.length && drawPlot(c, i))
       raf = requestAnimationFrame(draw)
@@ -178,27 +202,43 @@ export function JointPlots({ joints, hz, windowSec = 5, className }: Props) {
   }, [joints, hz, windowSec])
 
   return (
-    <div
-      className={cn(
-        "grid min-h-0 auto-rows-[minmax(7rem,1fr)] gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3",
-        className,
-      )}
-    >
-      {joints.map((j, i) => (
-        <figure key={j} className="m-0 flex min-h-0 flex-col rounded-md border bg-card px-2 pt-1.5 pb-1">
-          {/* Rerun 처럼 entity path 로 라벨링 */}
-          <figcaption className="truncate text-[11px] text-muted-foreground">
-            <span className="text-foreground">{j}</span> · action / observation.state
-          </figcaption>
-          <canvas
-            ref={(el) => {
-              canvases.current[i] = el
-            }}
-            className="min-h-0 w-full flex-1"
-            aria-label={`${j} action and observation`}
-          />
-        </figure>
-      ))}
+    <div className={cn("flex min-h-0 flex-col gap-2", className)}>
+      {/* 범례 + 실측 수신 주기 */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
+        <span className="flex items-center gap-1.5">
+          <span className="h-0.5 w-3 rounded-full bg-series-1" />
+          action{actionSource ? ` · ${actionSource}` : ""}
+          <span ref={actionRate} className="text-foreground">
+            {hz.toFixed(1)} Hz
+          </span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-0.5 w-3 rounded-full border-t border-dashed border-series-3" />
+          observation.state{stateSource ? ` · ${stateSource}` : ""}
+          <span ref={stateRate} className="text-foreground">
+            {hz.toFixed(1)} Hz
+          </span>
+        </span>
+        <span className="ml-auto">target {hz} Hz</span>
+      </div>
+
+      <div className="grid min-h-0 flex-1 auto-rows-[minmax(7rem,1fr)] gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
+        {joints.map((j, i) => (
+          <figure key={j} className="m-0 flex min-h-0 flex-col rounded-md border bg-card px-2 pt-1.5 pb-1">
+            {/* Rerun 처럼 entity path 로 라벨링 */}
+            <figcaption className="truncate text-[11px] text-muted-foreground">
+              <span className="text-foreground">{j}</span> · action / observation.state
+            </figcaption>
+            <canvas
+              ref={(el) => {
+                canvases.current[i] = el
+              }}
+              className="min-h-0 w-full flex-1"
+              aria-label={`${j} action and observation`}
+            />
+          </figure>
+        ))}
+      </div>
     </div>
   )
 }
