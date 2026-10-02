@@ -33,9 +33,7 @@ function TaskList({ selectedId }: { selectedId: string }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const tasks = TASKS.filter(
-    (t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q),
-  )
+  const tasks = TASKS.filter((t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q))
 
   // 앱 사이드바와 같은 톤: 구분선 없이 얇은 글자, 선택 행만 배경으로 강조
   return (
@@ -83,13 +81,9 @@ function TaskList({ selectedId }: { selectedId: string }) {
               >
                 <div className="grid min-w-0 flex-1 gap-0.5">
                   <div className="flex min-w-0 items-center gap-1.5">
-                    <span className={cn("min-w-0 truncate text-[13px]", selected ? "font-medium" : "font-normal")}>
-                      {t.id}
-                    </span>
+                    <span className={cn("min-w-0 truncate text-[13px]", selected ? "font-medium" : "font-normal")}>{t.id}</span>
                     {current && (
-                      <span className="shrink-0 rounded-sm bg-bad-muted px-1 text-[10px] font-medium tracking-wide text-bad">
-                        REC
-                      </span>
+                      <span className="shrink-0 rounded-sm bg-bad-muted px-1 text-[10px] font-medium tracking-wide text-bad">REC</span>
                     )}
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{t.instruction}</p>
@@ -178,11 +172,7 @@ export function TasksPage() {
   const selected = TASKS.find((t) => t.id === taskId) ?? TASKS[0]
 
   return (
-    <Page
-      fit
-      title="Tasks"
-      description="취득할 데이터를 Task 단위로 정의합니다. Capture와 Sessions는 Task를 기준으로 묶입니다."
-    >
+    <Page fit title="Tasks" description="취득할 데이터를 Task 단위로 정의합니다. Capture와 Sessions는 Task를 기준으로 묶입니다.">
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,4fr)_minmax(0,5fr)]">
         <TaskList selectedId={selected.id} />
         <TaskDetail key={selected.id} initial={selected} />

@@ -108,99 +108,96 @@ export function CapturePage() {
     >
       {/* Task 요약 (Task · Instruction · Episode · Duration · Subtask · Streams) — 잠시 숨김 */}
       {SHOW_TASK_SUMMARY && (
-      <Panel className="shrink-0 gap-4">
-        <div className="flex flex-wrap items-end gap-5">
-          <div className="grid w-56 gap-1.5">
-            <Label htmlFor="capture-task" className="text-xs text-muted-foreground">
-              Task
-            </Label>
-            <Select value={taskId} onValueChange={(v) => v && setTaskId(v as string)} disabled={phase !== "idle"}>
-              <SelectTrigger id="capture-task" className="h-9 w-full font-mono text-[13px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TASKS.map((t) => (
-                  <SelectItem key={t.id} value={t.id} className="font-mono text-[13px]">
-                    {t.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid min-w-64 flex-1 gap-1.5">
-            <span className="text-xs text-muted-foreground">Instruction</span>
-            <div className="flex h-9 items-center truncate rounded-md bg-muted px-3 text-sm">{task.instruction}</div>
-          </div>
-          <div className="grid gap-1">
-            <span className="text-xs text-muted-foreground">Episode</span>
-            <span className="font-mono text-xl font-medium">
-              {ep.episode}
-              <span className="text-muted-foreground"> / {task.targetEpisodes}</span>
-            </span>
-          </div>
-          <div className="grid w-40 gap-2">
-            <span className="flex justify-between text-xs text-muted-foreground">
-              <span>Duration</span>
-              <span className="font-mono">
-                {fmt(ep.elapsedMs)} / {fmt(task.durationS * 1000)}
-              </span>
-            </span>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-foreground transition-[width]" style={{ width: `${pct}%` }} />
+        <Panel className="shrink-0 gap-4">
+          <div className="flex flex-wrap items-end gap-5">
+            <div className="grid w-56 gap-1.5">
+              <Label htmlFor="capture-task" className="text-xs text-muted-foreground">
+                Task
+              </Label>
+              <Select value={taskId} onValueChange={(v) => v && setTaskId(v as string)} disabled={phase !== "idle"}>
+                <SelectTrigger id="capture-task" className="h-9 w-full font-mono text-[13px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TASKS.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="font-mono text-[13px]">
+                      {t.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-          <span
-            className={cn(
-              "flex h-9 items-center gap-2 rounded-md px-3 text-[13px] font-semibold tracking-wider",
-              PHASE[phase].className,
-            )}
-            aria-live="polite"
-          >
-            <span className={cn("size-2 rounded-full bg-current", recording && "animate-pulse")} />
-            {PHASE[phase].label}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-4">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 text-xs text-muted-foreground">Subtask</span>
-            {task.subtasks.map((s, i) => {
-              const current = recording && i === ep.subtask
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  disabled={!recording}
-                  onClick={() => setSubtask(i)}
-                  className={cn(
-                    "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors",
-                    current && "border-primary bg-primary text-primary-foreground",
-                    !current && recording && "hover:bg-muted/50",
-                    !current && recording && i < ep.subtask && "text-muted-foreground",
-                    !recording && "text-muted-foreground",
-                  )}
-                >
-                  <span className="font-mono text-[11px] opacity-70">{s.key}</span>
-                  {s.name}
-                </button>
-              )
-            })}
-          </div>
-          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">
-            {streams.map((s) => (
-              <span key={s.key} className="flex items-center gap-1.5 font-mono text-[11px]">
-                <StatusDot tone={rateTone(s)} className="text-[11px]">
-                  {s.key}
-                </StatusDot>
-                <span className="text-muted-foreground">
-                  {s.measuredHz?.toFixed(s.measuredHz % 1 ? 1 : 0) ?? "—"}
-                  {s.unit}
+            <div className="grid min-w-64 flex-1 gap-1.5">
+              <span className="text-xs text-muted-foreground">Instruction</span>
+              <div className="flex h-9 items-center truncate rounded-md bg-muted px-3 text-sm">{task.instruction}</div>
+            </div>
+            <div className="grid gap-1">
+              <span className="text-xs text-muted-foreground">Episode</span>
+              <span className="font-mono text-xl font-medium">
+                {ep.episode}
+                <span className="text-muted-foreground"> / {task.targetEpisodes}</span>
+              </span>
+            </div>
+            <div className="grid w-40 gap-2">
+              <span className="flex justify-between text-xs text-muted-foreground">
+                <span>Duration</span>
+                <span className="font-mono">
+                  {fmt(ep.elapsedMs)} / {fmt(task.durationS * 1000)}
                 </span>
               </span>
-            ))}
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full bg-foreground transition-[width]" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+            <span
+              className={cn("flex h-9 items-center gap-2 rounded-md px-3 text-[13px] font-semibold tracking-wider", PHASE[phase].className)}
+              aria-live="polite"
+            >
+              <span className={cn("size-2 rounded-full bg-current", recording && "animate-pulse")} />
+              {PHASE[phase].label}
+            </span>
           </div>
-        </div>
-      </Panel>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-4">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs text-muted-foreground">Subtask</span>
+              {task.subtasks.map((s, i) => {
+                const current = recording && i === ep.subtask
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    disabled={!recording}
+                    onClick={() => setSubtask(i)}
+                    className={cn(
+                      "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors",
+                      current && "border-primary bg-primary text-primary-foreground",
+                      !current && recording && "hover:bg-muted/50",
+                      !current && recording && i < ep.subtask && "text-muted-foreground",
+                      !recording && "text-muted-foreground",
+                    )}
+                  >
+                    <span className="font-mono text-[11px] opacity-70">{s.key}</span>
+                    {s.name}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">
+              {streams.map((s) => (
+                <span key={s.key} className="flex items-center gap-1.5 font-mono text-[11px]">
+                  <StatusDot tone={rateTone(s)} className="text-[11px]">
+                    {s.key}
+                  </StatusDot>
+                  <span className="text-muted-foreground">
+                    {s.measuredHz?.toFixed(s.measuredHz % 1 ? 1 : 0) ?? "—"}
+                    {s.unit}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </Panel>
       )}
 
       {/* Live — 좌 7 : 우 3. 좌측은 카메라 2대를 크게, 아래에 Action / Observation 그래프 */}
@@ -223,13 +220,7 @@ export function CapturePage() {
           </div>
 
           {/* Rerun time series 처럼 joint 별 플롯. 바깥 패널 없이 플롯 칸에만 테두리 */}
-          <JointPlots
-            joints={rig.joints}
-            hz={task.actionHz}
-            actionSource={rig.master}
-            stateSource={rig.slave}
-            className="h-64 shrink-0"
-          />
+          <JointPlots joints={rig.joints} hz={task.actionHz} actionSource={rig.master} stateSource={rig.slave} className="h-64 shrink-0" />
         </div>
 
         {/* 우측: 진행도 · Task 정보 · 녹화 상태 · 조작 */}
@@ -242,9 +233,7 @@ export function CapturePage() {
                 {collected}
                 <span className="text-sm font-normal text-muted-foreground"> / {task.targetEpisodes}</span>
               </span>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {Math.max(0, task.targetEpisodes - collected)} remaining
-              </span>
+              <span className="text-xs text-muted-foreground tabular-nums">{Math.max(0, task.targetEpisodes - collected)} remaining</span>
             </div>
           </div>
 
@@ -261,10 +250,7 @@ export function CapturePage() {
 
           <div className="grid gap-2">
             <span
-              className={cn(
-                "flex h-10 items-center rounded-md px-3 text-[13px] font-semibold tracking-wider",
-                PHASE[phase].className,
-              )}
+              className={cn("flex h-10 items-center rounded-md px-3 text-[13px] font-semibold tracking-wider", PHASE[phase].className)}
               aria-live="polite"
             >
               <span className="flex items-center gap-2">
@@ -287,10 +273,7 @@ export function CapturePage() {
           </div>
 
           <div className="mt-auto grid gap-2">
-            <Button
-              onClick={toggle}
-              className={cn("h-11 w-full", recording && "bg-destructive text-white hover:bg-destructive/90")}
-            >
+            <Button onClick={toggle} className={cn("h-11 w-full", recording && "bg-destructive text-white hover:bg-destructive/90")}>
               {recording ? <LuSquare /> : <LuCircle />}
               {recording ? "Stop" : "Start"}
               <Kbd className="ml-auto bg-transparent text-current opacity-60">Space</Kbd>
@@ -306,12 +289,7 @@ export function CapturePage() {
               <Button variant="outline" className="h-9 justify-between px-3" disabled={phase === "idle"} onClick={start}>
                 Re-record <Kbd>←</Kbd>
               </Button>
-              <Button
-                variant="outline"
-                className="h-9 justify-between px-3 text-bad"
-                disabled={phase === "idle"}
-                onClick={discard}
-              >
+              <Button variant="outline" className="h-9 justify-between px-3 text-bad" disabled={phase === "idle"} onClick={discard}>
                 Discard <Kbd>Esc</Kbd>
               </Button>
             </div>

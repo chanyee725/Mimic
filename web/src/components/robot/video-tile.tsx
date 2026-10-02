@@ -17,7 +17,16 @@ type Props = {
 }
 
 /** WebRTC 영상 트랙이 붙을 자리. 지금은 플레이스홀더만 그린다. */
-export function VideoTile({ label, resolution, measuredFps, targetFps, recording = false, timecode, placeholder = "WebRTC stream", className }: Props) {
+export function VideoTile({
+  label,
+  resolution,
+  measuredFps,
+  targetFps,
+  recording = false,
+  timecode,
+  placeholder = "WebRTC stream",
+  className,
+}: Props) {
   const low = measuredFps !== null && targetFps !== null && measuredFps < targetFps * 0.98
 
   return (
@@ -33,9 +42,7 @@ export function VideoTile({ label, resolution, measuredFps, targetFps, recording
         <LuVideo className="size-6" />
         {placeholder}
       </div>
-      <figcaption className="absolute top-2.5 left-2.5 rounded-md border bg-background px-2 py-0.5 text-xs font-medium">
-        {label}
-      </figcaption>
+      <figcaption className="absolute top-2.5 left-2.5 rounded-md border bg-background px-2 py-0.5 text-xs font-medium">{label}</figcaption>
       {recording ? (
         <span className="absolute top-2.5 right-2.5 flex items-center gap-1.5 rounded-md bg-bad px-2 py-0.5 text-xs font-semibold text-white tabular-nums">
           <span className="size-1.5 animate-pulse rounded-full bg-white motion-reduce:animate-none" aria-hidden />

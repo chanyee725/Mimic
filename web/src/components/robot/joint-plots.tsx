@@ -32,16 +32,7 @@ const PAD = { left: 30, right: 8, top: 18, bottom: 16 }
  * 공통 시간축 · y 눈금 · 현재 시각 커서 · 최신 값 범례를 표시한다.
  * 모든 플롯은 하나의 rAF 루프와 ring buffer 를 공유한다 (샘플마다 React state 를 쓰지 않음).
  */
-export function JointPlots({
-  joints,
-  hz,
-  windowSec = 5,
-  actionSource,
-  stateSource,
-  playhead,
-  seed = 0,
-  className,
-}: Props) {
+export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSource, playhead, seed = 0, className }: Props) {
   const canvases = useRef<(HTMLCanvasElement | null)[]>([])
   // 실측 수신 주기. 0.5 s 마다 DOM 텍스트만 갱신한다 (React state 를 쓰지 않음)
   const actionRate = useRef<HTMLSpanElement>(null)

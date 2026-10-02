@@ -55,7 +55,14 @@ function captureTopics(durationS: number, droppedFrames: number): McapTopic[] {
   ]
 }
 
-function captureRecording(taskId: string, episode: number, k: number, durationS: number, outcome: Outcome, review: RecordingReview): Recording {
+function captureRecording(
+  taskId: string,
+  episode: number,
+  k: number,
+  durationS: number,
+  outcome: Outcome,
+  review: RecordingReview,
+): Recording {
   // 승인되지 않은 에피소드 일부에만 프레임 드랍을 넣는다
   const dropped = review !== "accepted" && k % 4 === 2 ? 14 : 0
   const names = ["reach", "grasp", "lift", "place"]

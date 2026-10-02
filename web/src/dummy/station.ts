@@ -11,4 +11,3 @@ export const DATA_TOTALS = [
 
 /** 지금 Capture 중인 Task */
 export const CURRENT_TASK_ID = "stack-two-blocks"
-

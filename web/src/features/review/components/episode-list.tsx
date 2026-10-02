@@ -27,7 +27,11 @@ const REVIEW_CLASS: Record<RecordingReview, string> = {
 }
 
 /** `stack-two-blocks/ep_0047.mcap` → `ep_0047` */
-const shortName = (file: string) => file.split("/").pop()!.replace(/\.mcap$/, "")
+const shortName = (file: string) =>
+  file
+    .split("/")
+    .pop()!
+    .replace(/\.mcap$/, "")
 
 /** 선택한 Task 의 에피소드 목록. 검수 상태로 거르고 10 개씩 넘겨 본다 */
 export function EpisodeList({
@@ -46,9 +50,7 @@ export function EpisodeList({
 
   const count = (f: ReviewFilter) => (f === "all" ? recordings.length : recordings.filter((r) => r.review === f).length)
   // 최근 에피소드가 위로
-  const visible = recordings
-    .filter((r) => filter === "all" || r.review === filter)
-    .sort((a, b) => (b.episode ?? 0) - (a.episode ?? 0))
+  const visible = recordings.filter((r) => filter === "all" || r.review === filter).sort((a, b) => (b.episode ?? 0) - (a.episode ?? 0))
   const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
   const current = Math.min(page, pages - 1)
   const rows = visible.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE)
@@ -109,9 +111,7 @@ export function EpisodeList({
             </li>
           )
         })}
-        {rows.length === 0 && (
-          <li className="py-6 text-center text-[13px] text-muted-foreground">해당하는 에피소드가 없습니다.</li>
-        )}
+        {rows.length === 0 && <li className="py-6 text-center text-[13px] text-muted-foreground">해당하는 에피소드가 없습니다.</li>}
       </ul>
 
       {pages > 1 && (

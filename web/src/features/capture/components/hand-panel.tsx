@@ -69,9 +69,7 @@ export function HandPanel({ connected, onDemo }: { connected: boolean; onDemo: (
           ))}
         </div>
         <span className="pt-1 text-xs text-muted-foreground">IMU · wrist quaternion</span>
-        <span className="font-mono text-xs">
-          [{[Math.cos(t), Math.sin(t) * 0.5, -0.05, 0.14].map((v) => v.toFixed(2)).join(", ")}]
-        </span>
+        <span className="font-mono text-xs">[{[Math.cos(t), Math.sin(t) * 0.5, -0.05, 0.14].map((v) => v.toFixed(2)).join(", ")}]</span>
       </div>
     </div>
   )

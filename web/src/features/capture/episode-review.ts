@@ -23,8 +23,16 @@ export type Check = { label: string; value: string; ok: boolean }
 export function checksOf(e: CapturedEpisode, videoFps: number): Check[] {
   const tolerance = (1000 / videoFps) * 1.5
   return [
-    { label: "Action samples", value: `${e.actionSamples.toLocaleString()} / ${e.expectedActions.toLocaleString()}`, ok: e.actionSamples >= e.expectedActions },
-    { label: "Video frames", value: `${e.videoFrames.toLocaleString()} / ${e.expectedFrames.toLocaleString()}`, ok: e.videoFrames >= e.expectedFrames },
+    {
+      label: "Action samples",
+      value: `${e.actionSamples.toLocaleString()} / ${e.expectedActions.toLocaleString()}`,
+      ok: e.actionSamples >= e.expectedActions,
+    },
+    {
+      label: "Video frames",
+      value: `${e.videoFrames.toLocaleString()} / ${e.expectedFrames.toLocaleString()}`,
+      ok: e.videoFrames >= e.expectedFrames,
+    },
     { label: "Timestamp gap", value: `max ${Math.round(e.maxGapMs)} ms`, ok: e.maxGapMs <= tolerance },
     { label: "Subtasks", value: `${e.subtasksDone} / ${e.subtasksTotal}`, ok: e.subtasksDone === e.subtasksTotal },
   ]
