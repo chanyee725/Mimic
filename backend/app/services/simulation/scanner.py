@@ -1,17 +1,14 @@
 """Environment folder scanner — rules in docs/api/simulation.md."""
 
-import math
 from collections.abc import Mapping
-from datetime import datetime
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import yaml
 
-from app.utils.time import now_iso
-from app.configs.config import config
 from app.models.simulation import SimEnv, SimEnvFile
+from app.utils.paths import latest_mtime, size_kb, visible_dirs, walk_files
+from app.utils.time import from_timestamp, now_iso
 
 MANIFEST = "env.yaml"
 REQUIRED = ("name", "scene", "cameras", "action_dim", "episode.success")
@@ -24,18 +21,16 @@ class ManifestError(Exception):
 
 def scan_envs(root: Path, first_seen: Mapping[str, str] | None = None) -> list[SimEnv]:
     """One SimEnv per direct sub-folder of root, sorted by id. first_seen maps id → registeredAt."""
-    if not root.is_dir():
-        return []
     first_seen = first_seen or {}
-    folders = [p for p in root.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))]
-    return [_load(p, first_seen.get(p.name)) for p in sorted(folders, key=lambda p: p.name)]
+    return [_load(p, first_seen.get(p.name)) for p in visible_dirs(root)]
 
 
 def _load(folder: Path, registered_at: str | None) -> SimEnv:
-    files = _files(folder)
-    updated = _iso(
-        max([folder.stat().st_mtime] + [(folder / f.path).stat().st_mtime for f in files])
-    )
+    files = [
+        SimEnvFile(path=p.relative_to(folder).as_posix(), size_kb=size_kb(p))
+        for p in walk_files(folder)
+    ]
+    updated = from_timestamp(latest_mtime(folder))
     base = dict(
         id=folder.name,
         name=folder.name,
@@ -118,17 +113,3 @@ def _get(data: dict[str, Any], dotted: str) -> Any:
             return None
         cur = cur.get(part)
     return cur
-
-
-def _files(folder: Path) -> list[SimEnvFile]:
-    out = []
-    for p in sorted(folder.rglob("*")):
-        rel = p.relative_to(folder)
-        if not p.is_file() or any(s.startswith(".") or s == "__pycache__" for s in rel.parts):
-            continue
-        out.append(SimEnvFile(path=rel.as_posix(), size_kb=math.ceil(p.stat().st_size / 1024)))
-    return out
-
-
-def _iso(ts: float) -> str:
-    return datetime.fromtimestamp(ts, ZoneInfo(config.timezone)).isoformat(timespec="seconds")

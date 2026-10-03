@@ -2,8 +2,8 @@
 
 from app.core.errors import ApiError, conflict
 from app.schemas.training import JobCreate, LocalGpu, RunPodOptions
-from app.services import training_config as cfg
-from app.services import training_params as params
+from app.services.training import config as cfg
+from app.services.training import params
 
 
 def invalid(msg: str, *loc: str) -> ApiError:

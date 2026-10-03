@@ -4,9 +4,11 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from app.services import capture as service
+from app.services.capture import session
 from app.core.events import bus
 from app.services import recordings as recordings
 from app.services import rigs as rigs
+from app.utils import time
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
 START = {"taskId": "stack-two-blocks", "operator": "OP-01"}
@@ -28,8 +30,9 @@ def clock():
     service.reset()
     recordings.reset()
     c = FakeClock()
-    service.set_clock(c)
+    time.set_clock(c)
     yield c
+    time.set_clock(None)
     service.reset()
     recordings.reset()
 
@@ -84,7 +87,7 @@ def test_start_503_when_device_off(client, monkeypatch):
         dev = rigs.get_device(device_id)
         return dev.model_copy(update={"health": "off"}) if device_id == "leader" else dev
 
-    monkeypatch.setattr(service, "get_device", fake_device)
+    monkeypatch.setattr(session, "get_device", fake_device)
     r = client.post("/capture/start", json=START)
     assert r.status_code == 503 and r.json()["error"]["details"]["devices"] == ["leader"]
 

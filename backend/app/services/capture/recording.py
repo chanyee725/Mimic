@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from app.models.recordings import McapTopic, Recording, RecordingCheck, SubtaskSpan
 from app.models.rigs import Rig
 from app.models.tasks import Outcome, Task
+from app.utils.time import to_iso
 
 # Rough MCAP size model (matches the seeded recordings: ~1.9 MB/s with two cameras)
 _MB_PER_CAMERA_S = 0.9
@@ -119,7 +120,7 @@ def build_recording(s: Session, duration: float, outcome: Outcome) -> Recording:
         task_id=task.id,
         rig_id=rig.id,
         episode=s.episode,
-        recorded_at=s.recording_at.isoformat(timespec="seconds"),
+        recorded_at=to_iso(s.recording_at),
         duration_s=duration,
         size_mb=round(size, 1),
         outcome=outcome,

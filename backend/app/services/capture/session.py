@@ -1,13 +1,10 @@
 """Capture state machine (in memory): idle → countdown → recording → review → idle.
 
-Phases advance lazily from an injectable clock, so tests are deterministic.
+Phases advance lazily from the station clock (app.utils.time), which tests can replace.
 """
 
 import asyncio
-from collections.abc import Callable
-from datetime import datetime
 
-from app.utils import time as station_clock
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.capture import CaptureState
@@ -15,27 +12,20 @@ from app.models.recordings import Recording
 from app.models.rigs import Rig
 from app.models.tasks import Outcome, Task
 from app.services import recordings, tasks
-from app.services.capture_recording import Session, build_recording
+from app.services.capture.recording import Session, build_recording
 from app.services.rigs import get_device, get_rig
 from app.services.tasks import get_task
+from app.utils.time import now, seconds_since, to_iso
 
-_clock: Callable[[], datetime] = station_clock.now
 _session: Session | None = None
 _last_task_id: str | None = None
 _issued: dict[str, int] = {}  # last episode number handed out per task
-
-
-def set_clock(fn: Callable[[], datetime] | None = None) -> None:
-    """Tests inject a fake clock; None restores the station clock."""
-    global _clock
-    _clock = fn or station_clock.now
 
 
 def reset() -> None:
     global _session, _last_task_id
     _session, _last_task_id = None, None
     _issued.clear()
-    set_clock(None)
 
 
 def _next_episode(task: Task) -> int:
@@ -47,7 +37,7 @@ def _tick() -> None:
     s = _session
     if s is None or s.stopped_s is not None:
         return
-    elapsed = (_clock() - s.recording_at).total_seconds()
+    elapsed = seconds_since(s.recording_at)
     if elapsed >= s.task.duration_s:
         s.stopped_s = s.task.duration_s
         bus.publish("capture.state", _snapshot())
@@ -62,7 +52,7 @@ def _snapshot() -> CaptureState:
             task_id=_last_task_id,
             next_episode=_next_episode(task) if task else 1,
         )
-    elapsed = (_clock() - s.recording_at).total_seconds()
+    elapsed = seconds_since(s.recording_at)
     if s.stopped_s is not None:
         phase, elapsed = "review", s.stopped_s
     elif elapsed < 0:
@@ -74,7 +64,7 @@ def _snapshot() -> CaptureState:
         task_id=s.task.id,
         operator=s.operator,
         episode_id=f"{s.task.id}-{s.episode}",
-        started_at=s.recording_at.isoformat(timespec="milliseconds"),
+        started_at=to_iso(s.recording_at, ms=True),
         elapsed_s=round(elapsed, 3),
         subtask_index=s.marks[-1][0] if s.marks else None,
         next_episode=s.episode,
@@ -132,7 +122,7 @@ def _check_devices(task: Task, rig: Rig) -> None:
 
 def _arm(task: Task, rig: Rig, operator: str, episode: int) -> None:
     global _session
-    _session = Session(task=task, rig=rig, operator=operator, episode=episode, armed_at=_clock())
+    _session = Session(task=task, rig=rig, operator=operator, episode=episode, armed_at=now())
     if task.subtasks:
         _session.marks.append((0, 0.0))
 
