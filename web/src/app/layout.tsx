@@ -17,8 +17,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { APP_NAME, NAV, type NavItem } from "@/app/nav"
-import { getStation } from "@/api/station"
+import { useCaptureState } from "@/api/capture"
 import { useServerEvents } from "@/api/events"
+import { useStation } from "@/api/station"
+import { useTasks } from "@/api/tasks"
+import { isCapturing } from "@/domain/capture"
 
 // Light sidebar: regular weight and thin icons, only the active item is emphasised
 const NAV_ITEM_CLASS =
@@ -28,14 +31,30 @@ function isActive(pathname: string, to: string) {
   return to === "/" ? pathname === "/" : pathname.startsWith(to)
 }
 
+/** REC while the station is capturing an episode (countdown, recording or review) */
+function RecBadge() {
+  const { data } = useCaptureState()
+  if (!data || !isCapturing(data)) return null
+  return <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad">REC</SidebarMenuBadge>
+}
+
+function TaskCountBadge() {
+  const { data } = useTasks()
+  if (!data) return null
+  return <SidebarMenuBadge className="font-mono font-normal text-muted-foreground">{data.length}</SidebarMenuBadge>
+}
+
 function NavBadge({ badge }: { badge: NavItem["badge"] }) {
-  if (badge === undefined) return null
-  if (badge === "rec") {
-    return (
-      <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad">REC</SidebarMenuBadge>
-    )
-  }
-  return <SidebarMenuBadge className="font-mono font-normal text-muted-foreground">{badge()}</SidebarMenuBadge>
+  if (badge === "rec") return <RecBadge />
+  if (badge === "tasks") return <TaskCountBadge />
+  return null
+}
+
+/** Station id and robot under the app name ("…" until loaded, "Offline" if the backend is unreachable) */
+function StationLine() {
+  const { data, isError } = useStation()
+  if (data) return `${data.id} · ${data.robot}`
+  return isError ? "Offline" : "…"
 }
 
 function AppSidebar() {
@@ -51,7 +70,7 @@ function AppSidebar() {
                 <div className="grid text-left leading-tight">
                   <span className="truncate font-medium tracking-tight">{APP_NAME}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {getStation().id} · {getStation().robot}
+                    <StationLine />
                   </span>
                 </div>
               </SidebarMenuButton>
