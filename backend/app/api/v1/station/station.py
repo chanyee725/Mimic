@@ -1,14 +1,14 @@
-"""Station endpoints — see docs/api/station.md."""
+"""Station overview, activity and the current task."""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from app.services import station as service
 from app.models.station import DataTotal, Station
 from app.schemas.station import CurrentTask, DayCount
+from app.services import station as service
 
-router = APIRouter(prefix="/station", tags=["station"])
+router = APIRouter()
 
 
 @router.get("", response_model=Station)

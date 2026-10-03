@@ -1,4 +1,4 @@
-"""Capture endpoints — see docs/api/capture.md."""
+"""Capture session control: start, subtask marks, stop, save / rerecord / discard."""
 
 from fastapi import APIRouter
 
@@ -7,7 +7,7 @@ from app.models.recordings import Recording
 from app.schemas.capture import SaveBody, StartBody, SubtaskBody
 from app.services import capture as service
 
-router = APIRouter(prefix="/capture", tags=["capture"])
+router = APIRouter()
 
 
 @router.get("/state", response_model=CaptureState)

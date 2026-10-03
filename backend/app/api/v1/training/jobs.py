@@ -1,27 +1,12 @@
-"""Training endpoints — see docs/api/training.md."""
+"""Training jobs: create, stop, pod teardown, metrics and command."""
 
 from fastapi import APIRouter, Query
 
-from app.models.models import Model
 from app.models.training import JobStatus, TrainJob
-from app.schemas.training import (
-    CheckpointPush,
-    CheckpointPushed,
-    CheckpointSave,
-    CommandOut,
-    CommandPreview,
-    JobCreate,
-    Metrics,
-    TrainingConfig,
-)
+from app.schemas.training import CommandOut, JobCreate, Metrics
 from app.services import training as service
 
-router = APIRouter(prefix="/training", tags=["training"])
-
-
-@router.get("/config", response_model=TrainingConfig)
-def get_config():
-    return service.get_config()
+router = APIRouter()
 
 
 @router.get("/jobs", response_model=list[TrainJob])
@@ -32,11 +17,6 @@ def list_jobs(status: JobStatus | None = None):
 @router.post("/jobs", response_model=TrainJob, status_code=202)
 def create_job(body: JobCreate):
     return service.create_job(body)
-
-
-@router.post("/command-preview", response_model=CommandPreview)
-def command_preview(body: JobCreate):
-    return service.preview(body)
 
 
 @router.get("/jobs/{job_id}", response_model=TrainJob)
@@ -66,20 +46,3 @@ def job_metrics(
 @router.get("/jobs/{job_id}/command", response_model=CommandOut)
 def job_command(job_id: str):
     return service.job_command(job_id)
-
-
-@router.get("/jobs/{job_id}/checkpoints/{step}/download")
-def download_checkpoint(job_id: str, step: int):
-    return service.download_checkpoint(job_id, step)
-
-
-@router.post(
-    "/jobs/{job_id}/checkpoints/{step}/push", response_model=CheckpointPushed, status_code=202
-)
-def push_checkpoint(job_id: str, step: int, body: CheckpointPush | None = None):
-    return service.push_checkpoint(job_id, step, body)
-
-
-@router.post("/jobs/{job_id}/checkpoints/{step}/save", response_model=Model, status_code=201)
-def save_checkpoint(job_id: str, step: int, body: CheckpointSave):
-    return service.save_checkpoint(job_id, step, body)
