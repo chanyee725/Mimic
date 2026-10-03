@@ -29,9 +29,9 @@ _AREAS = [
 
 
 @pytest.fixture(autouse=True)
-def _reset_services(tmp_path):
+def _reset_services(tmp_path_factory):
     # Fresh, empty data folder per test: every service reseeds its files
-    config.data_dir = tmp_path / "data"
+    config.data_dir = tmp_path_factory.mktemp("data")
     for area in _AREAS:
         try:
             service = importlib.import_module(f"app.services.{area}")
