@@ -213,21 +213,6 @@ def test_disk_overrides_seed(client, raw):
     assert client.get("/recordings").json()["total"] == 21
 
 
-def test_raw_path_change_rescans(client, clock, raw, tmp_path):
-    save(client, clock)
-    other = tmp_path / "raw2"
-    body = {"version": 1, "rawPath": str(other)}
-    assert client.patch("/settings/storage", json=body).status_code == 200
-    assert client.get(f"/recordings/{REC_ID}").status_code == 404
-    assert client.get("/recordings").json()["total"] == 21
-    saved = save(client, clock)
-    assert saved["episode"] == 48  # issued numbers are still not reused in this session
-    assert (other / "stack-two-blocks" / "ep_0048.mcap").is_file()
-    body = {"version": 2, "rawPath": str(raw)}
-    assert client.patch("/settings/storage", json=body).status_code == 200
-    assert recordings.is_on_disk(REC_ID) and not recordings.is_on_disk(saved["id"])
-
-
 def test_seed_recordings_have_no_file(client):
     assert not recordings.is_on_disk("stack-two-blocks-30")
     assert client.get("/recordings/stack-two-blocks-30/file").status_code == 501

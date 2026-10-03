@@ -4,11 +4,10 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from app.services import capture as service
-from app.services.capture import session
 from app.core.events import bus
 from app.services import recordings as recordings
-from app.services import rigs as rigs
 from app.utils import time
+from conftest import add_tasks, connect_devices
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
 START = {"taskId": "stack-two-blocks", "operator": "OP-01"}
@@ -23,6 +22,14 @@ class FakeClock:
 
     def advance(self, s: float) -> None:
         self.t += timedelta(seconds=s)
+
+
+@pytest.fixture(autouse=True)
+def task_and_devices(request):
+    add_tasks("stack-two-blocks")
+    # Devices are off until a driver connects them; most tests pretend one did
+    if "devices_off" not in request.node.name:
+        connect_devices()
 
 
 @pytest.fixture(autouse=True)
@@ -64,8 +71,8 @@ def test_idle_state(client):
 def test_start_countdown_then_recording(client, clock, events):
     st = client.post("/capture/start", json=START).json()
     assert st["phase"] == "countdown" and st["taskId"] == "stack-two-blocks"
-    assert st["operator"] == "OP-01" and st["nextEpisode"] == 47
-    assert st["episodeId"] == "stack-two-blocks-47" and st["subtaskIndex"] == 0
+    assert st["operator"] == "OP-01" and st["nextEpisode"] == 1
+    assert st["episodeId"] == "stack-two-blocks-1" and st["subtaskIndex"] == 0
     assert st["startedAt"] == "2026-10-03T10:00:03.000+09:00"
     assert types(events) == ["capture.state"]
     clock.advance(5)
@@ -82,12 +89,18 @@ def test_start_errors(client):
     assert r.status_code == 409 and r.json()["error"]["details"]["phase"] == "countdown"
 
 
-def test_start_503_when_device_off(client, monkeypatch):
-    def fake_device(device_id):
-        dev = rigs.get_device(device_id)
-        return dev.model_copy(update={"health": "off"}) if device_id == "leader" else dev
+def test_start_503_when_devices_off(client):
+    # The real state today: no drivers, so every device is off
+    r = client.post("/capture/start", json=START)
+    assert r.status_code == 503 and r.json()["error"]["code"] == "unavailable"
+    assert r.json()["error"]["details"]["devices"] == ["leader", "follower", "top", "wrist"]
+    assert client.get("/capture/state").json()["phase"] == "idle"
 
-    monkeypatch.setattr(session, "get_device", fake_device)
+
+def test_start_503_when_one_device_off(client):
+    from app.services import rigs
+
+    rigs.set_device_state("leader", health="off")
     r = client.post("/capture/start", json=START)
     assert r.status_code == 503 and r.json()["error"]["details"]["devices"] == ["leader"]
 
@@ -137,8 +150,8 @@ def test_save_creates_recording(client, clock, events):
     r = client.post("/capture/save", json={"outcome": "partial"})
     assert r.status_code == 201
     rec = r.json()
-    assert rec["id"] == "stack-two-blocks-47" and rec["episode"] == 47
-    assert rec["file"] == "stack-two-blocks/ep_0047.mcap"
+    assert rec["id"] == "stack-two-blocks-1" and rec["episode"] == 1
+    assert rec["file"] == "stack-two-blocks/ep_0001.mcap"
     assert rec["source"] == "capture" and rec["review"] == "pending"
     assert rec["outcome"] == "partial" and rec["rigId"] == "so101-kit"
     assert rec["durationS"] == 12.5 and rec["recordedAt"] == "2026-10-03T10:00:03+09:00"
@@ -156,8 +169,9 @@ def test_save_creates_recording(client, clock, events):
     assert types(events) == ["recording.created", "capture.state"]
     st = client.get("/capture/state").json()
     assert st["phase"] == "idle" and st["taskId"] == "stack-two-blocks"
-    assert st["nextEpisode"] == 48
-    assert client.get("/recordings/stack-two-blocks-47").status_code == 200
+    assert st["nextEpisode"] == 2
+    assert client.get("/recordings/stack-two-blocks-1").status_code == 200
+    assert client.get("/tasks/stack-two-blocks").json()["collected"] == 1
 
 
 def test_save_while_recording_stops_implicitly(client, clock):
@@ -170,21 +184,21 @@ def test_save_while_recording_stops_implicitly(client, clock):
 def test_episode_numbers_never_reused(client, clock):
     record(client, clock)
     client.post("/capture/save", json={"outcome": "success"})
-    client.delete("/recordings/stack-two-blocks-47")
+    client.delete("/recordings/stack-two-blocks-1")
     record(client, clock)
-    assert client.post("/capture/save", json={"outcome": "fail"}).json()["episode"] == 48
+    assert client.post("/capture/save", json={"outcome": "fail"}).json()["episode"] == 2
 
 
 def test_rerecord_restarts_same_episode(client, clock):
     record(client, clock, 8)
     client.post("/capture/stop")
     st = client.post("/capture/rerecord").json()
-    assert st["phase"] == "countdown" and st["episodeId"] == "stack-two-blocks-47"
+    assert st["phase"] == "countdown" and st["episodeId"] == "stack-two-blocks-1"
     assert st["subtaskIndex"] == 0
 
 
 def test_discard_returns_to_idle(client, clock):
     record(client, clock, 8)
     st = client.post("/capture/discard").json()
-    assert st["phase"] == "idle" and st["nextEpisode"] == 47
-    assert client.get("/recordings", params={"taskId": "stack-two-blocks"}).json()["total"] == 17
+    assert st["phase"] == "idle" and st["nextEpisode"] == 1
+    assert client.get("/recordings", params={"taskId": "stack-two-blocks"}).json()["total"] == 0
