@@ -1,4 +1,4 @@
-"""Training config read from the seeds: policy, RunPod catalogue, pricing and the train command."""
+"""Training options (seeds/data/training.json): policy, RunPod catalogue, pricing, train command."""
 
 import math
 

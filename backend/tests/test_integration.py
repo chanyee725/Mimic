@@ -37,7 +37,14 @@ def test_config_paths_start_at_repo_root(monkeypatch):
     assert c.data_dir == Path("~/vla-data").expanduser()
 
 
-def test_size_fields_use_spec_casing(client):
+def test_size_fields_use_spec_casing(client, task):
+    from app.services import datasets
+    from tests.support import write_model, write_recording
+
+    write_model("m-a")
+    write_recording(1)
+    client.post("/convert", json={"taskId": "stack-two-blocks", "repoId": "local/a"})
+    datasets.wait("local/a")
     assert "sizeMB" in client.get("/models").json()[0]
     assert "sizeGB" in client.get("/datasets").json()[0]
     assert "sizeMB" in client.get("/recordings").json()["items"][0]

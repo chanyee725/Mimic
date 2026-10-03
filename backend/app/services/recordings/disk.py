@@ -12,7 +12,6 @@ from pydantic import ValidationError
 from app.core import storage
 from app.models.recordings import Recording
 from app.configs.config import config
-from app.utils.paths import resolve_user_path
 
 log = logging.getLogger(__name__)
 

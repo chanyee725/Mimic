@@ -24,12 +24,6 @@ from app.utils import time  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# Transitional: these areas' tests were written against the old seeded tasks and online mock
-# devices. Give them every fixture task and connected devices until they set up their own data.
-LEGACY_SEEDED = ("recordings", "datasets", "simulation")
-# Areas whose tests start from real data only: the recordings mock seeds are hidden from them
-REAL_ONLY = ("settings", "station", "tasks", "rigs", "capture", "realtime")
-
 # Every area keeps in-memory state; reset all of them so tests never leak into each other.
 _AREAS = [
     "settings",
@@ -63,20 +57,6 @@ def add_tasks(*task_ids: str) -> None:
     tasks.reset()
 
 
-def hide_seed_recordings(monkeypatch) -> None:
-    """Transitional: hides the recordings area's mock seeds (no-op once they are gone)."""
-    from app.services import recordings
-
-    module = importlib.import_module("app.services.recordings.recordings")
-    load = getattr(module, "load", None)
-    if load is None:
-        return
-    monkeypatch.setattr(
-        module, "load", lambda name, key: [] if name == "recordings" else load(name, key)
-    )
-    recordings.reset()
-
-
 def connect_devices(health: str = "ok") -> None:
     """Pretend drivers report every rig device as connected (none exist yet)."""
     from app.services import rigs
@@ -86,7 +66,7 @@ def connect_devices(health: str = "ok") -> None:
 
 
 @pytest.fixture(autouse=True)
-def _reset_services(request, tmp_path_factory, monkeypatch):
+def _reset_services(tmp_path_factory, monkeypatch):
     # Fresh data folder (rig files only) and .env per test: every service reloads
     config.data_dir = tmp_path_factory.mktemp("data")
     copy_rigs(config.data_dir)
@@ -102,12 +82,6 @@ def _reset_services(request, tmp_path_factory, monkeypatch):
         if callable(reset):
             reset()
     time.set_clock(None)
-    area = request.path.parent.name
-    if area in LEGACY_SEEDED:
-        add_tasks()
-        connect_devices()
-    if area in REAL_ONLY:
-        hide_seed_recordings(monkeypatch)
     yield
 
 

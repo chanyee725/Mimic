@@ -1,24 +1,71 @@
-"""Saved model store (in memory, seeded from the web mocks)."""
+"""Saved models: folders under config.models_dir/<id>/ (no mocks).
 
+A model folder holds model.yaml (the Model fields in snake_case, minus id / size / local path)
+next to the checkpoint files (e.g. pretrained_model/model.safetensors). The index is rebuilt by
+scanning on reset; id = folder name, sizeMB = all files, localPath = the folder.
+"""
+
+import logging
+import shutil
+from pathlib import Path
 from typing import Literal
 
+from pydantic import ValidationError
+
+from app.configs.config import config
+from app.core import storage
 from app.core.errors import ApiError, not_found
-from app.seeds import load
 from app.models.models import Model, ModelEval
 from app.schemas.models import ModelFile, ModelPush
 from app.services import settings
-from app.utils.time import iso, now_iso
+from app.utils.time import now_iso
+
+log = logging.getLogger(__name__)
+
+SIDECAR = "model.yaml"
+_DERIVED = ("id", "size_mb", "local_path")
 
 _models: dict[str, Model] = {}
 
 
 def reset() -> None:
     _models.clear()
-    for m in load("models", "MODELS"):
-        m["savedAt"] = iso(m["savedAt"])
-        for e in m["evals"]:
-            e["at"] = iso(e["at"])
-        _models[m["id"]] = Model.model_validate(m)
+    root = config.models_dir
+    if not root.is_dir():
+        return
+    for d in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith(".")):
+        if not (d / SIDECAR).is_file():
+            continue
+        try:
+            _models[d.name] = _load(d)
+        except (storage.StorageError, ValidationError, OSError, ValueError) as e:
+            log.warning("%s is not a usable model folder, skipping it: %s", d, e)
+
+
+def folder(model_id: str) -> Path:
+    return config.models_dir / model_id
+
+
+def _files(d: Path) -> list[Path]:
+    return sorted(
+        p for p in d.rglob("*") if p.is_file() and p.name != SIDECAR and not p.name.startswith(".")
+    )
+
+
+def _load(d: Path) -> Model:
+    raw = storage.read_file(d / SIDECAR)
+    if not isinstance(raw, dict):
+        raise ValueError("expected a mapping")
+    size_mb = round(sum(p.stat().st_size for p in _files(d)) / 1_000_000, 2)
+    return Model.model_validate({**raw, "id": d.name, "size_mb": size_mb, "local_path": str(d)})
+
+
+def _save(m: Model) -> None:
+    data = m.model_dump(mode="json", by_alias=False, exclude=set(_DERIVED))
+    try:
+        storage.write_file(folder(m.id) / SIDECAR, storage.dumps(data))
+    except OSError as e:
+        raise ApiError(503, "Could not write to the models folder", {"reason": str(e)}) from e
 
 
 def list_models(
@@ -47,23 +94,31 @@ def require_model(model_id: str) -> Model:
 
 def model_files(model_id: str) -> list[ModelFile]:
     require_model(model_id)
-    return [ModelFile(path=f["path"], size_mb=f["sizeMB"]) for f in load("models", "MODEL_FILES")]
+    d = folder(model_id)
+    return [
+        ModelFile(path=p.relative_to(d).as_posix(), size_mb=round(p.stat().st_size / 1_000_000, 2))
+        for p in _files(d)
+    ]
 
 
 def add_model(model: Model) -> Model:
-    """Used by training when a checkpoint is saved."""
+    """Registers a model whose folder (checkpoint files) the trainer has written."""
+    model = model.model_copy(update={"local_path": str(folder(model.id))})
+    _save(model)
     _models[model.id] = model
     return model
 
 
 def rename(model_id: str, name: str) -> Model:
-    m = require_model(model_id)
-    m.name = name.strip()
+    m = require_model(model_id).model_copy(update={"name": name.strip()})
+    _save(m)
+    _models[model_id] = m
     return m
 
 
 def delete(model_id: str) -> None:
     require_model(model_id)
+    shutil.rmtree(folder(model_id), ignore_errors=True)
     del _models[model_id]
 
 
@@ -88,7 +143,9 @@ def push(model_id: str, body: ModelPush | None = None) -> Model:
     if not secret_set("hf_token"):
         raise ApiError(424, "Hugging Face token is not set")
     # Upload is not wired yet; record the target repo right away
-    m.hub_repo = repo or m.hub_repo or default_repo(m.task_id)
+    m = m.model_copy(update={"hub_repo": repo or m.hub_repo or default_repo(m.task_id)})
+    _save(m)
+    _models[model_id] = m
     return m
 
 
@@ -109,6 +166,7 @@ def record_trial(model_id: str, instruction: str, success: bool, session_start: 
         m.evals.append(current)
     current.trials += 1
     current.success += int(success)
+    _save(m)
     return current
 
 

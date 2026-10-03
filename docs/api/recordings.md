@@ -1,6 +1,6 @@
 # Recordings
 
-Raw MCAP files saved by Capture (or imported) and their review state. Web: `api/recordings.ts` (`useRecordings`, `setReview`, `deleteRecording`).
+Raw MCAP files saved by Capture (or imported) and their review state. Only files on disk exist (no mock data). Web: `api/recordings.ts` (`useRecordings`, `setReview`, `deleteRecording`).
 
 ## Types
 
@@ -33,7 +33,7 @@ Recording = {
 | GET | `/recordings/{id}` | | `Recording` | Review detail |
 | PATCH | `/recordings/{id}` | `{ review }` | `Recording` | `setReview()` (Accept / Reject) |
 | DELETE | `/recordings/{id}` | | `204` (deletes the MCAP and its sidecar) | `deleteRecording()` |
-| GET | `/recordings/{id}/file` | | `application/octet-stream` MCAP download (on-disk recordings; `501` for seed mocks, `404` when the file is gone) | — |
+| GET | `/recordings/{id}/file` | | `application/octet-stream` MCAP download (`404` when the file is gone) | — |
 | GET | `/recordings/{id}/samples?topics=action,state&fromS=0&toS=30&hz=60` | | `{ joints: string[], t: number[], series: { [topic]: number[][] } }` (resampled for plots) | Review JointPlots |
 | GET | `/recordings/{id}/video/{camera}` | | `video/mp4` with Range support (`501` until storage exists; 404 unknown camera) | Review VideoTile |
 | POST | `/recordings/import` | multipart `file` (.mcap) | `201 Recording` (source external) | — |
@@ -44,10 +44,9 @@ Changes are pushed as `recording.created` / `recording.updated` / `recording.del
 
 - `limit` 1–500 (default 50). Unknown `review` / `source` values return 422.
 - Samples: `topics` ⊆ `action,state`; `toS` defaults to and is clamped to the duration; `series[topic][joint][sample]`, one
-  sample every `1/hz` s from `fromS`. Max 100,000 samples per series, else 422. On-disk recordings are read from the MCAP
-  (`/action`, `/observation/state`; linear interpolation; joints from the channel metadata) — a file without those
-  channels (e.g. an unindexed import) or an unreadable file returns 422. Seed recordings return the web JointPlots mock
-  signal, seeded per id, with joints from the rig (`joint_1…6` when the recording has no rig).
+  sample every `1/hz` s from `fromS`. Max 100,000 samples per series, else 422. Read from the MCAP (`/action`,
+  `/observation/state`; linear interpolation; joints from the channel metadata) — a file without those channels (e.g. an
+  unindexed import) or an unreadable file returns 422.
 - Import: 422 unless the name ends in `.mcap` and the file starts with the MCAP magic bytes. The id is `ext-<slug of name>`
   (suffixed `-2`, `-3`… on collision); the file is stored as `imports/<name>` (`<stem>-2.mcap`… when the name is taken).
   Until indexing exists `topics` is empty and `checks` report missing metadata (`Metadata: missing task / rig`,
@@ -70,7 +69,7 @@ committed). Each one is an MCAP plus a YAML sidecar next to it — the sidecar i
   record `episode` (`recording_id`, `task_id`, `rig_id`, `episode`, `operator`, `outcome`). No camera frames yet: `topics`
   lists exactly the channels in the file and `sizeMB` is the file size. Values are the mock signal (state trails action).
 - On start, and whenever `rawPath` changes, the backend loads every `<raw>/*/*.yaml`; a broken sidecar is logged and
-  skipped. Disk recordings replace seed mocks with the same id; seed mocks stay in memory only (no file).
+  skipped. Two sidecars with the same id: the first by path wins. There are no seed recordings.
 - PATCH rewrites the sidecar; DELETE removes the MCAP and the sidecar. Episode numbers count the disk recordings, so a
   restart never reuses a number that is still on disk.
 

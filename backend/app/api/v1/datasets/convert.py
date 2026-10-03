@@ -15,5 +15,5 @@ def convert_preview(task_id: str = Query(alias="taskId"), exclude: str | None = 
 
 
 @router.post("/convert", status_code=202, response_model=Dataset)
-async def convert(body: ConvertBody):
+def convert(body: ConvertBody):
     return service.convert(body.task_id, body.repo_id, body.exclude)

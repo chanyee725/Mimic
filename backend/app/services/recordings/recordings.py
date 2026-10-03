@@ -1,8 +1,7 @@
-"""Recording store: seed mocks (memory only) plus episodes on disk under the raw folder.
+"""Recording store: episodes on disk under the raw folder (no mock data).
 
-On-disk recordings (Capture saves, imports) are an MCAP plus a YAML sidecar each
-(disk.py); they override seeds with the same id and survive restarts. The raw folder
-follows Settings storage.raw_path and is rescanned whenever that setting changes.
+Every recording (Capture saves, imports) is an MCAP plus a YAML sidecar (disk.py); the
+in-memory index is rebuilt from the sidecars whenever the raw folder changes.
 """
 
 import math
@@ -12,38 +11,25 @@ from pathlib import Path
 from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
-from app.seeds import load
 from app.models.recordings import Recording, RecordingCheck, RecordingReview, RecordingSource
 from app.schemas.recordings import Samples
 from app.services.recordings import disk
 from app.services.recordings import mcap_io as recordings_mcap
-from app.services.realtime import mock_robot
-from app.services.rigs import get_rig
 from app.utils.ids import slugify, split_csv
-from app.utils.rng import unit_seed
-from app.utils.time import iso, now_iso
+from app.utils.time import now_iso
 
-_recordings: dict[str, Recording] = {}
-_seeds: dict[str, Recording] = {}  # a seed shadowed by a disk recording returns on rescan
-_on_disk: set[str] = set()  # ids backed by an MCAP + sidecar under _root
+_recordings: dict[str, Recording] = {}  # id → recording backed by an MCAP + sidecar under _root
 _root: Path | None = None  # raw folder last scanned
 
 MCAP_MAGIC = b"\x89MCAP0\r\n"
 SAMPLE_TOPICS = ("action", "state")
 MAX_SAMPLES = 100_000  # per joint and topic
 IMPORTS_DIR = "imports"  # <raw>/imports/<name>.mcap
-_GENERIC_JOINTS = [f"joint_{i}" for i in range(1, 7)]
 
 
 def reset() -> None:
     global _root
     _recordings.clear()
-    _seeds.clear()
-    _on_disk.clear()
-    for r in load("recordings", "RECORDINGS"):
-        r["recordedAt"] = iso(r["recordedAt"])
-        _seeds[r["id"]] = Recording.model_validate(r)
-    _recordings.update(_seeds)
     _root = None
     _sync()
 
@@ -54,23 +40,17 @@ def _sync() -> Path:
     root = disk.raw_dir()
     if root == _root:
         return root
-    for rec_id in _on_disk:
-        _recordings.pop(rec_id, None)
-        if rec_id in _seeds:
-            _recordings[rec_id] = _seeds[rec_id]
-    _on_disk.clear()
+    _recordings.clear()
     for rec in disk.load_all(root):
-        if rec.id in _on_disk:
-            continue  # two sidecars with one id: the first by path wins
-        _recordings[rec.id] = rec
-        _on_disk.add(rec.id)
+        # Two sidecars with one id: the first by path wins
+        _recordings.setdefault(rec.id, rec)
     _root = root
     return root
 
 
 def is_on_disk(recording_id: str) -> bool:
     _sync()
-    return recording_id in _on_disk
+    return recording_id in _recordings
 
 
 def list_recordings(task_id: str | None = None) -> list[Recording]:
@@ -121,7 +101,6 @@ def add(rec: Recording, data: bytes) -> Recording:
         disk.remove(root, rec)
         raise _write_failed(e) from e
     _recordings[rec.id] = rec
-    _on_disk.add(rec.id)
     bus.publish("recording.created", rec)
     return rec
 
@@ -139,22 +118,19 @@ def max_episode(task_id: str) -> int:
 
 def set_review(recording_id: str, review: RecordingReview) -> Recording:
     rec = require(recording_id).model_copy(update={"review": review})
-    if rec.id in _on_disk:
-        try:
-            disk.write_sidecar(_sync(), rec)
-        except OSError as e:
-            raise _write_failed(e) from e
+    try:
+        disk.write_sidecar(_sync(), rec)
+    except OSError as e:
+        raise _write_failed(e) from e
     _recordings[rec.id] = rec
     bus.publish("recording.updated", rec)
     return rec
 
 
 def delete(recording_id: str) -> None:
-    """Removes the MCAP and sidecar of on-disk recordings; seed mocks are dropped from memory."""
+    """Removes the MCAP and its sidecar."""
     rec = require(recording_id)
-    if recording_id in _on_disk:
-        disk.remove(_sync(), rec)
-        _on_disk.discard(recording_id)
+    disk.remove(_sync(), rec)
     del _recordings[recording_id]
     bus.publish("recording.deleted", {"id": recording_id})
 
@@ -197,7 +173,7 @@ def import_mcap(filename: str, data: bytes) -> Recording:
 def samples(
     recording_id: str, topics_csv: str, from_s: float, to_s: float | None, hz: float
 ) -> Samples:
-    """Joint data resampled at hz: read from the MCAP for on-disk recordings, else the mock."""
+    """Joint data read from the MCAP and resampled at hz."""
     rec = require(recording_id)
     topics = split_csv(topics_csv)
     bad = [t for t in topics if t not in SAMPLE_TOPICS]
@@ -210,23 +186,6 @@ def samples(
     if n > MAX_SAMPLES:
         raise ApiError(422, "Too many samples; narrow the window or lower hz", {"samples": n})
     ts = [round(from_s + k / hz, 6) for k in range(n)]
-    if rec.id in _on_disk:
-        return _file_samples(rec, topics, ts)
-    rig = get_rig(rec.rig_id) if rec.rig_id else None
-    joints = list(rig.joints) if rig else list(_GENERIC_JOINTS)
-    seed = unit_seed(rec.id)  # each recording replays a different trajectory
-    lag = {"action": 0.0, "state": mock_robot.STATE_LAG_S}
-    series = {
-        topic: [
-            [round(mock_robot.sample(i, max(0.0, t - lag[topic]), seed), 3) for t in ts]
-            for i in range(len(joints))
-        ]
-        for topic in topics
-    }
-    return Samples(joints=joints, t=ts, series=series)
-
-
-def _file_samples(rec: Recording, topics: list[str], ts: list[float]) -> Samples:
     channels = [recordings_mcap.SAMPLE_CHANNELS[t] for t in topics]
     try:
         data = recordings_mcap.read_joints(disk.mcap_path(_sync(), rec), channels)
@@ -239,15 +198,18 @@ def _file_samples(rec: Recording, topics: list[str], ts: list[float]) -> Samples
     return Samples(joints=data.joints, t=ts, series=series)
 
 
+def read_episode(rec: Recording) -> recordings_mcap.EpisodeData:
+    """Action, state and subtask spans of one recording (for dataset conversion)."""
+    return recordings_mcap.read_episode(disk.mcap_path(_sync(), rec))
+
+
 def has_camera(rec: Recording, camera: str) -> bool:
     return any(t.kind == "video" and t.name == f"/cam_{camera}/image" for t in rec.topics)
 
 
 def file_path(recording_id: str) -> Path:
-    """MCAP of an on-disk recording (download); seed mocks have no file (501)."""
+    """MCAP of a recording (download)."""
     rec = require(recording_id)
-    if rec.id not in _on_disk:
-        raise ApiError(501, "This recording is a mock without an MCAP file")
     path = disk.mcap_path(_sync(), rec)
     if not path.is_file():
         raise not_found("Recording file", rec.file)
