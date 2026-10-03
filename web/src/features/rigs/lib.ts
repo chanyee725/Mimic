@@ -1,5 +1,4 @@
 import type { Tone } from "@/components/common/status-dot"
-import { listDevices } from "@/api/devices"
 import type { Device, DeviceStream, Health } from "@/domain/device"
 import type { Rig } from "@/domain/rig"
 
@@ -33,33 +32,5 @@ export function rigHealth(devices: Device[]): Health {
   return "ok"
 }
 
-const portOf = (id: string) => listDevices().find((d) => d.id === id)?.port ?? "—"
-const modelOf = (id: string) => listDevices().find((d) => d.id === id)?.name ?? id
-
-/** Display-only serializer for the rig config file (YAML) */
-export function rigToYaml(rig: Rig): string {
-  const device = (id: string) => [`  - id: ${id}`, `    model: ${modelOf(id)}`, `    port: ${portOf(id)}`]
-  return [
-    `rig: ${rig.id}`,
-    `name: ${rig.name}`,
-    "robot:",
-    ...rig.robots.flatMap(device),
-    "device:",
-    ...rig.devices.flatMap(device),
-    "camera:",
-    ...rig.cameras.flatMap((c) => [
-      `  - id: ${c.id}`,
-      `    key: ${c.key}`,
-      `    port: ${portOf(c.id)}`,
-      `    feature: ${c.feature}`,
-      `    resolution: ${c.resolution.replace(/\D+/, "x")}`,
-      `    fps: ${c.fps}`,
-      `    default_on: ${c.defaultOn}`,
-    ]),
-    `action_space:  # ${rig.joints.length} DoF`,
-    ...rig.joints.map((j) => `  - ${j}`),
-    "rates:",
-    `  action_hz: ${rig.targetHz.action}  # options: [${rig.actionHzOptions.join(", ")}]`,
-    `  video_fps: ${rig.targetHz.video}  # options: [${rig.videoFpsOptions.join(", ")}]`,
-  ].join("\n")
-}
+/** Every device id registered in a rig (robots, input devices, cameras) */
+export const rigDeviceIds = (rig: Rig) => [...rig.robots, ...rig.devices, ...rig.cameras.map((c) => c.id)]

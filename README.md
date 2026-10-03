@@ -22,16 +22,19 @@ Capture ─▶ Review ─▶ Convert ─▶ Datasets ─▶ Training ─▶ Mode
 
 | 폴더 | 내용 | 상태 |
 | --- | --- | --- |
-| [`web/`](web/README.md) | 스테이션 UI (React + TypeScript) | 목업 데이터로 동작 |
-| `backend/` | FastAPI(REST) · gRPC(로봇 데이터) · WebRTC(카메라) 서버 | 예정 |
+| [`web/`](web/README.md) | 스테이션 UI (React + TypeScript) | 백엔드에 연결됨 |
+| [`backend/`](backend/README.md) | FastAPI(REST) · gRPC(로봇 데이터) · WebRTC(카메라) 서버 | 메모리 목업 데이터로 동작 (하드웨어 · 저장소 연동 전) |
+| [`sim/`](sim/README.md) | Isaac Sim 평가 환경 폴더 | 예제 환경 |
+| [`docs/api/`](docs/api/README.md) | API 명세 | |
 
 ## 시작
 
 ```sh
-cd web
-nvm use          # Node 24
-npm install
-npm run dev      # http://localhost:5173
+# 백엔드 (http://localhost:8000/api/v1/docs)
+cd backend && uv sync && uv run uvicorn app.main:app --reload
+
+# 웹 (http://localhost:5173, /api 는 백엔드로 프록시)
+cd web && nvm use && npm install && npm run dev
 ```
 
 ## 작업 규칙

@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Panel } from "@/components/layout/page-layout"
 import { plural } from "@/lib/format"
 
+import { ErrorNote } from "@/components/common/query-state"
+
 /** Output settings (dataset name · format · feature preview) and the convert button */
 export function OutputPanel({
   repoId,
@@ -15,13 +17,20 @@ export function OutputPanel({
   actionHz,
   preview,
   count,
+  converting,
+  error,
+  onConvert,
 }: {
   repoId: string
   onRepoIdChange: (v: string) => void
   fps: number
   actionHz: number
-  preview: string
+  /** Feature preview text, or a loading / error note */
+  preview: React.ReactNode
   count: number
+  converting: boolean
+  error: Error | null
+  onConvert: () => void
 }) {
   return (
     <Panel title="Output" className="flex-1">
@@ -62,9 +71,10 @@ export function OutputPanel({
           {preview}
         </pre>
       </div>
-      <Button size="lg" className="w-full" disabled={count === 0 || !repoId.trim()}>
+      <ErrorNote error={error} />
+      <Button size="lg" className="w-full" disabled={converting || count === 0 || !repoId.trim()} onClick={onConvert}>
         <LuPlay />
-        Convert {plural(count, "episode")}
+        {converting ? "Starting conversion…" : `Convert ${plural(count, "episode")}`}
       </Button>
     </Panel>
   )

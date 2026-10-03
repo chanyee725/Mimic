@@ -1,30 +1,26 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getSettings } from "@/api/settings"
+import { useTestConnection } from "@/api/settings"
 
-import { useDraft } from "../hooks/use-draft"
+import { useSettingsDraft } from "../hooks/use-draft"
+import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
 import { SecretField } from "./secret-field"
 import { SettingRow } from "./setting-row"
 
 export function NotificationsSection() {
-  const { draft, set, dirty, save, reset } = useDraft(getSettings().notifications)
+  const { query, server, draft, set, saveBar } = useSettingsDraft("notifications")
+  if (!draft || !server) return <SectionPending query={query} />
+  const hook = server.slackWebhook
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Slack">
         <SettingRow label="Incoming webhook" hint="알림을 받을 채널의 webhook URL" htmlFor="nt-hook">
-          <SecretField
-            id="nt-hook"
-            secret={draft.slackWebhook}
-            placeholder="https://hooks.slack.com/services/…"
-            onChange={(s) => set("slackWebhook", s)}
-          />
+          <SecretField id="nt-hook" name="slack_webhook" secret={hook} placeholder="https://hooks.slack.com/services/…" />
         </SettingRow>
         <SettingRow label="Test message">
-          <Button variant="outline" size="sm" disabled={!draft.slackWebhook.set}>
-            Send test
-          </Button>
+          <SendTest canTest={hook.set} />
         </SettingRow>
       </SettingsSection>
       <SettingsSection title="Notify me when">
@@ -33,7 +29,7 @@ export function NotificationsSection() {
             <Switch
               id={`nt-${e.key}`}
               checked={e.on}
-              disabled={!draft.slackWebhook.set}
+              disabled={!hook.set}
               onCheckedChange={(on) =>
                 set(
                   "events",
@@ -43,9 +39,25 @@ export function NotificationsSection() {
             />
           </SettingRow>
         ))}
-        {!draft.slackWebhook.set && <p className="text-xs text-muted-foreground">Slack webhook 을 넣으면 알림을 켤 수 있습니다.</p>}
+        {!hook.set && <p className="text-xs text-muted-foreground">Slack webhook 을 넣으면 알림을 켤 수 있습니다.</p>}
       </SettingsSection>
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} />
+      <SaveBar {...saveBar} />
     </SettingsGroup>
+  )
+}
+
+/** Sends a test message to the Slack webhook. Slack has no stored state, so the answer shows only after a test */
+function SendTest({ canTest }: { canTest: boolean }) {
+  const test = useTestConnection()
+  const ok = test.data?.state === "ok"
+  const text = test.error ? test.error.message : test.data ? (ok ? "Sent" : (test.data.detail ?? "Failed")) : null
+
+  return (
+    <>
+      {text && <span className={ok ? "text-xs text-muted-foreground" : "text-xs text-bad"}>{text}</span>}
+      <Button variant="outline" size="sm" disabled={!canTest || test.isPending} onClick={() => test.mutate("slack")}>
+        {test.isPending ? "Sending…" : "Send test"}
+      </Button>
+    </>
   )
 }

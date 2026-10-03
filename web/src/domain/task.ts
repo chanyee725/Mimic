@@ -24,10 +24,22 @@ export type Task = {
   repoId: string
   pushToHub: boolean
   status: TaskStatus
-  collected: number
-  version: number
-  updatedAt: string
-  updatedBy: string // pseudonymous operator ID only (never store PII)
+  collected: number // read-only: accepted + pending capture episodes
+  version: number // read-only, +1 on every update
+  updatedAt: string // read-only, ISO 8601
+  updatedBy: string // read-only, pseudonymous operator ID only (never store PII)
+}
+
+/** Body of POST /tasks (create) */
+export type TaskInput = Omit<Task, "collected" | "version" | "updatedAt" | "updatedBy">
+
+/** Body of PUT /tasks/{id}: the edited fields plus the version they were based on */
+export type TaskUpdate = Omit<TaskInput, "id"> & { id?: string; version: number }
+
+/** Strip the read-only fields of a task, e.g. to start an edit draft */
+export function taskInput(task: Task): TaskInput {
+  const { collected: _c, version: _v, updatedAt: _a, updatedBy: _b, ...input } = task
+  return input
 }
 
 /** Progress ring tone for each task status */

@@ -23,7 +23,7 @@
               "@/dummy",
               "@/dummy/*"
             ],
-            "message": "Read data through @/api and types from @/domain; only src/api may import mock data."
+            "message": "Mock data lives in the backend; read data through @/api."
           }
         ]
       }
@@ -36,15 +36,6 @@
       ],
       "rules": {
         "react/only-export-components": "off"
-      }
-    },
-    {
-      "files": [
-        "src/api/**",
-        "src/dummy/**"
-      ],
-      "rules": {
-        "no-restricted-imports": "off"
       }
     }
   ]

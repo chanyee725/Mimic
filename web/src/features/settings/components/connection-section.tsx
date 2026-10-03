@@ -1,21 +1,22 @@
 import { Input } from "@/components/ui/input"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getSettings } from "@/api/settings"
 
-import { useDraft } from "../hooks/use-draft"
+import { useSettingsDraft } from "../hooks/use-draft"
 import { ConnStatus } from "./conn-status"
+import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 
 export function ConnectionSection() {
-  const { draft, set, dirty, save, reset } = useDraft(getSettings().connection)
+  const { query, server, draft, set, saveBar } = useSettingsDraft("connection")
+  if (!draft || !server) return <SectionPending query={query} />
   const { api, grpc, webrtc } = draft
 
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Backend API">
         <SettingRow label="Status">
-          <ConnStatus state={api.state} detail={api.latencyMs ? `${api.latencyMs} ms` : undefined} />
+          <ConnStatus target="api" state={server.api.state} detail={server.api.latencyMs ? `${server.api.latencyMs} ms` : undefined} />
         </SettingRow>
         <SettingRow label="URL" hint="FastAPI. Task · 데이터셋 · 학습 관리" htmlFor="cn-api">
           <Input
@@ -28,7 +29,7 @@ export function ConnectionSection() {
       </SettingsSection>
       <SettingsSection title="Robot data">
         <SettingRow label="Status">
-          <ConnStatus state={grpc.state} detail={grpc.latencyMs ? `${grpc.latencyMs} ms` : undefined} />
+          <ConnStatus target="grpc" state={server.grpc.state} detail={server.grpc.latencyMs ? `${server.grpc.latencyMs} ms` : undefined} />
         </SettingRow>
         <SettingRow label="gRPC endpoint" hint="60 Hz 관절 · action 스트림" htmlFor="cn-grpc">
           <Input
@@ -41,7 +42,7 @@ export function ConnectionSection() {
       </SettingsSection>
       <SettingsSection title="Video">
         <SettingRow label="Status">
-          <ConnStatus state={webrtc.state} />
+          <ConnStatus target="webrtc" state={server.webrtc.state} />
         </SettingRow>
         <SettingRow label="STUN server" hint="WebRTC 카메라 스트림" htmlFor="cn-stun">
           <Input
@@ -61,7 +62,7 @@ export function ConnectionSection() {
           />
         </SettingRow>
       </SettingsSection>
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} />
+      <SaveBar {...saveBar} />
     </SettingsGroup>
   )
 }

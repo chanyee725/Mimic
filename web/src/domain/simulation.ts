@@ -39,6 +39,18 @@ export type ModelSpec = { cameras: string[]; actionDim: number }
 
 export type CompatIssue = { level: "error" | "warn"; text: string }
 
+/** One saved model checked against an environment (GET /sim/envs/{id}/compat) */
+export type ModelCompat = { modelId: string; usable: boolean; issues: CompatIssue[] }
+
+/** GPU Isaac Sim runs on; busyBy is the sim job holding it */
+export type SimGpu = { id: string; name: string; vram: string; busyBy?: string }
+
+/** GET /sim/config */
+export type SimConfig = { envsDir: string; gpu: SimGpu }
+
+/** POST /sim/envs/rescan */
+export type RescanResult = { dir: string; scannedAt: string; envs: SimEnv[] }
+
 /** Can this model be loaded into this environment? Errors block an evaluation, warnings don't */
 export function envCompat(env: SimEnv, spec: ModelSpec): CompatIssue[] {
   const issues: CompatIssue[] = []
@@ -77,16 +89,44 @@ export type SimJob = {
   /** Time limit per episode (s) */
   maxSeconds: number
   startedAt?: string
-  elapsed?: string
-  eta?: string
-  /** Finished episodes so far */
-  results: SimEpisode[]
+  /** Seconds since start */
+  elapsedS?: number
+  /** Estimated seconds left */
+  etaS?: number
+  /** Finished episodes so far (the episodes themselves are paged via /episodes) */
+  done: number
+  /** Successful episodes among `done` */
+  succeeded: number
+  /** Failure reason → count over finished episodes */
+  failureReasons: Record<string, number>
   error?: string
 }
 
+/** POST /sim/jobs body (backend defaults: 50 episodes, seed 1000, 40 s, "low") */
+export type SimJobCreate = {
+  modelId: string
+  envId: string
+  episodes?: number
+  seedStart?: number
+  maxSeconds?: number
+  randomization?: Randomization
+}
+
+/** Episode filter for the paged episodes list */
+export type SimEpisodeResult = "success" | "fail"
+
 /** Success rate (0–1) over finished episodes, undefined before the first one */
 export function simSuccessRate(job: SimJob) {
-  return job.results.length ? job.results.filter((e) => e.success).length / job.results.length : undefined
+  return job.done ? job.succeeded / job.done : undefined
 }
+
+/** Progress (0–1) through the planned episodes */
+export const simJobPct = (job: SimJob) => (job.episodes ? job.done / job.episodes : 0)
+
+/** Failure reasons, most frequent first */
+export const simFailureReasons = (job: SimJob) =>
+  Object.entries(job.failureReasons)
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count)
 
 export const isSimActive = (job: SimJob) => job.status === "running" || job.status === "queued"

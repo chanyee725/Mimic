@@ -1,14 +1,15 @@
 import { Input } from "@/components/ui/input"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getSettings } from "@/api/settings"
 
-import { useDraft } from "../hooks/use-draft"
+import { useSettingsDraft } from "../hooks/use-draft"
 import { ChoiceSelect } from "./choice-select"
+import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 
 export function TrainingSection() {
-  const { draft, set, dirty, save, reset } = useDraft(getSettings().training)
+  const { query, draft, set, saveBar } = useSettingsDraft("training")
+  if (!draft) return <SectionPending query={query} />
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Training defaults">
@@ -59,7 +60,7 @@ export function TrainingSection() {
           />
         </SettingRow>
       </SettingsSection>
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} />
+      <SaveBar {...saveBar} />
     </SettingsGroup>
   )
 }

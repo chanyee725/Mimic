@@ -16,7 +16,7 @@ Guidance for working in this repository.
 - Conversion: LeRobot v3.0 only. The dataset fps follows the camera fps and action is downsampled (no time-alignment options).
 - Model: SmolVLA (`lerobot/smolvla_base`) only. Training runs on the local GPU or RunPod.
 - Simulation: Isaac Sim on the local RTX 4090, evaluation only (no data generation, no RunPod). The user builds environments and registers each as a folder (`env.yaml`, `scene.usd`, `success.py`) under the environments folder (default `~/vla/sim/envs`, set in Settings); a saved model is loaded into any compatible environment (cameras and action size must match).
-- Backend (planned): FastAPI (REST), gRPC (60 Hz robot data), WebRTC (cameras). The frontend currently runs on mocks in `web/src/dummy`, read through `web/src/api`.
+- Backend (planned): FastAPI (REST), gRPC (60 Hz robot data), WebRTC (cameras). The frontend reads everything from the backend through React Query hooks in `web/src/api`; mock data lives in the backend seeds (`backend/app/seeds/data`).
 - A data glove (tactile / flex / IMU) is planned later; keep it out of the UI for now.
 
 ## Privacy
@@ -31,6 +31,31 @@ Guidance for working in this repository.
 - **Only merge into `develop` / `main` or push when the user asks.**
 - English Conventional Commits, split by feature, ending with a `Co-Authored-By:` trailer.
 - Avoid `git stash` and `git reset --mixed` (see the Vite note below).
+
+## backend/
+
+- FastAPI, Python 3.12 (uv), Pydantic v2, black (line length 100), pytest. API spec: `docs/api/` — update it with every endpoint change.
+- `cd backend && uv sync && uv run uvicorn app.main:app --reload` (port 8000); `uv run pytest`; `uv run black .` before committing.
+- Layered layout (one file per area in each layer, same file name across layers):
+  ```
+  app/
+    main.py                  create_app, mounts api_router under /api/v1
+    configs/config.py        Config (env VLA_*), REPO_ROOT
+    api/v1/__init__.py       api_router (includes every area router)
+    api/v1/routers/<area>.py HTTP only: params, status codes, call a service
+    schemas/<area>.py        request / response bodies (CamelModel); schemas/common.py: CamelModel, Page, paginate
+    models/<area>.py         domain entities kept by services (CamelModel)
+    services/<area>.py       state + rules; helpers as services/<area>_<topic>.py
+    seeds/                   load(); data/*.json (the mock data); seeds/<area>.py converters
+    rpc/                     gRPC: gen/ (generated), servicer.py, server.py
+    core/                    errors, events bus, clock
+  tests/<area>/
+  ```
+- Routers never hold state or rules; services never import FastAPI routers. Cross-area reads go through `app.services.<area>`.
+- Errors via `ApiError` / `not_found` / `conflict` (uniform `{"error": {...}}` body). Large lists use `paginate()`. Publish changes on `app.core.events.bus`.
+- Comments: short, English. No PII; secrets are write-only.
+- Branches: `feat/backend` ← `feat/backend-*`.
+- Isaac Sim environments live in `sim/envs/<env-id>/` (see `sim/README.md`).
 
 ## web/ commands
 
@@ -60,8 +85,7 @@ src/
   components/robot/    VideoTile, JointPlots, plot-canvas.ts (canvas drawing helpers)
   hooks/               use-hotkeys, use-draft-on-open, use-mobile
   domain/              entity types + pure rules (Task, Rig, Recording, Dataset, Model, TrainJob, … · successRate, isActive, jobPct)
-  api/                 data access: listX() / getX(id) / config exports / useRecordings — the only layer that touches mocks
-  dummy/               mock data only (lint blocks imports from anywhere except src/api)
+  api/                 React Query hooks over the backend (client.ts, query.ts keys, events.ts WebSocket) — the only data source
   lib/                 domain-free helpers: utils (cn), format (time, size, price, plural)
 ```
 
@@ -69,7 +93,7 @@ src/
 - Use `LinkButton` for links styled as buttons (not `buttonVariants` on a `Link`).
 - Import order: external → `@/components/ui` → `@/components/layout` / `common` / `pickers` / `robot` → `@/api` → `@/domain` → `@/hooks` → `@/lib` → relative.
 - Before writing new UI or helpers, check the shared components, `lib/format` and `use-hotkeys`. Don't rebuild tab bars, search fields, empty states, progress bars or time formatting.
-- Types come from `@/domain/<entity>`, data from `@/api/<module>`. Call api functions inside components, hooks or small functions (not at module top level) so they can become async query hooks when the backend lands. Connecting FastAPI / gRPC / WebRTC should only change `src/api`.
+- Types come from `@/domain/<entity>` (they mirror the backend JSON; optional fields are `T | null`), data from `@/api/<module>` hooks. Handle loading and error states; actions are mutations that invalidate their area. Dev: run the backend on :8000 (or set `VITE_API_TARGET`).
 
 ## UI
 

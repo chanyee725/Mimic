@@ -4,8 +4,6 @@ import { successRate, type Model } from "@/domain/model"
 import { simSuccessRate, type SimJob, type SimEnv } from "@/domain/simulation"
 import { formatPct, plural } from "@/lib/format"
 
-import { successCount } from "../job-stats"
-
 /** Gap (%p) under which sim and real are treated as matching */
 const CLOSE_GAP = 5
 
@@ -29,7 +27,7 @@ export function SimVsReal({ job, model, env }: { job: SimJob; model?: Model; env
         <Row
           label="Isaac Sim"
           value={formatPct(sim)}
-          sub={sim === undefined ? "No episodes yet" : `${successCount(job.results)} of ${plural(job.results.length, "episode")}`}
+          sub={sim === undefined ? "No episodes yet" : `${job.succeeded} of ${plural(job.done, "episode")}`}
           pct={(sim ?? 0) * 100}
           tone="info"
         />

@@ -4,7 +4,7 @@ import { LuPause, LuPlay } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { VideoTile } from "@/components/robot/video-tile"
-import { getRig } from "@/api/rigs"
+import { useRig } from "@/api/rigs"
 import type { Recording } from "@/domain/recording"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -16,7 +16,8 @@ import { SpeedToggle } from "./speed-toggle"
 import { StreamList } from "./stream-list"
 
 /**
- * Plays back a saved MCAP episode.
+ * Plays back a saved MCAP episode. Video (501 until storage exists) stays a placeholder and the joint plots
+ * replay the seeded mock signal, the same one the samples endpoint serves for now.
  * Callers key it by recording id so playback restarts when the file changes.
  */
 export function McapPlayer({ recording, className }: { recording: Recording; className?: string }) {
@@ -25,7 +26,7 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
 
   const videos = recording.topics.filter((t) => t.kind === "video")
   const hasJoints = recording.topics.some((t) => t.kind === "action" || t.kind === "state")
-  const rig = recording.rigId ? getRig(recording.rigId) : undefined
+  const rig = useRig(recording.rigId ?? undefined).data
   const joints = useMemo(() => rig?.joints ?? Array.from({ length: 6 }, (_, i) => `j${i}`), [rig])
   const actionHz = recording.topics.find((t) => t.kind === "action")?.rateHz ?? 60
 

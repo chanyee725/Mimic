@@ -24,7 +24,7 @@ export function RolloutViewer({
   onShowLive: () => void
 }) {
   const live = job.status === "running" && !episode
-  const current = job.results.length
+  const current = job.done
 
   let caption: string
   let placeholder = "Isaac Sim replay"

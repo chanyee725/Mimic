@@ -1,14 +1,15 @@
-import type { SimEpisode, SimJob, SimEnv } from "@/domain/simulation"
+import type { SimEnv, SimEpisode, SimEpisodeResult, SimJob } from "@/domain/simulation"
 import { plural } from "@/lib/format"
 
 import { RANDOMIZATION } from "./lib"
 
-export type ResultFilter = "all" | "success" | "fail"
+export type ResultFilter = "all" | SimEpisodeResult
 
-export const RESULT_FILTERS: { value: ResultFilter; label: string; match: (e: SimEpisode) => boolean }[] = [
-  { value: "all", label: "All", match: () => true },
-  { value: "success", label: "Success", match: (e) => e.success },
-  { value: "fail", label: "Fail", match: (e) => !e.success },
+/** Episode filters with their counts from the job's totals */
+export const RESULT_FILTERS: { value: ResultFilter; label: string; count: (job: SimJob) => number }[] = [
+  { value: "all", label: "All", count: (j) => j.done },
+  { value: "success", label: "Success", count: (j) => j.succeeded },
+  { value: "fail", label: "Fail", count: (j) => j.done - j.succeeded },
 ]
 
 export const EPISODES_PER_PAGE = 20
@@ -29,22 +30,9 @@ export function jobDescription(job: SimJob, env?: SimEnv) {
   ].join(", ")
 }
 
-export const successCount = (results: SimEpisode[]) => results.filter((e) => e.success).length
-
-/** Mean episode length (s), undefined before the first episode */
-export const avgSeconds = (results: SimEpisode[]) =>
-  results.length ? results.reduce((a, e) => a + e.seconds, 0) / results.length : undefined
-
-/** Failure reasons with counts, most frequent first */
-export function failureReasons(results: SimEpisode[]) {
-  const counts = new Map<string, number>()
-  for (const e of results) {
-    if (e.success) continue
-    const reason = e.reason ?? "Unknown"
-    counts.set(reason, (counts.get(reason) ?? 0) + 1)
-  }
-  return [...counts].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count)
-}
+/** Mean episode length (s) over the given episodes, undefined when there are none */
+export const avgSeconds = (episodes: SimEpisode[]) =>
+  episodes.length ? episodes.reduce((a, e) => a + e.seconds, 0) / episodes.length : undefined
 
 /** "Episode #12, seed 1012, Fail — Grasp slipped" */
 export const episodeText = (e: SimEpisode) =>

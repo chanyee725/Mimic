@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { HfBadge } from "@/components/common/hf-badge"
 import { SearchInput } from "@/components/common/search-input"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { Segmented } from "@/components/common/segmented"
-import { listModels } from "@/api/models"
+import { useModels } from "@/api/models"
 import { successRate, type Model } from "@/domain/model"
 import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
+import { formatDateTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 /** Pick a saved model. Filter by task, search by name, dataset or job */
@@ -27,7 +29,8 @@ export function ModelPickerDialog({
   const [query, setQuery] = useState("")
   const [draft, setDraft] = useDraftOnOpen(open, value)
   const q = query.trim().toLowerCase()
-  const models = listModels()
+  const modelsQuery = useModels()
+  const models = modelsQuery.data ?? []
   const tasks = [...new Set(models.map((m) => m.taskId))]
   const rows = models.filter(
     (m) =>
@@ -74,7 +77,21 @@ export function ModelPickerDialog({
               {rows.map((m) => (
                 <ModelRow key={m.id} model={m} on={m.id === draft} onPick={() => setDraft(m.id)} />
               ))}
-              {rows.length === 0 && (
+              {modelsQuery.isPending && (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center">
+                    <LoadingNote />
+                  </td>
+                </tr>
+              )}
+              {modelsQuery.isError && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-10">
+                    <ErrorNote error={modelsQuery.error} onRetry={() => void modelsQuery.refetch()} className="justify-center" />
+                  </td>
+                </tr>
+              )}
+              {modelsQuery.data && rows.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-10 text-center text-muted-foreground">
                     일치하는 모델이 없습니다.
@@ -139,7 +156,7 @@ function ModelRow({ model: m, on, onPick }: { model: Model; on: boolean; onPick:
       <td className="px-3 py-2 text-right tabular-nums">{m.step.toLocaleString()}</td>
       <td className="px-3 py-2 text-right tabular-nums">{m.loss.toFixed(3)}</td>
       <td className="px-3 py-2 text-right tabular-nums">{rate === undefined ? "—" : `${Math.round(rate * 100)}%`}</td>
-      <td className="px-3 py-2 text-muted-foreground tabular-nums">{m.savedAt}</td>
+      <td className="px-3 py-2 text-muted-foreground tabular-nums">{formatDateTime(m.savedAt)}</td>
     </tr>
   )
 }

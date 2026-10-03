@@ -1,12 +1,11 @@
 import { DetailList } from "@/components/common/detail-list"
-import { SIM_GPU } from "@/api/simulation"
-import type { SimJob, SimEnv } from "@/domain/simulation"
-import { plural } from "@/lib/format"
+import type { SimEnv, SimGpu, SimJob } from "@/domain/simulation"
+import { formatDateTime, plural } from "@/lib/format"
 
 import { randomizationLabel, seedRange } from "../job-stats"
 
 /** Evaluation config summary (model, environment, episodes, randomization, ...) */
-export function SimJobConfig({ job, modelName, env }: { job: SimJob; modelName: string; env?: SimEnv }) {
+export function SimJobConfig({ job, modelName, env, gpu }: { job: SimJob; modelName: string; env?: SimEnv; gpu?: SimGpu }) {
   return (
     <DetailList
       rows={[
@@ -22,8 +21,8 @@ export function SimJobConfig({ job, modelName, env }: { job: SimJob; modelName: 
         { k: "Randomization", v: randomizationLabel(job) },
         { k: "Seeds", v: seedRange(job) },
         { k: "Time limit", v: `${job.maxSeconds} s per episode` },
-        { k: "GPU", v: `${SIM_GPU.name} (${SIM_GPU.id})` },
-        { k: "Started", v: job.startedAt ?? "Not started" },
+        { k: "GPU", v: gpu ? `${gpu.name} (${gpu.id})` : "—" },
+        { k: "Started", v: job.startedAt ? formatDateTime(job.startedAt) : "Not started" },
       ]}
     />
   )

@@ -3,14 +3,17 @@ import { LuPlus } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { StatusDot } from "@/components/common/status-dot"
-import { devicesOf } from "@/api/devices"
-import { listRigs } from "@/api/rigs"
+import { useDevices } from "@/api/devices"
+import { useRigs } from "@/api/rigs"
 import { cn } from "@/lib/utils"
 
-import { HEALTH_TONE, rigHealth } from "../lib"
+import { HEALTH_TONE, rigDeviceIds, rigHealth } from "../lib"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
-export function RigList({ selectedId, onSelect }: { selectedId: string; onSelect: (id: string) => void }) {
-  const rigs = listRigs()
+export function RigList({ selectedId, onSelect }: { selectedId: string | undefined; onSelect: (id: string) => void }) {
+  const rigsQuery = useRigs()
+  const rigs = rigsQuery.data ?? []
+  const allDevices = useDevices().data
 
   return (
     <Panel
@@ -18,18 +21,32 @@ export function RigList({ selectedId, onSelect }: { selectedId: string; onSelect
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           Rigs
-          <span className="font-normal text-muted-foreground tabular-nums">{rigs.length}</span>
+          <span className="font-normal text-muted-foreground tabular-nums">{rigsQuery.data ? rigs.length : ""}</span>
         </span>
       }
       action={
-        <Button variant="ghost" size="icon-sm" aria-label="Add rig" title="Add rig" className="text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Add rig"
+          title="Rig 설정은 v1 에서 읽기 전용입니다"
+          className="text-muted-foreground"
+          disabled
+        >
           <LuPlus />
         </Button>
       }
     >
+      {rigsQuery.isError && <ErrorNote error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} />}
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
+        {rigsQuery.isPending && (
+          <li>
+            <LoadingNote />
+          </li>
+        )}
         {rigs.map((r) => {
-          const devices = devicesOf(r.id)
+          const ids = rigDeviceIds(r)
+          const devices = allDevices?.filter((d) => ids.includes(d.id))
           const selected = r.id === selectedId
           return (
             <li key={r.id}>
@@ -43,7 +60,7 @@ export function RigList({ selectedId, onSelect }: { selectedId: string; onSelect
                 )}
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  <StatusDot tone={HEALTH_TONE[rigHealth(devices)]} />
+                  <StatusDot tone={devices ? HEALTH_TONE[rigHealth(devices)] : "muted"} />
                   <span className={cn("truncate text-[13px]", selected ? "font-medium" : "font-normal")}>{r.name}</span>
                 </span>
                 <span className="truncate pl-3.5 text-xs text-muted-foreground">

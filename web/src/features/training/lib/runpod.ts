@@ -1,13 +1,7 @@
 import type { Tone } from "@/components/common/status-dot"
-import { RUNPOD_PRICE_FACTOR } from "@/api/training"
 import type { GpuStock, RunPodGpu, RunPodOptions } from "@/domain/training"
 
-// RunPod
-
-/** Hourly rate with the pod options applied */
-export function runpodRate(base: number, o: RunPodOptions) {
-  return base * o.gpuCount * RUNPOD_PRICE_FACTOR.cloud[o.cloud] * RUNPOD_PRICE_FACTOR.pricing[o.pricing]
-}
+// RunPod (the hourly rate itself is runpodRate in @/domain/training)
 
 /** Hours until the max runtime or the budget is hit, whichever comes first (0 = no limit) */
 export function runpodCapHours(o: RunPodOptions, rate: number) {

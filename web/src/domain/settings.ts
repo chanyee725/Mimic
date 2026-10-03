@@ -2,7 +2,9 @@ export type Secret = { set: boolean; last4?: string }
 
 export type ConnState = "ok" | "error" | "unknown"
 
+/** Station settings document; every section save sends `version` (stale → 409) */
 export type Settings = {
+  version: number
   station: { name: string; id: string; timezone: string; operators: { id: string; role: "operator" | "admin" }[] }
   integrations: {
     hf: { token: Secret; namespace: string; privateByDefault: boolean; state: ConnState }
@@ -45,3 +47,27 @@ export type Settings = {
     events: { key: string; label: string; on: boolean }[]
   }
 }
+
+export type SettingsSection = Exclude<keyof Settings, "version">
+
+type DeepPartial<T> = T extends unknown[] ? T : T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T
+
+/** Body of PATCH /settings/{section}: changed fields of that section plus the document version (nested objects merge) */
+export type SettingsPatch<S extends SettingsSection = SettingsSection> = { version: number } & DeepPartial<Settings[S]>
+
+export type SecretName = "hf_token" | "runpod_api_key" | "wandb_api_key" | "slack_webhook"
+
+export type TestTarget = "hf" | "runpod" | "wandb" | "api" | "grpc" | "webrtc" | "slack"
+
+export type ConnTestResult = { state: ConnState; latencyMs?: number; detail?: string }
+
+export type DiskPartKey = "raw" | "datasets" | "models" | "other"
+
+export type Disk = { totalGB: number; parts: { key: DiskPartKey; label: string; gb: number }[] }
+
+/** Used share of the disk, 0–100 */
+export const diskUsedPct = (disk: Disk) => (disk.totalGB > 0 ? (disk.parts.reduce((s, p) => s + p.gb, 0) / disk.totalGB) * 100 : 0)
+
+export type ShortcutGroup = { page: string; keys: { keys: string[]; action: string }[] }
+
+export type VersionRow = { k: string; v: string }

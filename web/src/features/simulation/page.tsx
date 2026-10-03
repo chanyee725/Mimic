@@ -2,7 +2,7 @@ import { useSearchParams } from "react-router-dom"
 
 import { Segmented } from "@/components/common/segmented"
 import { Page } from "@/components/layout/page-layout"
-import { listSimEnvs, listSimJobs } from "@/api/simulation"
+import { useSimEnvs, useSimJobs } from "@/api/simulation"
 
 import { EnvironmentsView } from "./components/environments-view"
 import { NewEvalPanel } from "./components/new-eval-panel"
@@ -16,6 +16,8 @@ export function SimulationPage() {
   // ?env=<id>&model=<id> preselect the environment and model in the new evaluation form
   const envId = params.get("env") ?? undefined
   const modelId = params.get("model") ?? undefined
+  const jobs = useSimJobs()
+  const envs = useSimEnvs()
 
   return (
     <Page
@@ -28,8 +30,8 @@ export function SimulationPage() {
           value={view}
           onChange={(v) => setParams(v === "evaluations" ? {} : { view: v }, { replace: true })}
           options={[
-            { value: "evaluations", label: "Evaluations", count: listSimJobs().length },
-            { value: "environments", label: "Environments", count: listSimEnvs().length },
+            { value: "evaluations", label: "Evaluations", count: jobs.data?.length },
+            { value: "environments", label: "Environments", count: envs.data?.length },
           ]}
         />
       }

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { LuChevronRight, LuPlay } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
@@ -10,31 +11,69 @@ import { LinkButton } from "@/components/common/link-button"
 import { Segmented } from "@/components/common/segmented"
 import { StatusDot } from "@/components/common/status-dot"
 import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
-import { getModel } from "@/api/models"
-import { SIM_GPU, getSimEnv } from "@/api/simulation"
-import type { Randomization } from "@/domain/simulation"
+import { ApiError } from "@/api/client"
+import { useModels } from "@/api/models"
+import { useRigs } from "@/api/rigs"
+import { useSimConfig, useSimEnvs, useStartSimJob } from "@/api/simulation"
+import { useTasks } from "@/api/tasks"
+import type { Model } from "@/domain/model"
+import type { Rig } from "@/domain/rig"
+import type { CompatIssue, Randomization, SimEnv, SimGpu } from "@/domain/simulation"
+import type { Task } from "@/domain/task"
 
 import { RANDOMIZATION } from "../lib"
-import { NEW_EVAL_DEFAULTS, envOptions, initialSelection, simGpuHolder, usableEnvId } from "../new-eval"
+import { NEW_EVAL_DEFAULTS, envOptions, initialSelection, modelSpec, usableEnvId, type EnvOption } from "../new-eval"
 import { EnvPicker } from "./env-picker"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+
+type FormData = { models: Model[]; envs: SimEnv[]; tasks: Task[]; rigs: Rig[] }
 
 /**
  * New evaluation form. Pick a saved model, load it into one of the registered environments,
  * set the rollout count, then start (or queue) on the local GPU.
  */
 export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: string; initialModelId?: string }) {
-  const [initial] = useState(() => initialSelection(initialEnvId, initialModelId))
+  const queries = [useModels(), useSimEnvs(), useTasks(), useRigs()] as const
+  const [models, envs, tasks, rigs] = queries
+  const failed = queries.find((q) => q.isError)
+
+  return (
+    <Panel title="New evaluation" className="min-h-0">
+      {failed ? (
+        <ErrorNote error={failed.error} onRetry={() => queries.forEach((q) => q.isError && q.refetch())} />
+      ) : !models.data || !envs.data || !tasks.data || !rigs.data ? (
+        <LoadingNote />
+      ) : (
+        <NewEvalForm
+          data={{ models: models.data, envs: envs.data, tasks: tasks.data, rigs: rigs.data }}
+          initialEnvId={initialEnvId}
+          initialModelId={initialModelId}
+        />
+      )}
+    </Panel>
+  )
+}
+
+function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; initialEnvId?: string; initialModelId?: string }) {
+  const navigate = useNavigate()
+  const start = useStartSimJob()
+  const gpu = useSimConfig().data?.gpu
+  // Compatibility is checked client-side with the same rule as the backend (domain envCompat)
+  const optionsFor = (m?: Model): EnvOption[] => envOptions(data.envs, m, m && modelSpec(m, data.tasks, data.rigs))
+  const findEnv = (id?: string) => data.envs.find((e) => e.id === id)
+
+  const [initial] = useState(() => initialSelection(data.models, optionsFor, initialEnvId, initialModelId))
   const [modelId, setModelId] = useState(initial.modelId)
-  const model = getModel(modelId)
-  const options = envOptions(model)
+  const model = data.models.find((m) => m.id === modelId)
+  const options = optionsFor(model)
   const [envId, setEnvId] = useState(initial.envId)
   const selected = options.find((o) => o.env.id === envId && o.usable)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [episodes, setEpisodes] = useState(NEW_EVAL_DEFAULTS.episodes)
   const [seedStart, setSeedStart] = useState(NEW_EVAL_DEFAULTS.seedStart)
-  const [maxSeconds, setMaxSeconds] = useState(() => getSimEnv(initial.envId ?? "")?.maxSeconds ?? NEW_EVAL_DEFAULTS.maxSeconds)
+  const [maxSeconds, setMaxSeconds] = useState(() => findEnv(initial.envId)?.maxSeconds ?? NEW_EVAL_DEFAULTS.maxSeconds)
   const [randomization, setRandomization] = useState<Randomization>(NEW_EVAL_DEFAULTS.randomization)
-  const busyBy = simGpuHolder()
+  const busyBy = gpu?.busyBy
   const hint = RANDOMIZATION.find((r) => r.value === randomization)?.hint
   // ?env= named an environment the chosen model can't be loaded into
   const requested = initialEnvId && initialEnvId !== envId ? options.find((o) => o.env.id === initialEnvId && !o.usable) : undefined
@@ -43,12 +82,20 @@ export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: 
   const selectEnv = (id?: string) => {
     if (id === envId) return
     setEnvId(id)
-    const next = getSimEnv(id ?? "")
+    const next = findEnv(id)
     if (next) setMaxSeconds(next.maxSeconds)
   }
 
+  const submit = () => {
+    if (!model || !selected) return
+    start.mutate(
+      { modelId: model.id, envId: selected.env.id, episodes, seedStart, maxSeconds, randomization },
+      { onSuccess: (job) => navigate(`/simulation/${job.id}`) },
+    )
+  }
+
   return (
-    <Panel title="New evaluation" className="min-h-0">
+    <>
       <div className="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto">
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Model</span>
@@ -82,7 +129,7 @@ export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: 
           {!options.some((o) => o.usable) && (
             <EmptyState className="px-4">이 모델을 불러올 수 있는 환경이 없습니다. 환경 폴더를 추가하세요.</EmptyState>
           )}
-          {options.length > 0 && <EnvPicker options={options} value={selected?.env.id} onChange={selectEnv} />}
+          {options.length > 0 && <EnvPicker options={options} tasks={data.tasks} value={selected?.env.id} onChange={selectEnv} />}
           {selected?.issues.some((i) => i.level === "warn") && (
             <p className="text-xs text-warn">이 환경은 실제 rig 와 맞춰지지 않아 결과가 실제 로봇과 다를 수 있습니다.</p>
           )}
@@ -108,32 +155,14 @@ export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: 
           {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
         </div>
 
-        <div className="grid gap-1.5">
-          <span className="text-xs text-muted-foreground">GPU</span>
-          <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-[13px]">
-            <span className="grid gap-0.5">
-              <span className="font-medium">
-                {SIM_GPU.name} ({SIM_GPU.id})
-              </span>
-              <span className="text-xs text-muted-foreground">{SIM_GPU.vram}, Isaac Sim</span>
-            </span>
-            {busyBy ? (
-              <StatusDot tone="info" className="text-xs text-muted-foreground">
-                In use by {busyBy}
-              </StatusDot>
-            ) : (
-              <StatusDot tone="ok" className="text-xs text-muted-foreground">
-                Free
-              </StatusDot>
-            )}
-          </div>
-        </div>
+        <GpuRow gpu={gpu} />
       </div>
 
       {busyBy && <p className="text-xs text-muted-foreground">GPU 가 사용 중이라 {busyBy} 가 끝나면 시작합니다.</p>}
-      <Button size="lg" className="w-full" disabled={!model || !selected}>
+      <StartError error={start.error} />
+      <Button size="lg" className="w-full" disabled={!model || !selected || start.isPending} onClick={submit}>
         <LuPlay />
-        {busyBy ? "Queue evaluation" : "Start evaluation"}
+        {start.isPending ? "Starting…" : busyBy ? "Queue evaluation" : "Start evaluation"}
       </Button>
       <ModelPickerDialog
         open={pickerOpen}
@@ -141,11 +170,59 @@ export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: 
         value={modelId}
         onSelect={(id) => {
           setModelId(id)
+          start.reset()
           // Keep the environment if the new model still loads into it, else jump to the first usable one
-          selectEnv(usableEnvId(envOptions(getModel(id)), envId))
+          selectEnv(usableEnvId(optionsFor(data.models.find((m) => m.id === id)), envId))
         }}
       />
-    </Panel>
+    </>
+  )
+}
+
+function GpuRow({ gpu }: { gpu?: SimGpu }) {
+  return (
+    <div className="grid gap-1.5">
+      <span className="text-xs text-muted-foreground">GPU</span>
+      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-[13px]">
+        {gpu ? (
+          <>
+            <span className="grid gap-0.5">
+              <span className="font-medium">
+                {gpu.name} ({gpu.id})
+              </span>
+              <span className="text-xs text-muted-foreground">{gpu.vram}, Isaac Sim</span>
+            </span>
+            {gpu.busyBy ? (
+              <StatusDot tone="info" className="text-xs text-muted-foreground">
+                In use by {gpu.busyBy}
+              </StatusDot>
+            ) : (
+              <StatusDot tone="ok" className="text-xs text-muted-foreground">
+                Free
+              </StatusDot>
+            )}
+          </>
+        ) : (
+          <span className="text-xs text-muted-foreground">Loading…</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Start failure; an incompatible pair (422) also lists the compatibility issues */
+function StartError({ error }: { error: Error | null }) {
+  if (!error) return null
+  const issues = error instanceof ApiError ? ((error.details.issues as CompatIssue[] | undefined) ?? []) : []
+  return (
+    <div className="grid gap-1">
+      <ErrorNote error={error} />
+      {issues.map((i) => (
+        <p key={i.text} className={i.level === "error" ? "text-xs text-bad" : "text-xs text-warn"}>
+          {i.text}
+        </p>
+      ))}
+    </div>
   )
 }
 

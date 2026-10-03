@@ -7,50 +7,71 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Panel } from "@/components/layout/page-layout"
 import { Segmented } from "@/components/common/segmented"
 import { StatusDot } from "@/components/common/status-dot"
-import { LOCAL_GPUS, POLICY, POLICY_BASE, RUNPOD_DEFAULTS, RUNPOD_GPUS, listJobs } from "@/api/training"
-import type { Compute, RunPodOptions } from "@/domain/training"
+import { useTrainingConfig } from "@/api/training"
+import { allParams, runpodRate, type Compute, type RunPodOptions, type TrainingConfig } from "@/domain/training"
 import { formatRate, formatUsd } from "@/lib/format"
 
-import { overrideFlags, runpodCapHours, runpodRate, runpodSummary, type Overrides, type TrainingPlan, trainableDatasets } from "../lib"
+import { changedOverrides, overrideFlags, runpodCapHours, runpodSummary, type Overrides, type TrainingPlan } from "../lib"
 import { ConfirmTrainingDialog } from "./confirm-dialog"
 import { GpuPickerDialog } from "./gpu-picker-dialog"
 import { ParamsDialog } from "./params-dialog"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RunPodDialog } from "./runpod-dialog"
 
 /** Start training form. Pick dataset, compute and parameters, then confirm in a dialog */
 export function StartTraining() {
-  const trainable = trainableDatasets()
+  const config = useTrainingConfig()
+  return (
+    <Panel title="Start training" className="min-h-0">
+      {config.isPending ? (
+        <LoadingNote />
+      ) : config.isError ? (
+        <ErrorNote error={config.error} onRetry={() => config.refetch()} />
+      ) : (
+        <StartForm config={config.data} />
+      )}
+    </Panel>
+  )
+}
+
+function StartForm({ config }: { config: TrainingConfig }) {
+  const { policy, policyBase, localGpus, runpod, trainableDatasets: trainable } = config
+  const params = allParams(config)
   const [compute, setCompute] = useState<Compute>("local")
-  const [dataset, setDataset] = useState(trainable[0])
+  const [pickedDataset, setDataset] = useState(trainable[0] ?? "")
+  // A dataset that stopped being trainable falls back to the first one
+  const dataset = trainable.includes(pickedDataset) ? pickedDataset : (trainable[0] ?? "")
   const [cloudGpu, setCloudGpu] = useState("A100 SXM")
   const [gpuOpen, setGpuOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [podOpts, setPodOpts] = useState<RunPodOptions>(RUNPOD_DEFAULTS)
+  const [podOpts, setPodOpts] = useState<RunPodOptions>(runpod.defaults)
   const [podOpen, setPodOpen] = useState(false)
-  const cloud = RUNPOD_GPUS.find((g) => g.name === cloudGpu) ?? RUNPOD_GPUS[0]
-  const podRate = runpodRate(cloud.pricePerHr, podOpts)
+  const cloud = runpod.gpus.find((g) => g.name === cloudGpu) ?? runpod.gpus[0]
+  const podRate = cloud ? runpodRate(cloud, podOpts, runpod.priceFactor) : 0
   const podCap = runpodCapHours(podOpts, podRate)
-  const localBusy = listJobs().find((j) => j.compute === "local" && j.status === "running")
+  const localGpu = localGpus[0]
+  const localBusy = localGpu?.busyBy ?? undefined
   const [paramsOpen, setParamsOpen] = useState(false)
   const [overrides, setOverrides] = useState<Overrides>({})
-  const changed = overrideFlags(overrides)
+  const changed = overrideFlags(overrides, params)
   const plan: TrainingPlan = {
     dataset,
     compute,
-    gpu: compute === "local" ? LOCAL_GPUS[0].name : cloud.name,
-    queuedBehind: compute === "local" ? localBusy?.id : undefined,
-    runpod: compute === "runpod" ? { options: podOpts, rate: podRate, capHours: podCap } : undefined,
-    flags: changed,
+    gpu: compute === "local" ? (localGpu?.name ?? "") : (cloud?.name ?? ""),
+    queuedBehind: compute === "local" ? localBusy : undefined,
+    runpod: compute === "runpod" ? podOpts : undefined,
+    overrides: changedOverrides(overrides, params),
   }
+  const canStart = !!dataset && !!plan.gpu
 
   return (
-    <Panel title="Start training" className="min-h-0">
+    <>
       <div className="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto">
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Model</span>
           <div className="flex items-baseline justify-between gap-3 rounded-md bg-muted px-3 py-2 text-[13px]">
-            <span className="font-medium">{POLICY}</span>
-            <span className="truncate text-xs text-muted-foreground">{POLICY_BASE}</span>
+            <span className="font-medium">{policy}</span>
+            <span className="truncate text-xs text-muted-foreground">{policyBase}</span>
           </div>
         </div>
 
@@ -58,9 +79,9 @@ export function StartTraining() {
           <Label htmlFor="t-dataset" className="text-xs font-normal text-muted-foreground">
             Dataset
           </Label>
-          <Select value={dataset} onValueChange={(v) => v && setDataset(v as string)}>
+          <Select value={dataset} onValueChange={(v) => v && setDataset(v as string)} disabled={trainable.length === 0}>
             <SelectTrigger id="t-dataset" className="h-9 w-full text-[13px]">
-              <SelectValue />
+              <SelectValue placeholder="No dataset" />
             </SelectTrigger>
             <SelectContent>
               {trainable.map((d) => (
@@ -70,6 +91,11 @@ export function StartTraining() {
               ))}
             </SelectContent>
           </Select>
+          {trainable.length === 0 && (
+            <span className="text-xs text-muted-foreground">
+              학습할 수 있는 LeRobot 데이터셋이 없습니다. Datasets 에서 먼저 변환하세요.
+            </span>
+          )}
         </div>
 
         <div className="grid gap-1.5">
@@ -89,7 +115,7 @@ export function StartTraining() {
 
           {compute === "local" ? (
             <ul className="grid gap-1.5">
-              {LOCAL_GPUS.map((g) => (
+              {localGpus.map((g) => (
                 <li key={g.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-[13px]">
                   <span className="grid gap-0.5">
                     <span className="font-medium">{g.name}</span>
@@ -97,9 +123,9 @@ export function StartTraining() {
                       {g.id}, {g.vram}
                     </span>
                   </span>
-                  {localBusy ? (
+                  {g.busyBy ? (
                     <StatusDot tone="info" className="text-xs text-muted-foreground">
-                      In use by {localBusy.id}
+                      In use by {g.busyBy}
                     </StatusDot>
                   ) : (
                     <StatusDot tone="ok" className="text-xs text-muted-foreground">
@@ -110,22 +136,24 @@ export function StartTraining() {
               ))}
             </ul>
           ) : (
-            <button
-              type="button"
-              onClick={() => setGpuOpen(true)}
-              className="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-accent/60"
-            >
-              <span className="grid gap-0.5">
-                <span className="font-medium">{cloud.name}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {cloud.vramGB} GB, {formatRate(cloud.pricePerHr)}
+            cloud && (
+              <button
+                type="button"
+                onClick={() => setGpuOpen(true)}
+                className="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-accent/60"
+              >
+                <span className="grid gap-0.5">
+                  <span className="font-medium">{cloud.name}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {cloud.vramGB} GB, {formatRate(cloud.pricePerHr)}
+                  </span>
                 </span>
-              </span>
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                {RUNPOD_GPUS.length} GPUs
-                <LuChevronRight className="size-4" aria-hidden />
-              </span>
-            </button>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {runpod.gpus.length} GPUs
+                  <LuChevronRight className="size-4" aria-hidden />
+                </span>
+              </button>
+            )
           )}
         </div>
 
@@ -170,33 +198,43 @@ export function StartTraining() {
       </div>
 
       {compute === "local" && localBusy && (
-        <p className="text-xs text-muted-foreground">로컬 GPU 가 사용 중이라 {localBusy.id} 가 끝나면 시작합니다.</p>
+        <p className="text-xs text-muted-foreground">로컬 GPU 가 사용 중이라 {localBusy} 가 끝나면 시작합니다.</p>
       )}
-      <Button size="lg" className="w-full" onClick={() => setConfirmOpen(true)}>
+      <Button size="lg" className="w-full" disabled={!canStart} onClick={() => setConfirmOpen(true)}>
         <LuPlay />
         {compute === "local" && localBusy ? "Queue training" : "Start training"}
       </Button>
       <GpuPickerDialog
         open={gpuOpen}
         onOpenChange={setGpuOpen}
-        value={cloud.name}
+        gpus={runpod.gpus}
+        value={cloud?.name ?? ""}
         onSelect={(name) => {
           setCloudGpu(name)
           // Fall back to Secure cloud if the GPU is not on Community cloud
-          if (!RUNPOD_GPUS.find((g) => g.name === name)?.community) setPodOpts((o) => ({ ...o, cloud: "secure" }))
+          if (!runpod.gpus.find((g) => g.name === name)?.community) setPodOpts((o) => ({ ...o, cloud: "secure" }))
         }}
       />
-      <ConfirmTrainingDialog open={confirmOpen} onOpenChange={setConfirmOpen} plan={plan} onConfirm={() => {}} />
-      <RunPodDialog
-        communityOk={cloud.community}
-        open={podOpen}
-        onOpenChange={setPodOpen}
-        gpu={cloud.name}
-        basePrice={cloud.pricePerHr}
-        options={podOpts}
-        onSave={setPodOpts}
+      <ConfirmTrainingDialog open={confirmOpen} onOpenChange={setConfirmOpen} config={config} plan={plan} />
+      {cloud && (
+        <RunPodDialog
+          communityOk={cloud.community}
+          open={podOpen}
+          onOpenChange={setPodOpen}
+          gpu={cloud}
+          runpod={runpod}
+          options={podOpts}
+          onSave={setPodOpts}
+        />
+      )}
+      <ParamsDialog
+        open={paramsOpen}
+        onOpenChange={setParamsOpen}
+        config={config}
+        dataset={dataset}
+        overrides={overrides}
+        onSave={setOverrides}
       />
-      <ParamsDialog open={paramsOpen} onOpenChange={setParamsOpen} overrides={overrides} onSave={setOverrides} />
-    </Panel>
+    </>
   )
 }

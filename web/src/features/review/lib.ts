@@ -27,9 +27,6 @@ export const FILTERS: { value: ReviewFilter; label: string }[] = [
   { value: "rejected", label: "Rejected" },
 ]
 
-/** Most recent episode first */
-export const latestFirst = <T extends { episode?: number }>(xs: T[]) => [...xs].sort((a, b) => (b.episode ?? 0) - (a.episode ?? 0))
-
 /** `stack-two-blocks/ep_0047.mcap` → `ep_0047` */
 export const shortName = (file: string) =>
   file

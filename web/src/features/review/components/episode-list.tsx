@@ -8,36 +8,60 @@ import type { Recording } from "@/domain/recording"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { FILTERS, latestFirst, OUTCOME_TONE, PAGE_SIZE, REVIEW_CLASS, shortName, type ReviewFilter } from "../lib"
+import { FILTERS, OUTCOME_TONE, PAGE_SIZE, REVIEW_CLASS, shortName, type ReviewFilter } from "../lib"
+import { QueryNote } from "@/components/common/query-state"
 
-/** Episode list for the selected task, filtered by review status and paged 10 at a time */
+/** What the list needs from the paged recordings query */
+export type RecordingPages = {
+  isPending: boolean
+  error: Error | null
+  refetch: () => unknown
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  fetchNextPage: () => Promise<unknown>
+}
+
+/**
+ * Episode list for the selected task, filtered by review status on the server and shown 10 at a time.
+ * Stepping past the loaded rows fetches the next server page.
+ */
 export function EpisodeList({
   recordings,
+  total,
+  query,
+  filter,
+  onFilterChange,
   selectedId,
   onSelect,
   className,
 }: {
   recordings: Recording[]
+  /** Rows matching the filter on the server */
+  total: number
+  query: RecordingPages
+  filter: ReviewFilter
+  onFilterChange: (f: ReviewFilter) => void
   selectedId: string | null
   onSelect: (id: string) => void
   className?: string
 }) {
-  const [filter, setFilter] = useState<ReviewFilter>("all")
   const [page, setPage] = useState(0)
 
-  const count = (f: ReviewFilter) => (f === "all" ? recordings.length : recordings.filter((r) => r.review === f).length)
-  // Most recent episodes on top
-  const visible = latestFirst(recordings.filter((r) => filter === "all" || r.review === filter))
-  const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const current = Math.min(page, pages - 1)
-  const rows = visible.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE)
+  const rows = recordings.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE)
+  const next = async () => {
+    // The next 10 rows may not be loaded yet
+    if ((current + 1) * PAGE_SIZE >= recordings.length && query.hasNextPage) await query.fetchNextPage()
+    setPage(current + 1)
+  }
 
   return (
     <div className={cn("@container flex min-h-0 flex-col gap-2", className)}>
       <Tabs
         value={filter}
         onValueChange={(v) => {
-          setFilter(v as ReviewFilter)
+          onFilterChange(v as ReviewFilter)
           setPage(0)
         }}
       >
@@ -45,8 +69,10 @@ export function EpisodeList({
           {FILTERS.map((f) => (
             <TabsTrigger key={f.value} value={f.value} className="min-w-0 gap-1 px-1 text-xs">
               <span className="truncate">{f.label}</span>
-              {/* Hide counts in narrow panels so labels do not overlap */}
-              <span className="hidden text-muted-foreground tabular-nums @[19rem]:inline">{count(f.value)}</span>
+              {/* Only the active filter's count is known; hidden in narrow panels so labels do not overlap */}
+              {f.value === filter && !query.isPending && (
+                <span className="hidden text-muted-foreground tabular-nums @[19rem]:inline">{total.toLocaleString()}</span>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -86,13 +112,23 @@ export function EpisodeList({
             </li>
           )
         })}
-        {rows.length === 0 && <li className="py-6 text-center text-[13px] text-muted-foreground">해당하는 에피소드가 없습니다.</li>}
+        {(query.isPending || query.error) && (
+          <li className="px-2 py-6 text-center">
+            <QueryNote query={query} />
+          </li>
+        )}
+        {!query.isPending && !query.error && rows.length === 0 && (
+          <li className="py-6 text-center text-[13px] text-muted-foreground">
+            {query.isFetchingNextPage ? "Loading…" : "해당하는 에피소드가 없습니다."}
+          </li>
+        )}
       </ul>
 
       {pages > 1 && (
         <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
           <span>
-            {current * PAGE_SIZE + 1}–{Math.min(visible.length, (current + 1) * PAGE_SIZE)} of {visible.length}
+            {(current * PAGE_SIZE + 1).toLocaleString()}–{Math.min(total, (current + 1) * PAGE_SIZE).toLocaleString()} of{" "}
+            {total.toLocaleString()}
           </span>
           <span className="flex gap-0.5">
             <Button variant="ghost" size="icon-sm" aria-label="Previous page" disabled={current === 0} onClick={() => setPage(current - 1)}>
@@ -102,8 +138,8 @@ export function EpisodeList({
               variant="ghost"
               size="icon-sm"
               aria-label="Next page"
-              disabled={current >= pages - 1}
-              onClick={() => setPage(current + 1)}
+              disabled={current >= pages - 1 || query.isFetchingNextPage}
+              onClick={() => void next()}
             >
               <LuChevronRight />
             </Button>

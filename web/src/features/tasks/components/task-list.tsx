@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { LuPlus } from "react-icons/lu"
 
@@ -6,22 +6,34 @@ import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { ProgressRing } from "@/components/common/progress-ring"
 import { SearchInput } from "@/components/common/search-input"
-import { getCurrentTaskId, listTasks } from "@/api/tasks"
+import { useRigs } from "@/api/rigs"
+import { useSessions } from "@/api/sessions"
+import { useCurrentTask } from "@/api/station"
+import { useCreateTask, useTasks } from "@/api/tasks"
 import { TASK_RING_TONE } from "@/domain/task"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { successOf } from "../lib"
+import { errorText, newTaskInput, successByTask } from "../lib"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+import { TaskIdDialog } from "./task-id-dialog"
 
-export function TaskList({ selectedId }: { selectedId: string }) {
+export function TaskList({ selectedId }: { selectedId: string | undefined }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState("")
+  const [creating, setCreating] = useState(false)
   const q = query.trim().toLowerCase()
-  const allTasks = listTasks()
-  const currentTaskId = getCurrentTaskId()
+  const tasksQuery = useTasks()
+  const sessions = useSessions()
+  const currentTaskId = useCurrentTask().data?.taskId ?? null
+  const rig = useRigs().data?.[0]
+  const create = useCreateTask()
+
+  const allTasks = tasksQuery.data ?? []
   const tasks = allTasks.filter(
     (t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q),
   )
+  const success = useMemo(() => successByTask(sessions.data ?? []), [sessions.data])
 
   // Same tone as the app sidebar: no dividers, light text, only the selected row gets a background
   return (
@@ -30,11 +42,22 @@ export function TaskList({ selectedId }: { selectedId: string }) {
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           All tasks
-          <span className="font-normal text-muted-foreground tabular-nums">{allTasks.length}</span>
+          <span className="font-normal text-muted-foreground tabular-nums">{tasksQuery.data ? allTasks.length : ""}</span>
         </span>
       }
       action={
-        <Button variant="ghost" size="icon-sm" aria-label="New task" title="New task" className="text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="New task"
+          title="New task"
+          className="text-muted-foreground"
+          disabled={!rig}
+          onClick={() => {
+            create.reset()
+            setCreating(true)
+          }}
+        >
           <LuPlus />
         </Button>
       }
@@ -46,12 +69,18 @@ export function TaskList({ selectedId }: { selectedId: string }) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      {tasksQuery.isError && <ErrorNote error={tasksQuery.error} onRetry={() => void tasksQuery.refetch()} />}
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
+        {tasksQuery.isPending && (
+          <li>
+            <LoadingNote />
+          </li>
+        )}
         {tasks.map((t) => {
           const selected = t.id === selectedId
           const current = t.id === currentTaskId
           const pct = Math.min(100, Math.round((t.collected / t.targetEpisodes) * 100))
-          const { sessions, success } = successOf(t.id)
+          const stats = success.get(t.id) ?? { sessions: 0, success: null }
           return (
             <li key={t.id}>
               <button
@@ -72,7 +101,8 @@ export function TaskList({ selectedId }: { selectedId: string }) {
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{t.instruction}</p>
                   <p className="truncate text-[11px] text-muted-foreground/80 tabular-nums">
-                    {t.collected}/{t.targetEpisodes} · {plural(sessions, "session")} · success {success === null ? "—" : `${success}%`}
+                    {t.collected}/{t.targetEpisodes} · {plural(stats.sessions, "session")} · success{" "}
+                    {stats.success === null ? "—" : `${stats.success}%`}
                   </p>
                 </div>
                 <ProgressRing pct={pct} tone={TASK_RING_TONE[t.status]} label={`${t.id} progress`} thin className="size-10" />
@@ -80,8 +110,30 @@ export function TaskList({ selectedId }: { selectedId: string }) {
             </li>
           )
         })}
-        {tasks.length === 0 && <li className="py-6 text-center text-[13px] text-muted-foreground">No tasks found.</li>}
+        {tasksQuery.isSuccess && tasks.length === 0 && (
+          <li className="py-6 text-center text-[13px] text-muted-foreground">No tasks found.</li>
+        )}
       </ul>
+
+      <TaskIdDialog
+        open={creating}
+        onOpenChange={setCreating}
+        title="New task"
+        description="Draft 상태로 만들어지고, 나머지 설정은 만든 뒤 Definition 탭에서 고칩니다."
+        initial={{ id: "", name: "" }}
+        submitLabel="Create"
+        pending={create.isPending}
+        error={errorText(create.error)}
+        onSubmit={({ id, name }) => {
+          if (!rig) return
+          create.mutate(newTaskInput(id, name, rig), {
+            onSuccess: (task) => {
+              setCreating(false)
+              navigate(`/tasks/${task.id}`)
+            },
+          })
+        }}
+      />
     </Panel>
   )
 }

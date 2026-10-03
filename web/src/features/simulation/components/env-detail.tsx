@@ -4,20 +4,22 @@ import { Panel } from "@/components/layout/page-layout"
 import { DetailList } from "@/components/common/detail-list"
 import { LinkButton } from "@/components/common/link-button"
 import { StatusDot } from "@/components/common/status-dot"
-import { getTask } from "@/api/tasks"
+import { useEnvCompat } from "@/api/simulation"
+import { useTask } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
+import { formatDateTime } from "@/lib/format"
 
-import { ENV_STATE, evalHref, modelCompat } from "../envs"
+import { ENV_STATE, evalHref } from "../envs"
 import { EnvCompatList } from "./env-compat-list"
 import { EnvFiles, EnvManifest } from "./env-manifest"
 
 /** Right-hand environment detail: summary, compatible models, files and env.yaml */
 export function EnvDetail({ env }: { env: SimEnv }) {
   const state = ENV_STATE[env.state]
-  const task = env.taskId ? getTask(env.taskId) : undefined
+  const task = useTask(env.taskId ?? undefined).data
+  const compat = useEnvCompat(env.id)
   const invalid = env.state === "invalid"
-  const models = modelCompat(env)
-  const canEval = !invalid && models.some((m) => m.usable)
+  const canEval = !invalid && !!compat.data?.some((m) => m.usable)
   const details = [
     { k: "Task", v: env.taskId ? (task?.name ?? env.taskId) : <span className="text-muted-foreground">Not linked</span> },
     { k: "Cameras", v: env.cameras.join(", ") },
@@ -27,8 +29,8 @@ export function EnvDetail({ env }: { env: SimEnv }) {
       k: "Matched to rig",
       v: env.calibrated ? "Yes" : <StatusDot tone="warn">No</StatusDot>,
     },
-    { k: "Registered", v: env.registeredAt },
-    { k: "Updated", v: env.updatedAt },
+    { k: "Registered", v: formatDateTime(env.registeredAt) },
+    { k: "Updated", v: formatDateTime(env.updatedAt) },
   ]
 
   return (
@@ -73,7 +75,7 @@ export function EnvDetail({ env }: { env: SimEnv }) {
         <EnvFiles env={env} />
       </div>
 
-      <EnvCompatList env={env} rows={models} />
+      <EnvCompatList env={env} query={compat} />
       <EnvManifest env={env} />
     </Panel>
   )

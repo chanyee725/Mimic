@@ -4,18 +4,33 @@ import { HfBadge } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { SearchInput } from "@/components/common/search-input"
 import { Segmented } from "@/components/common/segmented"
+import type { Dataset } from "@/domain/dataset"
 import { cn } from "@/lib/utils"
 
-import { FILTERS, KIND_DOT, KIND_LABEL, sortedDatasets, type Filter } from "../lib"
+import { FILTERS, KIND_DOT, KIND_LABEL, type Filter } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
+import { QueryNote } from "@/components/common/query-state"
 
-export function DatasetList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
+type ListQuery = { isPending: boolean; error: Error | null; refetch: () => unknown }
+
+/** Datasets newest first (server order), filtered by format and search on the client — the list is small */
+export function DatasetList({
+  datasets: sorted,
+  query: listQuery,
+  selected,
+  onSelect,
+}: {
+  datasets: Dataset[]
+  query: ListQuery
+  selected: string | undefined
+  onSelect: (id: string) => void
+}) {
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const sorted = sortedDatasets()
+  const loading = listQuery.isPending || !!listQuery.error
   const byKind = (f: Filter) => sorted.filter((d) => f === "all" || d.kind === f)
-  const shown = byKind(filter).filter((d) => !q || d.repoId.toLowerCase().includes(q) || d.taskId.includes(q))
+  const shown = byKind(filter).filter((d) => !q || d.repoId.toLowerCase().includes(q) || d.taskId.toLowerCase().includes(q))
 
   return (
     <Panel
@@ -73,14 +88,21 @@ export function DatasetList({ selected, onSelect }: { selected: string; onSelect
                       ? `converting ${d.progress}%`
                       : d.status === "failed"
                         ? "conversion failed"
-                        : `${d.episodes.length} episodes, ${d.sizeGB} GB`}
+                        : `${d.episodeCount} episodes, ${d.sizeGB} GB`}
                   </span>
                 </span>
               </button>
             </li>
           )
         })}
-        {shown.length === 0 && <li className="py-8 text-center text-[13px] text-muted-foreground">일치하는 데이터셋이 없습니다.</li>}
+        {loading && (
+          <li className="px-2 py-8 text-center">
+            <QueryNote query={listQuery} />
+          </li>
+        )}
+        {!loading && shown.length === 0 && (
+          <li className="py-8 text-center text-[13px] text-muted-foreground">일치하는 데이터셋이 없습니다.</li>
+        )}
       </ul>
     </Panel>
   )

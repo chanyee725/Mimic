@@ -1,26 +1,20 @@
 import { EmptyState } from "@/components/common/empty-state"
-import type { Recording } from "@/domain/recording"
-import { formatLength, formatSize } from "@/lib/format"
+import type { ConvertPreview } from "@/domain/dataset"
+import { formatDate, formatLength, formatSize } from "@/lib/format"
 
-/** Summary of the episodes to convert. Same layout regardless of episode count */
-export function ConvertSummary({ targets, fps }: { targets: Recording[]; fps: number }) {
-  if (targets.length === 0) return <EmptyState>변환할 에피소드를 선택하세요.</EmptyState>
+/** Summary of the episodes to convert (from the server preview). Same layout regardless of episode count */
+export function ConvertSummary({ preview }: { preview: ConvertPreview }) {
+  if (preview.episodes === 0) return <EmptyState>변환할 에피소드를 선택하세요.</EmptyState>
 
-  const lens = targets.map((r) => r.durationS)
-  const totalS = lens.reduce((a, b) => a + b, 0)
-  const totalMB = targets.reduce((a, r) => a + r.sizeMB, 0)
-  const dates = targets.map((r) => r.recordedAt.slice(5, 10)).sort()
+  const from = formatDate(preview.recordedFrom)
+  const to = formatDate(preview.recordedTo)
   const summary = [
-    { k: "Frames", v: Math.round(totalS * fps).toLocaleString() },
-    { k: "Length", v: formatLength(totalS) },
-    {
-      k: "Avg episode",
-      v: `${(totalS / targets.length).toFixed(1)} s`,
-      sub: `${lens.reduce((a, b) => Math.min(a, b)).toFixed(1)} – ${lens.reduce((a, b) => Math.max(a, b)).toFixed(1)} s`,
-    },
-    { k: "Recorded", v: dates[0] === dates[dates.length - 1] ? dates[0] : `${dates[0]} – ${dates[dates.length - 1]}` },
+    { k: "Frames", v: preview.frames.toLocaleString() },
+    { k: "Length", v: formatLength(preview.lengthS) },
+    { k: "Avg episode", v: `${(preview.lengthS / preview.episodes).toFixed(1)} s` },
+    { k: "Recorded", v: from === to ? from : `${from} – ${to}` },
     // Rough estimate assuming AV1 re-encoding
-    { k: "Est. output", v: `~${formatSize(totalMB * 0.6)}`, sub: `MCAP ${formatSize(totalMB)}` },
+    { k: "Est. output", v: `~${formatSize(preview.estOutputMB)}`, sub: `MCAP ${formatSize(preview.mcapMB)}` },
   ]
 
   return (
