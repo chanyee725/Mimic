@@ -27,6 +27,7 @@ Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) ─▶ Train
 | [`backend/`](backend/README.md) | FastAPI(REST) · gRPC(로봇 데이터) · WebRTC(카메라) 서버 | `data/` 의 실제 파일로 동작, 더미 없음 (장치 드라이버 · 학습기 · 실행기 연동 전) |
 | [`sim/`](sim/README.md) | Isaac Sim 평가 환경 폴더 | 예제 환경 |
 | [`docs/api/`](docs/api/README.md) | API 명세 | |
+| [`docs/review/`](docs/review/README.md) | 실제 사용 전 검토 (부족한 것 · UI 버그 · API 문서 불일치 · RunPod) | 2026-10-03 |
 
 ## 시작
 
