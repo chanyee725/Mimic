@@ -1,4 +1,4 @@
-export type Station = { id: string; robot: string; date: string } // date = station's today (YYYY-MM-DD)
+export type Station = { id: string; robot: string; date: string } // robot = rig name // date = station's today (YYYY-MM-DD)
 
 export type DataTotalKey = "episodes" | "frames" | "hours" | "storage" | "success"
 

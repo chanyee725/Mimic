@@ -1,6 +1,8 @@
 import { useSearchParams } from "react-router-dom"
 
 import { Page, Panel } from "@/components/layout/page-layout"
+import { EmptyState } from "@/components/common/empty-state"
+import { LinkButton } from "@/components/common/link-button"
 import { useDatasets } from "@/api/datasets"
 
 import { DatasetDetail } from "./components/dataset-detail"
@@ -29,7 +31,14 @@ export function DatasetsPage() {
         ) : (
           <Panel className="min-h-0">
             <QueryNote query={datasets} />
-            {datasets.data?.length === 0 && <p className="text-[13px] text-muted-foreground">아직 데이터셋이 없습니다.</p>}
+            {datasets.data?.length === 0 && (
+              <EmptyState className="grid justify-items-center gap-3 py-10">
+                아직 데이터셋이 없습니다. Convert 에서 승인한 에피소드로 데이터셋을 만드세요.
+                <LinkButton to="/convert" variant="outline" size="sm">
+                  Open Convert
+                </LinkButton>
+              </EmptyState>
+            )}
           </Panel>
         )}
       </div>

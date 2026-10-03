@@ -56,7 +56,7 @@ export function EvaluatePage() {
 function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (id: string) => void }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const task = useTask(model.taskId).data
-  const rig = useRig(task?.rigId ?? "so101-kit").data
+  const rig = useRig(task?.rigId).data
   const policy = useTrainingConfig().data?.policy ?? "SmolVLA"
   // Instruction and time limit start from the model's task and reset when the model changes
   const [edited, setEdited] = useState<{ modelId: string; instruction?: string; limitS?: number }>({ modelId: model.id })
@@ -80,23 +80,27 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
                 className="aspect-auto h-full min-h-48"
                 label={c.name.replace(/ camera$/, "")}
                 resolution={c.resolution}
-                measuredFps={c.fps}
+                measuredFps={null}
                 targetFps={c.fps}
                 recording={run.recording}
                 timecode={running ? formatClock(run.elapsed / 1000) : undefined}
               />
             ))}
+            {!rig?.cameras.length && (
+              <div className="grid place-items-center rounded-lg border bg-stage px-4 text-center text-xs text-muted-foreground md:col-span-2">
+                모델의 Task 에 연결된 Rig 카메라가 없습니다.
+              </div>
+            )}
           </div>
           {/* Same plots as Capture. Action is the policy output, Observation is the follower joints */}
-          {rig && (
-            <JointPlots
-              joints={rig.joints}
-              hz={task?.actionHz ?? 60}
-              actionSource={`${policy} ${model.jobId}`}
-              stateSource={rig.slave}
-              className="h-64 shrink-0"
-            />
-          )}
+          <JointPlots
+            joints={rig?.joints ?? []}
+            hz={task?.actionHz ?? 60}
+            actionSource={`${policy} ${model.jobId}`}
+            stateSource={rig?.slave}
+            hint="로봇이 연결되어 실행되면 관절값이 표시됩니다."
+            className="h-64 shrink-0"
+          />
         </div>
 
         <Panel className="gap-5 overflow-y-auto">

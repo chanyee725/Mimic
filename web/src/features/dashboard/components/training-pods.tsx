@@ -14,7 +14,7 @@ export function TrainingPods() {
       <QueryView query={jobs}>
         {(running) =>
           running.length === 0 ? (
-            <p className="text-sm text-muted-foreground">실행 중인 학습이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">실행 중인 학습이 없습니다. Training 에서 학습을 시작하세요.</p>
           ) : (
             <ul className="flex min-h-0 flex-1 flex-col divide-y overflow-y-auto">
               {running.slice(0, MAX_PODS).map((j) => (

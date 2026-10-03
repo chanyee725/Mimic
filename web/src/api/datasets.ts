@@ -1,7 +1,7 @@
 // Conversion to LeRobot, datasets and HF Hub push — spec: docs/api/datasets.md
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
 
-import type { ConvertPreview, Dataset, DatasetEpisode, DatasetKind } from "@/domain/dataset"
+import type { ConvertPreview, Dataset, DatasetEpisode, DatasetKind, MergePreview } from "@/domain/dataset"
 
 import { API_BASE, api, type Page } from "./client"
 import { qk, queryClient } from "./query"
@@ -60,6 +60,30 @@ export function useConvert() {
     mutationFn: (body: { taskId: string; repoId: string; exclude?: string[] }) =>
       api.post<Dataset>("/convert", { ...body, format: "lerobot_v3" }),
     onSuccess: cacheDataset,
+  })
+}
+
+/** Summary and problems of merging `sources` in order (empty problems = mergeable) */
+export function useMergePreview(sources: string[]) {
+  return useQuery({
+    queryKey: [...qk.datasets, "merge-preview", sources],
+    queryFn: () => api.get<MergePreview>("/datasets/merge/preview", { sources }),
+    enabled: sources.length > 0,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * Merges ready LeRobot datasets into a new one; returns it in "converting" (progress via dataset.updated events).
+ * 409 when repoId exists, 422 when not mergeable (`details.problems`)
+ */
+export function useMergeDatasets() {
+  return useMutation({
+    mutationFn: (body: { sources: string[]; repoId: string }) => api.post<Dataset>("/datasets/merge", body),
+    onSuccess: (d) => {
+      cacheDataset(d)
+      return queryClient.invalidateQueries({ queryKey: qk.datasets })
+    },
   })
 }
 

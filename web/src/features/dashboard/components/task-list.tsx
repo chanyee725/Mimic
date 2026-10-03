@@ -29,7 +29,7 @@ export function TaskList() {
       <QueryView query={tasksQuery}>
         {() =>
           shown.length === 0 ? (
-            <p className="text-sm text-muted-foreground">등록된 Task 가 없습니다.</p>
+            <p className="text-sm text-muted-foreground">등록된 Task 가 없습니다. Tasks 에서 Task 를 만들어 시작하세요.</p>
           ) : (
             // Rows share the panel height and scroll inside the panel when they overflow
             <ul className="-mx-2 flex min-h-0 flex-1 flex-col divide-y overflow-y-auto">

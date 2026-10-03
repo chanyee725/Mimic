@@ -5,17 +5,9 @@ from pathlib import Path
 from app.configs.config import REPO_ROOT, Config, config
 
 
-def test_capture_save_counts_toward_task(client):
+def test_capture_save_counts_toward_task(client, task, record):
     before = client.get("/tasks/stack-two-blocks").json()
-    client.post("/capture/start", json={"taskId": "stack-two-blocks", "operator": "OP-01"})
-    from app.services.capture import session
-    from app.utils import time
-
-    t = session._session.recording_at.replace(second=59)
-    time.set_clock(lambda: t)
-    r = client.post("/capture/save", json={"outcome": "success"})
-    time.set_clock(None)
-    assert r.status_code == 201
+    record()
     after = client.get("/tasks/stack-two-blocks").json()
     assert after["collected"] == before["collected"] + 1
     assert after["version"] == before["version"]
@@ -45,7 +37,14 @@ def test_config_paths_start_at_repo_root(monkeypatch):
     assert c.data_dir == Path("~/vla-data").expanduser()
 
 
-def test_size_fields_use_spec_casing(client):
+def test_size_fields_use_spec_casing(client, task):
+    from app.services import datasets
+    from tests.support import write_model, write_recording
+
+    write_model("m-a")
+    write_recording(1)
+    client.post("/convert", json={"taskId": "stack-two-blocks", "repoId": "local/a"})
+    datasets.wait("local/a")
     assert "sizeMB" in client.get("/models").json()[0]
     assert "sizeGB" in client.get("/datasets").json()[0]
     assert "sizeMB" in client.get("/recordings").json()["items"][0]

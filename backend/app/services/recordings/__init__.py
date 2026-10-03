@@ -1,5 +1,6 @@
-"""Recordings: seed mocks plus MCAP files with YAML sidecars under the raw folder (disk.py, mcap_io.py)."""
+"""Recordings: MCAP files with YAML sidecars under the raw folder (disk.py, mcap_io.py)."""
 
+from app.services.recordings.mcap_io import EpisodeData, McapReadError
 from app.services.recordings.recordings import (
     IMPORTS_DIR,
     MAX_SAMPLES,
@@ -15,6 +16,7 @@ from app.services.recordings.recordings import (
     list_recordings,
     max_episode,
     page_recordings,
+    read_episode,
     require,
     reset,
     samples,
@@ -24,6 +26,8 @@ from app.services.recordings.recordings import (
 )
 
 __all__ = [
+    "EpisodeData",
+    "McapReadError",
     "IMPORTS_DIR",
     "MAX_SAMPLES",
     "MCAP_MAGIC",
@@ -38,6 +42,7 @@ __all__ = [
     "list_recordings",
     "max_episode",
     "page_recordings",
+    "read_episode",
     "require",
     "reset",
     "samples",

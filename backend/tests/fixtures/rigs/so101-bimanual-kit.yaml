@@ -1,0 +1,50 @@
+id: so101-bimanual-kit
+name: SO-101 Bimanual Kit
+robots:
+  bi-follower-l:
+    type: so101_follower
+    name: SO-101 Follower (L)
+    port: /dev/bi_follower_l
+    joints: [left_shoulder_pan, left_shoulder_lift, left_elbow_flex, left_wrist_flex, left_wrist_roll, left_gripper]
+  bi-follower-r:
+    type: so101_follower
+    name: SO-101 Follower (R)
+    port: /dev/bi_follower_r
+    joints: [right_shoulder_pan, right_shoulder_lift, right_elbow_flex, right_wrist_flex, right_wrist_roll, right_gripper]
+devices:
+  bi-leader-l:
+    type: so101_leader
+    name: SO-101 Leader (L)
+    port: /dev/bi_leader_l
+  bi-leader-r:
+    type: so101_leader
+    name: SO-101 Leader (R)
+    port: /dev/bi_leader_r
+cameras:
+  top:
+    id: bi-cam-top
+    name: Top camera
+    port: /dev/bi_cam_top
+    resolution: 640x480
+    fps: 30
+    default_on: true
+  left_wrist:
+    id: bi-cam-wrist-l
+    name: Left wrist camera
+    port: /dev/bi_cam_wrist_l
+    resolution: 640x480
+    fps: 30
+    default_on: true
+  right_wrist:
+    id: bi-cam-wrist-r
+    name: Right wrist camera
+    port: /dev/bi_cam_wrist_r
+    resolution: 640x480
+    fps: 30
+    default_on: true
+rates:
+  action_hz: 60
+  video_fps: 30
+  action_hz_options: [30, 60]
+  video_fps_options: [15, 30]
+

@@ -114,6 +114,11 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
             </span>
             <LuChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           </button>
+          {data.models.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              저장된 모델이 없습니다. Training 의 checkpoint 를 Models 에 저장하면 평가할 수 있습니다.
+            </p>
+          )}
         </div>
 
         <div className="grid gap-1.5">

@@ -21,6 +21,7 @@ export type DatasetEpisode = {
 export type Dataset = {
   kind: DatasetKind
   repoId: string
+  /** "mixed" for a merged dataset whose sources come from different tasks */
   taskId: string
   rigId: string
   format: string
@@ -34,6 +35,8 @@ export type Dataset = {
   hub: { pushed: boolean; private: boolean }
   features: DatasetFeature[]
   episodeCount: number
+  /** repoIds this dataset was merged from (merged datasets only) */
+  sources?: string[] | null
 }
 
 /** What converting a task's accepted recordings (minus excluded ones) would produce */
@@ -51,4 +54,23 @@ export type ConvertPreview = {
   recordedTo: string | null
 }
 
+/** GET /datasets/merge/preview: what merging the sources (in order) would produce */
+export type MergePreview = {
+  sources: { repoId: string; episodes: number; frames: number; fps: number; rigId: string; taskId: string }[]
+  /** null when the sources disagree */
+  fps: number | null
+  episodes: number
+  frames: number
+  sizeGB: number
+  features: DatasetFeature[]
+  /** Why the sources can't be merged; empty = mergeable */
+  problems: string[]
+}
+
+/** taskId of a merged dataset whose sources span several tasks */
+export const MIXED_TASK = "mixed"
+
 export const isConverting = (d: Dataset) => d.status === "converting"
+
+/** Datasets that can be merged: finished LeRobot conversions */
+export const isMergeable = (d: Dataset) => d.kind === "lerobot" && d.status === "ready"

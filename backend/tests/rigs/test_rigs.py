@@ -3,8 +3,9 @@ import yaml
 
 def test_list_rigs(client):
     rows = client.get("/rigs").json()
-    assert [r["id"] for r in rows] == ["so101-kit", "so101-bimanual-kit"]
-    assert rows[0]["targetHz"] == {"action": 60, "video": 30}
+    # Sorted by file name
+    assert [r["id"] for r in rows] == ["so101-bimanual-kit", "so101-kit"]
+    assert rows[1]["targetHz"] == {"action": 60, "video": 30}
 
 
 def test_get_rig(client):
@@ -45,15 +46,31 @@ def test_rig_devices_order(client):
     assert client.get("/rigs/missing/devices").status_code == 404
 
 
-def test_devices(client):
+def test_devices_are_not_connected(client):
+    # No drivers yet: nothing live is reported
     rows = client.get("/devices").json()
     assert len(rows) == 11
+    for d in rows:
+        assert d["health"] == "off" and d["stats"] == []
+        assert d["calibration"] == {"done": False, "note": "Not connected"}
+        assert all(s["measuredHz"] is None and s["targetHz"] for s in d["streams"])
     d = client.get("/devices/top").json()
-    assert d["streams"][0]["measuredHz"] == 30
+    assert d["streams"][0] == {
+        "key": "images.top",
+        "shape": "480×640×3",
+        "targetHz": 30,
+        "measuredHz": None,
+        "unit": "fps",
+    }
     assert client.get("/devices/missing").status_code == 404
 
 
-def test_calibrate_device(client):
+def test_calibrate_off_device(client):
+    r = client.post("/devices/follower/calibrate")
+    assert r.status_code == 503 and r.json()["error"]["code"] == "unavailable"
+
+
+def test_calibrate_device(client, devices_online):
     r = client.post("/devices/follower/calibrate")
     assert r.status_code == 202
     assert r.json()["calibration"]["done"] is False
@@ -62,13 +79,24 @@ def test_calibrate_device(client):
     assert cal["done"] is True and cal["note"].startswith("Calibrated")
 
 
+def test_no_rigs_without_files(client):
+    from app.core import storage
+    from app.services import rigs as service
+
+    for p in storage.list_yaml("rigs"):
+        p.unlink()
+    service.reset()
+    assert client.get("/rigs").json() == [] and client.get("/devices").json() == []
+    assert not storage.list_yaml("rigs")  # nothing seeded
+
+
 def test_calibrate_errors(client):
     assert client.post("/devices/missing/calibrate").status_code == 404
     r = client.post("/devices/bi-leader-l/calibrate")
     assert r.status_code == 503 and r.json()["error"]["code"] == "unavailable"
 
 
-def test_calibrate_twice(client):
+def test_calibrate_twice(client, devices_online):
     from app.services import rigs as service
 
     service.start_calibration("leader")

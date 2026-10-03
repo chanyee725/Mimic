@@ -3,7 +3,7 @@
 SO-101 로봇 팔의 텔레오퍼레이션 데이터를 모아 VLA(Vision-Language-Action) 모델 학습까지 이어 주는 스테이션 도구.
 
 ```
-Capture ─▶ Review ─▶ Convert ─▶ Datasets ─▶ Training ─▶ Models ─▶ Simulation / Evaluate
+Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) ─▶ Training ─▶ Models ─▶ Simulation / Evaluate
  (MCAP)    (검수)    (LeRobot)   (HF Hub)    (SmolVLA)   (checkpoint)  (실제 로봇 / Isaac Sim)
 ```
 
@@ -13,6 +13,7 @@ Capture ─▶ Review ─▶ Convert ─▶ Datasets ─▶ Training ─▶ Mode
 | Review | 저장한 MCAP 을 재생하며 Accept / Reject / Delete |
 | Convert | Task 의 승인된 에피소드를 LeRobot v3.0 데이터셋으로 변환 (action 을 카메라 fps 로 맞춤) |
 | Datasets | LeRobot 데이터셋과 원본 MCAP 묶음을 보고 HF Hub 에 올림 |
+| Merge | fps · feature · Rig 가 같은 LeRobot 데이터셋 여러 개를 하나로 합침 (에피소드 · index 번호를 다시 매김) |
 | Training | SmolVLA 를 로컬 GPU 또는 RunPod 에서 학습, step 마다 loss · GPU 지표 확인 |
 | Models | 남길 checkpoint 를 모델로 저장 · 관리 |
 | Evaluate | 모델을 실제 로봇에 올려 지시문을 주고 성공률 기록 |
@@ -23,7 +24,7 @@ Capture ─▶ Review ─▶ Convert ─▶ Datasets ─▶ Training ─▶ Mode
 | 폴더 | 내용 | 상태 |
 | --- | --- | --- |
 | [`web/`](web/README.md) | 스테이션 UI (React + TypeScript) | 백엔드에 연결됨 |
-| [`backend/`](backend/README.md) | FastAPI(REST) · gRPC(로봇 데이터) · WebRTC(카메라) 서버 | 메모리 목업 데이터로 동작 (하드웨어 · 저장소 연동 전) |
+| [`backend/`](backend/README.md) | FastAPI(REST) · gRPC(로봇 데이터) · WebRTC(카메라) 서버 | `data/` 의 실제 파일로 동작, 더미 없음 (장치 드라이버 · 학습기 · 실행기 연동 전) |
 | [`sim/`](sim/README.md) | Isaac Sim 평가 환경 폴더 | 예제 환경 |
 | [`docs/api/`](docs/api/README.md) | API 명세 | |
 

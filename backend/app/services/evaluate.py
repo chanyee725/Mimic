@@ -1,6 +1,7 @@
-"""Real-robot evaluation runs of the current session (in memory).
+"""Real-robot evaluation runs of the current session (in memory, no mocks).
 
 State machine: running → judging (stop, or automatically at limitS) → done (verdict).
+Starting a run needs the robot, which is not connected yet (503).
 """
 
 from app.core.errors import ApiError, conflict, not_found
@@ -9,6 +10,8 @@ from app.models.evaluate import EvalRun
 from app.schemas.evaluate import EvalRunCreate
 from app.services import capture, models
 from app.utils.time import now_iso, parse_iso, seconds_since
+
+NOT_CONNECTED = "Robot is not connected"
 
 _runs: dict[str, EvalRun] = {}
 _session_start = ""
@@ -53,6 +56,7 @@ def _capture_active() -> bool:
 
 
 def start(body: EvalRunCreate) -> EvalRun:
+    """Validates the request; refused with 503 until the robot is connected."""
     if models.get_model(body.model_id) is None:
         raise not_found("Model", body.model_id)
     instruction = body.instruction.strip()
@@ -66,19 +70,8 @@ def start(body: EvalRunCreate) -> EvalRun:
         raise conflict("Another evaluation run is active", runId=active.id)
     if _capture_active():
         raise conflict("A capture is active")
-    run = EvalRun(
-        id=f"run_{len(_runs) + 1:03d}",
-        model_id=body.model_id,
-        instruction=instruction,
-        limit_s=body.limit_s,
-        record=body.record,
-        state="running",
-        started_at=now_iso(ms=True),
-        elapsed_s=0,
-    )
-    _runs[run.id] = run
-    bus.publish("evaluate.run", run)
-    return run
+    # Policy rollout on the robot is not wired up yet
+    raise ApiError(503, NOT_CONNECTED, {"modelId": body.model_id})
 
 
 def stop(run_id: str) -> EvalRun:

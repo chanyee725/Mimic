@@ -25,24 +25,23 @@ from app.models.settings import (
     Secret,
     SecretName,
     Settings,
-    StorageSettings,
 )
 from app.schemas.common import CamelModel
 from app.schemas.settings import ConnTestResult, Disk, ShortcutGroup, VersionRow
 from app.services.settings import secrets as settings_secrets
+from app.services.settings import system
 
 log = logging.getLogger(__name__)
 
 SETTINGS_DIR = "settings"
 LEGACY_FILE = "settings.yaml"  # single-file layout, migrated on load
 # Sections that were dropped; their part files are deleted on load
-OBSOLETE_PARTS = ("station", "training")
+OBSOLETE_PARTS = ("station", "training", "storage")
 
 # Part file name → (path in the snake_case document, model)
 PARTS: dict[str, tuple[tuple[str, ...], type[CamelModel]]] = {
     "huggingface": (("integrations", "hf"), HfSettings),
     "runpod": (("integrations", "runpod"), RunpodSettings),
-    "storage": (("storage",), StorageSettings),
     "connection": (("connection",), ConnectionSettings),
     "notifications": (("notifications",), NotificationSettings),
 }
@@ -70,8 +69,7 @@ TARGET_SECRET = {
     "runpod": "runpod_api_key",
     "slack": "slack_webhook",
 }
-# Mock round-trip times per target
-LATENCY_MS = {"hf": 180, "runpod": 240, "slack": 210, "api": 4, "grpc": 2}
+GRPC_TIMEOUT_S = 1.0
 
 
 def reset() -> None:
@@ -349,13 +347,23 @@ def has_secret(name: str) -> bool:
 # --- connection tests -------------------------------------------------------
 
 
-def run_test(target: str) -> ConnTestResult:
-    """Mock check: integrations need their secret; station endpoints always answer."""
+def _check(target: str) -> ConnTestResult:
     secret = TARGET_SECRET.get(target)
-    if secret and not has_secret(secret):
-        result = ConnTestResult(state="error", detail=f"{secret} is not set")
-    else:
-        result = ConnTestResult(state="ok", latency_ms=LATENCY_MS.get(target))
+    if secret:
+        # Integrations are not called online yet: only the key is checked
+        if not has_secret(secret):
+            return ConnTestResult(state="error", detail=f"{secret} is not set")
+        return ConnTestResult(state="ok", detail="Key is set (not verified online)")
+    if target == "api":
+        return ConnTestResult(state="ok")  # this request reached the API
+    if target == "grpc":
+        return system.tcp_check(get_settings().connection.grpc.url, GRPC_TIMEOUT_S)
+    return ConnTestResult(state="error", detail="Camera pipeline is not implemented yet")
+
+
+def run_test(target: str) -> ConnTestResult:
+    """Key check for integrations, a TCP connect for gRPC; WebRTC has no pipeline yet."""
+    result = _check(target)
 
     data = _dump()
     if target in data["integrations"]:
@@ -373,7 +381,7 @@ def run_test(target: str) -> ConnTestResult:
 
 
 def disk() -> Disk:
-    return Disk.model_validate(load("settings", "DISK"))
+    return system.disk()
 
 
 def shortcuts() -> list[ShortcutGroup]:
@@ -381,7 +389,7 @@ def shortcuts() -> list[ShortcutGroup]:
 
 
 def versions() -> list[VersionRow]:
-    return [VersionRow.model_validate(v) for v in load("settings", "VERSIONS")]
+    return system.versions()
 
 
 reset()

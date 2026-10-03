@@ -1,0 +1,41 @@
+task_id: sort-by-color
+name: Sort by color
+label: sort the blocks into matching color trays
+variants: []
+tags:
+- sorting
+- multi-step
+rig: so101-kit
+cameras:
+- top
+- wrist
+rates:
+  action_hz: 60
+  video_fps: 30
+episode:
+  target: 100
+  duration_s: 45.0
+  reset_s: 10.0
+  countdown_s: 3.0
+outcomes:
+  success: →
+  fail: F
+  partial: P
+subtasks:
+- key: '1'
+  name: pick
+  description: 블록 집기
+- key: '2'
+  name: place
+  description: 같은 색 트레이에 놓기
+success_criteria: 모든 블록이 같은 색 트레이에 있을 것
+status: draft
+output:
+  repo_id: local/sort_by_color
+  format: lerobot_v3
+  fps: 30
+  push_to_hub: private
+meta:
+  version: 1
+  updated_at: '2026-10-02T00:00:00+09:00'
+  updated_by: OP-02

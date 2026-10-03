@@ -10,13 +10,12 @@ from pydantic import ValidationError
 from app.configs.config import REPO_ROOT
 from app.core import storage
 from app.models.rigs import Rig
-from app.seeds import load
 from app.services import rigs as service
 from app.services.rigs import file_format as rigs_file
 from app.services.rigs import rigs as rigs_store
 from app.services.rigs.file_format import RigFile
 
-# /rigs and /devices JSON captured before the rig file format changed
+# /rigs JSON captured before the rig file format changed; /devices as reported with no drivers
 SNAPSHOT = json.loads((Path(__file__).parent / "data" / "api_snapshot.json").read_text())
 
 
@@ -29,9 +28,11 @@ def _devices(*ids: str) -> list[dict]:
     return [by_id[i] for i in ids]
 
 
-def test_seeded_api_matches_snapshot(client):
-    assert client.get("/rigs").json() == SNAPSHOT["rigs"]
-    assert client.get("/devices").json() == SNAPSHOT["devices"]
+def test_fixture_api_matches_snapshot(client):
+    by_id = {r["id"]: r for r in client.get("/rigs").json()}
+    assert [by_id[r["id"]] for r in SNAPSHOT["rigs"]] == SNAPSHOT["rigs"]
+    devices = {d["id"]: d for d in client.get("/devices").json()}
+    assert [devices[d["id"]] for d in SNAPSHOT["devices"]] == SNAPSHOT["devices"]
 
 
 def test_committed_file_matches_snapshot(client):
@@ -39,8 +40,8 @@ def test_committed_file_matches_snapshot(client):
     storage.delete("rigs/so101-bimanual-kit.yaml")
     service.reset()
     assert client.get("/rigs").json() == [_rig("so101-kit")]
-    # Seed devices not referenced by any rig file are dropped
-    assert client.get("/devices").json() == _devices("leader", "follower", "top", "wrist")
+    # Only devices declared by a rig file exist
+    assert client.get("/devices").json() == _devices("follower", "leader", "top", "wrist")
     # Hand-written comments are kept (the file is not rewritten)
     assert storage.read_text("rigs/so101-kit.yaml").startswith(
         "id: so101-kit\nname: SO-101 Kit\n\n#"
@@ -119,7 +120,7 @@ def test_file_overrides_device_identity(client):
     storage.write("rigs/so101-kit.yaml", doc)
     service.reset()
     d = client.get("/devices/follower").json()
-    assert d["port"] == "/dev/ttyACM1" and d["name"] == "Arm" and d["health"] == "warn"
+    assert d["port"] == "/dev/ttyACM1" and d["name"] == "Arm" and d["health"] == "off"
     assert client.get("/rigs/so101-kit").json()["slave"] == "Arm"
 
 
@@ -145,16 +146,15 @@ def test_new_robot_defaults():
 
 
 def test_old_format_is_migrated(client):
-    old = Rig.model_validate(load("rigs", "RIGS")[0]).model_dump(mode="json")
+    old = Rig.model_validate(_rig("so101-kit")).model_dump(mode="json")
     storage.write("rigs/so101-kit.yaml", old)
     assert "master" in storage.read("rigs/so101-kit.yaml")
     service.reset()
     doc = storage.read("rigs/so101-kit.yaml")
-    assert "master" not in doc and doc["robot"]["port"] == "/dev/so101_follower"
+    # Old files carry no ports: names come from master / slave, ports start empty
+    assert "master" not in doc and doc["robot"]["name"] == "SO-101 Follower"
+    assert doc["robot"]["port"] == ""
     assert client.get("/rigs/so101-kit").json() == _rig("so101-kit")
-    assert client.get("/rigs/so101-kit/devices").json() == _devices(
-        "follower", "leader", "top", "wrist"
-    )
 
 
 def _base() -> dict:

@@ -1,6 +1,6 @@
 """Recordings on disk: <raw>/<folder>/<name>.mcap plus a <name>.yaml sidecar (the index).
 
-The raw folder is Settings storage.raw_path (relative paths start at the repo root).
+The raw folder is config.recordings_dir (<data_dir>/recordings).
 Sidecars hold the Recording fields in snake_case; `file` always follows the sidecar location.
 """
 
@@ -11,8 +11,7 @@ from pydantic import ValidationError
 
 from app.core import storage
 from app.models.recordings import Recording
-from app.services import settings
-from app.utils.paths import resolve_user_path
+from app.configs.config import config
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ SIDECAR_SUFFIX = ".yaml"
 
 
 def raw_dir() -> Path:
-    return resolve_user_path(settings.get_settings().storage.raw_path)
+    return config.recordings_dir
 
 
 def mcap_path(root: Path, rec: Recording) -> Path:

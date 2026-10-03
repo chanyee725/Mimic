@@ -1,6 +1,9 @@
 import { useState } from "react"
 
 import { Page, Panel } from "@/components/layout/page-layout"
+import { EmptyState } from "@/components/common/empty-state"
+import { QueryNote } from "@/components/common/query-state"
+import { LinkButton } from "@/components/common/link-button"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { useCaptureState } from "@/api/capture"
 import { useRigDevices } from "@/api/devices"
@@ -12,8 +15,8 @@ import { formatTimecode } from "@/lib/format"
 
 import { CameraGrid } from "./components/camera-grid"
 import { ControlPanel } from "./components/control-panel"
-import { QueryNote } from "@/components/common/query-state"
 import { useCapture } from "./hooks/use-capture"
+import { offlineDevices } from "./lib"
 
 export function CapturePage() {
   const tasks = useTasks()
@@ -28,10 +31,11 @@ export function CapturePage() {
   const wanted = busyTaskId ?? picked ?? current.data?.taskId
   const task = list.find((t) => t.id === wanted) ?? list[0]
 
-  const ep = useCapture(task)
   const rig = useRig(task?.rigId)
   const devices = useRigDevices(rig.data?.id)
   const cameras = (devices.data ?? []).filter((d) => d.type === "camera")
+  const offline = offlineDevices(devices.data ?? [])
+  const ep = useCapture(task, { startBlocked: offline.length > 0 })
 
   const selectTask = (id: string) => {
     setPicked(id)
@@ -74,7 +78,19 @@ export function CapturePage() {
           {/* Cameras fill the remaining height; plots have a fixed height */}
           <CameraGrid
             cameras={cameras}
-            loading={<QueryNote query={task ? devices : tasks} />}
+            empty={
+              !task ? (
+                tasks.data ? (
+                  <span className="text-xs text-muted-foreground">Task 를 만들면 Rig 카메라가 여기에 표시됩니다.</span>
+                ) : (
+                  <QueryNote query={tasks} />
+                )
+              ) : rig.error ? (
+                <QueryNote query={rig} />
+              ) : devices.data ? undefined : (
+                <QueryNote query={devices} />
+              )
+            }
             recording={recording}
             timecode={recording && task ? formatTimecode(ep.elapsedS * 1000, task.videoFps) : undefined}
           />
@@ -84,17 +100,28 @@ export function CapturePage() {
             <JointPlots joints={r.joints} hz={task.actionHz} actionSource={r.master} stateSource={r.slave} className="h-64 shrink-0" />
           ) : (
             <div className="grid h-64 shrink-0 place-items-center rounded-lg border">
-              <QueryNote query={task ? rig : tasks} />
+              {!task && tasks.data ? (
+                <span className="text-xs text-muted-foreground">Task 를 만들면 관절값 그래프가 여기에 표시됩니다.</span>
+              ) : (
+                <QueryNote query={task ? rig : tasks} />
+              )}
             </div>
           )}
         </div>
 
         {task ? (
-          <ControlPanel task={task} ep={ep} onSelectTask={selectTask} taskError={setCurrent.error} />
+          <ControlPanel task={task} ep={ep} offline={offline.map((d) => d.name)} onSelectTask={selectTask} taskError={setCurrent.error} />
         ) : (
           <Panel>
             <QueryNote query={tasks} />
-            {tasks.data?.length === 0 && <p className="text-[13px] text-muted-foreground">등록된 Task 가 없습니다.</p>}
+            {tasks.data?.length === 0 && (
+              <EmptyState className="grid justify-items-center gap-3 py-10">
+                등록된 Task 가 없습니다. Tasks 에서 Task 를 만든 뒤 녹화하세요.
+                <LinkButton to="/tasks" variant="outline" size="sm">
+                  Open Tasks
+                </LinkButton>
+              </EmptyState>
+            )}
           </Panel>
         )}
       </div>

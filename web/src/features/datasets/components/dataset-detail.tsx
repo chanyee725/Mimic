@@ -12,7 +12,7 @@ import { StatusDot } from "@/components/common/status-dot"
 import { useDataset, useDatasetEpisodes, useDeleteDataset, usePushDataset } from "@/api/datasets"
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
-import type { Dataset } from "@/domain/dataset"
+import { MIXED_TASK, type Dataset } from "@/domain/dataset"
 import { formatDateTime, formatLength } from "@/lib/format"
 
 import { STATUS } from "../lib"
@@ -37,7 +37,8 @@ export function DatasetDetail({ repoId, fallback, onDeleted }: { repoId: string;
 }
 
 function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () => void }) {
-  const task = useTask(dataset.taskId).data
+  const mixed = dataset.taskId === MIXED_TASK
+  const task = useTask(mixed ? undefined : dataset.taskId).data
   const rig = useRig(dataset.rigId).data
   const episodes = useDatasetEpisodes(dataset.repoId)
   const rows = episodes.data?.pages.flatMap((p) => p.items) ?? []
@@ -55,7 +56,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
     <Panel className="min-h-0 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-64 flex-1 basis-0 items-center gap-4">
-          <DatasetThumb taskId={dataset.taskId} className="w-32" />
+          <DatasetThumb className="w-32" />
           <div className="grid min-w-0 gap-1">
             <h2 className="truncate text-lg font-semibold">{dataset.repoId}</h2>
             <div className="flex items-center gap-2">
@@ -64,7 +65,12 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
               </StatusDot>
               {dataset.hub.pushed && <HfBadge title={dataset.hub.private ? "On HF Hub (private)" : "On HF Hub"} />}
             </div>
-            <p className="truncate text-[13px] text-muted-foreground">{task?.instruction ?? dataset.taskId}</p>
+            <p className="truncate text-[13px] text-muted-foreground">{mixed ? "Mixed tasks" : (task?.instruction ?? dataset.taskId)}</p>
+            {!!dataset.sources?.length && (
+              <p className="truncate text-xs text-muted-foreground" title={dataset.sources.join(", ")}>
+                Merged from {dataset.sources.join(", ")}
+              </p>
+            )}
             <p className="truncate text-xs text-muted-foreground">
               {rig?.name ?? dataset.rigId}, {dataset.format}
               {dataset.kind === "lerobot" && `, ${dataset.fps} fps`}, created {formatDateTime(dataset.createdAt)}
@@ -130,9 +136,9 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
       {dataset.status === "failed" && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-bad-muted px-3 py-2.5 text-[13px] text-bad">
           <span>{dataset.error ?? "변환이 중단됐습니다. 원인을 확인한 뒤 다시 시도하세요."}</span>
-          <LinkButton to="/convert" variant="outline" size="sm" className="bg-background">
+          <LinkButton to={dataset.sources?.length ? "/merge" : "/convert"} variant="outline" size="sm" className="bg-background">
             <LuRotateCcw />
-            Convert again
+            {dataset.sources?.length ? "Merge again" : "Convert again"}
           </LinkButton>
         </div>
       )}

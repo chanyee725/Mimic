@@ -44,3 +44,5 @@ class Dataset(CamelModel):
     hub: Hub
     features: list[DatasetFeature]
     episode_count: int
+    # repoIds a merged dataset was made from (null for converted ones)
+    sources: list[str] | None = None

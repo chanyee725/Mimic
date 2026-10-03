@@ -12,7 +12,6 @@ PART_FILES = [
     "huggingface.yaml",
     "notifications.yaml",
     "runpod.yaml",
-    "storage.yaml",
 ]
 
 
@@ -47,7 +46,7 @@ def test_seed_writes_part_files():
     assert sorted(p.name for p in storage.list_yaml("settings")) == PART_FILES
     assert not storage.exists("settings.yaml")
     assert read_part("huggingface") == {"namespace": "vla-lab", "private_by_default": True}
-    assert read_part("storage")["keep_checkpoints"] == 4
+    assert not storage.exists("settings/storage.yaml")  # dropped: paths follow the data folder
     assert {"key", "label", "on"} <= set(read_part("notifications")["events"][0])
 
 
@@ -63,18 +62,22 @@ def test_files_have_no_version_live_fields_or_secrets():
 def test_live_fields_come_from_seed(client):
     s = client.get("/settings").json()
     assert s["version"] == 1
-    assert s["integrations"]["runpod"]["spentThisMonth"] == 142.3
-    assert s["connection"]["api"] == {"url": "http://localhost:8000", "state": "ok", "latencyMs": 4}
+    assert s["integrations"]["runpod"]["spentThisMonth"] is None
+    assert s["connection"]["api"] == {
+        "url": "http://localhost:8000",
+        "state": "unknown",
+        "latencyMs": None,
+    }
 
 
 def test_patch_rewrites_only_its_file(client):
     mark_old()
     before = snapshot()
-    body = {"version": 1, "warnAtPct": 90, "keepCheckpoints": 8}
-    assert client.patch("/settings/storage", json=body).status_code == 200
+    body = {"version": 1, "api": {"url": "http://localhost:9000"}}
+    assert client.patch("/settings/connection", json=body).status_code == 200
     after = snapshot()
-    assert [n for n in PART_FILES if after[n] != before[n]] == ["storage.yaml"]
-    assert read_part("storage")["keep_checkpoints"] == 8
+    assert [n for n in PART_FILES if after[n] != before[n]] == ["connection.yaml"]
+    assert read_part("connection")["api"]["url"] == "http://localhost:9000"
 
     mark_old()
     before = snapshot()
@@ -86,15 +89,15 @@ def test_patch_rewrites_only_its_file(client):
 
 
 def test_patch_persists_and_reloads(client):
-    body = {"version": 1, "warnAtPct": 90, "keepCheckpoints": 8}
-    assert client.patch("/settings/storage", json=body).status_code == 200
+    body = {"version": 1, "runpod": {"idleAlertMin": 30}}
+    assert client.patch("/settings/integrations", json=body).status_code == 200
     body = {"version": 2, "events": [{"key": "sim_done", "on": True}]}
     assert client.patch("/settings/notifications", json=body).status_code == 200
 
     service.reset()  # data dir kept
     s = client.get("/settings").json()
     assert s["version"] == 1  # version lives in memory only
-    assert (s["storage"]["warnAtPct"], s["storage"]["keepCheckpoints"]) == (90, 8)
+    assert s["integrations"]["runpod"]["idleAlertMin"] == 30
     assert next(e for e in s["notifications"]["events"] if e["key"] == "sim_done")["on"] is True
 
 
@@ -119,7 +122,7 @@ def test_hand_edited_file_loads(client):
     hf["namespace"] = "hand-lab"
     part("huggingface").write_text(yaml.safe_dump(hf, sort_keys=False))
     # A partial file: missing keys come from the seed
-    part("storage").write_text("keep_checkpoints: 16\n")
+    part("connection").write_text("grpc:\n  url: localhost:6000\n")
     notes = read_part("notifications")
     first = notes["events"][0]
     first["on"] = not first["on"]
@@ -129,38 +132,41 @@ def test_hand_edited_file_loads(client):
     service.reset()
     s = client.get("/settings").json()
     assert (s["version"], s["integrations"]["hf"]["namespace"]) == (1, "hand-lab")
-    assert (s["storage"]["keepCheckpoints"], s["storage"]["warnAtPct"]) == (16, 85)
+    conn = s["connection"]
+    assert (conn["grpc"]["url"], conn["api"]["url"]) == ("localhost:6000", "http://localhost:8000")
     assert s["notifications"]["events"][0]["on"] is first["on"]
     runpod = s["integrations"]["runpod"]
     assert runpod["apiKey"] == {"set": False} and runpod["region"] == "eu"
-    assert runpod["state"] == "ok"  # live field from the seed
-    assert part("storage").read_text() == "keep_checkpoints: 16\n"  # not rewritten on load
+    assert runpod["state"] == "unknown"  # live field from the seed
+    # Not rewritten on load
+    assert part("connection").read_text() == "grpc:\n  url: localhost:6000\n"
 
 
 def test_missing_part_file_is_reseeded(client):
-    client.patch("/settings/storage", json={"version": 1, "warnAtPct": 90})
+    client.patch("/settings/integrations", json={"version": 1, "runpod": {"idleAlertMin": 30}})
     part("huggingface").unlink()
     service.reset()
     assert read_part("huggingface")["namespace"] == "vla-lab"
-    assert read_part("storage")["warn_at_pct"] == 90
+    assert read_part("runpod")["idle_alert_min"] == 30
 
 
 def test_broken_file_falls_back_untouched(client):
-    for broken in ("raw_path: [unclosed\n", "raw_path: ''\n", "- a list\n", "warn_at_pct: 0\n"):
-        part("storage").write_text(broken)
+    for broken in ("api: [unclosed\n", "api: {url: ''}\n", "- a list\n", "grpc: 3\n"):
+        part("connection").write_text(broken)
         service.reset()
-        assert part("storage").read_text() == broken
+        assert part("connection").read_text() == broken
         s = client.get("/settings").json()
-        assert s["storage"]["rawPath"] == "data/recordings"
+        assert s["connection"]["api"]["url"] == "http://localhost:8000"
 
         # Saving another part leaves the broken file alone
         client.patch("/settings/integrations", json={"version": 1, "hf": {"namespace": "x"}})
         client.put("/settings/secrets/hf_token", json={"value": "hf_new_value_ABCD"})
-        assert part("storage").read_text() == broken
+        assert part("connection").read_text() == broken
 
     # Saving the broken part itself rewrites it
-    client.patch("/settings/storage", json={"version": 2, "rawPath": "/fixed"})
-    assert read_part("storage")["raw_path"] == "/fixed"
+    body = {"version": 2, "api": {"url": "http://fixed:8000"}}
+    client.patch("/settings/connection", json=body)
+    assert read_part("connection")["api"]["url"] == "http://fixed:8000"
 
 
 def test_migrates_legacy_settings_yaml(client):
@@ -190,7 +196,7 @@ def test_migrates_legacy_settings_yaml(client):
     assert sorted(p.name for p in storage.list_yaml("settings")) == PART_FILES
     assert read_part("huggingface") == {"namespace": "old", "private_by_default": False}
     assert read_part("runpod")["monthly_budget"] == 300.0  # invalid part → seed
-    assert read_part("storage")["warn_at_pct"] == 70
+    assert not storage.exists("settings/storage.yaml")
     for p in storage.list_yaml("settings"):
         assert not keys(yaml.safe_load(p.read_text())) & {"version", "state", "operators", "token"}
     s = client.get("/settings").json()
@@ -199,15 +205,16 @@ def test_migrates_legacy_settings_yaml(client):
 
 
 def test_legacy_file_ignored_when_folder_exists():
-    storage.write("settings.yaml", {"storage": {"warn_at_pct": 11}})
+    storage.write("settings.yaml", {"integrations": {"hf": {"namespace": "old"}}})
     service.reset()
     assert storage.exists("settings.yaml")
-    assert read_part("storage")["warn_at_pct"] == 85
+    assert read_part("huggingface")["namespace"] == "vla-lab"
 
 
 def test_obsolete_part_files_are_removed():
     storage.write("settings/station.yaml", {"name": "Old", "id": "st-01"})
     storage.write("settings/training.yaml", {"sim_envs_path": "/elsewhere"})
+    storage.write("settings/storage.yaml", {"raw_path": "data/recordings", "warn_at_pct": 85})
     service.reset()
     assert sorted(p.name for p in storage.list_yaml("settings")) == PART_FILES
 

@@ -31,7 +31,7 @@ async def _main(port: int) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="RobotStream gRPC server (mock source)")
+    parser = argparse.ArgumentParser(description="RobotStream gRPC server")
     parser.add_argument("--port", type=int, default=50051)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)

@@ -1,6 +1,9 @@
 # Training
 
 SmolVLA training jobs on the local GPU or a rented RunPod GPU, their per-step metrics, checkpoints and pods.
+**No trainer is connected yet**: there are no jobs (lists are `[]`, job routes 404) and `POST /training/jobs` returns
+`503 { "error": { "code": "unavailable", "message": "Trainer is not connected yet", … } }`. Config, validation and the
+command preview are real.
 Web: `api/training.ts`, `features/training/lib/*` (params, run, runpod).
 
 ## Types
@@ -31,7 +34,7 @@ RunPodOptions = { cloud: "secure" | "community"; pricing: "on-demand" | "spot"; 
 
 TrainingConfig = {
   policy: string; policyBase: string
-  localGpus: { id: string; name: string; vram: string; busyBy?: string }[]
+  localGpus: { id: string; name: string; vram: string; busyBy?: string }[]   // from nvidia-smi; [] when none
   runpod: { gpus: RunPodGpu[]; regions: string[]; volumes: { id: string; label: string; note: string }[];
             priceFactor: { cloud: { secure: number; community: number }; pricing: { "on-demand": number; spot: number } };
             defaults: RunPodOptions }
@@ -50,27 +53,29 @@ Metrics = { fromStep: number; toStep: number; every: number; series: Record<Metr
 | GET | `/training/config` | | `TrainingConfig` | `LOCAL_GPUS`, `RUNPOD_*`, `POLICY*`, `PARAM_GROUPS`, `trainableDatasets()` |
 | GET | `/training/jobs?status=` | | `TrainJob[]` newest first | `listJobs()` |
 | GET | `/training/jobs/{id}` | | `TrainJob` | `getJob(id)` |
-| POST | `/training/jobs` | `{ dataset, compute, gpu, overrides, runpod?: RunPodOptions }` | `202 TrainJob` (running, or queued when the local GPU is busy); 422 unknown override key; 424 RunPod key missing | Start / Queue training (after confirm dialog) |
-| POST | `/training/jobs/{id}/stop` | | `TrainJob` (stopped; saves a last checkpoint); 409 if not active | Stop training / Cancel |
+| POST | `/training/jobs` | `{ dataset, compute, gpu, overrides, runpod?: RunPodOptions }` | `503` (trainer not connected; later `202 TrainJob`); 422 malformed body | Start / Queue training (after confirm dialog) |
+| POST | `/training/jobs/{id}/stop` | | `TrainJob` (stopped); 409 if not active | Stop training / Cancel |
 | POST | `/training/jobs/{id}/pod/terminate` | | `TrainJob` (podState terminated); 409 if no pod, already terminated or the job is still active | Terminate now |
-| GET | `/training/jobs/{id}/metrics?fromStep=0&maxPoints=2000` | | `Metrics` — averaged into at most `maxPoints` buckets | Metrics plots (history) |
+| GET | `/training/jobs/{id}/metrics?fromStep=0&maxPoints=2000` | | `Metrics` — averaged into at most `maxPoints` buckets (empty series until the trainer reports step logs) | Metrics plots (history) |
 | GET | `/training/jobs/{id}/command` | | `{ command: string }` — the exact `lerobot-train` command line | Confirm dialog / params preview |
 | POST | `/training/command-preview` | same body as POST `/training/jobs` | `{ command, ratePerHr?, capHours?, maxCostUsd? }` | Confirm dialog |
 | GET | `/training/jobs/{id}/checkpoints/{step}/download` | | `application/zip` (501 until storage lands) | Download |
 | POST | `/training/jobs/{id}/checkpoints/{step}/push` | `{ repo?: string }` | `202 { repo }` (default `<hf namespace>/smolvla_<task>`); 424 HF token missing | Push to HF Hub |
-| POST | `/training/jobs/{id}/checkpoints/{step}/save` | `{ name }` | `201 Model` (id `m-<jobId>-<step:06>`); 409 if already saved | Save to Models |
+| POST | `/training/jobs/{id}/checkpoints/{step}/save` | `{ name }` | `503` until the trainer is connected (later `201 Model`) | Save to Models |
 
 Rules:
 
-- `POST /training/jobs` / `command-preview` validate: `dataset` ∈ `trainableDatasets`; `gpu` is a local GPU id or name, or a
+- `localGpus` come from `nvidia-smi --query-gpu=name,memory.total` (once per process; `id` `cuda:<n>`, `name` as reported,
+  e.g. `NVIDIA GeForce RTX 4090`, `vram` rounded GB). The RunPod catalogue (GPUs, `stock`, prices, regions, volumes) is a
+  static option list, not live availability.
+- `command-preview` validates: `dataset` ∈ `trainableDatasets`; `gpu` is a local GPU id or name, or a
   RunPod GPU name (stock `none` → 409; non-community GPU on the community cloud → 422); `runpod.region` / `runpod.volume` exist;
   every `overrides` key is in `paramGroups` and matches the default's type (bool / integer ≥ 0, `steps` · `batch_size` ·
   `save_freq` · `log_freq` ≥ 1 / numeric string). Field errors come back as 422 with `details.errors[].loc`.
 - `runpod` defaults to `runpod.defaults` when omitted. A RunPod job's `pricePerHr` is the rate with the options applied
   (`base × gpuCount × priceFactor.cloud × priceFactor.pricing`).
 - Preview: `capHours` = `min(maxHours, budget / rate)` when a budget is set, else `maxHours`; omitted when there is no limit.
-- Stop: a running job saves a last checkpoint at the current step; a running pod is terminated (`autoTerminate`) or goes idle.
-  Stopping the running local job starts the oldest queued local job on that GPU.
+- Stop: a running pod is terminated (`autoTerminate`) or goes idle.
 - Command: `--policy.device=cuda` is always added; `steps` / `batch_size` come from the job, other flags only when they differ
   from the defaults.
 
@@ -79,4 +84,4 @@ Live: `training.updated` (status, step, eta, cost, pod state, new checkpoint) an
 ## Changes from the web mocks
 
 `elapsed` / `eta` strings → `elapsedS` / `etaS`; `podState.idleFor` → `idleForS`; RunPod config and lerobot params move
-from frontend constants to `/training/config`.
+from frontend constants to `/training/config`. No seed jobs, no mock metrics; `localGpus` is detected, not a constant.

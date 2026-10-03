@@ -4,20 +4,21 @@ import { LuPause, LuPlay } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { VideoTile } from "@/components/robot/video-tile"
+import { useRecordingSamples } from "@/api/recordings"
 import { useRig } from "@/api/rigs"
-import type { Recording } from "@/domain/recording"
+import type { Recording, SampleTopic } from "@/domain/recording"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { usePlayback } from "../hooks/use-playback"
-import { cameraLabel, seedOf } from "../lib"
+import { cameraLabel, samplesHz } from "../lib"
 import { Scrubber } from "./scrubber"
 import { SpeedToggle } from "./speed-toggle"
 import { StreamList } from "./stream-list"
 
 /**
- * Plays back a saved MCAP episode. Video (501 until storage exists) stays a placeholder and the joint plots
- * replay the seeded mock signal, the same one the samples endpoint serves for now.
+ * Plays back a saved MCAP episode. Video (501 until storage exists) shows "No signal" and the joint plots
+ * replay the series from the samples endpoint.
  * Callers key it by recording id so playback restarts when the file changes.
  */
 export function McapPlayer({ recording, className }: { recording: Recording; className?: string }) {
@@ -25,10 +26,14 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
   const { time, playing, speed, setSpeed, playhead, seek, togglePlay } = usePlayback(dur)
 
   const videos = recording.topics.filter((t) => t.kind === "video")
-  const hasJoints = recording.topics.some((t) => t.kind === "action" || t.kind === "state")
+  const topics = useMemo(
+    () => (["action", "state"] as SampleTopic[]).filter((k) => recording.topics.some((t) => t.kind === k)),
+    [recording.topics],
+  )
+  const hasJoints = topics.length > 0
   const rig = useRig(recording.rigId ?? undefined).data
-  const joints = useMemo(() => rig?.joints ?? Array.from({ length: 6 }, (_, i) => `j${i}`), [rig])
   const actionHz = recording.topics.find((t) => t.kind === "action")?.rateHz ?? 60
+  const samples = useRecordingSamples(recording.id, { topics, hz: samplesHz(actionHz, dur) })
 
   return (
     // Space toggles play / pause only while the player has focus (no global hotkey)
@@ -53,7 +58,7 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
             resolution="640×480"
             measuredFps={v.rateHz}
             targetFps={v.rateHz}
-            placeholder="Replay"
+            hint="이 녹화에는 아직 영상 프레임이 없습니다."
           />
         ))}
         {videos.length === 0 && (
@@ -65,12 +70,16 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
 
       {hasJoints ? (
         <JointPlots
-          joints={joints}
+          joints={rig?.joints ?? []}
           hz={actionHz}
           actionSource={rig?.master}
           stateSource={rig?.slave}
+          data={samples.data}
           playhead={playhead}
-          seed={seedOf(recording.id)}
+          emptyLabel={samples.isPending ? "Loading…" : "No data"}
+          hint={
+            samples.isPending ? "관절 데이터를 불러오는 중입니다." : (samples.error?.message ?? "이 파일에서 관절값을 읽지 못했습니다.")
+          }
           className="h-64 shrink-0"
         />
       ) : (

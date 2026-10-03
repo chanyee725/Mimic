@@ -16,7 +16,7 @@ from app.utils import time
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
 START = {"taskId": "stack-two-blocks", "operator": "OP-01"}
 MAGIC = b"\x89MCAP0\r\n"
-REC_ID = "stack-two-blocks-47"
+REC_ID = "stack-two-blocks-1"
 
 
 class FakeClock:
@@ -31,7 +31,7 @@ class FakeClock:
 
 
 @pytest.fixture(autouse=True)
-def clock():
+def clock(task, devices_online):
     c = FakeClock()
     time.set_clock(c)
     yield c
@@ -53,7 +53,7 @@ def save(client, clock, seconds: float = 10, outcome: str = "success") -> dict:
 
 
 def restart() -> None:
-    """In-memory state back to seeds, as after a backend restart."""
+    """In-memory state rebuilt from disk, as after a backend restart."""
     tasks.reset()
     capture.reset()
     recordings.reset()
@@ -70,9 +70,9 @@ def test_save_writes_mcap_and_sidecar(client, clock, raw):
     client.post("/capture/subtask", json={"index": 1})
     clock.advance(6)
     rec = client.post("/capture/save", json={"outcome": "partial"}).json()
-    assert rec["file"] == "stack-two-blocks/ep_0047.mcap"
+    assert rec["file"] == "stack-two-blocks/ep_0001.mcap"
 
-    mcap = raw / "stack-two-blocks" / "ep_0047.mcap"
+    mcap = raw / "stack-two-blocks" / "ep_0001.mcap"
     assert mcap.read_bytes().startswith(MAGIC)
     assert rec["sizeMB"] == round(mcap.stat().st_size / 1_000_000, 2)
     with mcap.open("rb") as f:
@@ -86,13 +86,13 @@ def test_save_writes_mcap_and_sidecar(client, clock, raw):
         "recording_id": REC_ID,
         "task_id": "stack-two-blocks",
         "rig_id": "so101-kit",
-        "episode": "47",
+        "episode": "1",
         "operator": "OP-01",
         "outcome": "partial",
     }
     assert [t["name"] for t in rec["topics"]] == list(counts)
 
-    side = yaml.safe_load((raw / "stack-two-blocks" / "ep_0047.yaml").read_text())
+    side = yaml.safe_load((raw / "stack-two-blocks" / "ep_0001.yaml").read_text())
     assert side["id"] == REC_ID and side["task_id"] == "stack-two-blocks"
     assert side["size_mb"] == rec["sizeMB"] and side["review"] == "pending"
     assert side["topics"][0]["schema"] == "vla.robot.JointCommand"
@@ -104,20 +104,20 @@ def test_survives_restart(client, clock):
     restart()
     assert recordings.is_on_disk(REC_ID)
     assert client.get(f"/recordings/{REC_ID}").json() == rec
-    assert client.get("/recordings").json()["total"] == 22  # 21 seeds + 1
+    assert client.get("/recordings").json()["total"] == 1
 
 
 def test_episode_numbers_after_restart(client, clock):
     save(client, clock)
     save(client, clock)
     restart()
-    assert save(client, clock)["episode"] == 49
+    assert save(client, clock)["episode"] == 3
 
 
 def test_review_patch_persists(client, clock, raw):
     save(client, clock)
     assert client.patch(f"/recordings/{REC_ID}", json={"review": "accepted"}).status_code == 200
-    side = yaml.safe_load((raw / "stack-two-blocks" / "ep_0047.yaml").read_text())
+    side = yaml.safe_load((raw / "stack-two-blocks" / "ep_0001.yaml").read_text())
     assert side["review"] == "accepted"
     restart()
     assert client.get(f"/recordings/{REC_ID}").json()["review"] == "accepted"
@@ -138,8 +138,8 @@ def test_file_download(client, clock, raw):
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/octet-stream"
     assert r.content.startswith(MAGIC)
-    assert r.content == (raw / "stack-two-blocks" / "ep_0047.mcap").read_bytes()
-    (raw / "stack-two-blocks" / "ep_0047.mcap").unlink()
+    assert r.content == (raw / "stack-two-blocks" / "ep_0001.mcap").read_bytes()
+    (raw / "stack-two-blocks" / "ep_0001.mcap").unlink()
     assert client.get(f"/recordings/{REC_ID}/file").status_code == 404
 
 
@@ -150,12 +150,12 @@ def test_samples_come_from_the_file(client, clock, raw, monkeypatch):
     assert a["joints"][0] == "shoulder_pan" and len(a["t"]) == 21
     assert len(a["series"]["action"]) == 6 and len(a["series"]["state"][0]) == 21
     # Recorded at 60 Hz: 0.5 s is an exact sample; state trails action by STATE_LAG_S
-    with (raw / "stack-two-blocks" / "ep_0047.mcap").open("rb") as f:
+    with (raw / "stack-two-blocks" / "ep_0001.mcap").open("rb") as f:
         msgs = list(make_reader(f).iter_messages(topics=["/action"]))
     assert a["series"]["action"][0][5] == json.loads(msgs[30][2].data)["position"][0]
     assert a["series"]["state"] != a["series"]["action"]
     # Proof that the file is read: a broken file fails instead of falling back to the mock
-    (raw / "stack-two-blocks" / "ep_0047.mcap").write_bytes(MAGIC + b"\x00" * 16)
+    (raw / "stack-two-blocks" / "ep_0001.mcap").write_bytes(MAGIC + b"\x00" * 16)
     r = client.get(f"/recordings/{REC_ID}/samples", params=params)
     assert r.status_code == 422
 
@@ -174,7 +174,7 @@ def test_import_persists(client, raw):
     restart()
     assert client.get("/recordings/ext-bag").json() == rec
     assert client.get("/recordings/ext-bag/file").content == data
-    assert client.get("/recordings", params={"source": "external"}).json()["total"] == 4
+    assert client.get("/recordings", params={"source": "external"}).json()["total"] == 2
 
 
 def _sample_mcap(raw):
@@ -197,37 +197,5 @@ def test_broken_sidecar_skipped(client, clock, raw, caplog):
     (folder / "ep_0097.yaml").write_text("id: x\n")  # missing fields
     restart()
     assert recordings.is_on_disk(REC_ID)
-    assert client.get("/recordings").json()["total"] == 22
+    assert client.get("/recordings").json()["total"] == 1
     assert sum("is invalid" in m for m in caplog.messages) == 3
-
-
-def test_disk_overrides_seed(client, raw):
-    seed = client.get("/recordings/stack-two-blocks-30").json()
-    rec = recordings.get_recording("stack-two-blocks-30").model_copy(
-        update={"review": "rejected", "file": "stack-two-blocks/ep_0030.mcap"}
-    )
-    disk.write_sidecar(raw, rec)
-    restart()
-    assert client.get("/recordings/stack-two-blocks-30").json()["review"] == "rejected"
-    assert seed["review"] != "rejected"
-    assert client.get("/recordings").json()["total"] == 21
-
-
-def test_raw_path_change_rescans(client, clock, raw, tmp_path):
-    save(client, clock)
-    other = tmp_path / "raw2"
-    body = {"version": 1, "rawPath": str(other)}
-    assert client.patch("/settings/storage", json=body).status_code == 200
-    assert client.get(f"/recordings/{REC_ID}").status_code == 404
-    assert client.get("/recordings").json()["total"] == 21
-    saved = save(client, clock)
-    assert saved["episode"] == 48  # issued numbers are still not reused in this session
-    assert (other / "stack-two-blocks" / "ep_0048.mcap").is_file()
-    body = {"version": 2, "rawPath": str(raw)}
-    assert client.patch("/settings/storage", json=body).status_code == 200
-    assert recordings.is_on_disk(REC_ID) and not recordings.is_on_disk(saved["id"])
-
-
-def test_seed_recordings_have_no_file(client):
-    assert not recordings.is_on_disk("stack-two-blocks-30")
-    assert client.get("/recordings/stack-two-blocks-30/file").status_code == 501

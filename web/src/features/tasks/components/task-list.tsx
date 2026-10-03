@@ -50,9 +50,9 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
           variant="ghost"
           size="icon-sm"
           aria-label="New task"
-          title="New task"
           className="text-muted-foreground"
           disabled={!rig}
+          title={rig ? "New task" : "Rig 가 없어 Task 를 만들 수 없습니다. data/rigs 에 rig 파일을 추가하세요."}
           onClick={() => {
             create.reset()
             setCreating(true)

@@ -35,8 +35,10 @@ Device = { id: string; name: string; type: DeviceType; port: string; health: Hea
 | GET | `/devices/{id}` | `Device` | Rigs detail |
 | POST | `/devices/{id}/calibrate` | `202 Device` with `calibration: { done: false, note: "Calibrating…" }` (result on the events socket); 409 if already calibrating; 503 if `health` is `off` | Rigs Calibrate |
 
-`measuredHz` and `health` are live values; changes are also pushed as `device.updated` events ([realtime.md](realtime.md)).
-Calibration start and finish are `device.updated` events too (the mock backend finishes right after the response).
+`measuredHz`, `health`, `calibration` and `stats` are live values reported by robot / camera drivers; changes are pushed as
+`device.updated` events ([realtime.md](realtime.md)). **No drivers exist yet**, so every device is reported as not connected:
+`health: "off"`, `calibration: { done: false, note: "Not connected" }`, `measuredHz: null`, `stats: []`. Calibrate therefore
+answers 503 for every device today, and Capture start answers 503 too ([capture.md](capture.md)).
 
 ### Rig YAML
 
@@ -45,8 +47,8 @@ The rig in its file format (see [Storage](#storage)), as the backend writes it (
 ## Storage
 
 - Rigs: one hand-editable file per rig in `data/rigs/<rig-id>.yaml` (under `VLA_DATA_DIR`); the id is read from the file content. The folder is committed to git (the station ships with `so101-kit`).
-- On startup the folder is loaded if it exists; otherwise it is seeded from the mocks and written. Add a rig by dropping a file in (restart to pick it up). Invalid files (missing robot, rate not in its options, camera without a `WxH` resolution, duplicate device ids, …) are logged and skipped; unknown keys are logged and ignored. Seeded rigs keep their mock order; new files follow, by file name.
-- Old-format files (a raw `Rig` dump with `master` / `slave`) are converted on load and rewritten in this format.
+- On startup the folder is loaded, sorted by file name. There are no seeds: a missing or empty folder means no rigs (copy `data/rigs/*.yaml` when pointing `VLA_DATA_DIR` at a new folder). Add a rig by dropping a file in (restart to pick it up). Invalid files (missing robot, rate not in its options, camera without a `WxH` resolution, duplicate device ids, …) are logged and skipped; unknown keys are logged and ignored.
+- Old-format files (a raw `Rig` dump with `master` / `slave`) are converted on load and rewritten in this format (names come from `master` / `slave`; ports start empty).
 
 ```yaml
 id: so101-kit
@@ -86,4 +88,4 @@ rates:
 
 - Multi-arm rigs use maps keyed by id instead: `robots: { bi-follower-l: {type, name, port, joints}, bi-follower-r: {…} }` and `devices: { … }`. Either form loads; the backend writes the singular form when there is exactly one. Every robot has the same number of joints, and joint names are unique across robots.
 - Mapping to `Rig`: `slave` / `master` = the robot / device names (one name as is; `X (L)` + `X (R)` → `X ×2`; otherwise joined with ` + `); `robots` / `devices` = their ids; `joints` = the robots' joints in order; camera `id` = `id` or the key, `feature` = `observation.images.<key>`, `resolution` as `640×480`; `targetHz` = `rates.action_hz` / `rates.video_fps`.
-- Devices are the ones declared in the rig files (id, name, port; type robot → `robot`, device → `teleop`, camera → `camera`); the first rig declaring an id wins. Live state (health, calibration, streams, stats) comes from the mocks by id and stays in memory. A device without mock state starts offline: `health: off`, calibration not done, streams derived from the file (`observation.state` / `action` shape `[n_joints]` at `action_hz`, `images.<key>` shape `HxWx3` at the camera fps), no stats. Mock devices no rig declares are dropped. Calibration results are not written to disk.
+- Devices are the ones declared in the rig files (id, name, port; type robot → `robot`, device → `teleop`, camera → `camera`); the first rig declaring an id wins. Every device starts not connected (see above): streams are derived from the file (`observation.state` / `action` shape `[n_joints]` with `targetHz` = `action_hz`, `images.<key>` shape `HxWx3` at the camera fps, `measuredHz: null`), no stats. Live state stays in memory; calibration results are not written to disk.

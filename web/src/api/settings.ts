@@ -29,8 +29,6 @@ export const usePatchSettings = () =>
     mutationFn: ({ section, body }: { section: SettingsSection; body: SettingsPatch }) => api.patch<Settings>(`/settings/${section}`, body),
     onSuccess: (settings) => {
       queryClient.setQueryData(settingsKey, settings)
-      // storage paths change disk usage (the sim environments folder comes from .env, not settings)
-      return queryClient.invalidateQueries({ queryKey: [...qk.settings, "disk"] })
     },
   })
 

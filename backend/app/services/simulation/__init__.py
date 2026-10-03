@@ -13,7 +13,6 @@ from app.services.simulation.envs import (
 )
 from app.services.simulation.jobs import (
     ACTIVE,
-    advance,
     create_job,
     episode_video,
     get_episode,
@@ -27,7 +26,6 @@ from app.services.simulation.jobs import (
 
 __all__ = [
     "ACTIVE",
-    "advance",
     "compat",
     "create_job",
     "env_compat",

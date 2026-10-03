@@ -1,4 +1,4 @@
-"""Rigs from data/rigs/<id>.yaml (file_format.py) and their devices (live state in memory)."""
+"""Rigs from data/rigs/<id>.yaml (file_format.py) and their devices (not connected until drivers exist)."""
 
 from app.services.rigs.rigs import (
     CALIBRATING,
@@ -13,6 +13,7 @@ from app.services.rigs.rigs import (
     require_rig,
     rig_devices,
     rig_yaml,
+    set_device_state,
     start_calibration,
 )
 
@@ -29,5 +30,6 @@ __all__ = [
     "require_rig",
     "rig_devices",
     "rig_yaml",
+    "set_device_state",
     "start_calibration",
 ]

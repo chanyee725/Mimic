@@ -2,6 +2,7 @@ import { LuBot, LuBoxes, LuCable, LuCamera, LuPlus, LuRefreshCw } from "react-ic
 
 import { Button } from "@/components/ui/button"
 import { Page, Panel } from "@/components/layout/page-layout"
+import { EmptyState } from "@/components/common/empty-state"
 import { StatStrip } from "@/components/common/stat-strip"
 
 import { DeviceDetail } from "./components/device-detail"
@@ -68,7 +69,13 @@ export function RigsPage() {
           />
         ) : (
           <Panel>
-            {rigsQuery.isError ? <ErrorNote error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} /> : <LoadingNote />}
+            {rigsQuery.isError ? (
+              <ErrorNote error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} />
+            ) : rigsQuery.data ? (
+              <EmptyState>등록된 Rig 가 없습니다. data/rigs 에 rig 파일을 추가하세요.</EmptyState>
+            ) : (
+              <LoadingNote />
+            )}
           </Panel>
         )}
         {selected ? <DeviceDetail device={selected} /> : <Panel>{devicesQuery.isPending && <LoadingNote />}</Panel>}

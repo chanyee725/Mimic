@@ -8,6 +8,14 @@ from app.services.realtime import mock_robot
 from app.rpc.gen import robot_pb2
 from app.rpc.server import serve
 from app.rpc.servicer import RobotStreamService
+from conftest import connect_devices
+
+
+@pytest.fixture(autouse=True)
+def devices(request):
+    # No drivers: streams are refused unless a test pretends the arms are connected
+    if "unavailable" not in request.node.name:
+        connect_devices()
 
 
 class Aborted(Exception):
@@ -116,6 +124,29 @@ def test_stream_rates_unknown_rig():
     with pytest.raises(Aborted):
         take(service(FakeTime()).StreamRates(robot_pb2.RatesRequest(rig_id="nope"), ctx), 1)
     assert ctx.code == grpc.StatusCode.NOT_FOUND
+
+
+@pytest.mark.parametrize("method", ["StreamJoints", "StreamRates"])
+def test_unavailable_without_connected_devices(method):
+    ctx = FakeContext()
+    req = (robot_pb2.StreamRequest if method == "StreamJoints" else robot_pb2.RatesRequest)(
+        rig_id="so101-kit"
+    )
+    with pytest.raises(Aborted):
+        take(getattr(service(FakeTime()), method)(req, ctx), 1)
+    assert ctx.code == grpc.StatusCode.UNAVAILABLE
+    assert ctx.details == "Rig 'so101-kit' devices are not connected: follower, leader"
+
+
+def test_unavailable_when_one_arm_is_off():
+    from app.services import rigs
+
+    connect_devices()
+    rigs.set_device_state("leader", health="off")
+    ctx = FakeContext()
+    with pytest.raises(Aborted):
+        take(service(FakeTime()).StreamJoints(robot_pb2.StreamRequest(rig_id="so101-kit"), ctx), 1)
+    assert ctx.code == grpc.StatusCode.UNAVAILABLE and ctx.details.endswith(": leader")
 
 
 def test_serve_is_importable():

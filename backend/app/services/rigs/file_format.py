@@ -11,7 +11,7 @@ from app.models.rigs import Calibration, Device, DeviceStream, Rig, RigCamera, T
 _RESOLUTION = re.compile(r"^\s*(\d+)\s*[x×]\s*(\d+)\s*$")
 _SUFFIX = re.compile(r"\s*\([^)]*\)$")
 
-# Legacy files and the mocks predate hardware types; every shipped rig is SO-101
+# Legacy files predate hardware types; every shipped rig is SO-101
 _LEGACY_TYPE = {"robot": "so101_follower", "teleop": "so101_leader"}
 
 
@@ -246,7 +246,7 @@ def to_rig(spec: RigFile) -> Rig:
 
 
 def declared_devices(spec: RigFile) -> list[Device]:
-    """Every device the file declares, with default (offline) live state."""
+    """Every device the file declares, not connected (no drivers yet): measured rates null, no stats."""
     n = len(spec.robots[0].joints)
     hz = float(spec.rates.action_hz)
 
@@ -270,7 +270,7 @@ def declared_devices(spec: RigFile) -> list[Device]:
             "robot",
             r.port,
             _stream("observation.state", f"[{n}]", hz, "Hz"),
-            "Calibration required",
+            "Not connected",
         )
         for r in spec.robots
     ]
@@ -281,14 +281,14 @@ def declared_devices(spec: RigFile) -> list[Device]:
             "teleop",
             d.port,
             _stream("action", f"[{n}]", hz, "Hz"),
-            "Calibration required",
+            "Not connected",
         )
         for d in spec.devices
     ]
     for c in spec.cameras:
         w, h = c.size
         stream = _stream(f"images.{c.key}", f"{h}×{w}×3", float(c.fps), "fps")
-        out.append(dev(c.device_id, c.name, "camera", c.port, stream, "Not registered"))
+        out.append(dev(c.device_id, c.name, "camera", c.port, stream, "Not connected"))
     return out
 
 

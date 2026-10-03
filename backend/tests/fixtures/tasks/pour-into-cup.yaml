@@ -1,0 +1,45 @@
+task_id: pour-into-cup
+name: Pour into cup
+label: pour the beads from the small cup into the large cup
+variants:
+- empty the small cup into the large one
+tags:
+- pouring
+- tabletop
+rig: so101-kit
+cameras:
+- top
+- wrist
+rates:
+  action_hz: 60
+  video_fps: 30
+episode:
+  target: 60
+  duration_s: 35.0
+  reset_s: 10.0
+  countdown_s: 3.0
+outcomes:
+  success: →
+  fail: F
+  partial: P
+subtasks:
+- key: '1'
+  name: grasp
+  description: 작은 컵 파지
+- key: '2'
+  name: pour
+  description: 기울여 붓기
+- key: '3'
+  name: place
+  description: 컵 내려놓기
+success_criteria: 구슬의 90% 이상이 큰 컵 안에 있을 것
+status: active
+output:
+  repo_id: local/pour_into_cup
+  format: lerobot_v3
+  fps: 30
+  push_to_hub: private
+meta:
+  version: 1
+  updated_at: '2026-09-29T00:00:00+09:00'
+  updated_by: OP-02

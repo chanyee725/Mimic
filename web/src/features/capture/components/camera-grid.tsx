@@ -1,15 +1,15 @@
 import { VideoTile } from "@/components/robot/video-tile"
 import type { Device } from "@/domain/device"
 
-/** Two-column camera tiles that fill the remaining height. `loading` shows while the rig's cameras are not known yet */
+/** Two-column camera tiles that fill the remaining height. `empty` replaces the no-camera note (loading, errors, no task) */
 export function CameraGrid({
   cameras,
-  loading,
+  empty,
   recording,
   timecode,
 }: {
   cameras: Device[]
-  loading?: React.ReactNode
+  empty?: React.ReactNode
   recording: boolean
   timecode?: string
 }) {
@@ -28,8 +28,8 @@ export function CameraGrid({
         />
       ))}
       {cameras.length === 0 && (
-        <div className="grid place-items-center rounded-lg border bg-stage md:col-span-2">
-          {loading ?? <span className="text-xs text-muted-foreground">이 Rig 에는 카메라가 없습니다.</span>}
+        <div className="grid place-items-center rounded-lg border bg-stage px-4 text-center md:col-span-2">
+          {empty ?? <span className="text-xs text-muted-foreground">이 Rig 에는 카메라가 없습니다.</span>}
         </div>
       )}
     </div>
