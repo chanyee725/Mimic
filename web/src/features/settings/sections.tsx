@@ -1,4 +1,4 @@
-import { LuBell, LuCable, LuCpu, LuHardDrive, LuInfo, LuKeyboard, LuPlug, LuWarehouse } from "react-icons/lu"
+import { LuBell, LuCable, LuHardDrive, LuInfo, LuKeyboard, LuPlug } from "react-icons/lu"
 import type { IconType } from "react-icons"
 
 import { AboutSection } from "./components/about-section"
@@ -6,19 +6,17 @@ import { ConnectionSection } from "./components/connection-section"
 import { IntegrationsSection } from "./components/integrations-section"
 import { NotificationsSection } from "./components/notifications-section"
 import { ShortcutsSection } from "./components/shortcuts-section"
-import { StationSection } from "./components/station-section"
 import { StorageSection } from "./components/storage-section"
-import { TrainingSection } from "./components/training-section"
 
 type Section = { id: string; label: string; icon: IconType; description: string; render: () => React.ReactNode }
 
-/** Settings sections, in left-nav order */
+/** Settings sections, in left-nav order; an unknown `?section=` falls back to the first */
 export const SECTIONS: Section[] = [
   {
     id: "integrations",
     label: "Integrations",
     icon: LuPlug,
-    description: "Hugging Face, RunPod, Weights & Biases 계정을 연결합니다.",
+    description: "Hugging Face, RunPod 계정을 연결합니다.",
     render: () => <IntegrationsSection />,
   },
   {
@@ -35,20 +33,12 @@ export const SECTIONS: Section[] = [
     description: "백엔드 API, 로봇 데이터, 카메라 영상 연결입니다.",
     render: () => <ConnectionSection />,
   },
-  { id: "training", label: "Training", icon: LuCpu, description: "학습 · 시뮬레이션 기본값입니다.", render: () => <TrainingSection /> },
   {
     id: "notifications",
     label: "Notifications",
     icon: LuBell,
     description: "학습 · pod · 디스크 알림을 Slack 으로 받습니다.",
     render: () => <NotificationsSection />,
-  },
-  {
-    id: "station",
-    label: "Station",
-    icon: LuWarehouse,
-    description: "스테이션 이름 · ID · 시간대입니다.",
-    render: () => <StationSection />,
   },
   {
     id: "shortcuts",

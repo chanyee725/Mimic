@@ -1,6 +1,6 @@
 /**
  * An Isaac Sim environment the user built and registered by dropping a folder into the
- * environments directory (Settings → Training → Simulation). The station scans that folder;
+ * environments directory (`VLA_SIM_ENVS_DIR` in the repo-root .env, default sim/envs). The station scans that folder;
  * each sub-folder with an env.yaml becomes one environment a saved model can be loaded into.
  */
 export type SimEnvState = "ready" | "invalid"

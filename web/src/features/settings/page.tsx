@@ -10,7 +10,7 @@ export function SettingsPage() {
   const current = SECTIONS.find((s) => s.id === params.get("section")) ?? SECTIONS[0]
 
   return (
-    <Page fit title="Settings" description="스테이션, 저장소, 외부 서비스 연결을 설정합니다.">
+    <Page fit title="Settings" description="외부 서비스, 저장소, 백엔드 연결을 설정합니다.">
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <Panel className="h-fit p-2">
           <nav aria-label="Settings sections">
