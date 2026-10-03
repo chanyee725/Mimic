@@ -1,10 +1,39 @@
+import importlib
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 
+# Every area keeps in-memory state; reset all of them so tests never leak into each other.
+_AREAS = [
+    "station",
+    "tasks",
+    "rigs",
+    "capture",
+    "recordings",
+    "datasets",
+    "training",
+    "models",
+    "evaluate",
+    "simulation",
+    "settings",
+]
+
+
+@pytest.fixture(autouse=True)
+def _reset_services():
+    for area in _AREAS:
+        try:
+            service = importlib.import_module(f"app.{area}.service")
+        except ModuleNotFoundError:
+            continue
+        reset = getattr(service, "reset", None)
+        if callable(reset):
+            reset()
+    yield
+
 
 @pytest.fixture
 def client() -> TestClient:
-    """Fresh app per test; services that hold state expose reset() for tests."""
     return TestClient(create_app(), base_url="http://test/api/v1")

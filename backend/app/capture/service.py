@@ -16,6 +16,7 @@ from app.recordings.schemas import McapTopic, Recording, RecordingCheck, Subtask
 from app.rigs.schemas import Rig
 from app.rigs.service import get_device, get_rig
 from app.tasks.schemas import Outcome, Task
+from app.tasks import service as tasks
 from app.tasks.service import get_task
 
 # Rough MCAP size model (matches the seeded recordings: ~1.9 MB/s with two cameras)
@@ -98,6 +99,11 @@ def _snapshot() -> CaptureState:
         subtask_index=s.marks[-1][0] if s.marks else None,
         next_episode=s.episode,
     )
+
+
+def is_active() -> bool:
+    """True while an episode is counting down, recording or awaiting review."""
+    return _session is not None
 
 
 def state() -> CaptureState:
@@ -191,6 +197,7 @@ def save(outcome: Outcome) -> Recording:
     assert s is not None
     duration = max(0.1, round(s.stopped_s if s.stopped_s is not None else st.elapsed_s, 1))
     rec = recordings.add(_build_recording(s, duration, outcome))
+    tasks.bump_collected(s.task.id)
     _issued[s.task.id] = s.episode
     _session, _last_task_id = None, s.task.id
     _publish()

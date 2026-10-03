@@ -47,7 +47,7 @@ export const SETTINGS: Settings = {
     defaultCompute: "local",
     saveFreq: 5000,
     simGpu: "RTX 4090 (cuda:0)",
-    simEnvsPath: "~/vla/sim/envs",
+    simEnvsPath: "sim/envs",
   },
   notifications: {
     slackWebhook: { set: false },

@@ -15,6 +15,7 @@ from app.datasets.schemas import ConvertPreview, Dataset, DatasetEpisode, Datase
 from app.recordings.schemas import Recording
 from app.recordings.service import list_recordings
 from app.rigs.service import get_rig
+from app.settings import service as settings
 from app.tasks.schemas import Task
 from app.tasks.service import get_task
 
@@ -236,16 +237,7 @@ def schedule(repo_id: str) -> None:
 
 
 def hf_token_set() -> bool:
-    """True when Settings holds an HF token. The settings service may not exist yet."""
-    try:
-        from app.settings import service as settings  # type: ignore[attr-defined]
-    except ImportError:
-        return False
-    for name in ("has_secret", "secret_is_set", "is_secret_set"):
-        fn = getattr(settings, name, None)
-        if callable(fn):
-            return bool(fn("hf_token"))
-    return False
+    return settings.has_secret("hf_token")
 
 
 def push(repo_id: str, private: bool) -> Dataset:

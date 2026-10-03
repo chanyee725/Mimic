@@ -5,6 +5,7 @@ State machine: running → judging (stop, or automatically at limitS) → done (
 
 from datetime import datetime
 
+from app.capture import service as capture
 from app.core import clock
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
@@ -55,13 +56,7 @@ def _active() -> EvalRun | None:
 
 
 def _capture_active() -> bool:
-    """Guarded: the capture service may not expose its state yet."""
-    try:
-        from app.capture import service as capture  # type: ignore[attr-defined]
-    except ImportError:
-        return False
-    check = getattr(capture, "is_active", None)
-    return bool(check()) if callable(check) else False
+    return capture.is_active()
 
 
 def start(body: EvalRunCreate) -> EvalRun:

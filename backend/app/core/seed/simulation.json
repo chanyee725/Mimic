@@ -3,7 +3,7 @@
     {
       "id": "stack-two-blocks",
       "name": "Tabletop, two blocks",
-      "path": "~/vla/sim/envs/stack-two-blocks",
+      "path": "sim/envs/stack-two-blocks",
       "description": "Two 4 cm blocks on a 60×40 cm table, same layout as the real workbench.",
       "taskId": "stack-two-blocks",
       "cameras": [
@@ -39,7 +39,7 @@
     {
       "id": "pick-red-cube",
       "name": "Tabletop, red cube and bowl",
-      "path": "~/vla/sim/envs/pick-red-cube",
+      "path": "sim/envs/pick-red-cube",
       "taskId": "pick-red-cube",
       "cameras": [
         "top",
@@ -70,7 +70,7 @@
     {
       "id": "open-drawer",
       "name": "Cabinet with top drawer",
-      "path": "~/vla/sim/envs/open-drawer",
+      "path": "sim/envs/open-drawer",
       "taskId": "open-drawer",
       "cameras": [
         "top",
@@ -101,7 +101,7 @@
     {
       "id": "sort-by-color",
       "name": "Colour trays",
-      "path": "~/vla/sim/envs/sort-by-color",
+      "path": "sim/envs/sort-by-color",
       "description": "Top camera pose not matched to the rig yet",
       "taskId": "sort-by-color",
       "cameras": [
@@ -133,7 +133,7 @@
     {
       "id": "clutter-stress",
       "name": "Cluttered table (stress test)",
-      "path": "~/vla/sim/envs/clutter-stress",
+      "path": "sim/envs/clutter-stress",
       "description": "Ten random distractor objects around the target. Not tied to a task; use it to check robustness.",
       "cameras": [
         "top",
@@ -164,7 +164,7 @@
     {
       "id": "top-only-demo",
       "name": "Top camera only",
-      "path": "~/vla/sim/envs/top-only-demo",
+      "path": "sim/envs/top-only-demo",
       "description": "Older demo scene with only the top camera.",
       "cameras": [
         "top"
@@ -194,7 +194,7 @@
     {
       "id": "pour-into-cup",
       "name": "Two cups",
-      "path": "~/vla/sim/envs/pour-into-cup",
+      "path": "sim/envs/pour-into-cup",
       "cameras": [
         "top",
         "wrist"
@@ -219,7 +219,7 @@
       "updatedAt": "2026-10-02 08:50"
     }
   ],
-  "SIM_ENVS_DIR": "~/vla/sim/envs",
+  "SIM_ENVS_DIR": "sim/envs",
   "SIM_GPU": {
     "id": "cuda:0",
     "name": "RTX 4090",

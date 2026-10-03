@@ -182,6 +182,13 @@ def import_task(text: str, operator: str) -> Task:
 # --- sessions ---------------------------------------------------------------
 
 
+def bump_collected(task_id: str, by: int = 1) -> None:
+    """Capture saved an episode; not a user edit, so the version stays."""
+    task = _tasks.get(task_id)
+    if task:
+        _tasks[task_id] = task.model_copy(update={"collected": max(0, task.collected + by)})
+
+
 def list_sessions(task_id: str | None = None) -> list[Session]:
     rows = [s for s in _sessions.values() if task_id is None or s.task_id == task_id]
     return sorted(rows, key=lambda s: (s.date, s.id), reverse=True)

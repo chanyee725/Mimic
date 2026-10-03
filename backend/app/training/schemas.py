@@ -22,7 +22,7 @@ class PodState(CamelModel):
 class Checkpoint(CamelModel):
     step: int
     saved_at: str
-    size_mb: float
+    size_mb: float = Field(alias="sizeMB")
 
 
 class TrainJob(CamelModel):

@@ -5,7 +5,7 @@ import type { Randomization, SimEnv, SimEnvFile, SimEpisode, SimJob } from "@/do
 export const SIM_GPU = { id: "cuda:0", name: "RTX 4090", vram: "24 GB" }
 
 /** Folder the station scans for environments (one sub-folder per environment) */
-export const SIM_ENVS_DIR = "~/vla/sim/envs"
+export const SIM_ENVS_DIR = "sim/envs"
 
 const files = (extra: SimEnvFile[] = []): SimEnvFile[] => [
   { path: "env.yaml", sizeKB: 1 },
