@@ -5,34 +5,46 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { Checkpoint, TrainJob } from "@/domain/training"
+import { formatDateTime } from "@/lib/format"
 
-import type { JobRun } from "../lib"
+import { useCheckpointActions } from "../hooks/use-checkpoint-actions"
+import { valueAt, type JobRun } from "../lib"
+import { ErrorNote } from "./query-state"
 
-/** All checkpoints of a job. Pick some to download or push to the HF Hub */
+/** All checkpoints of a job. Pick some to save to Models, download or push to the HF Hub */
 export function CheckpointsDialog({
   job,
   run,
-  checkpoints,
   open,
   onOpenChange,
 }: {
   job: TrainJob
   run: JobRun
-  checkpoints: Checkpoint[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
   const [picked, setPicked] = useState<number[]>([])
-  const rows = [...checkpoints].reverse()
+  const actions = useCheckpointActions(job)
+  const rows = [...job.checkpoints].reverse()
   // Smoothed loss at that step (to help pick one)
-  const lossAt = (step: number) => run.data.loss[Math.min(step, run.count) - 1]
-  const best = rows.reduce<Checkpoint | undefined>((b, c) => (!b || lossAt(c.step) < lossAt(b.step) ? c : b), undefined)
+  const lossAt = (step: number) => valueAt(run, "loss", step)
+  const best = rows.reduce<Checkpoint | undefined>(
+    (b, c) => (!b || (lossAt(c.step) ?? Infinity) < (lossAt(b.step) ?? Infinity) ? c : b),
+    undefined,
+  )
   const toggle = (step: number, on: boolean) => setPicked((p) => (on ? [...p, step] : p.filter((s) => s !== step)))
   const sizeGB = rows.filter((c) => picked.includes(c.step)).reduce((a, c) => a + c.sizeMB / 1024, 0)
+  const busy = !!actions.pending
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="grid max-h-[85svh] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 sm:max-w-2xl">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) actions.reset()
+        onOpenChange(o)
+      }}
+    >
+      <DialogContent className="grid max-h-[85svh] grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-3 sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Checkpoints</DialogTitle>
           <DialogDescription>
@@ -72,11 +84,18 @@ export function CheckpointsDialog({
                     {c.step.toLocaleString()}
                     {c === best && rows.length > 1 && <span className="ml-2 text-xs text-ok">lowest loss</span>}
                   </td>
-                  <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{c.savedAt}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{lossAt(c.step).toFixed(3)}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{formatDateTime(c.savedAt)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{lossAt(c.step)?.toFixed(3) ?? "—"}</td>
                   <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">{(c.sizeMB / 1024).toFixed(1)} GB</td>
                   <td className="px-2 py-1 text-right whitespace-nowrap">
-                    <Button variant="ghost" size="icon-sm" aria-label={`Download step ${c.step}`} title="Download">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Download step ${c.step}`}
+                      title="Download"
+                      disabled={busy}
+                      onClick={() => actions.run("download", [c.step])}
+                    >
                       <LuDownload />
                     </Button>
                     <Button variant="ghost" size="icon-sm" aria-label={`Evaluate step ${c.step} in Sim`} title="Evaluate in Sim">
@@ -89,23 +108,29 @@ export function CheckpointsDialog({
           </table>
         </div>
 
+        {actions.error ? (
+          <ErrorNote error={actions.error} />
+        ) : actions.result ? (
+          <p className="rounded-md bg-ok-muted px-3 py-2 text-xs text-ok">{actions.result}</p>
+        ) : null}
+
         <DialogFooter className="items-center sm:justify-between">
           <span className="text-xs text-muted-foreground tabular-nums">
             {picked.length ? `${picked.length} selected, ${sizeGB.toFixed(1)} GB` : "Select checkpoints to save"}
           </span>
           <div className="flex gap-2">
             <DialogClose render={<Button variant="ghost" />}>Close</DialogClose>
-            <Button variant="outline" disabled={!picked.length}>
+            <Button variant="outline" disabled={!picked.length || busy} onClick={() => actions.run("push", picked)}>
               <LuCloudUpload />
-              Push to HF Hub
+              {actions.pending === "push" ? "Pushing…" : "Push to HF Hub"}
             </Button>
-            <Button variant="outline" disabled={!picked.length}>
+            <Button variant="outline" disabled={!picked.length || busy} onClick={() => actions.run("download", picked)}>
               <LuDownload />
-              Download
+              {actions.pending === "download" ? "Downloading…" : "Download"}
             </Button>
-            <Button disabled={!picked.length}>
+            <Button disabled={!picked.length || busy} onClick={() => actions.run("save", picked)}>
               <LuSave />
-              Save to Models
+              {actions.pending === "save" ? "Saving…" : "Save to Models"}
             </Button>
           </div>
         </DialogFooter>

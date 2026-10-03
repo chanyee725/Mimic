@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 
 import { EmptyState } from "@/components/common/empty-state"
 import type { Model } from "@/domain/model"
-import { formatPct } from "@/lib/format"
+import { formatDateTime, formatPct } from "@/lib/format"
 
 /** Evaluation history for this model; links to Evaluate when empty */
 export function ModelEvaluations({ model: m }: { model: Model }) {
@@ -25,7 +25,7 @@ export function ModelEvaluations({ model: m }: { model: Model }) {
                 {e.success} / {e.trials}
                 <span className="text-muted-foreground"> ({formatPct(e.success / e.trials)})</span>
               </span>
-              <span className="text-xs text-muted-foreground tabular-nums">{e.at}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">{formatDateTime(e.at)}</span>
             </li>
           ))}
         </ul>

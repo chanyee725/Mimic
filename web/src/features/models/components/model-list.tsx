@@ -1,24 +1,34 @@
 import { useState } from "react"
+import type { UseQueryResult } from "@tanstack/react-query"
 import { LuHardDrive } from "react-icons/lu"
 
 import { HfBadge } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { SearchInput } from "@/components/common/search-input"
 import { Segmented } from "@/components/common/segmented"
-import { listModels } from "@/api/models"
-import { successRate } from "@/domain/model"
+import { successRate, type Model } from "@/domain/model"
 import { formatPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { FILTERS, sortedModels, type Filter } from "../lib"
+import { FILTERS, type Filter } from "../lib"
+import { ErrorNote, Loading } from "./query-state"
 
 /** Left-hand model list. Filter by location, search by name, task or dataset */
-export function ModelList({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
+export function ModelList({
+  models,
+  selected,
+  onSelect,
+}: {
+  /** useModels() of the page, newest first */
+  models: UseQueryResult<Model[]>
+  selected?: string
+  onSelect: (id: string) => void
+}) {
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const models = listModels()
-  const shown = sortedModels()
+  const list = models.data ?? []
+  const shown = list
     .filter(FILTERS.find((f) => f.id === filter)!.fits)
     .filter((m) => !q || m.name.toLowerCase().includes(q) || m.taskId.includes(q) || m.dataset.includes(q))
 
@@ -28,7 +38,7 @@ export function ModelList({ selected, onSelect }: { selected: string; onSelect: 
       title={
         <span className="flex items-baseline gap-1.5 px-2 text-[13px] font-medium">
           Models
-          <span className="font-normal text-muted-foreground tabular-nums">{models.length}</span>
+          <span className="font-normal text-muted-foreground tabular-nums">{list.length}</span>
         </span>
       }
     >
@@ -43,9 +53,11 @@ export function ModelList({ selected, onSelect }: { selected: string; onSelect: 
         fill
         value={filter}
         onChange={setFilter}
-        options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: models.filter(f.fits).length }))}
+        options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: list.filter(f.fits).length }))}
       />
 
+      {models.isPending && <Loading />}
+      <ErrorNote error={models.error} onRetry={() => models.refetch()} />
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {shown.map((m) => {
           const on = m.id === selected
@@ -73,7 +85,9 @@ export function ModelList({ selected, onSelect }: { selected: string; onSelect: 
             </li>
           )
         })}
-        {shown.length === 0 && <li className="py-8 text-center text-[13px] text-muted-foreground">일치하는 모델이 없습니다.</li>}
+        {models.isSuccess && shown.length === 0 && (
+          <li className="py-8 text-center text-[13px] text-muted-foreground">일치하는 모델이 없습니다.</li>
+        )}
       </ul>
     </Panel>
   )

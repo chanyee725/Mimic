@@ -2,10 +2,11 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { allParams, type Param, type ParamValue, type TrainingConfig } from "@/domain/training"
 import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { cn } from "@/lib/utils"
 
-import { PARAM_GROUPS, overrideFlags, trainCommand, type Overrides, type Param, type ParamValue } from "../lib"
+import { overrideFlags, trainCommand, type Overrides } from "../lib"
 
 function ParamField({ param, value, onChange }: { param: Param; value: ParamValue; onChange: (v: ParamValue) => void }) {
   const changed = value !== param.default
@@ -45,11 +46,15 @@ function ParamField({ param, value, onChange }: { param: Param; value: ParamValu
 export function ParamsDialog({
   open,
   onOpenChange,
+  config,
+  dataset,
   overrides,
   onSave,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  config: TrainingConfig
+  dataset: string
   overrides: Overrides
   onSave: (o: Overrides) => void
 }) {
@@ -57,7 +62,7 @@ export function ParamsDialog({
   const [draft, setDraft] = useDraftOnOpen<Overrides>(open, overrides)
 
   const valueOf = (p: Param) => (p.key in draft ? draft[p.key] : p.default)
-  const flags = overrideFlags(draft)
+  const flags = overrideFlags(draft, allParams(config))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,7 +73,7 @@ export function ParamsDialog({
         </DialogHeader>
 
         <div className="-mx-4 min-h-0 overflow-y-auto px-4">
-          {PARAM_GROUPS.map((g) => (
+          {config.paramGroups.map((g) => (
             <section key={g.title} className="border-b py-2 last:border-b-0">
               <h3 className="pt-1 text-xs font-medium text-muted-foreground">{g.title}</h3>
               <div className="divide-y">
@@ -83,7 +88,7 @@ export function ParamsDialog({
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Command</span>
           <pre className="max-h-24 overflow-auto rounded-md bg-muted p-2.5 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap">
-            {trainCommand("<dataset>", flags)}
+            {trainCommand(config.policyBase, dataset || "<dataset>", flags)}
           </pre>
         </div>
 

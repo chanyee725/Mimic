@@ -1,30 +1,48 @@
+import { useEffect } from "react"
 import { LuPlay } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DetailList } from "@/components/common/detail-list"
-import { POLICY, POLICY_BASE, RUNPOD_VOLUMES } from "@/api/training"
+import { useCommandPreview, useStartJob } from "@/api/training"
+import type { JobCreate, TrainingConfig } from "@/domain/training"
 import { formatRate, formatUsd } from "@/lib/format"
 
-import { runpodSummary, trainCommand, type TrainingPlan } from "../lib"
+import { runpodSummary, type TrainingPlan } from "../lib"
+import { ErrorNote } from "./query-state"
 
 // Values can be long or multi-line, so allow wrapping and use a wider gap
 const ROWS = "[&_dd]:overflow-visible [&_dd]:whitespace-normal [&>div]:gap-6"
 
-/** Shows the chosen settings once more before training starts */
+/** Shows the chosen settings and the server's command line once more, then starts (or queues) the job */
 export function ConfirmTrainingDialog({
   open,
   onOpenChange,
+  config,
   plan,
-  onConfirm,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  config: TrainingConfig
   plan: TrainingPlan
-  onConfirm: () => void
 }) {
+  const preview = useCommandPreview()
+  const start = useStartJob()
   const pod = plan.runpod
-  const command = trainCommand(plan.dataset, [...(plan.compute === "local" ? ["--policy.device=cuda"] : []), ...plan.flags])
+  const flags = Object.entries(plan.overrides).map(([k, v]) => `${k}=${v}`)
+  const body: JobCreate = { dataset: plan.dataset, compute: plan.compute, gpu: plan.gpu, overrides: plan.overrides, runpod: pod }
+  const p = preview.data
+
+  // Ask the server for the command line, rate and cost cap each time the dialog opens
+  const { mutate: requestPreview, reset: resetPreview } = preview
+  const { reset: resetStart } = start
+  const bodyKey = JSON.stringify(body)
+  useEffect(() => {
+    if (!open) return
+    resetStart()
+    requestPreview(JSON.parse(bodyKey) as JobCreate)
+    return resetPreview
+  }, [open, bodyKey, requestPreview, resetPreview, resetStart])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,14 +64,14 @@ export function ConfirmTrainingDialog({
             <DetailList
               className={ROWS}
               rows={[
-                { k: "Model", v: `${POLICY} (${POLICY_BASE})` },
+                { k: "Model", v: `${config.policy} (${config.policyBase})` },
                 { k: "Dataset", v: plan.dataset },
                 {
                   k: "Parameters",
-                  v: plan.flags.length ? (
+                  v: flags.length ? (
                     <span className="grid justify-items-end">
-                      {plan.flags.map((f) => (
-                        <span key={f}>{f.replace(/^--/, "")}</span>
+                      {flags.map((f) => (
+                        <span key={f}>{f}</span>
                       ))}
                     </span>
                   ) : (
@@ -70,26 +88,27 @@ export function ConfirmTrainingDialog({
               className={ROWS}
               rows={[
                 { k: "Where", v: plan.compute === "local" ? "Local GPU" : "RunPod" },
-                { k: "GPU", v: pod ? `${pod.options.gpuCount} × ${plan.gpu}` : plan.gpu },
+                { k: "GPU", v: pod ? `${pod.gpuCount} × ${plan.gpu}` : plan.gpu },
                 ...(pod
                   ? [
-                      { k: "Pod", v: runpodSummary(pod.options) },
-                      { k: "Disk", v: `${pod.options.diskGB} GB` },
-                      { k: "Network volume", v: RUNPOD_VOLUMES.find((v) => v.id === pod.options.volume)?.label ?? pod.options.volume },
-                      { k: "When finished", v: pod.options.terminateOnFinish ? "Terminate pod" : "Keep pod running" },
+                      { k: "Pod", v: runpodSummary(pod) },
+                      { k: "Disk", v: `${pod.diskGB} GB` },
+                      { k: "Network volume", v: config.runpod.volumes.find((v) => v.id === pod.volume)?.label ?? pod.volume },
+                      { k: "When finished", v: pod.terminateOnFinish ? "Terminate pod" : "Keep pod running" },
                     ]
                   : []),
               ]}
             />
           </section>
 
-          {pod && (
+          {pod && p?.ratePerHr != null && (
             <div className="flex items-baseline justify-between gap-3 rounded-md bg-muted px-3 py-2.5 text-[13px] tabular-nums">
-              <span>{formatRate(pod.rate)}</span>
+              <span>{formatRate(p.ratePerHr)}</span>
               <span className="text-muted-foreground">
-                {pod.capHours ? (
+                {p.capHours ? (
                   <>
-                    at most <span className="text-foreground">{formatUsd(pod.rate * pod.capHours)}</span> ({pod.capHours.toFixed(1)} h)
+                    at most <span className="text-foreground">{formatUsd(p.maxCostUsd ?? p.ratePerHr * p.capHours)}</span> (
+                    {p.capHours.toFixed(1)} h)
                   </>
                 ) : (
                   "no time or budget limit"
@@ -100,22 +119,25 @@ export function ConfirmTrainingDialog({
 
           <section className="grid gap-1.5">
             <h3 className="text-xs font-medium text-muted-foreground">Command</h3>
-            <pre className="overflow-auto rounded-md bg-muted p-2.5 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap">
-              {command}
-            </pre>
+            {preview.isError ? (
+              <ErrorNote error={preview.error} onRetry={() => requestPreview(body)} />
+            ) : (
+              <pre className="min-h-16 overflow-auto rounded-md bg-muted p-2.5 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap">
+                {p ? p.command.replace(/ --/g, " \\\n  --") : <span className="text-muted-foreground">Loading…</span>}
+              </pre>
+            )}
           </section>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="items-center">
+          {start.isError && <ErrorNote error={start.error} className="mr-auto" />}
           <DialogClose render={<Button variant="outline" />}>Back</DialogClose>
           <Button
-            onClick={() => {
-              onConfirm()
-              onOpenChange(false)
-            }}
+            disabled={start.isPending || preview.isError}
+            onClick={() => start.mutate(body, { onSuccess: () => onOpenChange(false) })}
           >
             <LuPlay />
-            {plan.queuedBehind ? "Queue training" : "Start training"}
+            {start.isPending ? "Starting…" : plan.queuedBehind ? "Queue training" : "Start training"}
           </Button>
         </DialogFooter>
       </DialogContent>

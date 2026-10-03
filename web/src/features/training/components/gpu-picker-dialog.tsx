@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Segmented } from "@/components/common/segmented"
 import { StatusDot } from "@/components/common/status-dot"
-import { RUNPOD_GPUS } from "@/api/training"
+import type { RunPodGpu } from "@/domain/training"
 import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { formatRate } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -15,17 +15,19 @@ import { GPU_STOCK, TIERS, TIGHT_VRAM, type Tier } from "../lib"
 export function GpuPickerDialog({
   open,
   onOpenChange,
+  gpus,
   value,
   onSelect,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  gpus: RunPodGpu[]
   value: string
   onSelect: (name: string) => void
 }) {
   const [tier, setTier] = useState<Tier>("all")
   const [draft, setDraft] = useDraftOnOpen(open, value)
-  const rows = RUNPOD_GPUS.filter(TIERS.find((t) => t.id === tier)!.fits).sort((a, b) => a.pricePerHr - b.pricePerHr)
+  const rows = gpus.filter(TIERS.find((t) => t.id === tier)!.fits).sort((a, b) => a.pricePerHr - b.pricePerHr)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,7 +44,7 @@ export function GpuPickerDialog({
           fill
           value={tier}
           onChange={setTier}
-          options={TIERS.map((t) => ({ value: t.id, label: t.label, count: RUNPOD_GPUS.filter(t.fits).length }))}
+          options={TIERS.map((t) => ({ value: t.id, label: t.label, count: gpus.filter(t.fits).length }))}
         />
 
         <div className="min-h-0 overflow-y-auto rounded-md border">
