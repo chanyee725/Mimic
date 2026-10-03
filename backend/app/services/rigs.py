@@ -2,7 +2,7 @@
 
 import yaml
 
-from app.core.clock import now
+from app.utils.time import now
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.seeds import load

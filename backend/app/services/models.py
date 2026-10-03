@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from app.core.clock import iso, now_iso
+from app.utils.time import iso, now_iso
 from app.core.errors import ApiError, not_found
 from app.seeds import load
 from app.models.models import Model, ModelEval

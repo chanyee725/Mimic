@@ -6,7 +6,7 @@ State machine: running → judging (stop, or automatically at limitS) → done (
 from datetime import datetime
 
 from app.services import capture
-from app.core import clock
+from app.utils import time as clock
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.evaluate import EvalRun

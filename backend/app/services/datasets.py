@@ -6,7 +6,7 @@ Conversion is simulated: step() advances progress; drive() calls it on a timer i
 import asyncio
 import re
 
-from app.core.clock import iso, now_iso
+from app.utils.time import iso, now_iso
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate

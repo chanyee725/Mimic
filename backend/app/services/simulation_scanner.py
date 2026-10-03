@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import yaml
 
-from app.core.clock import now_iso
+from app.utils.time import now_iso
 from app.configs.config import config
 from app.models.simulation import SimEnv, SimEnvFile
 

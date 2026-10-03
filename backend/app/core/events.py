@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 
-from app.core.clock import now_iso
+from app.utils.time import now_iso
 
 Message = dict[str, Any]
 

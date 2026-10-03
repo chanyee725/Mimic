@@ -7,7 +7,7 @@ import asyncio
 from collections.abc import Callable
 from datetime import datetime
 
-from app.core import clock as station_clock
+from app.utils import time as station_clock
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.capture import CaptureState

@@ -3,7 +3,7 @@
 import math
 import re
 
-from app.core.clock import now_iso
+from app.utils.time import now_iso
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.models import Model

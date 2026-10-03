@@ -2,7 +2,7 @@
 
 import re
 
-from app.core.clock import iso
+from app.utils.time import iso
 from app.models.training import TrainJob
 from app.seeds import load
 

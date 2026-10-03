@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.utils import time
 
 # Every area keeps in-memory state; reset all of them so tests never leak into each other.
 _AREAS = [
@@ -31,6 +32,7 @@ def _reset_services():
         reset = getattr(service, "reset", None)
         if callable(reset):
             reset()
+    time.set_clock(None)
     yield
 
 

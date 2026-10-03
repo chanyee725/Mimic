@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from app.core import clock
+from app.utils import time as clock
 from app.services import evaluate as service
 from app.services import models
 

@@ -3,7 +3,7 @@
 import random
 import threading
 
-from app.core.clock import now_iso
+from app.utils.time import now_iso
 from app.configs.config import config
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus

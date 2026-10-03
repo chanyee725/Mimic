@@ -4,7 +4,7 @@ import math
 import re
 import zlib
 
-from app.core.clock import iso, now_iso
+from app.utils.time import iso, now_iso
 from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
