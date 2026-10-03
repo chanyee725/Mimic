@@ -48,7 +48,7 @@ Guidance for working in this repository.
     schemas/<area>.py        request / response bodies (CamelModel); schemas/common.py: CamelModel, Page, paginate
     models/<area>.py         domain entities kept by services (CamelModel)
     services/<area>.py       state + rules, one file per area; an area with helpers becomes a package
-                             services/<area>/ (training, simulation, capture, tasks, realtime, settings) whose
+                             services/<area>/ (training, simulation, capture, tasks, realtime, settings, recordings) whose
                              __init__.py re-exports the public functions
     seeds/                   load(); data/*.json (the mock data); seeds/<area>.py converters
     rpc/                     gRPC: gen/ (generated), servicer.py, server.py

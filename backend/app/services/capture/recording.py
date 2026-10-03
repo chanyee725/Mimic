@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from app.models.recordings import Recording, RecordingCheck, SubtaskSpan
 from app.models.rigs import Rig
 from app.models.tasks import Outcome, Task
-from app.services.recordings_mcap import Episode, topics
+from app.services.recordings.mcap_io import Episode, topics
 from app.utils.rng import unit_seed
 from app.utils.time import to_iso
 

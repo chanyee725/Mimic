@@ -1,7 +1,7 @@
 """Recording store: seed mocks (memory only) plus episodes on disk under the raw folder.
 
 On-disk recordings (Capture saves, imports) are an MCAP plus a YAML sidecar each
-(recordings_disk); they override seeds with the same id and survive restarts. The raw folder
+(disk.py); they override seeds with the same id and survive restarts. The raw folder
 follows Settings storage.raw_path and is rescanned whenever that setting changes.
 """
 
@@ -15,8 +15,8 @@ from app.schemas.common import Page, paginate
 from app.seeds import load
 from app.models.recordings import Recording, RecordingCheck, RecordingReview, RecordingSource
 from app.schemas.recordings import Samples
-from app.services import recordings_disk as disk
-from app.services import recordings_mcap
+from app.services.recordings import disk
+from app.services.recordings import mcap_io as recordings_mcap
 from app.services.realtime import mock_robot
 from app.services.rigs import get_rig
 from app.utils.ids import slugify, split_csv

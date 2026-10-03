@@ -10,7 +10,7 @@ from mcap.reader import make_reader
 
 from app.configs.config import REPO_ROOT, config
 from app.services import capture, recordings, tasks
-from app.services import recordings_disk as disk
+from app.services.recordings import disk
 from app.utils import time
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
@@ -179,7 +179,7 @@ def test_import_persists(client, raw):
 
 def _sample_mcap(raw):
     """Any valid MCAP: an episode written by Capture, moved out of the raw folder."""
-    from app.services import recordings_mcap
+    from app.services.recordings import mcap_io as recordings_mcap
 
     ep = recordings_mcap.Episode(
         start_ns=0, duration_s=1, hz=10, joints=["a"], seed=0.0, metadata={"x": "y"}
