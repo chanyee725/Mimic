@@ -6,15 +6,8 @@ from app.core.events import bus
 from app.seeds import load
 from app.services.rigs import get_rig
 from app.services import tasks_yaml as yaml_io
-from app.schemas.tasks import (
-    Session,
-    Task,
-    TaskDuplicate,
-    TaskFields,
-    TaskInput,
-    TaskStatus,
-    TaskUpdate,
-)
+from app.models.tasks import Session, Task, TaskFields, TaskStatus
+from app.schemas.tasks import TaskDuplicate, TaskInput, TaskUpdate
 
 _tasks: dict[str, Task] = {}
 _sessions: dict[str, Session] = {}

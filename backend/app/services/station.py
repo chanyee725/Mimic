@@ -5,7 +5,8 @@ from datetime import date, timedelta
 from app.core.errors import not_found
 from app.core.events import bus
 from app.seeds import load
-from app.schemas.station import CurrentTask, DataTotal, DayCount, Station
+from app.models.station import DataTotal, Station
+from app.schemas.station import CurrentTask, DayCount
 from app.services.tasks import get_task
 
 _state: dict = {}

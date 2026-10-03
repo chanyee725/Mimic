@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import CamelModel
-from app.schemas.tasks import Outcome
+from app.models.tasks import Outcome
 
 CapturePhase = Literal["idle", "countdown", "recording", "review"]
 

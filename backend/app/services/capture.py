@@ -13,9 +13,9 @@ from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.services import recordings
 from app.schemas.recordings import McapTopic, Recording, RecordingCheck, SubtaskSpan
-from app.schemas.rigs import Rig
+from app.models.rigs import Rig
 from app.services.rigs import get_device, get_rig
-from app.schemas.tasks import Outcome, Task
+from app.models.tasks import Outcome, Task
 from app.services import tasks
 from app.services.tasks import get_task
 

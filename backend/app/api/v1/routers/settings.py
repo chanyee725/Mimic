@@ -5,14 +5,11 @@ from typing import Any
 from fastapi import APIRouter, Body
 
 from app.services import settings as service
+from app.models.settings import Secret, SecretName, Section, Settings
 from app.schemas.settings import (
     ConnTestResult,
     Disk,
-    Secret,
-    SecretName,
     SecretValue,
-    Section,
-    Settings,
     ShortcutGroup,
     TestTarget,
     VersionRow,

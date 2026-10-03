@@ -8,7 +8,7 @@ import grpc
 
 from app.services import mock_robot
 from app.rpc.gen import robot_pb2, robot_pb2_grpc
-from app.schemas.rigs import Rig
+from app.models.rigs import Rig
 from app.services.rigs import get_rig
 
 MAX_HZ = 1000

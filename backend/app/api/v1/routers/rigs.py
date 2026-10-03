@@ -3,7 +3,7 @@
 from fastapi import APIRouter, BackgroundTasks, Response
 
 from app.services import rigs as service
-from app.schemas.rigs import Device, Rig
+from app.models.rigs import Device, Rig
 
 router = APIRouter(prefix="", tags=["rigs"])
 

@@ -6,7 +6,7 @@ from app.core.clock import now
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.seeds import load
-from app.schemas.rigs import Calibration, Device, Rig
+from app.models.rigs import Calibration, Device, Rig
 
 _rigs: dict[str, Rig] = {}
 _devices: dict[str, Device] = {}

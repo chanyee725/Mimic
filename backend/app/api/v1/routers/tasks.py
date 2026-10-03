@@ -5,15 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, Header, Query, Request, Response
 
 from app.services import tasks as service
-from app.schemas.tasks import (
-    OPERATOR_ID,
-    Session,
-    Task,
-    TaskDuplicate,
-    TaskInput,
-    TaskStatus,
-    TaskUpdate,
-)
+from app.models.tasks import Session, Task, TaskStatus
+from app.schemas.tasks import OPERATOR_ID, TaskDuplicate, TaskInput, TaskUpdate
 
 router = APIRouter(prefix="", tags=["tasks"])
 

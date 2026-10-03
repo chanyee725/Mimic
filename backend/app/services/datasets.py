@@ -16,7 +16,7 @@ from app.schemas.recordings import Recording
 from app.services.recordings import list_recordings
 from app.services.rigs import get_rig
 from app.services import settings
-from app.schemas.tasks import Task
+from app.models.tasks import Task
 from app.services.tasks import get_task
 
 _datasets: dict[str, Dataset] = {}
