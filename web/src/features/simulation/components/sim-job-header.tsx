@@ -3,6 +3,7 @@ import { LuArrowLeft, LuSquare } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { LinkButton } from "@/components/common/link-button"
 import { StatusDot } from "@/components/common/status-dot"
+import { useStopSimJob } from "@/api/simulation"
 import type { SimJob } from "@/domain/simulation"
 
 import { SIM_STATUS } from "../lib"
@@ -32,11 +33,19 @@ export function SimJobTitle({ job, modelName }: { job: SimJob; modelName: string
 
 /** Stop (running) or Cancel (queued) */
 export function SimJobActions({ job }: { job: SimJob }) {
+  const stop = useStopSimJob()
   if (job.status !== "running" && job.status !== "queued") return null
   return (
-    <Button variant="outline" size="sm" className="text-bad hover:text-bad">
-      <LuSquare />
-      {job.status === "running" ? "Stop evaluation" : "Cancel"}
-    </Button>
+    <span className="flex items-center gap-2">
+      {stop.error && (
+        <span className="max-w-72 truncate text-xs text-bad" title={stop.error.message}>
+          {stop.error.message}
+        </span>
+      )}
+      <Button variant="outline" size="sm" className="text-bad hover:text-bad" disabled={stop.isPending} onClick={() => stop.mutate(job.id)}>
+        <LuSquare />
+        {stop.isPending ? "Stopping…" : job.status === "running" ? "Stop evaluation" : "Cancel"}
+      </Button>
+    </span>
   )
 }

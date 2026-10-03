@@ -1,16 +1,14 @@
 import { Panel } from "@/components/layout/page-layout"
 import { ProgressBar } from "@/components/common/progress-bar"
-import type { SimJob } from "@/domain/simulation"
-
-import { failureReasons } from "../job-stats"
+import { simFailureReasons, type SimJob } from "@/domain/simulation"
 
 /** Failed episodes grouped by the environment's success check reason */
 export function FailureReasons({ job }: { job: SimJob }) {
-  const reasons = failureReasons(job.results)
+  const reasons = simFailureReasons(job)
   const fails = reasons.reduce((a, r) => a + r.count, 0)
 
   let empty = "실패한 에피소드가 없습니다."
-  if (job.results.length === 0) empty = job.status === "queued" ? "GPU 가 비면 시작합니다." : "실행된 에피소드가 없습니다."
+  if (job.done === 0) empty = job.status === "queued" ? "GPU 가 비면 시작합니다." : "실행된 에피소드가 없습니다."
 
   return (
     <Panel
