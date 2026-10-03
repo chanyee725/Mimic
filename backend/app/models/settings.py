@@ -1,18 +1,19 @@
 """Settings document entities."""
 
 from typing import Literal
-from zoneinfo import ZoneInfo
 
-from pydantic import Field, field_validator, model_serializer
+from pydantic import Field, model_serializer
 
 from app.schemas.common import CamelModel
 
 ConnState = Literal["ok", "error", "unknown"]
-SecretName = Literal["hf_token", "runpod_api_key", "wandb_api_key", "slack_webhook"]
-Section = Literal["station", "integrations", "storage", "connection", "training", "notifications"]
+SecretName = Literal["hf_token", "runpod_api_key", "slack_webhook"]
+Section = Literal["integrations", "storage", "connection", "notifications"]
 
 
 class Secret(CamelModel):
+    """Derived from the .env value; the raw value is never part of the document."""
+
     set: bool
     last4: str | None = None
 
@@ -20,21 +21,6 @@ class Secret(CamelModel):
     def _omit_empty(self, handler):
         # {"set": false} rather than {"set": false, "last4": null}
         return {k: v for k, v in handler(self).items() if v is not None}
-
-
-class StationSettings(CamelModel):
-    name: str = Field(min_length=1)
-    id: str
-    timezone: str
-
-    @field_validator("timezone")
-    @classmethod
-    def _tz(cls, v: str) -> str:
-        try:
-            ZoneInfo(v)
-        except Exception:
-            raise ValueError(f"unknown timezone '{v}'")
-        return v
 
 
 class HfSettings(CamelModel):
@@ -54,17 +40,9 @@ class RunpodSettings(CamelModel):
     state: ConnState
 
 
-class WandbSettings(CamelModel):
-    api_key: Secret
-    project: str
-    enable_by_default: bool
-    state: ConnState
-
-
 class Integrations(CamelModel):
     hf: HfSettings
     runpod: RunpodSettings
-    wandb: WandbSettings
 
 
 class StorageSettings(CamelModel):
@@ -95,14 +73,6 @@ class ConnectionSettings(CamelModel):
     webrtc: WebrtcSettings
 
 
-class TrainingSettings(CamelModel):
-    lerobot_commit: str
-    default_compute: Literal["local", "runpod"]
-    save_freq: int = Field(ge=1)
-    sim_gpu: str
-    sim_envs_path: str
-
-
 class NotificationEvent(CamelModel):
     key: str
     label: str
@@ -116,19 +86,15 @@ class NotificationSettings(CamelModel):
 
 class Settings(CamelModel):
     version: int = 1
-    station: StationSettings
     integrations: Integrations
     storage: StorageSettings
     connection: ConnectionSettings
-    training: TrainingSettings
     notifications: NotificationSettings
 
 
 SECTIONS: dict[str, type[CamelModel]] = {
-    "station": StationSettings,
     "integrations": Integrations,
     "storage": StorageSettings,
     "connection": ConnectionSettings,
-    "training": TrainingSettings,
     "notifications": NotificationSettings,
 }

@@ -51,6 +51,7 @@ def test_download_not_implemented(client):
 
 
 def test_push(client):
+    client.put("/settings/secrets/hf_token", json={"value": "hf_test_token"})
     r = client.post("/models/m-stack-20k/push", json={})
     assert r.status_code == 202
     assert r.json()["hubRepo"] == "vla-lab/smolvla_stack_two_blocks"

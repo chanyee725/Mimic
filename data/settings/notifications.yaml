@@ -1,5 +1,3 @@
-slack_webhook:
-  set: false
 events:
 - key: train_done
   label: Training finished

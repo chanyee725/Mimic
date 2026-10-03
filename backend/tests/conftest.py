@@ -5,8 +5,15 @@ import tempfile
 import pytest
 from fastapi.testclient import TestClient
 
+# Secret env vars (also the names in .env); tests never see the developer's values
+SECRET_VARS = ("HF_TOKEN", "RUNPOD_API_KEY", "SLACK_WEBHOOK_URL")
+
 # Services seed their YAML files at import time; keep them out of the repo's data/
 os.environ.setdefault("VLA_DATA_DIR", tempfile.mkdtemp(prefix="vla-data-"))
+# Never read or write the repo-root .env (config and settings load it at import time)
+os.environ["VLA_ENV_FILE_PATH"] = os.path.join(tempfile.mkdtemp(prefix="vla-env-"), ".env")
+for _var in SECRET_VARS:
+    os.environ.pop(_var, None)
 
 from app.configs.config import config  # noqa: E402
 from app.main import create_app  # noqa: E402
@@ -29,9 +36,12 @@ _AREAS = [
 
 
 @pytest.fixture(autouse=True)
-def _reset_services(tmp_path_factory):
-    # Fresh, empty data folder per test: every service reseeds its files
+def _reset_services(tmp_path_factory, monkeypatch):
+    # Fresh, empty data folder and .env per test: every service reseeds its files
     config.data_dir = tmp_path_factory.mktemp("data")
+    monkeypatch.setattr(config, "env_file_path", tmp_path_factory.mktemp("env") / ".env")
+    for var in SECRET_VARS:
+        monkeypatch.delenv(var, raising=False)
     for area in _AREAS:
         try:
             service = importlib.import_module(f"app.services.{area}")

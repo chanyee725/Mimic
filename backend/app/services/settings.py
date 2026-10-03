@@ -1,8 +1,9 @@
-"""Station settings, kept as data/settings/<part>.yaml; raw secrets in data/secrets.yaml (0600).
+"""Station settings, kept as data/settings/<part>.yaml; raw secrets in the repo-root .env.
 
-Part files hold only editable values: no document version (memory only, 1 on load) and no
-live fields (state, latency, spend), so connection tests never churn the committed files.
-Secrets never leave this module.
+Part files hold only editable values: no document version (memory only, 1 on load), no
+live fields (state, latency, spend) and no secrets, so connection tests and key changes never
+churn the committed files. Secret {set, last4} is derived from .env (settings_secrets).
+Raw secrets never leave the backend.
 """
 
 import logging
@@ -11,7 +12,6 @@ from typing import Any
 from pydantic import ValidationError
 from pydantic.alias_generators import to_snake
 
-from app.configs.config import config
 from app.core import storage
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
@@ -25,76 +25,69 @@ from app.models.settings import (
     Secret,
     SecretName,
     Settings,
-    StationSettings,
     StorageSettings,
-    TrainingSettings,
-    WandbSettings,
 )
 from app.schemas.common import CamelModel
 from app.schemas.settings import ConnTestResult, Disk, ShortcutGroup, VersionRow
-from app.utils.paths import display_path, resolve_user_path
+from app.services import settings_secrets
 
 log = logging.getLogger(__name__)
 
 SETTINGS_DIR = "settings"
 LEGACY_FILE = "settings.yaml"  # single-file layout, migrated on load
-SECRETS_FILE = "secrets.yaml"
-SECRETS_HEADER = "# write-only, do not commit\n"
+# Sections that were dropped; their part files are deleted on load
+OBSOLETE_PARTS = ("station", "training")
 
 # Part file name → (path in the snake_case document, model)
 PARTS: dict[str, tuple[tuple[str, ...], type[CamelModel]]] = {
-    "station": (("station",), StationSettings),
     "huggingface": (("integrations", "hf"), HfSettings),
     "runpod": (("integrations", "runpod"), RunpodSettings),
-    "wandb": (("integrations", "wandb"), WandbSettings),
     "storage": (("storage",), StorageSettings),
     "connection": (("connection",), ConnectionSettings),
-    "training": (("training",), TrainingSettings),
     "notifications": (("notifications",), NotificationSettings),
 }
-# Live values: kept in memory, never written (snake_case keys)
+# Live values and secrets: kept in memory, never written (snake_case keys)
 LIVE_FIELDS = {"state", "latency_ms", "spent_this_month"}
+SECRET_FIELDS = {"token", "api_key", "slack_webhook"}
 
 _doc: dict[str, Settings] = {}
-# Raw secret values, mirrored to secrets.yaml
+# Raw secret values (environment / .env)
 _secrets: dict[str, str] = {}
 # Part → YAML text last written / loaded; a part is rewritten only when its text changes
 _disk: dict[str, str] = {}
 
-# Fields a PATCH never changes (live values, secrets, station id)
+# Fields a PATCH never changes (live values, secrets)
 READ_ONLY = {"state", "latencyMs", "spentThisMonth", "token", "apiKey", "slackWebhook"}
-READ_ONLY_IN = {"station": {"id"}}
 
 # Secret name → (section, path inside it)
 SECRET_PATHS: dict[str, tuple[str, ...]] = {
     "hf_token": ("integrations", "hf", "token"),
     "runpod_api_key": ("integrations", "runpod", "apiKey"),
-    "wandb_api_key": ("integrations", "wandb", "apiKey"),
     "slack_webhook": ("notifications", "slackWebhook"),
 }
 TARGET_SECRET = {
     "hf": "hf_token",
     "runpod": "runpod_api_key",
-    "wandb": "wandb_api_key",
     "slack": "slack_webhook",
 }
 # Mock round-trip times per target
-LATENCY_MS = {"hf": 180, "runpod": 240, "wandb": 150, "slack": 210, "api": 4, "grpc": 2}
+LATENCY_MS = {"hf": 180, "runpod": 240, "slack": 210, "api": 4, "grpc": 2}
 
 
 def reset() -> None:
     """Seed document overlaid with each part file; missing part files are written.
 
     A broken part file is left untouched (seed values are used) so it can be fixed by hand.
-    Never rescans simulation here: it reads config.sim_envs_dir in its own reset.
     """
+    settings_secrets.migrate_legacy()
     _secrets.clear()
-    _secrets.update(_read_secrets())
+    _secrets.update(settings_secrets.read())
     _disk.clear()
     _migrate_legacy()
+    for part in OBSOLETE_PARTS:
+        storage.delete(_part_file(part))
 
     data = _seed().model_dump(mode="json")
-    loaded: set[str] = set()
     broken: set[str] = set()
     for part, (path, model) in PARTS.items():
         try:
@@ -104,7 +97,6 @@ def reset() -> None:
             continue
         if values is not None:
             _set_at(data, path, values)
-            loaded.add(part)
 
     doc = _reconcile(Settings.model_validate(data))
     _doc["current"] = doc
@@ -112,14 +104,13 @@ def reset() -> None:
     current = doc.model_dump(mode="json")
     for part in broken:
         _disk[part] = storage.dumps(_persisted(_get_at(current, PARTS[part][0])))
-    if "training" in loaded and doc.training.sim_envs_path:
-        config.sim_envs_dir = resolve_user_path(doc.training.sim_envs_path)
     _write_settings()
 
 
 def _seed() -> Settings:
     raw = load("settings", "SETTINGS")
-    raw["training"]["simEnvsPath"] = display_path(config.sim_envs_dir)
+    for name, path in SECRET_PATHS.items():
+        _set_at(raw, path, _secret_view(name).model_dump())
     return Settings.model_validate({"version": 1, **raw})
 
 
@@ -154,8 +145,16 @@ def _read_part(part: str, seed: dict[str, Any], model: type[CamelModel]) -> dict
     except (storage.StorageError, ValidationError, ValueError) as e:
         log.warning("%s is invalid, using seed values: %s", storage.path(rel), e)
         raise _BrokenPart from e
-    _disk[part] = storage.dumps(_persisted(values))
+    # Old files may still carry secret {set, last4}: leave them unremembered so they get cleaned
+    if not _secret_keys(raw):
+        _disk[part] = storage.dumps(_persisted(values))
     return values
+
+
+def _secret_keys(value: Any) -> bool:
+    if isinstance(value, dict):
+        return bool(SECRET_FIELDS & set(value)) or any(_secret_keys(v) for v in value.values())
+    return False
 
 
 def _migrate_legacy() -> None:
@@ -184,31 +183,24 @@ def _migrate_legacy() -> None:
     log.info("migrated %s to %s/", LEGACY_FILE, SETTINGS_DIR)
 
 
-def _read_secrets() -> dict[str, str]:
-    try:
-        data = storage.read(SECRETS_FILE) or {}
-    except storage.StorageError as e:
-        log.warning("%s is invalid, ignoring it: %s", storage.path(SECRETS_FILE), e)
-        return {}
-    if not isinstance(data, dict):
-        return {}
-    return {k: str(v) for k, v in data.items() if k in SECRET_PATHS and v}
+def _secret_view(name: str) -> Secret:
+    value = _secrets.get(name)
+    return Secret(set=True, last4=value[-4:]) if value else Secret(set=False)
 
 
 def _reconcile(doc: Settings) -> Settings:
-    """Secrets on disk win: their {set, last4} must match settings."""
-    if not _secrets:
-        return doc
+    """{set, last4} always follows the loaded secrets (a stale value in a file is ignored)."""
     data = doc.model_dump(by_alias=True, mode="json")
-    for name, value in _secrets.items():
-        _set_at(data, SECRET_PATHS[name], {"set": True, "last4": value[-4:]})
+    for name, path in SECRET_PATHS.items():
+        _set_at(data, path, _secret_view(name).model_dump())
     return Settings.model_validate(data)
 
 
 def _persisted(value: Any) -> Any:
-    """Drop live fields (at any depth) from a snake_case dump."""
+    """Drop live fields and secrets (at any depth) from a snake_case dump."""
     if isinstance(value, dict):
-        return {k: _persisted(v) for k, v in value.items() if k not in LIVE_FIELDS}
+        skip = LIVE_FIELDS | SECRET_FIELDS
+        return {k: _persisted(v) for k, v in value.items() if k not in skip}
     if isinstance(value, list):
         return [_persisted(v) for v in value]
     return value
@@ -222,11 +214,6 @@ def _write_settings() -> None:
         if _disk.get(part) != text:
             storage.write_text(_part_file(part), text)
             _disk[part] = text
-
-
-def _write_secrets() -> None:
-    text = SECRETS_HEADER + (storage.dumps(_secrets) if _secrets else "")
-    storage.write_text(SECRETS_FILE, text, private=True)
 
 
 def get_settings() -> Settings:
@@ -255,16 +242,16 @@ def _key(current: dict[str, Any], key: str) -> str | None:
     return None
 
 
-def _merge(current: dict[str, Any], patch: dict[str, Any], skip: set[str]) -> dict[str, Any]:
+def _merge(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
     out = dict(current)
     for raw, value in patch.items():
         k = _key(current, raw)
-        if k is None or k in READ_ONLY or k in skip:
+        if k is None or k in READ_ONLY:
             continue  # unknown and read-only fields are ignored
         if k == "events" and isinstance(value, list):
             out[k] = _merge_events(current[k], value)
         elif isinstance(current[k], dict) and isinstance(value, dict):
-            out[k] = _merge(current[k], value, set())
+            out[k] = _merge(current[k], value)
         else:
             out[k] = value
     return out
@@ -297,7 +284,7 @@ def patch_section(section: str, body: dict[str, Any]) -> Settings:
         raise conflict("Settings were changed by someone else", current=data)
 
     fields = {k: v for k, v in body.items() if k != "version"}
-    merged = _merge(data[section], fields, READ_ONLY_IN.get(section, set()))
+    merged = _merge(data[section], fields)
     try:
         SECTIONS[section].model_validate(merged)
     except ValidationError as e:
@@ -305,20 +292,7 @@ def patch_section(section: str, body: dict[str, Any]) -> Settings:
         raise ApiError(422, "Settings are invalid", {"errors": errors})
     data[section] = merged
     data["version"] += 1
-    saved = _save(data)
-    if section == "training":
-        _apply_sim_envs_path(merged.get("simEnvsPath"))
-    return saved
-
-
-def _apply_sim_envs_path(value: str | None) -> None:
-    """Point the simulation scanner at the new folder and rescan."""
-    if not value:
-        return
-    config.sim_envs_dir = resolve_user_path(value)
-    from app.services import simulation  # late import: simulation reads models/tasks
-
-    simulation.rescan()
+    return _save(data)
 
 
 # --- secrets ----------------------------------------------------------------
@@ -346,35 +320,30 @@ def _set_state(data: dict[str, Any], path: tuple[str, ...], state: str) -> None:
 
 
 def put_secret(name: SecretName, value: str) -> Secret:
+    settings_secrets.write(name, value)
     _secrets[name] = value
-    _write_secrets()
-    secret = Secret(set=True, last4=value[-4:])
-    _write_secret(name, secret)
-    return secret
+    return _write_secret(name)
 
 
 def delete_secret(name: SecretName) -> Secret:
+    settings_secrets.write(name, None)
     _secrets.pop(name, None)
-    _write_secrets()
-    secret = Secret(set=False)
-    _write_secret(name, secret)
+    return _write_secret(name)
+
+
+def _write_secret(name: str) -> Secret:
+    # Secret writes do not bump the document version (PATCH ignores secrets)
+    secret = _secret_view(name)
+    data = _dump()
+    path = SECRET_PATHS[name]
+    _set_at(data, path, secret.model_dump())
+    _set_state(data, path, "unknown")
+    _save(data)
     return secret
 
 
-def _write_secret(name: str, secret: Secret) -> None:
-    # Secret writes do not bump the document version (PATCH ignores secrets)
-    data = _dump()
-    path = SECRET_PATHS[name]
-    _set_at(data, path, secret.model_dump(exclude_none=True))
-    _set_state(data, path, "unknown")
-    _save(data)
-
-
 def has_secret(name: str) -> bool:
-    data: Any = _dump()
-    for part in SECRET_PATHS[name]:
-        data = data[part]
-    return bool(data["set"])
+    return bool(_secrets.get(name))
 
 
 # --- connection tests -------------------------------------------------------

@@ -1,7 +1,7 @@
 # Simulation
 
 Isaac Sim runs on the station's local RTX 4090, for **evaluation only**. The user builds environments and registers each one as a
-folder under the environments folder (setting `training.simEnvsPath`, default `sim/envs` in this repo). A saved model is loaded into
+folder under the environments folder (`VLA_SIM_ENVS_DIR` in `.env` or the environment, default `sim/envs` in this repo). A saved model is loaded into
 any compatible environment and rolled out many times. Web: `api/simulation.ts`, Simulation pages.
 
 ## Environment folder

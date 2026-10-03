@@ -15,14 +15,14 @@ Guidance for working in this repository.
 - Recording: cameras at 30 fps, action at 60 Hz (leader → follower). The raw format is one MCAP file per episode.
 - Conversion: LeRobot v3.0 only. The dataset fps follows the camera fps and action is downsampled (no time-alignment options).
 - Model: SmolVLA (`lerobot/smolvla_base`) only. Training runs on the local GPU or RunPod.
-- Simulation: Isaac Sim on the local RTX 4090, evaluation only (no data generation, no RunPod). The user builds environments and registers each as a folder (`env.yaml`, `scene.usd`, `success.py`) under the environments folder (default `~/vla/sim/envs`, set in Settings); a saved model is loaded into any compatible environment (cameras and action size must match).
+- Simulation: Isaac Sim on the local RTX 4090, evaluation only (no data generation, no RunPod). The user builds environments and registers each as a folder (`env.yaml`, `scene.usd`, `success.py`) under the environments folder (`VLA_SIM_ENVS_DIR`, default `sim/envs`); a saved model is loaded into any compatible environment (cameras and action size must match).
 - Backend (planned): FastAPI (REST), gRPC (60 Hz robot data), WebRTC (cameras). The frontend reads everything from the backend through React Query hooks in `web/src/api`; mock data lives in the backend seeds (`backend/app/seeds/data`).
 - A data glove (tactile / flex / IMU) is planned later; keep it out of the UI for now.
 
 ## Privacy
 
 - Operators are pseudonymous IDs (`OP-01`). Never put real names, emails or account handles in code, mock data, commits or docs.
-- API keys and tokens show only their last 4 characters in the UI and are stored on the backend only — never in browser storage.
+- API keys and tokens show only their last 4 characters in the UI and are stored only in the repo-root `.env` on the backend (git-ignored) — never in browser storage, YAML files or commits.
 
 ## Git
 
@@ -56,7 +56,7 @@ Guidance for working in this repository.
     utils/                   domain-free helpers: time (now, ISO, set_clock for tests), paths, ids, rng
   tests/<area>/, tests/utils/
   ```
-- Station config persists as YAML under `data/` (`VLA_DATA_DIR`), committed to git: `settings/<part>.yaml` (station, huggingface, runpod, wandb, storage, connection, training, notifications — editable values only, no `version` or live state) and `rigs/<id>.yaml` (only `so101-kit`). `data/secrets.yaml` (raw keys, 0600, never returned by the API) and video / recording data (`data/recordings/`, `data/videos/`) are git-ignored. A missing file/folder is seeded from `seeds/data` once; after that the files win and hand edits load on restart. Writes go through `app.core.storage`. Tasks, devices and everything else stay in memory (seeds). Tests get a fresh data folder per test (tests/conftest.py).
+- Station config persists as YAML under `data/` (`VLA_DATA_DIR`), committed to git: `settings/<part>.yaml` (huggingface, runpod, storage, connection, notifications — editable values only, no `version`, live state or secrets) and `rigs/<id>.yaml` (only `so101-kit`). Raw keys live in the repo-root `.env` (`HF_TOKEN`, `RUNPOD_API_KEY`, `SLACK_WEBHOOK_URL`; 0600, git-ignored, never returned by the API; see `.env.example`), read from the environment first; `config.env_file_path` points at it. Video / recording data (`data/recordings/`, `data/videos/`) is git-ignored. A missing file/folder is seeded from `seeds/data` once; after that the files win and hand edits load on restart. Writes go through `app.core.storage`. Tasks, devices and everything else stay in memory (seeds). Tests get a fresh data folder and an empty temp `.env` per test, with the secret env vars removed (tests/conftest.py) — never the real `.env`.
 - Routers never hold state or rules; services never import FastAPI routers. Cross-area reads go through `app.services.<area>`. Date, path, id and seeded-random helpers live in `app.utils` — don't re-implement them in a service.
 - Errors via `ApiError` / `not_found` / `conflict` (uniform `{"error": {...}}` body). Large lists use `paginate()`. Publish changes on `app.core.events.bus`.
 - Comments: short, English. No PII; secrets are write-only.
