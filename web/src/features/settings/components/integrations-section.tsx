@@ -9,14 +9,14 @@ import { ChoiceSelect } from "./choice-select"
 import { ConnStatus } from "./conn-status"
 import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
-import { SecretField } from "./secret-field"
+import { SecretField, SecretHint } from "./secret-field"
 import { SettingRow } from "./setting-row"
 
 export function IntegrationsSection() {
   const { query, server, draft, set, saveBar } = useSettingsDraft("integrations")
   const runpodConfig = useTrainingConfig().data?.runpod
   if (!draft || !server) return <SectionPending query={query} />
-  const { hf, runpod, wandb } = draft
+  const { hf, runpod } = draft
   // Keep the saved value selectable while the RunPod catalogue loads
   const regions = runpodConfig?.regions ?? [runpod.region]
   const volumes = runpodConfig?.volumes ?? [{ id: runpod.volume, label: runpod.volume }]
@@ -27,7 +27,11 @@ export function IntegrationsSection() {
         <SettingRow label="Status">
           <ConnStatus target="hf" state={server.hf.state} detail={`as ${server.hf.namespace}`} canTest={server.hf.token.set} />
         </SettingRow>
-        <SettingRow label="Access token" hint="데이터셋 · 모델을 올리려면 write 권한이 필요합니다" htmlFor="hf-token">
+        <SettingRow
+          label="Access token"
+          hint={<SecretHint name="hf_token" lead="데이터셋 · 모델을 올리려면 write 권한이 필요합니다" />}
+          htmlFor="hf-token"
+        >
           <SecretField id="hf-token" name="hf_token" secret={server.hf.token} placeholder="hf_…" />
         </SettingRow>
         <SettingRow label="Namespace" hint="저장소를 만들 org 또는 계정" htmlFor="hf-ns">
@@ -52,7 +56,7 @@ export function IntegrationsSection() {
             canTest={server.runpod.apiKey.set}
           />
         </SettingRow>
-        <SettingRow label="API key" htmlFor="rp-key">
+        <SettingRow label="API key" hint={<SecretHint name="runpod_api_key" />} htmlFor="rp-key">
           <SecretField id="rp-key" name="runpod_api_key" secret={server.runpod.apiKey} placeholder="rpa_…" />
         </SettingRow>
         <SettingRow label="Default region" htmlFor="rp-region">
@@ -90,31 +94,6 @@ export function IntegrationsSection() {
             onChange={(e) => set("runpod", { ...runpod, idleAlertMin: Number(e.target.value) || 0 })}
           />
           <span className="text-xs text-muted-foreground">min</span>
-        </SettingRow>
-      </SettingsSection>
-
-      <SettingsSection title="Weights & Biases">
-        <SettingRow label="Status">
-          <ConnStatus target="wandb" state={server.wandb.state} canTest={server.wandb.apiKey.set} />
-        </SettingRow>
-        <SettingRow label="API key" htmlFor="wb-key">
-          <SecretField id="wb-key" name="wandb_api_key" secret={server.wandb.apiKey} placeholder="40-character key" />
-        </SettingRow>
-        <SettingRow label="Project" htmlFor="wb-project">
-          <Input
-            id="wb-project"
-            className="h-8 text-[13px]"
-            value={wandb.project}
-            onChange={(e) => set("wandb", { ...wandb, project: e.target.value })}
-          />
-        </SettingRow>
-        <SettingRow label="Log new trainings by default" htmlFor="wb-default">
-          <Switch
-            id="wb-default"
-            checked={wandb.enableByDefault}
-            disabled={!server.wandb.apiKey.set}
-            onCheckedChange={(v) => set("wandb", { ...wandb, enableByDefault: v })}
-          />
         </SettingRow>
       </SettingsSection>
       <SaveBar {...saveBar} />

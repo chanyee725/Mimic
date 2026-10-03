@@ -53,7 +53,6 @@ PARAM_GROUPS: list[ParamGroup] = [
         params=[
             _p("save_freq", "Save every (steps)", 20000),
             _p("log_freq", "Log every (steps)", 200),
-            _p("wandb.enable", "Log to Weights & Biases", False),
         ],
     ),
 ]

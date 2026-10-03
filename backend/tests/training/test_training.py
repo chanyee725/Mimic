@@ -43,7 +43,7 @@ def test_config(client):
     assert cfg["runpod"]["gpus"][0]["vramGB"] == 16
     assert cfg["runpod"]["priceFactor"]["pricing"]["spot"] == 0.5
     keys = [p["key"] for g in cfg["paramGroups"] for p in g["params"]]
-    assert "policy.optimizer_lr" in keys and len(keys) == 18
+    assert "policy.optimizer_lr" in keys and len(keys) == 17
 
 
 def test_jobs_list_and_get(client):
@@ -81,6 +81,7 @@ def test_create_local_running_when_gpu_free(client):
 
 
 def test_create_runpod(client):
+    client.put("/settings/secrets/runpod_api_key", json={"value": "rp_test_key"})
     job = client.post("/training/jobs", json=RUNPOD).json()
     assert job["status"] == "running"
     assert job["pricePerHr"] == round(1.64 * 2 * 0.8 * 0.5, 4)
@@ -213,6 +214,7 @@ def test_checkpoint_save_creates_model(client):
 
 
 def test_checkpoint_push_and_download(client, monkeypatch):
+    client.put("/settings/secrets/hf_token", json={"value": "hf_test_token"})
     r = client.post("/training/jobs/job_035/checkpoints/5000/push", json={})
     assert r.status_code == 202
     assert r.json() == {"repo": "vla-lab/smolvla_open_drawer"}

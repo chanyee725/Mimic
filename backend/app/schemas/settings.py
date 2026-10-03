@@ -7,7 +7,7 @@ from pydantic import Field
 from app.models.settings import ConnState
 from app.schemas.common import CamelModel
 
-TestTarget = Literal["hf", "runpod", "wandb", "api", "grpc", "webrtc", "slack"]
+TestTarget = Literal["hf", "runpod", "api", "grpc", "webrtc", "slack"]
 
 
 class SecretValue(CamelModel):

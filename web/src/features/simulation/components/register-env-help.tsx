@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom"
 import { LuChevronRight } from "react-icons/lu"
 
 import { useSimConfig } from "@/api/simulation"
@@ -30,11 +29,8 @@ export function RegisterEnvHelp({ defaultOpen = false, className }: { defaultOpe
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          폴더를 만들고 Rescan 하면 목록에 나타납니다. 폴더 위치는{" "}
-          <Link to="/settings?section=training" className="underline underline-offset-4 hover:text-foreground">
-            Settings
-          </Link>{" "}
-          → Training 에서 바꿀 수 있습니다.
+          폴더를 만들고 Rescan 하면 목록에 나타납니다. 폴더 위치는 스테이션 <code className="font-mono">.env</code> 의{" "}
+          <code className="font-mono">VLA_SIM_ENVS_DIR</code> 로 정합니다 (기본값 <code className="font-mono">sim/envs</code>).
         </p>
       </div>
     </details>

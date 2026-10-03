@@ -5,6 +5,24 @@ import { Input } from "@/components/ui/input"
 import { useDeleteSecret, useSetSecret } from "@/api/settings"
 import type { Secret, SecretName } from "@/domain/settings"
 
+/** Variable in the station's repo-root .env that holds each secret */
+const ENV_VAR: Record<SecretName, string> = {
+  hf_token: "HF_TOKEN",
+  runpod_api_key: "RUNPOD_API_KEY",
+  slack_webhook: "SLACK_WEBHOOK_URL",
+}
+
+/** Row hint for a secret: where the backend stores it, optionally after a short lead */
+export function SecretHint({ name, lead }: { name: SecretName; lead?: string }) {
+  return (
+    <>
+      {lead && <>{lead}. </>}
+      <code className="font-mono">.env</code> 의 <code className="font-mono">{ENV_VAR[name]}</code> 에 저장됩니다. 화면에는 끝 4자리만
+      보입니다.
+    </>
+  )
+}
+
 /**
  * Secret key, written straight to the backend (never kept in the browser). A saved value shows only its last 4 chars;
  * the input opens only when changing it.

@@ -1,6 +1,3 @@
-api_key:
-  set: true
-  last4: 9F2A
 region: any
 volume: vla-datasets
 monthly_budget: 300.0

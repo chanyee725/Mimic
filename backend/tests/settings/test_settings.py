@@ -8,10 +8,10 @@ def get(client):
 def test_get_settings(client):
     s = get(client)
     assert s["version"] == 1
-    assert s["integrations"]["hf"]["token"] == {"set": True, "last4": "3kQz"}
+    # Tests run with an empty .env and no secret env vars
+    assert s["integrations"]["hf"]["token"] == {"set": False}
     assert s["storage"]["keepCheckpoints"] == 4
-    assert "recording" not in s
-    assert set(s["station"]) == {"name", "id", "timezone"}
+    assert set(s) == {"version", "integrations", "storage", "connection", "notifications"}
 
 
 def test_patch_section(client):
@@ -25,6 +25,8 @@ def test_patch_section(client):
 
 
 def test_patch_ignores_read_only_and_unknown(client):
+    client.put("/settings/secrets/hf_token", json={"value": "hf_value_3kQz"})
+    client.post("/settings/test/hf")
     body = {
         "version": 1,
         "hf": {"namespace": "lab", "state": "error", "token": {"set": False}},
@@ -37,8 +39,6 @@ def test_patch_ignores_read_only_and_unknown(client):
     assert s["integrations"]["hf"]["token"]["set"] is True
     assert s["integrations"]["runpod"]["spentThisMonth"] == 142.3
     assert s["integrations"]["runpod"]["monthlyBudget"] == 500
-    s = client.patch("/settings/station", json={"version": 2, "id": "x", "name": "Bench"}).json()
-    assert (s["station"]["id"], s["station"]["name"]) == ("st-01", "Bench")
 
 
 def test_patch_notification_events(client):
@@ -62,9 +62,8 @@ def test_patch_stale_version(client):
     [
         ("storage", {"warnAtPct": 0}),
         ("storage", {"keepCheckpoints": 0}),
-        ("station", {"name": ""}),
-        ("station", {"timezone": "Mars/Base"}),
-        ("training", {"defaultCompute": "cloud"}),
+        ("storage", {"rawPath": ""}),
+        ("integrations", {"runpod": {"monthlyBudget": -1}}),
     ],
 )
 def test_patch_validation(client, section, body):
@@ -79,22 +78,20 @@ def test_patch_bad_request(client):
     assert client.patch("/settings/nope", json={"version": 1}).status_code == 422
 
 
-def test_removed_sections_and_fields(client):
-    # The recording section is gone: treated like any unknown section
-    r = client.patch("/settings/recording", json={"version": 1, "crf": 24})
+@pytest.mark.parametrize("section", ["recording", "station", "training"])
+def test_removed_sections(client, section):
+    # Dropped sections are treated like any unknown section
+    r = client.patch(f"/settings/{section}", json={"version": 1, "name": "x"})
     assert r.status_code == 422
-    # Operators are no longer part of station settings; the key is ignored
-    body = {"version": 1, "operators": [{"id": "OP-09", "role": "admin"}]}
-    s = client.patch("/settings/station", json=body).json()
-    assert "operators" not in s["station"]
+    assert section not in get(client)
 
 
 def test_secrets_write_only(client):
-    r = client.put("/settings/secrets/wandb_api_key", json={"value": "wb-secret-9XyZ"})
+    r = client.put("/settings/secrets/runpod_api_key", json={"value": "rp-secret-9XyZ"})
     assert r.status_code == 200 and r.json() == {"set": True, "last4": "9XyZ"}
     s = get(client)
-    assert s["integrations"]["wandb"]["apiKey"] == {"set": True, "last4": "9XyZ"}
-    assert "wb-secret" not in client.get("/settings").text
+    assert s["integrations"]["runpod"]["apiKey"] == {"set": True, "last4": "9XyZ"}
+    assert "rp-secret" not in client.get("/settings").text
     assert s["version"] == 1
 
 
@@ -112,10 +109,12 @@ def test_secret_errors(client):
 
 def test_connection_tests(client):
     assert client.post("/settings/test/api").json()["state"] == "ok"
+    assert client.post("/settings/test/hf").json()["state"] == "error"
+    client.put("/settings/secrets/hf_token", json={"value": "hf_value_3kQz"})
     assert client.post("/settings/test/hf").json()["state"] == "ok"
-    r = client.post("/settings/test/wandb").json()
+    r = client.post("/settings/test/runpod").json()
     assert r["state"] == "error" and "detail" in r
-    assert get(client)["integrations"]["wandb"]["state"] == "error"
+    assert get(client)["integrations"]["runpod"]["state"] == "error"
     client.put("/settings/secrets/slack_webhook", json={"value": "https://hooks.example/abcd"})
     assert client.post("/settings/test/slack").json()["state"] == "ok"
     assert client.post("/settings/test/nope").status_code == 422

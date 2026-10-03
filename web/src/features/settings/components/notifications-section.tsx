@@ -6,7 +6,7 @@ import { useTestConnection } from "@/api/settings"
 import { useSettingsDraft } from "../hooks/use-draft"
 import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
-import { SecretField } from "./secret-field"
+import { SecretField, SecretHint } from "./secret-field"
 import { SettingRow } from "./setting-row"
 
 export function NotificationsSection() {
@@ -16,7 +16,11 @@ export function NotificationsSection() {
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Slack">
-        <SettingRow label="Incoming webhook" hint="알림을 받을 채널의 webhook URL" htmlFor="nt-hook">
+        <SettingRow
+          label="Incoming webhook"
+          hint={<SecretHint name="slack_webhook" lead="알림을 받을 채널의 webhook URL" />}
+          htmlFor="nt-hook"
+        >
           <SecretField id="nt-hook" name="slack_webhook" secret={hook} placeholder="https://hooks.slack.com/services/…" />
         </SettingRow>
         <SettingRow label="Test message">

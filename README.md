@@ -46,4 +46,4 @@ cd web && nvm use && npm install && npm run dev
 ## 데이터 · 개인정보
 
 - 작업자는 가명 ID(`OP-01` 형식)로만 기록한다. 실명 · 이메일 등 개인정보는 코드 · 데이터 · 커밋에 넣지 않는다.
-- 녹화 파일(MCAP), 데이터셋, checkpoint, API 키(HF · RunPod · W&B · Slack)는 저장소에 올리지 않는다 (`.gitignore` 참고). 키는 백엔드에만 보관한다.
+- 녹화 파일(MCAP), 데이터셋, checkpoint, API 키(HF · RunPod · Slack)는 저장소에 올리지 않는다 (`.gitignore` 참고). 키는 백엔드에만 보관한다.
