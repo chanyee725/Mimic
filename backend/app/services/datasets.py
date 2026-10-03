@@ -11,8 +11,9 @@ from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
 from app.seeds import load
-from app.schemas.datasets import ConvertPreview, Dataset, DatasetEpisode, DatasetFeature, Hub
-from app.schemas.recordings import Recording
+from app.models.datasets import Dataset, DatasetEpisode, DatasetFeature, Hub
+from app.models.recordings import Recording
+from app.schemas.datasets import ConvertPreview
 from app.services.recordings import list_recordings
 from app.services.rigs import get_rig
 from app.services import settings
@@ -144,9 +145,13 @@ def _preview(task: Task, recs: list[Recording]) -> ConvertPreview:
     )
 
 
-def preview(task_id: str, exclude: list[str]) -> ConvertPreview:
+def _ids(csv: str | None) -> list[str]:
+    return [s.strip() for s in (csv or "").split(",") if s.strip()]
+
+
+def preview(task_id: str, exclude_csv: str | None) -> ConvertPreview:
     task = _require_task(task_id)
-    return _preview(task, _sources(task_id, exclude))
+    return _preview(task, _sources(task_id, _ids(exclude_csv)))
 
 
 def start_conversion(task_id: str, repo_id: str, exclude: list[str]) -> Dataset:
@@ -233,7 +238,20 @@ def schedule(repo_id: str) -> None:
     task.add_done_callback(_runners.discard)
 
 
-# --- hub and delete ---
+def convert(task_id: str, repo_id: str, exclude: list[str]) -> Dataset:
+    """Starts a conversion and its progress timer (needs the running event loop)."""
+    ds = start_conversion(task_id, repo_id, exclude)
+    schedule(ds.repo_id)
+    return ds
+
+
+# --- hub, thumbnail and delete ---
+
+
+def thumbnail(repo_id: str) -> None:
+    """Preview frame of a dataset; not wired up yet."""
+    require(repo_id)
+    raise ApiError(501, "Thumbnails are not available yet")
 
 
 def hf_token_set() -> bool:

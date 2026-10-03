@@ -9,13 +9,8 @@ from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
 from app.seeds import load
-from app.schemas.recordings import (
-    Recording,
-    RecordingCheck,
-    RecordingReview,
-    RecordingSource,
-    Samples,
-)
+from app.models.recordings import Recording, RecordingCheck, RecordingReview, RecordingSource
+from app.schemas.recordings import Samples
 from app.services.rigs import get_rig
 
 _recordings: dict[str, Recording] = {}
@@ -134,10 +129,11 @@ def _sample(i: int, t: float, seed: float) -> float:
 
 
 def samples(
-    recording_id: str, topics: list[str], from_s: float, to_s: float | None, hz: float
+    recording_id: str, topics_csv: str, from_s: float, to_s: float | None, hz: float
 ) -> Samples:
     """Synthetic joint data until the MCAP reader exists (deterministic per recording)."""
     rec = require(recording_id)
+    topics = [t.strip() for t in topics_csv.split(",") if t.strip()]
     bad = [t for t in topics if t not in SAMPLE_TOPICS]
     if bad or not topics:
         raise ApiError(422, f"topics must be a subset of {list(SAMPLE_TOPICS)}", {"topics": bad})
@@ -164,6 +160,19 @@ def samples(
 
 def has_camera(rec: Recording, camera: str) -> bool:
     return any(t.kind == "video" and t.name == f"/cam_{camera}/image" for t in rec.topics)
+
+
+def file(recording_id: str) -> None:
+    """MCAP download; storage is not wired up yet."""
+    require(recording_id)
+    raise ApiError(501, "MCAP storage is not available yet")
+
+
+def video(recording_id: str, camera: str) -> None:
+    """One camera stream of a recording; extraction is not wired up yet."""
+    if not has_camera(require(recording_id), camera):
+        raise not_found("Camera", camera)
+    raise ApiError(501, "Video extraction is not available yet")
 
 
 reset()

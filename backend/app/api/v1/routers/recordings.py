@@ -2,16 +2,10 @@
 
 from fastapi import APIRouter, Query, Response, UploadFile
 
-from app.core.errors import ApiError, not_found
+from app.models.recordings import Recording, RecordingReview, RecordingSource
 from app.schemas.common import Page
+from app.schemas.recordings import ReviewPatch, Samples
 from app.services import recordings as service
-from app.schemas.recordings import (
-    Recording,
-    RecordingReview,
-    RecordingSource,
-    ReviewPatch,
-    Samples,
-)
 
 router = APIRouter(prefix="/recordings", tags=["recordings"])
 
@@ -50,8 +44,7 @@ def delete_recording(recording_id: str):
 
 @router.get("/{recording_id}/file")
 def download_file(recording_id: str):
-    service.require(recording_id)
-    raise ApiError(501, "MCAP storage is not available yet")
+    return service.file(recording_id)
 
 
 @router.get("/{recording_id}/samples", response_model=Samples)
@@ -62,13 +55,9 @@ def get_samples(
     to_s: float | None = Query(None, alias="toS", ge=0),
     hz: float = Query(60, gt=0, le=1000),
 ):
-    names = [t.strip() for t in topics.split(",") if t.strip()]
-    return service.samples(recording_id, names, from_s, to_s, hz)
+    return service.samples(recording_id, topics, from_s, to_s, hz)
 
 
 @router.get("/{recording_id}/video/{camera}")
 def get_video(recording_id: str, camera: str):
-    rec = service.require(recording_id)
-    if not service.has_camera(rec, camera):
-        raise not_found("Camera", camera)
-    raise ApiError(501, "Video extraction is not available yet")
+    return service.video(recording_id, camera)
