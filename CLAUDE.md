@@ -15,7 +15,7 @@ Guidance for working in this repository.
 - Recording: cameras at 30 fps, action at 60 Hz (leader → follower). The raw format is one MCAP file per episode.
 - Conversion: LeRobot v3.0 only. The dataset fps follows the camera fps and action is downsampled (no time-alignment options).
 - Model: SmolVLA (`lerobot/smolvla_base`) only. Training runs on the local GPU or RunPod.
-- Simulation: Isaac Sim on the local RTX 4090, evaluation only (no data generation, no RunPod).
+- Simulation: Isaac Sim on the local RTX 4090, evaluation only (no data generation, no RunPod). The user builds environments and registers each as a folder (`env.yaml`, `scene.usd`, `success.py`) under the environments folder (default `~/vla/sim/envs`, set in Settings); a saved model is loaded into any compatible environment (cameras and action size must match).
 - Backend (planned): FastAPI (REST), gRPC (60 Hz robot data), WebRTC (cameras). The frontend currently runs on mocks in `web/src/dummy`, read through `web/src/api`.
 - A data glove (tactile / flex / IMU) is planned later; keep it out of the UI for now.
 
