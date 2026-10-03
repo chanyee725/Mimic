@@ -11,7 +11,7 @@ import { formatPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { FILTERS, type Filter } from "../lib"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 /** Left-hand model list. Filter by location, search by name, task or dataset */
 export function ModelList({
@@ -56,7 +56,7 @@ export function ModelList({
         options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: list.filter(f.fits).length }))}
       />
 
-      {models.isPending && <Loading />}
+      {models.isPending && <LoadingNote />}
       <ErrorNote error={models.error} onRetry={() => models.refetch()} />
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {shown.map((m) => {

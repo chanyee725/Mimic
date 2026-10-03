@@ -3,6 +3,7 @@
 Phases advance lazily from an injectable clock, so tests are deterministic.
 """
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime
 
@@ -73,7 +74,7 @@ def _snapshot() -> CaptureState:
         task_id=s.task.id,
         operator=s.operator,
         episode_id=f"{s.task.id}-{s.episode}",
-        started_at=s.recording_at.isoformat(timespec="seconds"),
+        started_at=s.recording_at.isoformat(timespec="milliseconds"),
         elapsed_s=round(elapsed, 3),
         subtask_index=s.marks[-1][0] if s.marks else None,
         next_episode=s.episode,
@@ -88,6 +89,21 @@ def is_active() -> bool:
 def state() -> CaptureState:
     _tick()
     return _snapshot()
+
+
+_last_phase: str | None = None
+
+
+async def watch(period_s: float = 0.2) -> None:
+    """Background loop: publish capture.state when the countdown ends or the duration runs out."""
+    global _last_phase
+    while True:
+        _tick()
+        phase = _snapshot().phase
+        if phase != _last_phase:
+            _last_phase = phase
+            bus.publish("capture.state", _snapshot())
+        await asyncio.sleep(period_s)
 
 
 def _publish() -> CaptureState:

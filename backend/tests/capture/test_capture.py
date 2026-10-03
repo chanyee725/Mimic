@@ -63,7 +63,7 @@ def test_start_countdown_then_recording(client, clock, events):
     assert st["phase"] == "countdown" and st["taskId"] == "stack-two-blocks"
     assert st["operator"] == "OP-01" and st["nextEpisode"] == 47
     assert st["episodeId"] == "stack-two-blocks-47" and st["subtaskIndex"] == 0
-    assert st["startedAt"] == "2026-10-03T10:00:03+09:00"
+    assert st["startedAt"] == "2026-10-03T10:00:03.000+09:00"
     assert types(events) == ["capture.state"]
     clock.advance(5)
     st = client.get("/capture/state").json()

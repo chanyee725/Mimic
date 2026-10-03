@@ -2,7 +2,7 @@ import { Kbd } from "@/components/ui/kbd"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 import { useShortcuts } from "@/api/settings"
 
-import { SectionPending } from "./query-state"
+import { SectionPending } from "./section-pending"
 
 export function ShortcutsSection() {
   const query = useShortcuts()

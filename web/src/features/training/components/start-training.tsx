@@ -15,7 +15,7 @@ import { changedOverrides, overrideFlags, runpodCapHours, runpodSummary, type Ov
 import { ConfirmTrainingDialog } from "./confirm-dialog"
 import { GpuPickerDialog } from "./gpu-picker-dialog"
 import { ParamsDialog } from "./params-dialog"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RunPodDialog } from "./runpod-dialog"
 
 /** Start training form. Pick dataset, compute and parameters, then confirm in a dialog */
@@ -24,7 +24,7 @@ export function StartTraining() {
   return (
     <Panel title="Start training" className="min-h-0">
       {config.isPending ? (
-        <Loading />
+        <LoadingNote />
       ) : config.isError ? (
         <ErrorNote error={config.error} onRetry={() => config.refetch()} />
       ) : (

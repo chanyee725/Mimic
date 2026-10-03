@@ -3,7 +3,7 @@ import { SettingsGroup, SettingsSection } from "@/components/common/settings-sec
 
 import { useSettingsDraft } from "../hooks/use-draft"
 import { ConnStatus } from "./conn-status"
-import { SectionPending } from "./query-state"
+import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 

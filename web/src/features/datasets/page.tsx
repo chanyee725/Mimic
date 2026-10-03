@@ -5,7 +5,7 @@ import { useDatasets } from "@/api/datasets"
 
 import { DatasetDetail } from "./components/dataset-detail"
 import { DatasetList } from "./components/dataset-list"
-import { QueryNote } from "./components/query-note"
+import { QueryNote } from "@/components/common/query-state"
 
 export function DatasetsPage() {
   const datasets = useDatasets()

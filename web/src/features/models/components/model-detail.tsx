@@ -29,7 +29,7 @@ import { formatDateTime, formatPct } from "@/lib/format"
 import { downloadFile } from "../lib"
 import { ModelEvaluations } from "./model-evaluations"
 import { ModelFiles } from "./model-files"
-import { ErrorNote } from "./query-state"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** Right-hand model detail: stats, details, evaluations and files */
 export function ModelDetail({ model: m }: { model: Model }) {

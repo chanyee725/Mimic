@@ -6,7 +6,7 @@ import type { CapturePhase } from "@/domain/capture"
 import type { Outcome } from "@/domain/task"
 import { cn } from "@/lib/utils"
 
-import { ErrorNote } from "./query-note"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** Start / stop plus save, re-record and discard buttons (with hotkey hints) */
 export function EpisodeControls({

@@ -7,7 +7,7 @@ import { TaskPicker } from "@/components/pickers/task-picker"
 import { useImportRecording } from "@/api/recordings"
 import { useTasks } from "@/api/tasks"
 
-import { ErrorNote, QueryNote } from "./components/query-note"
+import { ErrorNote, QueryNote } from "@/components/common/query-state"
 import { ReviewWorkspace } from "./components/review-workspace"
 
 export function ReviewPage() {

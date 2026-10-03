@@ -9,7 +9,7 @@ import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { FILTERS, OUTCOME_TONE, PAGE_SIZE, REVIEW_CLASS, shortName, type ReviewFilter } from "../lib"
-import { QueryNote } from "./query-note"
+import { QueryNote } from "@/components/common/query-state"
 
 /** What the list needs from the paged recordings query */
 export type RecordingPages = {

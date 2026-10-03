@@ -4,7 +4,7 @@ import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
 import { useTasks } from "@/api/tasks"
 
-import { Loading } from "./components/query-state"
+import { LoadingNote } from "@/components/common/query-state"
 import { TaskDetail } from "./components/task-detail"
 import { TaskList } from "./components/task-list"
 
@@ -25,7 +25,7 @@ export function TasksPage() {
           <Panel className="min-w-0">
             {/* The list panel shows the error and Retry */}
             {tasks.isError ? null : tasks.isPending ? (
-              <Loading />
+              <LoadingNote />
             ) : (
               <EmptyState>Task가 없습니다. 왼쪽 + 버튼으로 새 Task를 만드세요.</EmptyState>
             )}

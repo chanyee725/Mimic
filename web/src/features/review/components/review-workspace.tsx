@@ -8,7 +8,7 @@ import type { ReviewFilter } from "../lib"
 import { DeleteRecordingDialog } from "./delete-recording-dialog"
 import { EpisodeList } from "./episode-list"
 import { McapPlayer } from "./mcap-player"
-import { QueryNote } from "./query-note"
+import { QueryNote } from "@/components/common/query-state"
 import { ReviewActions } from "./review-actions"
 
 /**

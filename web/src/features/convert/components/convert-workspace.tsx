@@ -13,7 +13,7 @@ import { previewText } from "../lib"
 import { ConvertSummary } from "./convert-summary"
 import { EpisodePickerDialog } from "./episode-picker-dialog"
 import { OutputPanel } from "./output-panel"
-import { QueryNote } from "./query-note"
+import { QueryNote } from "@/components/common/query-state"
 
 /** Task, episodes and output for one task. The page keys it by task id, so exclusions and the name reset on change */
 export function ConvertWorkspace({ task, tasks, onSelectTask }: { task: Task; tasks: Task[]; onSelectTask: (id: string) => void }) {

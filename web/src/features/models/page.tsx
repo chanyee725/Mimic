@@ -6,7 +6,7 @@ import { useModels } from "@/api/models"
 
 import { ModelDetail } from "./components/model-detail"
 import { ModelList } from "./components/model-list"
-import { ErrorNote, Loading } from "./components/query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 export function ModelsPage() {
   const query = useModels()
@@ -24,7 +24,7 @@ export function ModelsPage() {
         ) : (
           <Panel className="min-h-0">
             {query.isPending ? (
-              <Loading />
+              <LoadingNote />
             ) : query.isError ? (
               <ErrorNote error={query.error} onRetry={() => query.refetch()} />
             ) : (

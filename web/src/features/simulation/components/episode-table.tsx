@@ -10,7 +10,7 @@ import type { SimEpisode, SimJob } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
 import { EPISODES_PER_PAGE, RESULT_FILTERS, type ResultFilter } from "../job-stats"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 /**
  * Finished episodes, filterable by result and paged. Server pages (100 rows) load as the table pages
@@ -42,7 +42,7 @@ export function EpisodeTable({ job, selected, onSelect }: { job: SimJob; selecte
   }
 
   let body: React.ReactNode
-  if (query.isPending) body = <Loading />
+  if (query.isPending) body = <LoadingNote />
   else if (query.isError) body = <ErrorNote error={query.error} onRetry={query.refetch} />
   else
     body = (
@@ -94,7 +94,7 @@ export function EpisodeTable({ job, selected, onSelect }: { job: SimJob; selecte
               })}
             </tbody>
           </table>
-          {waiting && <Loading className="py-6" />}
+          {waiting && <LoadingNote className="py-6" />}
           {total === 0 && <p className="py-6 text-center text-[13px] text-muted-foreground">해당하는 에피소드가 없습니다.</p>}
         </div>
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground tabular-nums">

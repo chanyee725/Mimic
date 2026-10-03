@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-import { ErrorNote } from "./query-note"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** Confirm MCAP deletion */
 export function DeleteRecordingDialog({

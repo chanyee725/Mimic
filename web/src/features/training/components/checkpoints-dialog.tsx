@@ -9,7 +9,7 @@ import { formatDateTime } from "@/lib/format"
 
 import { useCheckpointActions } from "../hooks/use-checkpoint-actions"
 import { valueAt, type JobRun } from "../lib"
-import { ErrorNote } from "./query-state"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** All checkpoints of a job. Pick some to save to Models, download or push to the HF Hub */
 export function CheckpointsDialog({

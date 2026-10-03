@@ -6,7 +6,7 @@ import { useJobs } from "@/api/training"
 import { isActive } from "@/domain/training"
 
 import { JobRow } from "./job-row"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 type Tab = "all" | "active" | "finished"
 
@@ -37,7 +37,7 @@ export function JobsPanel() {
       }
     >
       {query.isPending ? (
-        <Loading />
+        <LoadingNote />
       ) : query.isError ? (
         <ErrorNote error={query.error} onRetry={() => query.refetch()} />
       ) : shown.length === 0 ? (

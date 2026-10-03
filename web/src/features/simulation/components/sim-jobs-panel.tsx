@@ -6,7 +6,7 @@ import { useModels } from "@/api/models"
 import { useSimEnvs, useSimJobs } from "@/api/simulation"
 import { isSimActive } from "@/domain/simulation"
 
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { SimJobRow } from "./sim-job-row"
 
 type Tab = "all" | "active" | "finished"
@@ -41,7 +41,7 @@ export function SimJobsPanel() {
       }
     >
       {query.isPending ? (
-        <Loading />
+        <LoadingNote />
       ) : query.isError ? (
         <ErrorNote error={query.error} onRetry={query.refetch} />
       ) : shown.length === 0 ? (

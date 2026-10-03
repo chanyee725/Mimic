@@ -4,7 +4,7 @@ import { Page, Panel } from "@/components/layout/page-layout"
 import { useTasks } from "@/api/tasks"
 
 import { ConvertWorkspace } from "./components/convert-workspace"
-import { QueryNote } from "./components/query-note"
+import { QueryNote } from "@/components/common/query-state"
 
 export function ConvertPage() {
   const tasks = useTasks()

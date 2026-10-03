@@ -7,7 +7,7 @@ import type { Device } from "@/domain/device"
 import type { Rig, rigGroups } from "@/domain/rig"
 
 import { DeviceRow } from "./device-row"
-import { Loading, QueryError } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 type Props = {
   rig: Rig
@@ -50,9 +50,9 @@ export function RigDevices({ rig, groups, group, groupDevices, devicesQuery, sel
         {/* Rig config file: records the Robot / Device / Camera setup */}
         <TabsContent value="config" className="min-h-0 flex-1 overflow-y-auto">
           {yaml.isError ? (
-            <QueryError error={yaml.error} onRetry={() => void yaml.refetch()} />
+            <ErrorNote error={yaml.error} onRetry={() => void yaml.refetch()} />
           ) : yaml.data === undefined ? (
-            <Loading />
+            <LoadingNote />
           ) : (
             <pre className="rounded-md bg-muted p-4 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">{yaml.data}</pre>
           )}
@@ -60,9 +60,9 @@ export function RigDevices({ rig, groups, group, groupDevices, devicesQuery, sel
         {groups.map((g) => (
           <TabsContent key={g.key} value={g.key} className="-mx-2 min-h-0 flex-1 overflow-y-auto">
             {devicesQuery.isError ? (
-              <QueryError className="mx-2" error={devicesQuery.error} onRetry={() => void devicesQuery.refetch()} />
+              <ErrorNote className="mx-2" error={devicesQuery.error} onRetry={() => void devicesQuery.refetch()} />
             ) : devicesQuery.isPending ? (
-              <Loading />
+              <LoadingNote />
             ) : groupDevices.length === 0 ? (
               <p className="px-2 py-6 text-center text-[13px] text-muted-foreground">이 Rig 에 {g.label} 장치가 없습니다.</p>
             ) : (
