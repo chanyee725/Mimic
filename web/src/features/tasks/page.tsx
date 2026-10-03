@@ -27,7 +27,7 @@ export function TasksPage() {
             {tasks.isError ? null : tasks.isPending ? (
               <LoadingNote />
             ) : (
-              <EmptyState>Task가 없습니다. 왼쪽 + 버튼으로 새 Task를 만드세요.</EmptyState>
+              <EmptyState>Task 가 없습니다. 왼쪽 + 버튼으로 Task 를 만들어 시작하세요.</EmptyState>
             )}
           </Panel>
         )}

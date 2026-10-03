@@ -3,12 +3,15 @@ import { LuUpload } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Page, Panel } from "@/components/layout/page-layout"
+import { EmptyState } from "@/components/common/empty-state"
 import { TaskPicker } from "@/components/pickers/task-picker"
 import { useImportRecording } from "@/api/recordings"
 import { useTasks } from "@/api/tasks"
 
 import { ErrorNote, QueryNote } from "@/components/common/query-state"
 import { ReviewWorkspace } from "./components/review-workspace"
+
+const NO_TASK = "등록된 Task 가 없습니다. Tasks 에서 Task 를 만들고 Capture 에서 녹화하세요."
 
 export function ReviewPage() {
   const tasks = useTasks()
@@ -51,10 +54,12 @@ export function ReviewPage() {
         <ReviewWorkspace key={task.id} taskId={task.id} taskPicker={<TaskPicker task={task} onSelect={setPicked} />} />
       ) : (
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-          <div className="min-h-[28rem] rounded-lg border bg-stage" />
+          <EmptyState className="grid min-h-[28rem] place-items-center rounded-lg bg-stage py-0 text-sm">
+            Capture 에서 녹화하면 여기에 표시됩니다.
+          </EmptyState>
           <Panel>
             <QueryNote query={tasks} />
-            {tasks.data?.length === 0 && <p className="text-[13px] text-muted-foreground">등록된 Task 가 없습니다.</p>}
+            {tasks.data?.length === 0 && <p className="text-[13px] text-muted-foreground">{NO_TASK}</p>}
           </Panel>
         </div>
       )}

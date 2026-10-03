@@ -52,7 +52,7 @@ export function ReviewWorkspace({ taskId, taskPicker }: { taskId: string; taskPi
               {recordings.isPending || recordings.error ? (
                 <QueryNote query={recordings} />
               ) : filter === "all" ? (
-                "이 Task 에는 아직 녹화된 에피소드가 없습니다."
+                "이 Task 에는 아직 녹화된 에피소드가 없습니다. Capture 에서 녹화하면 여기에 표시됩니다."
               ) : (
                 "해당하는 에피소드가 없습니다."
               )}

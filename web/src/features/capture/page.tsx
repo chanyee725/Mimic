@@ -78,7 +78,19 @@ export function CapturePage() {
           {/* Cameras fill the remaining height; plots have a fixed height */}
           <CameraGrid
             cameras={cameras}
-            loading={<QueryNote query={task ? devices : tasks} />}
+            empty={
+              !task ? (
+                tasks.data ? (
+                  <span className="text-xs text-muted-foreground">Task 를 만들면 Rig 카메라가 여기에 표시됩니다.</span>
+                ) : (
+                  <QueryNote query={tasks} />
+                )
+              ) : rig.error ? (
+                <QueryNote query={rig} />
+              ) : devices.data ? undefined : (
+                <QueryNote query={devices} />
+              )
+            }
             recording={recording}
             timecode={recording && task ? formatTimecode(ep.elapsedS * 1000, task.videoFps) : undefined}
           />
@@ -88,7 +100,11 @@ export function CapturePage() {
             <JointPlots joints={r.joints} hz={task.actionHz} actionSource={r.master} stateSource={r.slave} className="h-64 shrink-0" />
           ) : (
             <div className="grid h-64 shrink-0 place-items-center rounded-lg border">
-              <QueryNote query={task ? rig : tasks} />
+              {!task && tasks.data ? (
+                <span className="text-xs text-muted-foreground">Task 를 만들면 관절값 그래프가 여기에 표시됩니다.</span>
+              ) : (
+                <QueryNote query={task ? rig : tasks} />
+              )}
             </div>
           )}
         </div>
