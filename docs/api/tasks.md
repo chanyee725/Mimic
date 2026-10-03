@@ -90,15 +90,6 @@ output:
 `GET /tasks/{id}/yaml` emits every key above (export → import round-trips). `POST /tasks/import` returns
 `422` with `details.errors = [{ line, loc, msg }]` (`line` is 1-based, `loc` the YAML key path), and `409` if `task_id` exists.
 
-### Storage
-
-Each task is one file, `data/tasks/<task-id>.yaml` (`config.data_dir`, not tracked): the Task YAML above plus a trailing
-`meta:` block with the non-input fields (`version`, `collected`, `updated_at`, `updated_by`). Create / update / duplicate /
-import and capture saves rewrite the file; delete removes it. On startup the folder is loaded (hand edits apply; a broken file
-is logged and skipped; `task_id` inside the file wins over the file name). If the folder is missing, tasks are seeded and
-written. `POST /tasks/import` ignores `meta` (version restarts at 1); `GET /tasks/{id}/yaml` does not emit it. Sessions stay
-in memory.
-
 ## Changes from the web mocks
 
 `updatedAt` becomes ISO 8601.
