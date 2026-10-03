@@ -2,14 +2,20 @@ import { LuCheck, LuTrash2, LuX } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/common/status-dot"
-import { setReview } from "@/api/recordings"
-import type { Recording } from "@/domain/recording"
+import { useSetReview } from "@/api/recordings"
+import type { Recording, RecordingReview } from "@/domain/recording"
 import { cn } from "@/lib/utils"
 
 import { REVIEW_TONE } from "../lib"
+import { ErrorNote } from "./query-note"
 
 /** Validation results of the selected episode with accept, reject and delete buttons */
 export function ReviewActions({ recording, onDelete }: { recording: Recording; onDelete: () => void }) {
+  const setReview = useSetReview()
+  const mark = (review: RecordingReview) => setReview.mutate({ id: recording.id, review })
+  // The error belongs to the recording it was raised for
+  const error = setReview.variables?.id === recording.id ? setReview.error : null
+
   return (
     <div className="grid shrink-0 gap-3 border-t pt-4">
       <div className="flex items-baseline justify-between gap-2">
@@ -30,12 +36,13 @@ export function ReviewActions({ recording, onDelete }: { recording: Recording; o
           </div>
         ))}
       </dl>
+      <ErrorNote error={error} />
       <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5">
         <Button
           variant="outline"
           className="h-9"
-          onClick={() => setReview(recording.id, "accepted")}
-          disabled={recording.review === "accepted"}
+          onClick={() => mark("accepted")}
+          disabled={setReview.isPending || recording.review === "accepted"}
         >
           <LuCheck />
           Accept
@@ -43,8 +50,8 @@ export function ReviewActions({ recording, onDelete }: { recording: Recording; o
         <Button
           variant="outline"
           className="h-9"
-          onClick={() => setReview(recording.id, "rejected")}
-          disabled={recording.review === "rejected"}
+          onClick={() => mark("rejected")}
+          disabled={setReview.isPending || recording.review === "rejected"}
         >
           <LuX />
           Reject
