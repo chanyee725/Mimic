@@ -14,7 +14,10 @@ credentials*.json
 *.mcap
 *.bag
 *.db3
-/data/
+# data/: settings.yaml and rigs/ are committed; secrets and video / recording data are not
+/data/secrets.yaml
+/data/recordings/
+/data/videos/
 /raw/
 /datasets/
 /outputs/

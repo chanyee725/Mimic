@@ -10,7 +10,7 @@ uv run pytest                             # 테스트
 uv run black .                            # 포맷
 ```
 
-구조: 계층별 폴더에 영역마다 같은 이름의 파일을 둡니다 — `api/v1/<기능>/` (HTTP — 기능마다 패키지, 하위 리소스마다 모듈. 공용 파라미터는 `api/deps.py`), `schemas/` (요청 · 응답), `models/` (도메인 엔티티), `services/` (상태 · 규칙 — 보조 모듈이 있는 training · simulation · capture · tasks · realtime 은 패키지), `seeds/` (목업 데이터), `configs/`, `rpc/` (gRPC), `core/` (에러 · 이벤트), `utils/` (시각 · 경로 · ID · 난수 공용 함수). 데이터는 저장소 루트의 `data/`(git 제외, `VLA_DATA_DIR` 로 변경)에 YAML 로 저장합니다 — `settings.yaml`, `secrets.yaml`(API 키 원문, 권한 600), `tasks/<id>.yaml`, `rigs/<id>.yaml`, `devices/<id>.yaml`. 파일이 없으면 처음 한 번 목업(`app/seeds/data`)으로 만들고, 그다음부터는 파일을 읽습니다. 파일을 직접 고친 뒤 재시작하면 반영됩니다. 나머지(녹화, 데이터셋, 학습, 모델, 시뮬레이션 job)는 아직 메모리 목업입니다.
+구조: 계층별 폴더에 영역마다 같은 이름의 파일을 둡니다 — `api/v1/<기능>/` (HTTP — 기능마다 패키지, 하위 리소스마다 모듈. 공용 파라미터는 `api/deps.py`), `schemas/` (요청 · 응답), `models/` (도메인 엔티티), `services/` (상태 · 규칙 — 보조 모듈이 있는 training · simulation · capture · tasks · realtime 은 패키지), `seeds/` (목업 데이터), `configs/`, `rpc/` (gRPC), `core/` (에러 · 이벤트), `utils/` (시각 · 경로 · ID · 난수 공용 함수). 설정 데이터는 저장소 루트의 `data/`(`VLA_DATA_DIR` 로 변경)에 YAML 로 저장하고 git 에 올립니다 — `settings.yaml`, `rigs/<id>.yaml`(SO-101 Kit). API 키 원문 `secrets.yaml`(권한 600)과 영상 · 녹화 데이터(`data/recordings/`, `data/videos/`)는 git 에서 제외합니다. 파일이 없으면 처음 한 번 목업(`app/seeds/data`)으로 만들고, 그다음부터는 파일을 읽습니다. 파일을 직접 고친 뒤 재시작하면 반영됩니다. 나머지(Task, 장치, 녹화, 데이터셋, 학습, 모델, 시뮬레이션 job)는 아직 메모리 목업입니다.
 
 ## 목업 데이터
 

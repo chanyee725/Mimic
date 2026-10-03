@@ -56,7 +56,7 @@ Guidance for working in this repository.
     utils/                   domain-free helpers: time (now, ISO, set_clock for tests), paths, ids, rng
   tests/<area>/, tests/utils/
   ```
-- Station data persists as YAML under `data/` (git-ignored; `VLA_DATA_DIR`): `settings.yaml`, `secrets.yaml` (raw keys, 0600, never returned by the API), `tasks/<id>.yaml` (task export format + `meta`), `rigs/<id>.yaml`, `devices/<id>.yaml`. A missing file/folder is seeded from `seeds/data` once; after that the files win and hand edits load on restart. Every write goes through `app.core.storage`. Tests get a fresh data folder per test (tests/conftest.py).
+- Station config persists as YAML under `data/` (`VLA_DATA_DIR`), committed to git: `settings.yaml` and `rigs/<id>.yaml` (only `so101-kit`). `data/secrets.yaml` (raw keys, 0600, never returned by the API) and video / recording data (`data/recordings/`, `data/videos/`) are git-ignored. A missing file/folder is seeded from `seeds/data` once; after that the files win and hand edits load on restart. Writes go through `app.core.storage`. Tasks, devices and everything else stay in memory (seeds). Tests get a fresh data folder per test (tests/conftest.py).
 - Routers never hold state or rules; services never import FastAPI routers. Cross-area reads go through `app.services.<area>`. Date, path, id and seeded-random helpers live in `app.utils` — don't re-implement them in a service.
 - Errors via `ApiError` / `not_found` / `conflict` (uniform `{"error": {...}}` body). Large lists use `paginate()`. Publish changes on `app.core.events.bus`.
 - Comments: short, English. No PII; secrets are write-only.

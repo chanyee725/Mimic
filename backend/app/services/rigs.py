@@ -1,8 +1,6 @@
-"""Rig and device store: data/rigs/<id>.yaml and data/devices/<id>.yaml (seeded from the web mocks)."""
+"""Rig store in data/rigs/<id>.yaml (seeded from the mocks); devices stay in memory (live hardware)."""
 
 import logging
-from typing import TypeVar
-
 import yaml
 from pydantic import ValidationError
 
@@ -22,39 +20,36 @@ CALIBRATING = "Calibrating…"
 
 
 RIGS_DIR = "rigs"
-DEVICES_DIR = "devices"
-
-M = TypeVar("M", Rig, Device)
 
 
 def reset() -> None:
-    """Load each folder from disk; seed it from the mocks (and write it) when missing."""
+    """Rigs come from data/rigs (seeded and written when missing); devices from the mocks."""
     _rigs.clear()
     _devices.clear()
-    _rigs.update(_load_or_seed(RIGS_DIR, Rig, load("rigs", "RIGS")))
-    _devices.update(_load_or_seed(DEVICES_DIR, Device, load("devices", "DEVICES")))
+    _rigs.update(_load_or_seed(RIGS_DIR, load("rigs", "RIGS")))
+    _devices.update({d["id"]: Device.model_validate(d) for d in load("devices", "DEVICES")})
 
 
-def _load_or_seed(folder: str, model: type[M], seed: list[dict]) -> dict[str, M]:
+def _load_or_seed(folder: str, seed: list[dict]) -> dict[str, Rig]:
     if storage.path(folder).is_dir():
         # Seeded ids keep their mock order (the web defaults to the first rig); new files follow
         rank = {s["id"]: i for i, s in enumerate(seed)}
-        loaded = _load_folder(folder, model)
+        loaded = _load_folder(folder)
         order = sorted(loaded, key=lambda k: rank.get(k, len(rank)))
         return {k: loaded[k] for k in order}
-    items = {s["id"]: model.model_validate(s) for s in seed}
+    items = {s["id"]: Rig.model_validate(s) for s in seed}
     for item in items.values():
         _save(folder, item)
     return items
 
 
-def _load_folder(folder: str, model: type[M]) -> dict[str, M]:
+def _load_folder(folder: str) -> dict[str, Rig]:
     """Valid files only; a broken file is logged and skipped. The id comes from the content."""
-    items: dict[str, M] = {}
+    items: dict[str, Rig] = {}
     for p in storage.list_yaml(folder):
         rel = f"{folder}/{p.name}"
         try:
-            item = model.model_validate(storage.read(rel))
+            item = Rig.model_validate(storage.read(rel))
         except (storage.StorageError, ValidationError) as e:
             log.warning("Skipping %s: %s", rel, e)
             continue
@@ -65,7 +60,7 @@ def _load_folder(folder: str, model: type[M]) -> dict[str, M]:
     return items
 
 
-def _save(folder: str, item: Rig | Device) -> None:
+def _save(folder: str, item: Rig) -> None:
     storage.write(f"{folder}/{item.id}.yaml", item.model_dump(by_alias=False, mode="json"))
 
 
@@ -164,7 +159,6 @@ def finish_calibration(device_id: str) -> None:
     note = f"{what} · {today().isoformat()}"
     device = device.model_copy(update={"calibration": Calibration(done=True, note=note)})
     _devices[device_id] = device
-    _save(DEVICES_DIR, device)
     bus.publish("device.updated", device)
 
 

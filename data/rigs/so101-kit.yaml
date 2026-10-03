@@ -1,0 +1,39 @@
+id: so101-kit
+name: SO-101 Kit
+master: SO-101 Leader
+slave: SO-101 Follower
+robots:
+- follower
+devices:
+- leader
+cameras:
+- id: top
+  key: top
+  name: Top camera
+  feature: observation.images.top
+  resolution: 640×480
+  fps: 30
+  default_on: true
+- id: wrist
+  key: wrist
+  name: Wrist camera
+  feature: observation.images.wrist
+  resolution: 640×480
+  fps: 30
+  default_on: true
+joints:
+- shoulder_pan
+- shoulder_lift
+- elbow_flex
+- wrist_flex
+- wrist_roll
+- gripper
+target_hz:
+  action: 60
+  video: 30
+action_hz_options:
+- 30
+- 60
+video_fps_options:
+- 15
+- 30

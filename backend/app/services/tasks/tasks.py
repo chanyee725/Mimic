@@ -1,4 +1,4 @@
-"""Task and session store; tasks persist as data/tasks/*.yaml, sessions stay in memory."""
+"""Task and session store (in memory, seeded from the web mocks)."""
 
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
@@ -6,7 +6,7 @@ from app.models.tasks import Session, Task, TaskFields, TaskStatus
 from app.schemas.tasks import TaskDuplicate, TaskInput, TaskUpdate
 from app.seeds import load
 from app.services.rigs import get_rig
-from app.services.tasks import store, yaml_io
+from app.services.tasks import yaml_io
 from app.utils.time import iso, now_iso
 
 _tasks: dict[str, Task] = {}
@@ -15,18 +15,9 @@ _sessions: dict[str, Session] = {}
 
 def reset() -> None:
     _tasks.clear()
-    if store.exists():
-        # Seeded ids keep their mock order (pages default to the first task); new files follow
-        rank = {t["id"]: i for i, t in enumerate(load("tasks", "TASKS"))}
-        loaded = sorted(store.load_all(), key=lambda t: rank.get(t.id, len(rank)))
-        _tasks.update({t.id: t for t in loaded})
-    else:
-        # First run: seed and write every task file
-        for t in load("tasks", "TASKS"):
-            t["updatedAt"] = iso(t["updatedAt"])
-            task = Task.model_validate(t)
-            _tasks[task.id] = task
-            store.save(task)
+    for t in load("tasks", "TASKS"):
+        t["updatedAt"] = iso(t["updatedAt"])
+        _tasks[t["id"]] = Task.model_validate(t)
     _sessions.clear()
     _sessions.update({s["id"]: Session.model_validate(s) for s in load("sessions", "SESSIONS")})
 
@@ -94,7 +85,6 @@ def _ensure_new(task_id: str) -> None:
 
 
 def _store(task: Task, event: str) -> Task:
-    store.save(task)
     _tasks[task.id] = task
     bus.publish(event, task)
     return task
@@ -157,7 +147,6 @@ def delete_task(task_id: str) -> None:
     count = len(list_recordings(task_id))
     if count:
         raise conflict(f"Task '{task_id}' has {count} recordings", recordings=count)
-    store.remove(task_id)
     del _tasks[task_id]
     bus.publish("task.deleted", {"id": task_id})
 
@@ -183,9 +172,7 @@ def bump_collected(task_id: str, by: int = 1) -> None:
     """Capture saved an episode; not a user edit, so the version stays."""
     task = _tasks.get(task_id)
     if task:
-        task = task.model_copy(update={"collected": max(0, task.collected + by)})
-        store.save(task)
-        _tasks[task_id] = task
+        _tasks[task_id] = task.model_copy(update={"collected": max(0, task.collected + by)})
 
 
 def list_sessions(task_id: str | None = None) -> list[Session]:
