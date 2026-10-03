@@ -8,6 +8,7 @@ from app.seeds import load
 from app.models.station import DataTotal, Station
 from app.schemas.station import CurrentTask, DayCount
 from app.services.tasks import get_task
+from app.utils.time import days, week_start
 
 _state: dict = {}
 
@@ -32,15 +33,11 @@ def totals() -> list[DataTotal]:
 def activity(weeks: int) -> list[DayCount]:
     """One entry per day from the Sunday `weeks - 1` weeks back up to the station's today."""
     end = date.fromisoformat(get_station().date)
-    sunday = end - timedelta(days=(end.weekday() + 1) % 7)
-    start = sunday - timedelta(weeks=weeks - 1)
+    start = week_start(end) - timedelta(weeks=weeks - 1)
     counts: dict[str, int] = _state["activity"]
-    days = (end - start).days + 1
-    out = []
-    for i in range(days):
-        d = (start + timedelta(days=i)).isoformat()
-        out.append(DayCount(date=d, count=counts.get(d, 0)))
-    return out
+    return [
+        DayCount(date=d.isoformat(), count=counts.get(d.isoformat(), 0)) for d in days(start, end)
+    ]
 
 
 def warnings() -> list[str]:

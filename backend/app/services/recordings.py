@@ -2,23 +2,24 @@
 
 import math
 import re
-import zlib
 
-from app.utils.time import iso, now_iso
 from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
 from app.seeds import load
 from app.models.recordings import Recording, RecordingCheck, RecordingReview, RecordingSource
 from app.schemas.recordings import Samples
+from app.services.realtime import mock_robot
 from app.services.rigs import get_rig
+from app.utils.ids import slugify, split_csv
+from app.utils.rng import unit_seed
+from app.utils.time import iso, now_iso
 
 _recordings: dict[str, Recording] = {}
 
 MCAP_MAGIC = b"\x89MCAP0\r\n"
 SAMPLE_TOPICS = ("action", "state")
 MAX_SAMPLES = 100_000  # per joint and topic
-STATE_LAG_S = 0.15  # follower lags the leader, like the web mock
 _GENERIC_JOINTS = [f"joint_{i}" for i in range(1, 7)]
 
 
@@ -90,7 +91,7 @@ def import_mcap(filename: str, data: bytes) -> Recording:
         raise ApiError(422, "Only .mcap files can be imported", {"filename": filename})
     if not data.startswith(MCAP_MAGIC):
         raise ApiError(422, "File is not a valid MCAP (bad magic bytes)", {"filename": filename})
-    stem = re.sub(r"[^a-z0-9]+", "-", filename[:-5].lower()).strip("-") or "file"
+    stem = slugify(filename[:-5]) or "file"
     rec_id, n = f"ext-{stem}", 1
     while rec_id in _recordings:
         n += 1
@@ -115,25 +116,12 @@ def import_mcap(filename: str, data: bytes) -> Recording:
     return add(rec)
 
 
-def _seed_of(recording_id: str) -> float:
-    """Per-file value in [0, 1) so each recording replays a different trajectory."""
-    return zlib.crc32(recording_id.encode()) / 2**32
-
-
-def _sample(i: int, t: float, seed: float) -> float:
-    # Same signal as web components/robot/joint-plots.tsx (degrees)
-    return (
-        math.sin(t * (0.55 + (i % 6) * 0.22) + i + seed * 6) * 0.7
-        + math.sin(t * 2.7 + i + seed) * 0.08
-    ) * 90
-
-
 def samples(
     recording_id: str, topics_csv: str, from_s: float, to_s: float | None, hz: float
 ) -> Samples:
     """Synthetic joint data until the MCAP reader exists (deterministic per recording)."""
     rec = require(recording_id)
-    topics = [t.strip() for t in topics_csv.split(",") if t.strip()]
+    topics = split_csv(topics_csv)
     bad = [t for t in topics if t not in SAMPLE_TOPICS]
     if bad or not topics:
         raise ApiError(422, f"topics must be a subset of {list(SAMPLE_TOPICS)}", {"topics": bad})
@@ -146,11 +134,11 @@ def samples(
     rig = get_rig(rec.rig_id) if rec.rig_id else None
     joints = list(rig.joints) if rig else list(_GENERIC_JOINTS)
     ts = [round(from_s + k / hz, 6) for k in range(n)]
-    seed = _seed_of(rec.id)
-    lag = {"action": 0.0, "state": STATE_LAG_S}
+    seed = unit_seed(rec.id)  # each recording replays a different trajectory
+    lag = {"action": 0.0, "state": mock_robot.STATE_LAG_S}
     series = {
         topic: [
-            [round(_sample(i, max(0.0, t - lag[topic]), seed), 3) for t in ts]
+            [round(mock_robot.sample(i, max(0.0, t - lag[topic]), seed), 3) for t in ts]
             for i in range(len(joints))
         ]
         for topic in topics
