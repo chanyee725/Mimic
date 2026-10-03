@@ -142,17 +142,10 @@ def test_save_creates_recording(client, clock, events):
     assert rec["source"] == "capture" and rec["review"] == "pending"
     assert rec["outcome"] == "partial" and rec["rigId"] == "so101-kit"
     assert rec["durationS"] == 12.5 and rec["recordedAt"] == "2026-10-03T10:00:03+09:00"
-    assert rec["sizeMB"] == pytest.approx(23.8)
+    assert 0 < rec["sizeMB"] < 1  # joints and labels only, no camera frames yet
     names = [t["name"] for t in rec["topics"]]
-    assert names == [
-        "/so101_leader/action",
-        "/so101_follower/state",
-        "/cam_top/image",
-        "/cam_wrist/image",
-        "/labels/subtask",
-        "/labels/outcome",
-    ]
-    assert rec["topics"][0]["messages"] == 750 and rec["topics"][2]["messages"] == 375
+    assert names == ["/action", "/observation/state", "/subtask"]
+    assert [t["messages"] for t in rec["topics"]] == [750, 750, 3]
     assert rec["subtasks"] == [
         {"name": "reach", "startS": 0, "endS": 4},
         {"name": "grasp", "startS": 4, "endS": 10},

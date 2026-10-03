@@ -1,3 +1,6 @@
+import yaml
+
+
 def test_list_rigs(client):
     rows = client.get("/rigs").json()
     assert [r["id"] for r in rows] == ["so101-kit", "so101-bimanual-kit"]
@@ -14,7 +17,17 @@ def test_rig_yaml(client):
     r = client.get("/rigs/so101-kit/yaml")
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/yaml")
-    assert "rig_id: so101-kit" in r.text and "feature: observation.images.top" in r.text
+    doc = yaml.safe_load(r.text)
+    assert doc["id"] == "so101-kit" and doc["robot"]["port"] == "/dev/so101_follower"
+    assert doc["device"]["id"] == "leader" and doc["cameras"]["top"]["resolution"] == "640x480"
+    assert doc["rates"] == {
+        "action_hz": 60,
+        "video_fps": 30,
+        "action_hz_options": [30, 60],
+        "video_fps_options": [15, 30],
+    }
+    bi = yaml.safe_load(client.get("/rigs/so101-bimanual-kit/yaml").text)
+    assert list(bi["robots"]) == ["bi-follower-l", "bi-follower-r"] and "robot" not in bi
     assert client.get("/rigs/missing/yaml").status_code == 404
 
 

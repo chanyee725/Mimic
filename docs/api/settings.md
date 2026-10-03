@@ -31,6 +31,8 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
   fields get seed values. A missing file is written from the seeds; an invalid one is left untouched and that part uses the seeds
   (a warning is logged) until it is fixed or that part is saved.
 - A save rewrites only the files whose content changed.
+- `storage.rawPath` (default `data/recordings`; `~` expands, relative paths start at the repo root) is the folder recordings
+  are written to and loaded from; changing it makes the recordings list rescan the new folder (see `recordings.md`).
 - Secrets live in the repo-root `.env` (`config.env_file_path`; git-ignored, mode 0600) under the names other tools read:
 
   | Secret name | `.env` / environment key |

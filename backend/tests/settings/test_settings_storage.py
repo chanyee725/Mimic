@@ -151,7 +151,7 @@ def test_broken_file_falls_back_untouched(client):
         service.reset()
         assert part("storage").read_text() == broken
         s = client.get("/settings").json()
-        assert s["storage"]["rawPath"] == "~/vla/raw"
+        assert s["storage"]["rawPath"] == "data/recordings"
 
         # Saving another part leaves the broken file alone
         client.patch("/settings/integrations", json={"version": 1, "hf": {"namespace": "x"}})

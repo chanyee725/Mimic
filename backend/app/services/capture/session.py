@@ -12,7 +12,7 @@ from app.models.recordings import Recording
 from app.models.rigs import Rig
 from app.models.tasks import Outcome, Task
 from app.services import recordings, tasks
-from app.services.capture.recording import Session, build_recording
+from app.services.capture.recording import Session, build_episode
 from app.services.rigs import get_device, get_rig
 from app.services.tasks import get_task
 from app.utils.time import now, seconds_since, to_iso
@@ -181,7 +181,7 @@ def save(outcome: Outcome) -> Recording:
     s = _session
     assert s is not None
     duration = max(0.1, round(s.stopped_s if s.stopped_s is not None else st.elapsed_s, 1))
-    rec = recordings.add(build_recording(s, duration, outcome))
+    rec = recordings.save_episode(*build_episode(s, duration, outcome))
     tasks.bump_collected(s.task.id)
     _issued[s.task.id] = s.episode
     _session, _last_task_id = None, s.task.id
