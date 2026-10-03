@@ -1,0 +1,16 @@
+syntax = "proto3";
+package vla.robot.v1;
+
+message JointFrame {
+  int64 t_ns = 1;                // station monotonic clock
+  repeated float action = 2;     // leader (or policy) command, rig joint order, degrees
+  repeated float state = 3;      // follower measured position, degrees
+}
+message StreamRequest { string rig_id = 1; uint32 hz = 2; }   // hz = 0 → native rate
+message RatesRequest  { string rig_id = 1; }
+message Rates { float action_hz = 1; float state_hz = 2; }
+
+service RobotStream {
+  rpc StreamJoints(StreamRequest) returns (stream JointFrame);
+  rpc StreamRates(RatesRequest) returns (stream Rates);     // ~2 Hz, measured over the last 2 s
+}

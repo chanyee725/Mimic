@@ -62,6 +62,14 @@ service RobotStream {
 }
 ```
 
+- `StreamJoints`: `hz = 0` streams at the rig's `targetHz.action`; `hz > 1000` → `INVALID_ARGUMENT`. Frames sit on a
+  fixed grid (`t_ns` steps by `1e9 / hz`, no drift).
+- Unknown `rig_id` → `NOT_FOUND` on both RPCs.
+- `StreamRates` emits every 0.5 s.
+- Until the robot layer exists the server uses a mock source: the same sine signal as the web JointPlots mock, with
+  state lagging action by 0.15 s, and rates slightly under the rig's target.
+- Browsers cannot speak native gRPC: the web app goes through grpc-web / Connect via an Envoy (or similar) proxy.
+
 The web JointPlots read frames into their ring buffer (no React state per sample). Evaluate uses the same stream: `action` is the policy output.
 
 ## WebRTC
