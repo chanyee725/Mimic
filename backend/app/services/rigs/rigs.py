@@ -1,4 +1,8 @@
-"""Rig store in data/rigs/<id>.yaml (format: file_format.py); devices = rig files + live mock state."""
+"""Rig store in data/rigs/<id>.yaml (format: file_format.py); devices are declared there.
+
+No seeds: a missing folder means no rigs. Device live state (health, rates, stats) would come
+from drivers; none exist yet, so every device is reported as not connected.
+"""
 
 import logging
 from typing import Any
@@ -8,7 +12,6 @@ from pydantic import ValidationError
 from app.core import storage
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.seeds import load
 from app.models.rigs import Calibration, Device, Rig
 from app.services.rigs import file_format as rigs_file
 from app.services.rigs.file_format import RigFile
@@ -27,57 +30,24 @@ RIGS_DIR = "rigs"
 
 
 def reset() -> None:
-    """Rigs from data/rigs (seeded when missing); devices declared there, merged with mock state."""
-    seeds = {d["id"]: Device.model_validate(d) for d in load("devices", "DEVICES")}
-    legacy = [Rig.model_validate(r) for r in load("rigs", "RIGS")]
+    """Rigs from data/rigs (sorted by file name); their devices start not connected."""
     _specs.clear()
-    _specs.update(_load_or_seed(RIGS_DIR, [rigs_file.from_legacy(r, seeds) for r in legacy], seeds))
+    _specs.update(_load_folder(RIGS_DIR))
     _rigs.clear()
     _rigs.update({k: rigs_file.to_rig(s) for k, s in _specs.items()})
     _devices.clear()
-    _devices.update(_build_devices(list(_specs.values()), seeds))
-
-
-def _build_devices(specs: list[RigFile], seeds: dict[str, Device]) -> dict[str, Device]:
-    """Identity (name, type, port) from the files; health / calibration / streams / stats from the
-    mocks by id, or offline defaults. The first rig declaring an id wins; unused mocks are dropped.
-    """
-    declared: dict[str, Device] = {}
-    for spec in specs:
+    for spec in _specs.values():
         for d in rigs_file.declared_devices(spec):
-            declared.setdefault(d.id, d)
-    order = sorted(declared, key=lambda i: list(seeds).index(i) if i in seeds else len(seeds))
-    out = {}
-    for i in order:
-        d = declared[i]
-        seed = seeds.get(i)
-        out[i] = (
-            seed.model_copy(update={"name": d.name, "type": d.type, "port": d.port}) if seed else d
-        )
-    return out
+            _devices.setdefault(d.id, d)  # the first rig declaring an id wins
 
 
-def _load_or_seed(
-    folder: str, seed: list[RigFile], devices: dict[str, Device]
-) -> dict[str, RigFile]:
-    if storage.path(folder).is_dir():
-        # Seeded ids keep their mock order (the web defaults to the first rig); new files follow
-        rank = {s.id: i for i, s in enumerate(seed)}
-        loaded = _load_folder(folder, devices)
-        order = sorted(loaded, key=lambda k: rank.get(k, len(rank)))
-        return {k: loaded[k] for k in order}
-    for item in seed:
-        _save(folder, item)
-    return {s.id: s for s in seed}
-
-
-def _load_folder(folder: str, devices: dict[str, Device]) -> dict[str, RigFile]:
+def _load_folder(folder: str) -> dict[str, RigFile]:
     """Valid files only; a broken file is logged and skipped. The id comes from the content."""
     items: dict[str, RigFile] = {}
     for p in storage.list_yaml(folder):
         rel = f"{folder}/{p.name}"
         try:
-            item = _parse(rel, storage.read(rel), devices)
+            item = _parse(rel, storage.read(rel))
         except (storage.StorageError, ValidationError) as e:
             log.warning("Skipping %s: %s", rel, e)
             continue
@@ -88,10 +58,10 @@ def _load_folder(folder: str, devices: dict[str, Device]) -> dict[str, RigFile]:
     return items
 
 
-def _parse(rel: str, doc: Any, devices: dict[str, Device]) -> RigFile:
+def _parse(rel: str, doc: Any) -> RigFile:
     if rigs_file.is_legacy(doc):
         # Old raw dump of Rig: convert and rewrite in the current format
-        item = rigs_file.from_legacy(Rig.model_validate(doc), devices)
+        item = rigs_file.from_legacy(Rig.model_validate(doc), {})
         storage.write_text(rel, rigs_file.dumps(item))
         log.info("Migrated %s to the current rig format", rel)
         return item
@@ -99,10 +69,6 @@ def _parse(rel: str, doc: Any, devices: dict[str, Device]) -> RigFile:
     if unknown := rigs_file.unknown_keys(item):
         log.warning("%s: unknown keys ignored: %s", rel, ", ".join(unknown))
     return item
-
-
-def _save(folder: str, item: RigFile) -> None:
-    storage.write_text(f"{folder}/{item.id}.yaml", rigs_file.dumps(item))
 
 
 def list_rigs() -> list[Rig]:
@@ -148,6 +114,18 @@ def rig_yaml(rig_id: str) -> str:
     return rigs_file.dumps(_specs[rig_id])
 
 
+def set_device_state(device_id: str, **live: Any) -> Device:
+    """Driver hook: replace live fields (health, calibration, streams, stats) of a device.
+
+    No driver calls it yet; tests use it to bring devices online.
+    """
+    device = require_device(device_id)
+    device = device.model_copy(update=live)
+    _devices[device_id] = device
+    bus.publish("device.updated", device)
+    return device
+
+
 # --- calibration ------------------------------------------------------------
 
 
@@ -165,7 +143,7 @@ def start_calibration(device_id: str) -> Device:
 
 
 def finish_calibration(device_id: str) -> None:
-    # Mock: real calibration talks to the motors / camera
+    # Placeholder until drivers exist (only reachable for a connected device)
     device = _devices.get(device_id)
     if device is None or device.calibration.note != CALIBRATING:
         return

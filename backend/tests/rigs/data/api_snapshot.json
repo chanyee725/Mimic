@@ -128,136 +128,84 @@
       "name": "SO-101 Leader",
       "type": "teleop",
       "port": "/dev/so101_leader",
-      "health": "ok",
+      "health": "off",
       "calibration": {
-        "done": true,
-        "note": "Calibrated · 2026-09-28"
+        "done": false,
+        "note": "Not connected"
       },
       "streams": [
         {
           "key": "action",
           "shape": "[6]",
           "targetHz": 60.0,
-          "measuredHz": 59.8,
+          "measuredHz": null,
           "unit": "Hz"
         }
       ],
-      "stats": [
-        {
-          "label": "Max motor temp",
-          "value": "38°C"
-        },
-        {
-          "label": "Voltage",
-          "value": "12.1 V"
-        },
-        {
-          "label": "Bus latency",
-          "value": "2.1 ms"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "follower",
       "name": "SO-101 Follower",
       "type": "robot",
       "port": "/dev/so101_follower",
-      "health": "warn",
+      "health": "off",
       "calibration": {
-        "done": true,
-        "note": "Calibrated · 2026-09-28"
+        "done": false,
+        "note": "Not connected"
       },
       "streams": [
         {
           "key": "observation.state",
           "shape": "[6]",
           "targetHz": 60.0,
-          "measuredHz": 59.9,
+          "measuredHz": null,
           "unit": "Hz"
         }
       ],
-      "stats": [
-        {
-          "label": "Max motor temp",
-          "value": "52°C"
-        },
-        {
-          "label": "Voltage",
-          "value": "12.1 V"
-        },
-        {
-          "label": "Bus latency",
-          "value": "2.3 ms"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "top",
       "name": "Top camera",
       "type": "camera",
       "port": "/dev/cam_top",
-      "health": "ok",
+      "health": "off",
       "calibration": {
-        "done": true,
-        "note": "Intrinsics registered"
+        "done": false,
+        "note": "Not connected"
       },
       "streams": [
         {
           "key": "images.top",
           "shape": "480×640×3",
           "targetHz": 30.0,
-          "measuredHz": 30.0,
+          "measuredHz": null,
           "unit": "fps"
         }
       ],
-      "stats": [
-        {
-          "label": "Resolution",
-          "value": "640×480"
-        },
-        {
-          "label": "Exposure",
-          "value": "auto"
-        },
-        {
-          "label": "USB",
-          "value": "3.0"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "wrist",
       "name": "Wrist camera",
       "type": "camera",
       "port": "/dev/cam_wrist",
-      "health": "warn",
+      "health": "off",
       "calibration": {
-        "done": true,
-        "note": "Intrinsics registered"
+        "done": false,
+        "note": "Not connected"
       },
       "streams": [
         {
           "key": "images.wrist",
           "shape": "480×640×3",
           "targetHz": 30.0,
-          "measuredHz": 28.7,
+          "measuredHz": null,
           "unit": "fps"
         }
       ],
-      "stats": [
-        {
-          "label": "Resolution",
-          "value": "640×480"
-        },
-        {
-          "label": "Exposure",
-          "value": "auto"
-        },
-        {
-          "label": "USB",
-          "value": "2.0"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "bi-leader-l",
@@ -267,31 +215,18 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Calibration required"
+        "note": "Not connected"
       },
       "streams": [
         {
-          "key": "action.left",
+          "key": "action",
           "shape": "[6]",
           "targetHz": 60.0,
           "measuredHz": null,
           "unit": "Hz"
         }
       ],
-      "stats": [
-        {
-          "label": "Max motor temp",
-          "value": "—"
-        },
-        {
-          "label": "Voltage",
-          "value": "—"
-        },
-        {
-          "label": "Bus latency",
-          "value": "—"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "bi-leader-r",
@@ -301,31 +236,18 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Calibration required"
+        "note": "Not connected"
       },
       "streams": [
         {
-          "key": "action.right",
+          "key": "action",
           "shape": "[6]",
           "targetHz": 60.0,
           "measuredHz": null,
           "unit": "Hz"
         }
       ],
-      "stats": [
-        {
-          "label": "Max motor temp",
-          "value": "—"
-        },
-        {
-          "label": "Voltage",
-          "value": "—"
-        },
-        {
-          "label": "Bus latency",
-          "value": "—"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "bi-follower-l",
@@ -335,31 +257,18 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Calibration required"
+        "note": "Not connected"
       },
       "streams": [
         {
-          "key": "observation.state.left",
+          "key": "observation.state",
           "shape": "[6]",
           "targetHz": 60.0,
           "measuredHz": null,
           "unit": "Hz"
         }
       ],
-      "stats": [
-        {
-          "label": "Max motor temp",
-          "value": "—"
-        },
-        {
-          "label": "Voltage",
-          "value": "—"
-        },
-        {
-          "label": "Bus latency",
-          "value": "—"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "bi-follower-r",
@@ -369,65 +278,39 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Calibration required"
+        "note": "Not connected"
       },
       "streams": [
         {
-          "key": "observation.state.right",
+          "key": "observation.state",
           "shape": "[6]",
           "targetHz": 60.0,
           "measuredHz": null,
           "unit": "Hz"
         }
       ],
-      "stats": [
-        {
-          "label": "Max motor temp",
-          "value": "—"
-        },
-        {
-          "label": "Voltage",
-          "value": "—"
-        },
-        {
-          "label": "Bus latency",
-          "value": "—"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "bi-cam-top",
       "name": "Top camera",
       "type": "camera",
       "port": "/dev/bi_cam_top",
-      "health": "ok",
+      "health": "off",
       "calibration": {
-        "done": true,
-        "note": "Intrinsics registered"
+        "done": false,
+        "note": "Not connected"
       },
       "streams": [
         {
           "key": "images.top",
           "shape": "480×640×3",
           "targetHz": 30.0,
-          "measuredHz": 30.0,
+          "measuredHz": null,
           "unit": "fps"
         }
       ],
-      "stats": [
-        {
-          "label": "Resolution",
-          "value": "640×480"
-        },
-        {
-          "label": "Exposure",
-          "value": "auto"
-        },
-        {
-          "label": "USB",
-          "value": "3.0"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "bi-cam-wrist-l",
@@ -437,7 +320,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not registered"
+        "note": "Not connected"
       },
       "streams": [
         {
@@ -448,20 +331,7 @@
           "unit": "fps"
         }
       ],
-      "stats": [
-        {
-          "label": "Resolution",
-          "value": "640×480"
-        },
-        {
-          "label": "Exposure",
-          "value": "auto"
-        },
-        {
-          "label": "USB",
-          "value": "3.0"
-        }
-      ]
+      "stats": []
     },
     {
       "id": "bi-cam-wrist-r",
@@ -471,7 +341,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not registered"
+        "note": "Not connected"
       },
       "streams": [
         {
@@ -482,20 +352,7 @@
           "unit": "fps"
         }
       ],
-      "stats": [
-        {
-          "label": "Resolution",
-          "value": "640×480"
-        },
-        {
-          "label": "Exposure",
-          "value": "auto"
-        },
-        {
-          "label": "USB",
-          "value": "3.0"
-        }
-      ]
+      "stats": []
     }
   ]
 }

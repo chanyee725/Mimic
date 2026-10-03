@@ -6,7 +6,7 @@ from app.core import storage
 from app.services import rigs as service
 
 
-def test_seed_writes_rig_files_only():
+def test_rig_files_only():
     files = [p.name for p in storage.list_yaml("rigs")]
     assert files == ["so101-bimanual-kit.yaml", "so101-kit.yaml"]
     assert not storage.exists("devices")  # devices are live state, kept in memory
@@ -21,7 +21,7 @@ def test_reload_restores_hand_edits():
     storage.write("rigs/so101-kit.yaml", doc)
     service.reset()
     assert service.require_rig("so101-kit").name == "Edited kit"
-    assert [r.id for r in service.list_rigs()] == ["so101-kit", "so101-bimanual-kit"]
+    assert [r.id for r in service.list_rigs()] == ["so101-bimanual-kit", "so101-kit"]
 
 
 def test_folder_holds_only_the_kept_rigs():
@@ -34,10 +34,10 @@ def test_new_rig_file_is_loaded(client):
     doc = storage.read("rigs/so101-kit.yaml") | {"id": "lab-kit", "name": "Lab kit"}
     storage.write("rigs/lab.yaml", doc)  # id comes from content, not the file name
     service.reset()
-    assert [r["id"] for r in client.get("/rigs").json()][-1] == "lab-kit"
+    assert [r["id"] for r in client.get("/rigs").json()][0] == "lab-kit"  # lab.yaml
 
 
-def test_calibration_is_not_written(client):
+def test_calibration_is_not_written(client, devices_online):
     assert client.post("/devices/follower/calibrate").status_code == 202
     assert service.require_device("follower").calibration.done is True
     assert not storage.exists("devices")
@@ -48,7 +48,7 @@ def test_broken_files_are_skipped(caplog):
     storage.write("rigs/invalid.yaml", {"id": "invalid", "name": "No fields"})
     with caplog.at_level(logging.WARNING, logger="app.services.rigs"):
         service.reset()
-    assert [r.id for r in service.list_rigs()] == ["so101-kit", "so101-bimanual-kit"]
+    assert [r.id for r in service.list_rigs()] == ["so101-bimanual-kit", "so101-kit"]
     assert sum("Skipping" in r.message for r in caplog.records) == 2
 
 
