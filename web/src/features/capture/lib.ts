@@ -8,5 +8,5 @@ export const PHASE: Record<CapturePhase, { label: string; className: string }> =
   review: { label: "REVIEW", className: "bg-warn-muted text-warn" },
 }
 
-/** Operator used when the station settings list none (pseudonymous ID) */
-export const FALLBACK_OPERATOR = "OP-01"
+/** The station's single operator (pseudonymous ID), sent with every capture start */
+export const STATION_OPERATOR = "OP-01"
