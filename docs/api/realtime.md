@@ -70,9 +70,12 @@ service RobotStream {
 - `StreamJoints`: `hz = 0` streams at the rig's `targetHz.action`; `hz > 1000` → `INVALID_ARGUMENT`. Frames sit on a
   fixed grid (`t_ns` steps by `1e9 / hz`, no drift).
 - Unknown `rig_id` → `NOT_FOUND` on both RPCs.
+- The rig's arms (its `robots` and `devices`) must be connected: otherwise both RPCs fail with `UNAVAILABLE` and the
+  message `Rig '<id>' devices are not connected: <ids>`. No robot drivers exist yet, so **every stream is refused today**;
+  no made-up joint data is sent. The web should show "not connected" instead of plots.
 - `StreamRates` emits every 0.5 s.
-- Until the robot layer exists the server uses a mock source: the same sine signal as the web JointPlots mock, with
-  state lagging action by 0.15 s, and rates slightly under the rig's target.
+- Once a driver marks the arms connected, frames come from a placeholder sine source (state lags action by 0.15 s)
+  until the driver supplies real frames.
 - Browsers cannot speak native gRPC: the web app goes through grpc-web / Connect via an Envoy (or similar) proxy.
 
 The web JointPlots read frames into their ring buffer (no React state per sample). Evaluate uses the same stream: `action` is the policy output.

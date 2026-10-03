@@ -20,7 +20,7 @@ class Config(BaseSettings):
     timezone: str = "Asia/Seoul"
     # Folder scanned for Isaac Sim environments (one sub-folder per environment)
     sim_envs_dir: Path = REPO_ROOT / "sim" / "envs"
-    # Station data kept as YAML (tasks, settings, rigs, …)
+    # Station data: settings/, rigs/, tasks/ (YAML) and recordings/, datasets/, models/
     data_dir: Path = REPO_ROOT / "data"
     # .env holding the secrets (HF_TOKEN, RUNPOD_API_KEY, …); settings edits it
     env_file_path: Path = ENV_FILE
@@ -31,6 +31,19 @@ class Config(BaseSettings):
         # "~" expands; relative paths (e.g. VLA_SIM_ENVS_DIR=sim/envs) start at the repo root
         v = Path(v).expanduser()
         return v if v.is_absolute() else REPO_ROOT / v
+
+    # Everything the station records or builds lives under the data folder
+    @property
+    def recordings_dir(self) -> Path:
+        return self.data_dir / "recordings"
+
+    @property
+    def datasets_dir(self) -> Path:
+        return self.data_dir / "datasets"
+
+    @property
+    def models_dir(self) -> Path:
+        return self.data_dir / "models"
 
 
 config = Config()

@@ -8,7 +8,8 @@ from app.schemas.common import CamelModel
 
 TaskStatus = Literal["active", "draft", "completed"]
 Outcome = Literal["success", "fail", "partial"]
-SessionStatus = Literal["recording", "review", "converted"]
+# review: some episodes are still pending; reviewed: all accepted or rejected
+SessionStatus = Literal["review", "reviewed"]
 
 # Task ids are URL-safe slugs
 SLUG = r"^[a-z0-9][a-z0-9-]{0,63}$"
@@ -51,16 +52,18 @@ class TaskFields(CamelModel):
 
 class Task(TaskFields):
     id: str = Field(pattern=SLUG)
-    collected: int = 0
+    collected: int = 0  # computed from recordings, never stored
     version: int = 1
     updated_at: str
     updated_by: str
 
 
 class Session(CamelModel):
+    """Recordings of one task on one station day (derived, not stored)."""
+
     id: str
     task_id: str
-    operator: str
+    operator: str | None
     episodes: int
     accepted: int
     success_pct: float

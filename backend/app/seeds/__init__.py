@@ -15,5 +15,5 @@ def _raw(name: str) -> dict[str, Any]:
 
 
 def load(name: str, key: str) -> Any:
-    """Deep copy of one exported value, e.g. load("tasks", "TASKS")."""
+    """Deep copy of one exported value, e.g. load("settings", "SHORTCUTS")."""
     return copy.deepcopy(_raw(name)[key])

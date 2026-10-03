@@ -111,7 +111,10 @@ def _push(value: Any) -> Any:
 
 
 def parse(text: str) -> tuple[TaskInput, dict[tuple, int]]:
-    """Parse YAML into a TaskInput; raises 422 with line numbers on errors."""
+    """Parse YAML into a TaskInput; raises 422 with line numbers on errors.
+
+    Unknown keys (e.g. the `meta` block of task files) are ignored.
+    """
     try:
         root = yaml.compose(text)
         doc = yaml.safe_load(text)

@@ -1,0 +1,45 @@
+task_id: pick-red-cube
+name: Pick red cube
+label: pick the red cube and place it in the bowl
+variants:
+- put the red cube into the bowl
+tags:
+- pick-place
+- tabletop
+rig: so101-kit
+cameras:
+- top
+- wrist
+rates:
+  action_hz: 60
+  video_fps: 30
+episode:
+  target: 50
+  duration_s: 20.0
+  reset_s: 10.0
+  countdown_s: 3.0
+outcomes:
+  success: →
+  fail: F
+  partial: P
+subtasks:
+- key: '1'
+  name: reach
+  description: 큐브로 접근
+- key: '2'
+  name: grasp
+  description: 큐브 파지
+- key: '3'
+  name: place
+  description: 그릇에 놓기
+success_criteria: 빨간 큐브가 그릇 안에 있을 것
+status: active
+output:
+  repo_id: local/pick_red_cube
+  format: lerobot_v3
+  fps: 30
+  push_to_hub: private
+meta:
+  version: 1
+  updated_at: '2026-10-02T00:00:00+09:00'
+  updated_by: OP-03
