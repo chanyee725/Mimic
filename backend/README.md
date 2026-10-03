@@ -10,7 +10,7 @@ uv run pytest                             # 테스트
 uv run black .                            # 포맷
 ```
 
-구조: 계층별 폴더에 영역마다 같은 이름의 파일을 둡니다 — `api/v1/<기능>/` (HTTP — 기능마다 패키지, 하위 리소스마다 모듈. 공용 파라미터는 `api/deps.py`), `schemas/` (요청 · 응답), `models/` (도메인 엔티티), `services/` (상태 · 규칙), `seeds/` (목업 데이터), `configs/`, `rpc/` (gRPC), `core/` (에러 · 이벤트 · 시각). 지금은 메모리에 목업과 같은 데이터를 두고 동작합니다.
+구조: 계층별 폴더에 영역마다 같은 이름의 파일을 둡니다 — `api/v1/<기능>/` (HTTP — 기능마다 패키지, 하위 리소스마다 모듈. 공용 파라미터는 `api/deps.py`), `schemas/` (요청 · 응답), `models/` (도메인 엔티티), `services/` (상태 · 규칙 — 보조 모듈이 있는 training · simulation · capture · tasks · realtime 은 패키지), `seeds/` (목업 데이터), `configs/`, `rpc/` (gRPC), `core/` (에러 · 이벤트), `utils/` (시각 · 경로 · ID · 난수 공용 함수). 지금은 메모리에 목업과 같은 데이터를 두고 동작합니다.
 
 ## 목업 데이터
 
