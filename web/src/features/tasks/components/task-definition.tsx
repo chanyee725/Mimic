@@ -52,6 +52,8 @@ export function TaskDefinition({ task, onChange }: Props) {
           <ErrorNote error={rigs.error} onRetry={() => void rigs.refetch()} />
         ) : !rigs.data ? (
           <LoadingNote />
+        ) : rigs.data.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">등록된 Rig 가 없습니다. data/rigs 에 rig 파일을 추가하세요.</p>
         ) : !rig ? (
           <p className="text-[13px] text-bad">Rig &quot;{task.rigId}&quot; 를 찾을 수 없습니다.</p>
         ) : (

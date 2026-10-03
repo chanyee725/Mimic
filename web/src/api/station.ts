@@ -22,8 +22,9 @@ export const useEpisodeActivity = (weeks = 52) =>
 export const useStationWarnings = () =>
   useQuery({ queryKey: [...qk.station, "warnings"], queryFn: () => api.get<string[]>("/station/warnings") })
 
-/** Task currently being captured on this station (`taskId` is null when none) */
-export const useCurrentTask = () => useQuery({ queryKey: currentTaskKey, queryFn: () => api.get<CurrentTask>("/station/current-task") })
+/** Task currently being captured on this station (null, or `taskId` null, when none) */
+export const useCurrentTask = () =>
+  useQuery({ queryKey: currentTaskKey, queryFn: () => api.get<CurrentTask | null>("/station/current-task") })
 
 /** Mutation variable: the task id, or null to clear */
 export const useSetCurrentTask = () =>

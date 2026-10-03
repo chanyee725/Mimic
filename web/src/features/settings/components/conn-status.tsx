@@ -25,8 +25,9 @@ export function ConnStatus({
 }) {
   const test = useTestConnection()
   const s = LABEL[state]
-  // Why the last test failed (e.g. missing key), straight from the server
+  // The last test's note from the server: why it failed, or what was checked (e.g. "Key is set (not verified online)")
   const failure = test.error?.message ?? (test.data?.state === "error" && state === "error" ? test.data.detail : undefined)
+  const note = !failure && test.data?.state !== "error" ? test.data?.detail : undefined
 
   return (
     <div className="grid justify-items-end gap-1">
@@ -39,6 +40,7 @@ export function ConnStatus({
         </Button>
       </div>
       {failure && <span className="text-xs text-bad">{failure}</span>}
+      {note && <span className="text-xs text-muted-foreground">{note}</span>}
     </div>
   )
 }

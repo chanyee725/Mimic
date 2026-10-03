@@ -52,7 +52,7 @@ export function IntegrationsSection() {
           <ConnStatus
             target="runpod"
             state={server.runpod.state}
-            detail={`${formatUsd(server.runpod.spentThisMonth)} this month`}
+            detail={server.runpod.spentThisMonth === null ? undefined : `${formatUsd(server.runpod.spentThisMonth)} this month`}
             canTest={server.runpod.apiKey.set}
           />
         </SettingRow>

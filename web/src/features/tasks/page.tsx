@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom"
 
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
+import { useRigs } from "@/api/rigs"
 import { useTasks } from "@/api/tasks"
 
 import { LoadingNote } from "@/components/common/query-state"
@@ -11,6 +12,7 @@ import { TaskList } from "./components/task-list"
 export function TasksPage() {
   const { taskId } = useParams()
   const tasks = useTasks()
+  const noRigs = useRigs().data?.length === 0
   const list = tasks.data ?? []
   // Unknown ids fall back to the first task once the list is in
   const selectedId = tasks.isPending ? taskId : (list.find((t) => t.id === taskId) ?? list[0])?.id
@@ -27,7 +29,11 @@ export function TasksPage() {
             {tasks.isError ? null : tasks.isPending ? (
               <LoadingNote />
             ) : (
-              <EmptyState>Task 가 없습니다. 왼쪽 + 버튼으로 Task 를 만들어 시작하세요.</EmptyState>
+              <EmptyState>
+                {noRigs
+                  ? "등록된 Rig 가 없습니다. data/rigs 에 rig 파일을 추가한 뒤 Task 를 만드세요."
+                  : "Task 가 없습니다. 왼쪽 + 버튼으로 Task 를 만들어 시작하세요."}
+              </EmptyState>
             )}
           </Panel>
         )}

@@ -13,13 +13,14 @@ export type Settings = {
       volume: string
       monthlyBudget: number
       idleAlertMin: number
-      spentThisMonth: number
+      /** null until RunPod billing is read */
+      spentThisMonth: number | null
       state: ConnState
     }
   }
   connection: {
-    api: { url: string; state: ConnState; latencyMs?: number }
-    grpc: { url: string; state: ConnState; latencyMs?: number }
+    api: { url: string; state: ConnState; latencyMs?: number | null }
+    grpc: { url: string; state: ConnState; latencyMs?: number | null }
     webrtc: { stun: string; turn: string; state: ConnState }
   }
   notifications: {
@@ -39,10 +40,11 @@ export type SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"
 
 export type TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "slack"
 
-export type ConnTestResult = { state: ConnState; latencyMs?: number; detail?: string }
+export type ConnTestResult = { state: ConnState; latencyMs?: number | null; detail?: string | null }
 
 export type DiskPartKey = "raw" | "datasets" | "models" | "other"
 
+/** GiB; free space is totalGB minus the parts */
 export type Disk = { totalGB: number; parts: { key: DiskPartKey; label: string; gb: number }[] }
 
 /** Used share of the disk, 0–100 */

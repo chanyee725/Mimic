@@ -3,6 +3,9 @@ import { useDiskUsage } from "@/api/settings"
 import { diskUsedPct } from "@/domain/settings"
 import { cn } from "@/lib/utils"
 
+/** GiB with sensible precision: 1,234 / 56.7 / 0.42 */
+const gib = (gb: number) => (gb >= 100 ? Math.round(gb).toLocaleString() : gb >= 10 ? gb.toFixed(1) : gb.toFixed(2))
+
 const PART_COLOR: Record<string, string> = {
   raw: "bg-series-1",
   datasets: "bg-series-3",
@@ -17,12 +20,16 @@ export function DiskUsage() {
   if (query.isError) return <ErrorNote error={query.error} onRetry={() => void query.refetch()} />
   if (!disk) return <LoadingNote className="py-2" />
   const used = disk.parts.reduce((a, p) => a + p.gb, 0)
+  const free = Math.max(0, disk.totalGB - used)
   const pct = diskUsedPct(disk)
   return (
     <div className="grid gap-2">
       <div className="flex items-baseline justify-between text-[13px] tabular-nums">
         <span>
-          {used.toLocaleString()} GB <span className="text-muted-foreground">of {disk.totalGB.toLocaleString()} GB used</span>
+          {gib(used)} GB{" "}
+          <span className="text-muted-foreground">
+            of {gib(disk.totalGB)} GB used, {gib(free)} GB free
+          </span>
         </span>
         <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
       </div>
@@ -35,7 +42,7 @@ export function DiskUsage() {
         {disk.parts.map((p) => (
           <span key={p.key} className="inline-flex items-center gap-1.5">
             <span className={cn("size-2 rounded-sm", PART_COLOR[p.key])} />
-            {p.label} {p.gb} GB
+            {p.label} {gib(p.gb)} GB
           </span>
         ))}
       </div>
