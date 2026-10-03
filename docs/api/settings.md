@@ -5,10 +5,9 @@ Station settings, secrets and connection checks. Web: `api/settings.ts`, Setting
 ## Types
 
 ```ts
-Secret    = { set: boolean; last4?: string }          // write-only values
+Secret    = { set: boolean; last4?: string }          // derived from .env; raw values are write-only
 ConnState = "ok" | "error" | "unknown"
 Settings  = { version: number } & {
-  station: { name; id; timezone }
   integrations: {
     hf:     { token: Secret; namespace; privateByDefault; state: ConnState }
     runpod: { apiKey: Secret; region; volume; monthlyBudget; idleAlertMin; spentThisMonth; state: ConnState }
@@ -16,7 +15,6 @@ Settings  = { version: number } & {
   }
   storage:    { rawPath; datasetsPath; modelsPath; warnAtPct; deleteRejected; deleteRejectedAfterDays; keepCheckpoints }
   connection: { api: { url; state; latencyMs? }; grpc: { url; state; latencyMs? }; webrtc: { stun; turn; state } }
-  training:   { lerobotCommit; defaultCompute: "local" | "runpod"; saveFreq; simGpu; simEnvsPath }
   notifications: { slackWebhook: Secret; events: { key; label; on: boolean }[] }
 }
 SecretName = "hf_token" | "runpod_api_key" | "wandb_api_key" | "slack_webhook"
@@ -27,17 +25,29 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 ## Storage
 
 - `data/settings/<part>.yaml`, one file per part, snake_case keys, hand-editable and committed:
-  `station`, `huggingface` (integrations.hf), `runpod`, `wandb`, `storage`, `connection`, `training`, `notifications`.
-  Files hold only editable values: no `version` (kept in memory, 1 after each start) and no live fields
-  (`state`, `latency_ms`, `spent_this_month`), so connection tests never change them. Secrets appear only as `{set, last4}`.
+  `huggingface` (integrations.hf), `runpod`, `wandb`, `storage`, `connection`, `notifications`.
+  Files hold only editable values: no `version` (kept in memory, 1 after each start), no live fields
+  (`state`, `latency_ms`, `spent_this_month`) and no secrets, so connection tests and key changes never touch them.
 - On load the seed document is overlaid with each file (nested objects merge, other values replace), so missing keys and live
   fields get seed values. A missing file is written from the seeds; an invalid one is left untouched and that part uses the seeds
   (a warning is logged) until it is fixed or that part is saved.
 - A save rewrites only the files whose content changed.
-- `data/secrets.yaml`: raw secret values (mode 0600, ignored by version control, write-only, never returned by the API). Its
-  values win over `last4` in the part files on load.
+- Secrets live in the repo-root `.env` (`config.env_file_path`; git-ignored, mode 0600) under the names other tools read:
+
+  | Secret name | `.env` / environment key |
+  | --- | --- |
+  | `hf_token` | `HF_TOKEN` |
+  | `runpod_api_key` | `RUNPOD_API_KEY` |
+  | `wandb_api_key` | `WANDB_API_KEY` |
+  | `slack_webhook` | `SLACK_WEBHOOK_URL` |
+
+  On load each value comes from the process environment first, then `.env`; the `{set, last4}` in `Settings` is computed from it.
+  PUT / DELETE edit only that key's line in `.env` (the file is created if missing; comments and `VLA_*` lines stay) and the
+  in-memory value. A value set in the environment still wins after the next restart. Raw values never leave the backend.
 - Migration: an old `data/settings.yaml` is split into the part files when `data/settings/` does not exist yet, then deleted.
-- On start, `training.sim_envs_path` sets the simulation environments folder.
+  An old `data/secrets.yaml` is copied into `.env` (keys not already set) and deleted. The dropped `station.yaml` /
+  `training.yaml` part files are deleted, and stale secret entries in part files are removed on load.
+- The simulation environments folder comes from `VLA_SIM_ENVS_DIR` (default `sim/envs`), not from settings.
 - Disk, shortcuts and versions are not stored.
 
 ## Endpoints
@@ -45,7 +55,7 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 | Method | Path | Body | Returns | Web |
 | --- | --- | --- | --- | --- |
 | GET | `/settings` | | `Settings` | `getSettings()` |
-| PATCH | `/settings/{section}` | `{ version, ...sectionFields }` (secrets and read-only fields like `state`, `spentThisMonth`, `station.id` are ignored) | `Settings`; 409 stale version | Save changes |
+| PATCH | `/settings/{section}` | `{ version, ...sectionFields }` (secrets and read-only fields like `state`, `spentThisMonth` are ignored) | `Settings`; 409 stale version | Save changes |
 | PUT | `/settings/secrets/{name}` | `{ value }` (min 8 chars) | `Secret` | Set / Replace key |
 | DELETE | `/settings/secrets/{name}` | | `Secret` (`set: false`) | Remove key |
 | POST | `/settings/test/{target}` | | `{ state: ConnState; latencyMs?: number; detail?: string }` | Test / Send test |
@@ -53,17 +63,17 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 | GET | `/settings/shortcuts` | | `{ page; keys: { keys: string[]; action }[] }[]` | `getShortcuts()` |
 | GET | `/settings/versions` | | `{ k: string; v: string }[]` (web app, backend, lerobot, CUDA driver, Isaac Sim) | `getVersions()` |
 
-`section` ∈ `station | integrations | storage | connection | training | notifications` (recording rates live on each rig).
-`training.simEnvsPath` is repo-relative (`sim/envs`) or absolute; changing it re-points the simulation scanner and rescans.
+`section` ∈ `integrations | storage | connection | notifications` (recording rates live on each rig; the old `station` and
+`training` sections are gone and answer 422 like any unknown section).
 
 Rules:
 
 - PATCH merges: nested objects merge key by key, other values replace. Keys may be camelCase or snake_case;
-  unknown keys are ignored. Read-only: `state`, `latencyMs`, `spentThisMonth`, secrets (`token`, `apiKey`, `slackWebhook`), `station.id`.
+  unknown keys are ignored. Read-only: `state`, `latencyMs`, `spentThisMonth`, secrets (`token`, `apiKey`, `slackWebhook`).
 - `notifications.events` is matched by `key`; only `on` is editable (unknown key → 422).
 - A missing `version` or an invalid section value → 422 (`details.errors[].loc` starts with `body`); a stale version → 409 with
   the whole document in `details.current`. Success bumps `version` and publishes `settings.updated` (data `Settings`).
 - Unknown `section`, secret `name` or test `target` in the path → 422.
-- Secret writes do not bump `version`; they reset the related integration `state` to `unknown`. Raw values stay in backend memory only.
+- Secret writes do not bump `version`; they reset the related integration `state` to `unknown`. Raw values stay in `.env` and backend memory only.
 - `POST /settings/test/{target}` stores the result in the matching `state` (and `latencyMs` for api / grpc). The mock answers `ok`
   for api / grpc / webrtc, and for hf / runpod / wandb / slack when the related secret is set (else `error` with `detail`).
