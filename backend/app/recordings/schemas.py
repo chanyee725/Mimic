@@ -7,6 +7,7 @@ from app.tasks.schemas import Outcome
 
 TopicKind = Literal["action", "state", "video", "label", "glove", "other"]
 RecordingReview = Literal["pending", "accepted", "rejected"]
+RecordingSource = Literal["capture", "external"]
 
 
 class McapTopic(CamelModel):
@@ -32,16 +33,28 @@ class SubtaskSpan(CamelModel):
 class Recording(CamelModel):
     id: str
     file: str
-    source: Literal["capture", "external"]
+    source: RecordingSource
     task_id: str | None = None
     rig_id: str | None = None
     episode: int | None = None
     recorded_at: str
     duration_s: float
-    size_mb: float
+    size_mb: float = Field(alias="sizeMB")
     outcome: Outcome | None = None
     review: RecordingReview
     topics: list[McapTopic]
     subtasks: list[SubtaskSpan]
     drops: list[float]
     checks: list[RecordingCheck]
+
+
+class ReviewPatch(CamelModel):
+    review: RecordingReview
+
+
+class Samples(CamelModel):
+    """Resampled joint series for plots: series[topic][joint][sample]."""
+
+    joints: list[str]
+    t: list[float]
+    series: dict[str, list[list[float]]]
