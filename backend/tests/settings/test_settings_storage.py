@@ -13,7 +13,6 @@ PART_FILES = [
     "notifications.yaml",
     "runpod.yaml",
     "storage.yaml",
-    "wandb.yaml",
 ]
 
 
@@ -109,9 +108,9 @@ def test_reload_does_not_rewrite_files():
 def test_connection_test_does_not_touch_files(client):
     mark_old()
     before = snapshot()
-    for target in ("hf", "wandb", "api", "grpc"):
+    for target in ("hf", "runpod", "api", "grpc"):
         client.post(f"/settings/test/{target}")
-    assert client.get("/settings").json()["integrations"]["wandb"]["state"] == "error"
+    assert client.get("/settings").json()["integrations"]["runpod"]["state"] == "error"
     assert snapshot() == before
 
 
@@ -140,9 +139,9 @@ def test_hand_edited_file_loads(client):
 
 def test_missing_part_file_is_reseeded(client):
     client.patch("/settings/storage", json={"version": 1, "warnAtPct": 90})
-    part("wandb").unlink()
+    part("huggingface").unlink()
     service.reset()
-    assert read_part("wandb")["project"] == "vla-smolvla"
+    assert read_part("huggingface")["namespace"] == "vla-lab"
     assert read_part("storage")["warn_at_pct"] == 90
 
 

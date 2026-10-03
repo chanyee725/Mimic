@@ -38,11 +38,6 @@
         "idleAlertMin": 15,
         "spentThisMonth": 142.3,
         "state": "ok"
-      },
-      "wandb": {
-        "project": "vla-smolvla",
-        "enableByDefault": false,
-        "state": "unknown"
       }
     },
     "storage": {

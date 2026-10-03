@@ -87,11 +87,11 @@ def test_removed_sections(client, section):
 
 
 def test_secrets_write_only(client):
-    r = client.put("/settings/secrets/wandb_api_key", json={"value": "wb-secret-9XyZ"})
+    r = client.put("/settings/secrets/runpod_api_key", json={"value": "rp-secret-9XyZ"})
     assert r.status_code == 200 and r.json() == {"set": True, "last4": "9XyZ"}
     s = get(client)
-    assert s["integrations"]["wandb"]["apiKey"] == {"set": True, "last4": "9XyZ"}
-    assert "wb-secret" not in client.get("/settings").text
+    assert s["integrations"]["runpod"]["apiKey"] == {"set": True, "last4": "9XyZ"}
+    assert "rp-secret" not in client.get("/settings").text
     assert s["version"] == 1
 
 
@@ -112,9 +112,9 @@ def test_connection_tests(client):
     assert client.post("/settings/test/hf").json()["state"] == "error"
     client.put("/settings/secrets/hf_token", json={"value": "hf_value_3kQz"})
     assert client.post("/settings/test/hf").json()["state"] == "ok"
-    r = client.post("/settings/test/wandb").json()
+    r = client.post("/settings/test/runpod").json()
     assert r["state"] == "error" and "detail" in r
-    assert get(client)["integrations"]["wandb"]["state"] == "error"
+    assert get(client)["integrations"]["runpod"]["state"] == "error"
     client.put("/settings/secrets/slack_webhook", json={"value": "https://hooks.example/abcd"})
     assert client.post("/settings/test/slack").json()["state"] == "ok"
     assert client.post("/settings/test/nope").status_code == 422

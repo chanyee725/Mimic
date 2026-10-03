@@ -14,11 +14,10 @@ from app.core import storage
 
 log = logging.getLogger(__name__)
 
-# Secret name (API) → env var (huggingface_hub, runpod, wandb, Slack)
+# Secret name (API) → env var (huggingface_hub, runpod, Slack)
 ENV_KEYS: dict[str, str] = {
     "hf_token": "HF_TOKEN",
     "runpod_api_key": "RUNPOD_API_KEY",
-    "wandb_api_key": "WANDB_API_KEY",
     "slack_webhook": "SLACK_WEBHOOK_URL",
 }
 LEGACY_FILE = "secrets.yaml"  # data/secrets.yaml, migrated into .env on load

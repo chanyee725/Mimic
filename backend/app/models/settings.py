@@ -7,7 +7,7 @@ from pydantic import Field, model_serializer
 from app.schemas.common import CamelModel
 
 ConnState = Literal["ok", "error", "unknown"]
-SecretName = Literal["hf_token", "runpod_api_key", "wandb_api_key", "slack_webhook"]
+SecretName = Literal["hf_token", "runpod_api_key", "slack_webhook"]
 Section = Literal["integrations", "storage", "connection", "notifications"]
 
 
@@ -40,17 +40,9 @@ class RunpodSettings(CamelModel):
     state: ConnState
 
 
-class WandbSettings(CamelModel):
-    api_key: Secret
-    project: str
-    enable_by_default: bool
-    state: ConnState
-
-
 class Integrations(CamelModel):
     hf: HfSettings
     runpod: RunpodSettings
-    wandb: WandbSettings
 
 
 class StorageSettings(CamelModel):

@@ -41,30 +41,30 @@ def test_put_creates_private_env_file(client):
 
 
 def test_put_and_delete_keep_other_lines(client):
-    config.env_file_path.write_text(OTHER_LINES + "WANDB_API_KEY=old-wandb-key\n")
+    config.env_file_path.write_text(OTHER_LINES + "RUNPOD_API_KEY=old-runpod-key\n")
     config.env_file_path.chmod(0o644)
     service.reset()
-    assert client.get("/settings").json()["integrations"]["wandb"]["apiKey"]["last4"] == "-key"
+    assert client.get("/settings").json()["integrations"]["runpod"]["apiKey"]["last4"] == "-key"
 
-    client.put("/settings/secrets/wandb_api_key", json={"value": "new-wandb-1234"})
+    client.put("/settings/secrets/runpod_api_key", json={"value": "new-runpod-1234"})
     client.put("/settings/secrets/slack_webhook", json={"value": "https://hooks.example/abcd"})
     assert env_text().startswith(OTHER_LINES)
     assert stat.S_IMODE(config.env_file_path.stat().st_mode) == 0o600
     values = env_values()
-    assert values["WANDB_API_KEY"] == "new-wandb-1234"
+    assert values["RUNPOD_API_KEY"] == "new-runpod-1234"
     assert values["SLACK_WEBHOOK_URL"] == "https://hooks.example/abcd"
     assert values["VLA_TIMEZONE"] == "Asia/Seoul"
 
-    assert client.delete("/settings/secrets/wandb_api_key").json() == {"set": False}
-    assert "WANDB_API_KEY" not in env_values()
+    assert client.delete("/settings/secrets/runpod_api_key").json() == {"set": False}
+    assert "RUNPOD_API_KEY" not in env_values()
     assert env_text().startswith(OTHER_LINES)
-    assert not service.has_secret("wandb_api_key")
+    assert not service.has_secret("runpod_api_key")
     # Deleting a missing key is fine
-    assert client.delete("/settings/secrets/runpod_api_key").status_code == 200
+    assert client.delete("/settings/secrets/hf_token").status_code == 200
 
     service.reset()
     s = client.get("/settings").json()
-    assert s["integrations"]["wandb"]["apiKey"] == {"set": False}
+    assert s["integrations"]["runpod"]["apiKey"] == {"set": False}
     assert s["notifications"]["slackWebhook"] == {"set": True, "last4": "abcd"}
 
 

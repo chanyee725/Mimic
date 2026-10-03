@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Secret env vars (also the names in .env); tests never see the developer's values
-SECRET_VARS = ("HF_TOKEN", "RUNPOD_API_KEY", "WANDB_API_KEY", "SLACK_WEBHOOK_URL")
+SECRET_VARS = ("HF_TOKEN", "RUNPOD_API_KEY", "SLACK_WEBHOOK_URL")
 
 # Services seed their YAML files at import time; keep them out of the repo's data/
 os.environ.setdefault("VLA_DATA_DIR", tempfile.mkdtemp(prefix="vla-data-"))

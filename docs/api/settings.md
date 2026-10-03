@@ -11,21 +11,20 @@ Settings  = { version: number } & {
   integrations: {
     hf:     { token: Secret; namespace; privateByDefault; state: ConnState }
     runpod: { apiKey: Secret; region; volume; monthlyBudget; idleAlertMin; spentThisMonth; state: ConnState }
-    wandb:  { apiKey: Secret; project; enableByDefault; state: ConnState }
   }
   storage:    { rawPath; datasetsPath; modelsPath; warnAtPct; deleteRejected; deleteRejectedAfterDays; keepCheckpoints }
   connection: { api: { url; state; latencyMs? }; grpc: { url; state; latencyMs? }; webrtc: { stun; turn; state } }
   notifications: { slackWebhook: Secret; events: { key; label; on: boolean }[] }
 }
-SecretName = "hf_token" | "runpod_api_key" | "wandb_api_key" | "slack_webhook"
-TestTarget = "hf" | "runpod" | "wandb" | "api" | "grpc" | "webrtc" | "slack"
+SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"
+TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "slack"
 Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other"; label: string; gb: number }[] }
 ```
 
 ## Storage
 
 - `data/settings/<part>.yaml`, one file per part, snake_case keys, hand-editable and committed:
-  `huggingface` (integrations.hf), `runpod`, `wandb`, `storage`, `connection`, `notifications`.
+  `huggingface` (integrations.hf), `runpod`, `storage`, `connection`, `notifications`.
   Files hold only editable values: no `version` (kept in memory, 1 after each start), no live fields
   (`state`, `latency_ms`, `spent_this_month`) and no secrets, so connection tests and key changes never touch them.
 - On load the seed document is overlaid with each file (nested objects merge, other values replace), so missing keys and live
@@ -38,14 +37,13 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
   | --- | --- |
   | `hf_token` | `HF_TOKEN` |
   | `runpod_api_key` | `RUNPOD_API_KEY` |
-  | `wandb_api_key` | `WANDB_API_KEY` |
   | `slack_webhook` | `SLACK_WEBHOOK_URL` |
 
   On load each value comes from the process environment first, then `.env`; the `{set, last4}` in `Settings` is computed from it.
   PUT / DELETE edit only that key's line in `.env` (the file is created if missing; comments and `VLA_*` lines stay) and the
   in-memory value. A value set in the environment still wins after the next restart. Raw values never leave the backend.
 - Migration: an old `data/settings.yaml` is split into the part files when `data/settings/` does not exist yet, then deleted.
-  An old `data/secrets.yaml` is copied into `.env` (keys not already set) and deleted. The dropped `station.yaml` /
+  An old `data/secrets.yaml` is copied into `.env` (keys not already set) and deleted. The dropped `station.yaml` and
   `training.yaml` part files are deleted, and stale secret entries in part files are removed on load.
 - The simulation environments folder comes from `VLA_SIM_ENVS_DIR` (default `sim/envs`), not from settings.
 - Disk, shortcuts and versions are not stored.
@@ -76,4 +74,4 @@ Rules:
 - Unknown `section`, secret `name` or test `target` in the path → 422.
 - Secret writes do not bump `version`; they reset the related integration `state` to `unknown`. Raw values stay in `.env` and backend memory only.
 - `POST /settings/test/{target}` stores the result in the matching `state` (and `latencyMs` for api / grpc). The mock answers `ok`
-  for api / grpc / webrtc, and for hf / runpod / wandb / slack when the related secret is set (else `error` with `detail`).
+  for api / grpc / webrtc, and for hf / runpod / slack when the related secret is set (else `error` with `detail`).

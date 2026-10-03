@@ -43,7 +43,7 @@ def test_config(client):
     assert cfg["runpod"]["gpus"][0]["vramGB"] == 16
     assert cfg["runpod"]["priceFactor"]["pricing"]["spot"] == 0.5
     keys = [p["key"] for g in cfg["paramGroups"] for p in g["params"]]
-    assert "policy.optimizer_lr" in keys and len(keys) == 18
+    assert "policy.optimizer_lr" in keys and len(keys) == 17
 
 
 def test_jobs_list_and_get(client):

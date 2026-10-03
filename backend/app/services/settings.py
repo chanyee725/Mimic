@@ -26,7 +26,6 @@ from app.models.settings import (
     SecretName,
     Settings,
     StorageSettings,
-    WandbSettings,
 )
 from app.schemas.common import CamelModel
 from app.schemas.settings import ConnTestResult, Disk, ShortcutGroup, VersionRow
@@ -43,7 +42,6 @@ OBSOLETE_PARTS = ("station", "training")
 PARTS: dict[str, tuple[tuple[str, ...], type[CamelModel]]] = {
     "huggingface": (("integrations", "hf"), HfSettings),
     "runpod": (("integrations", "runpod"), RunpodSettings),
-    "wandb": (("integrations", "wandb"), WandbSettings),
     "storage": (("storage",), StorageSettings),
     "connection": (("connection",), ConnectionSettings),
     "notifications": (("notifications",), NotificationSettings),
@@ -65,17 +63,15 @@ READ_ONLY = {"state", "latencyMs", "spentThisMonth", "token", "apiKey", "slackWe
 SECRET_PATHS: dict[str, tuple[str, ...]] = {
     "hf_token": ("integrations", "hf", "token"),
     "runpod_api_key": ("integrations", "runpod", "apiKey"),
-    "wandb_api_key": ("integrations", "wandb", "apiKey"),
     "slack_webhook": ("notifications", "slackWebhook"),
 }
 TARGET_SECRET = {
     "hf": "hf_token",
     "runpod": "runpod_api_key",
-    "wandb": "wandb_api_key",
     "slack": "slack_webhook",
 }
 # Mock round-trip times per target
-LATENCY_MS = {"hf": 180, "runpod": 240, "wandb": 150, "slack": 210, "api": 4, "grpc": 2}
+LATENCY_MS = {"hf": 180, "runpod": 240, "slack": 210, "api": 4, "grpc": 2}
 
 
 def reset() -> None:
