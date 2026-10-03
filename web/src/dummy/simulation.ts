@@ -1,42 +1,202 @@
-// Mock Isaac Sim scenes and evaluation jobs. Simulation runs only on the station's local RTX 4090.
+// Mock Isaac Sim environments (registered folders) and evaluation jobs. Simulation runs only on the station's local RTX 4090.
 
-import type { Randomization, SimEpisode, SimJob, SimScene } from "@/domain/simulation"
+import type { Randomization, SimEnv, SimEnvFile, SimEpisode, SimJob } from "@/domain/simulation"
 
 export const SIM_GPU = { id: "cuda:0", name: "RTX 4090", vram: "24 GB" }
 
-export const SIM_SCENES: SimScene[] = [
+/** Folder the station scans for environments (one sub-folder per environment) */
+export const SIM_ENVS_DIR = "~/vla/sim/envs"
+
+const files = (extra: SimEnvFile[] = []): SimEnvFile[] => [
+  { path: "env.yaml", sizeKB: 1 },
+  { path: "scene.usd", sizeKB: 18_400 },
+  { path: "success.py", sizeKB: 3 },
+  ...extra,
+]
+
+export const SIM_ENVS: SimEnv[] = [
   {
-    id: "scn-stack",
+    id: "stack-two-blocks",
     name: "Tabletop, two blocks",
+    path: `${SIM_ENVS_DIR}/stack-two-blocks`,
+    description: "Two 4 cm blocks on a 60×40 cm table, same layout as the real workbench.",
     taskId: "stack-two-blocks",
-    usd: "~/vla/sim/scenes/stack_two_blocks.usd",
     cameras: ["top", "wrist"],
+    actionDim: 6,
+    maxSeconds: 40,
     calibrated: true,
+    state: "ready",
+    manifest: `name: Tabletop, two blocks
+task: stack-two-blocks
+robot: so101
+scene: scene.usd
+cameras:
+  top: { resolution: [640, 480], fps: 30 }
+  wrist: { resolution: [640, 480], fps: 30 }
+action_dim: 6
+episode:
+  max_seconds: 40
+  success: success.py:check
+`,
+    files: files([{ path: "assets/blocks.usd", sizeKB: 640 }]),
+    registeredAt: "2026-09-20 10:12",
+    updatedAt: "2026-10-01 17:40",
   },
   {
-    id: "scn-pick",
+    id: "pick-red-cube",
     name: "Tabletop, red cube and bowl",
+    path: `${SIM_ENVS_DIR}/pick-red-cube`,
     taskId: "pick-red-cube",
-    usd: "~/vla/sim/scenes/pick_red_cube.usd",
     cameras: ["top", "wrist"],
+    actionDim: 6,
+    maxSeconds: 40,
     calibrated: true,
+    state: "ready",
+    manifest: `name: Tabletop, red cube and bowl
+task: pick-red-cube
+robot: so101
+scene: scene.usd
+cameras:
+  top: { resolution: [640, 480], fps: 30 }
+  wrist: { resolution: [640, 480], fps: 30 }
+action_dim: 6
+episode:
+  max_seconds: 40
+  success: success.py:check
+`,
+    files: files(),
+    registeredAt: "2026-09-22 14:30",
+    updatedAt: "2026-09-28 09:05",
   },
   {
-    id: "scn-drawer",
+    id: "open-drawer",
     name: "Cabinet with top drawer",
+    path: `${SIM_ENVS_DIR}/open-drawer`,
     taskId: "open-drawer",
-    usd: "~/vla/sim/scenes/open_drawer.usd",
     cameras: ["top", "wrist"],
+    actionDim: 6,
+    maxSeconds: 40,
     calibrated: true,
+    state: "ready",
+    manifest: `name: Cabinet with top drawer
+task: open-drawer
+robot: so101
+scene: scene.usd
+cameras:
+  top: { resolution: [640, 480], fps: 30 }
+  wrist: { resolution: [640, 480], fps: 30 }
+action_dim: 6
+episode:
+  max_seconds: 40
+  success: success.py:check
+`,
+    files: files(),
+    registeredAt: "2026-09-25 11:00",
+    updatedAt: "2026-09-30 16:22",
   },
   {
-    id: "scn-sort",
+    id: "sort-by-color",
     name: "Colour trays",
+    path: `${SIM_ENVS_DIR}/sort-by-color`,
+    description: "Top camera pose not matched to the rig yet",
     taskId: "sort-by-color",
-    usd: "~/vla/sim/scenes/sort_by_color.usd",
     cameras: ["top", "wrist"],
+    actionDim: 6,
+    maxSeconds: 40,
     calibrated: false,
-    note: "Top camera pose not matched to the rig yet",
+    state: "ready",
+    manifest: `name: Colour trays
+task: sort-by-color
+robot: so101
+scene: scene.usd
+cameras:
+  top: { resolution: [640, 480], fps: 30 }
+  wrist: { resolution: [640, 480], fps: 30 }
+action_dim: 6
+episode:
+  max_seconds: 40
+  success: success.py:check
+`,
+    files: files(),
+    registeredAt: "2026-09-29 13:45",
+    updatedAt: "2026-10-01 18:01",
+  },
+  {
+    id: "clutter-stress",
+    name: "Cluttered table (stress test)",
+    path: `${SIM_ENVS_DIR}/clutter-stress`,
+    description: "Ten random distractor objects around the target. Not tied to a task; use it to check robustness.",
+    cameras: ["top", "wrist"],
+    actionDim: 6,
+    maxSeconds: 40,
+    calibrated: true,
+    state: "ready",
+    manifest: `name: Cluttered table (stress test)
+robot: so101
+scene: scene.usd
+cameras:
+  top: { resolution: [640, 480], fps: 30 }
+  wrist: { resolution: [640, 480], fps: 30 }
+action_dim: 6
+episode:
+  max_seconds: 40
+  success: success.py:check
+`,
+    files: files(),
+    registeredAt: "2026-10-01 20:10",
+    updatedAt: "2026-10-01 20:10",
+  },
+  {
+    id: "top-only-demo",
+    name: "Top camera only",
+    path: `${SIM_ENVS_DIR}/top-only-demo`,
+    description: "Older demo scene with only the top camera.",
+    cameras: ["top"],
+    actionDim: 6,
+    maxSeconds: 40,
+    calibrated: true,
+    state: "ready",
+    manifest: `name: Top camera only
+robot: so101
+scene: scene.usd
+cameras:
+  top: { resolution: [640, 480], fps: 30 }
+action_dim: 6
+episode:
+  max_seconds: 40
+  success: success.py:check
+`,
+    files: files(),
+    registeredAt: "2026-09-18 09:30",
+    updatedAt: "2026-09-18 09:30",
+  },
+  {
+    id: "pour-into-cup",
+    name: "Two cups",
+    path: `${SIM_ENVS_DIR}/pour-into-cup`,
+    cameras: ["top", "wrist"],
+    actionDim: 6,
+    maxSeconds: 40,
+    calibrated: true,
+    state: "invalid",
+    error: "env.yaml: success.py not found (expected success.py:check)",
+    manifest: `name: Two cups
+robot: so101
+scene: scene.usd
+cameras:
+  top: { resolution: [640, 480], fps: 30 }
+  wrist: { resolution: [640, 480], fps: 30 }
+action_dim: 6
+episode:
+  max_seconds: 40
+  success: success.py:check
+`,
+    files: [
+      { path: "env.yaml", sizeKB: 1 },
+      { path: "scene.usd", sizeKB: 12_100 },
+    ],
+    registeredAt: "2026-10-02 08:50",
+    updatedAt: "2026-10-02 08:50",
   },
 ]
 
@@ -68,7 +228,7 @@ export const SIM_JOBS: SimJob[] = [
   job({
     id: "sim_012",
     modelId: "m-stack-20k",
-    sceneId: "scn-stack",
+    envId: "stack-two-blocks",
     status: "running",
     episodes: 100,
     seedStart: 1000,
@@ -80,7 +240,7 @@ export const SIM_JOBS: SimJob[] = [
   job({
     id: "sim_013",
     modelId: "m-stack-10k",
-    sceneId: "scn-stack",
+    envId: "stack-two-blocks",
     status: "queued",
     episodes: 100,
     seedStart: 1000,
@@ -89,7 +249,7 @@ export const SIM_JOBS: SimJob[] = [
   job({
     id: "sim_011",
     modelId: "m-open-drawer-20k",
-    sceneId: "scn-drawer",
+    envId: "open-drawer",
     status: "done",
     episodes: 50,
     seedStart: 2000,
@@ -101,7 +261,7 @@ export const SIM_JOBS: SimJob[] = [
   job({
     id: "sim_010",
     modelId: "m-open-drawer-15k",
-    sceneId: "scn-drawer",
+    envId: "open-drawer",
     status: "done",
     episodes: 50,
     seedStart: 2000,
@@ -113,13 +273,14 @@ export const SIM_JOBS: SimJob[] = [
   job({
     id: "sim_009",
     modelId: "m-stack-20k",
-    sceneId: "scn-sort",
+    envId: "sort-by-color",
     status: "failed",
     episodes: 50,
     seedStart: 3000,
     startedAt: "2026-10-01 18:02",
     elapsed: "1m",
     results: [],
-    error: "Isaac Sim could not load sort_by_color.usd: missing asset trays/blue_tray.usd. Re-export the scene and try again.",
+    error:
+      "Isaac Sim could not load sort-by-color/scene.usd: missing asset trays/blue_tray.usd. Re-export the scene into the environment folder and rescan.",
   }),
 ]

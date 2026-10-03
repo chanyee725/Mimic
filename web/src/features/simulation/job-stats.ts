@@ -1,4 +1,4 @@
-import type { SimEpisode, SimJob, SimScene } from "@/domain/simulation"
+import type { SimEpisode, SimJob, SimEnv } from "@/domain/simulation"
 import { plural } from "@/lib/format"
 
 import { RANDOMIZATION } from "./lib"
@@ -19,10 +19,10 @@ export const randomizationLabel = (job: SimJob) => RANDOMIZATION.find((r) => r.v
 export const seedRange = (job: SimJob) => `${job.seedStart}–${job.seedStart + job.episodes - 1}`
 
 /** Page description: "sim_012, Tabletop, two blocks, 100 episodes, randomization Low, seeds 1000–1099" */
-export function jobDescription(job: SimJob, scene?: SimScene) {
+export function jobDescription(job: SimJob, env?: SimEnv) {
   return [
     job.id,
-    scene?.name ?? job.sceneId,
+    env?.name ?? job.envId,
     plural(job.episodes, "episode"),
     `randomization ${randomizationLabel(job)}`,
     `seeds ${seedRange(job)}`,

@@ -46,6 +46,18 @@ export function TrainingSection() {
         <SettingRow label="Isaac Sim GPU" hint="시뮬레이션 평가는 이 스테이션의 RTX GPU 에서만 돌립니다">
           <span className="text-[13px]">{draft.simGpu}</span>
         </SettingRow>
+        <SettingRow
+          label="Environments folder"
+          hint="이 폴더 아래에 환경 폴더(env.yaml · scene.usd · success.py)를 넣으면 Simulation 에 등록됩니다"
+          htmlFor="tr-envs"
+        >
+          <Input
+            id="tr-envs"
+            className="h-8 font-mono text-[13px]"
+            value={draft.simEnvsPath}
+            onChange={(e) => set("simEnvsPath", e.target.value)}
+          />
+        </SettingRow>
       </SettingsSection>
       <SaveBar dirty={dirty} onSave={save} onReset={reset} />
     </SettingsGroup>

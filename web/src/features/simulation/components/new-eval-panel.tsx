@@ -13,14 +13,20 @@ import { SIM_GPU } from "@/api/simulation"
 import type { Randomization } from "@/domain/simulation"
 
 import { RANDOMIZATION } from "../lib"
-import { NEW_EVAL_DEFAULTS, scenesForTask, simGpuHolder } from "../new-eval"
+import { NEW_EVAL_DEFAULTS, envOptions, simGpuHolder } from "../new-eval"
 import { SceneList } from "./scene-list"
 
 /** New evaluation form. Pick a saved model and a scene, set the rollout count, then start (or queue) on the local GPU */
-export function NewEvalPanel() {
+export function NewEvalPanel({ initialEnvId }: { initialEnvId?: string }) {
+  void initialEnvId
+  return <NewEvalPanelBody />
+}
+
+function NewEvalPanelBody() {
   const [modelId, setModelId] = useState(() => listModels()[0]?.id ?? "")
   const model = getModel(modelId)
-  const scenes = scenesForTask(model?.taskId)
+  const options = envOptions(model)
+  const scenes = options.map((o) => o.env)
   const [sceneId, setSceneId] = useState(() => scenes[0]?.id ?? "")
   const scene = scenes.find((s) => s.id === sceneId)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -115,7 +121,7 @@ export function NewEvalPanel() {
         onSelect={(id) => {
           setModelId(id)
           // Jump to the first scene for the new model's task
-          setSceneId(scenesForTask(getModel(id)?.taskId)[0]?.id ?? "")
+          setSceneId(envOptions(getModel(id))[0]?.env.id ?? "")
         }}
       />
     </Panel>

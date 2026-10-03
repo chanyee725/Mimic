@@ -4,7 +4,7 @@ import { LuChevronRight } from "react-icons/lu"
 import { ProgressBar } from "@/components/common/progress-bar"
 import { StatusDot } from "@/components/common/status-dot"
 import { getModel } from "@/api/models"
-import { getSimScene } from "@/api/simulation"
+import { getSimEnv } from "@/api/simulation"
 import { simSuccessRate, type SimJob } from "@/domain/simulation"
 import { formatPct } from "@/lib/format"
 
@@ -16,7 +16,7 @@ export function SimJobRow({ job }: { job: SimJob }) {
   const pct = simPct(done, job.episodes)
   const status = SIM_STATUS[job.status]
   const model = getModel(job.modelId)
-  const scene = getSimScene(job.sceneId)
+  const env = getSimEnv(job.envId)
   const rand = RANDOMIZATION.find((r) => r.value === job.randomization)
   return (
     <li>
@@ -32,7 +32,7 @@ export function SimJobRow({ job }: { job: SimJob }) {
             </StatusDot>
           </div>
           <span className="truncate text-xs text-muted-foreground">
-            {job.id}, {scene?.name ?? job.sceneId}
+            {job.id}, {env?.name ?? job.envId}
           </span>
         </div>
         <div className="flex items-center gap-2">

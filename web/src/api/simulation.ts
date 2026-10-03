@@ -1,8 +1,12 @@
-import { SIM_GPU, SIM_JOBS, SIM_SCENES } from "@/dummy/simulation"
-import type { SimJob, SimScene } from "@/domain/simulation"
+import { SIM_ENVS, SIM_ENVS_DIR, SIM_GPU, SIM_JOBS } from "@/dummy/simulation"
+import type { SimEnv, SimJob } from "@/domain/simulation"
 
-export const listSimScenes = (): SimScene[] => SIM_SCENES
-export const getSimScene = (id: string): SimScene | undefined => SIM_SCENES.find((s) => s.id === id)
+/** Environments found in the environments folder (the backend rescans it on request) */
+export const listSimEnvs = (): SimEnv[] => SIM_ENVS
+export const getSimEnv = (id: string): SimEnv | undefined => SIM_ENVS.find((e) => e.id === id)
+/** Folder the station scans for environments */
+export const getSimEnvsDir = (): string => SIM_ENVS_DIR
+
 export const listSimJobs = (): SimJob[] => SIM_JOBS
 export const getSimJob = (id: string): SimJob | undefined => SIM_JOBS.find((j) => j.id === id)
 

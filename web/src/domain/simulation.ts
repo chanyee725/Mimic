@@ -1,14 +1,54 @@
-/** Isaac Sim scene that mirrors a real task setup on the SO-101 rig */
-export type SimScene = {
+/**
+ * An Isaac Sim environment the user built and registered by dropping a folder into the
+ * environments directory (Settings → Training → Simulation). The station scans that folder;
+ * each sub-folder with an env.yaml becomes one environment a saved model can be loaded into.
+ */
+export type SimEnvState = "ready" | "invalid"
+
+export type SimEnvFile = { path: string; sizeKB: number }
+
+export type SimEnv = {
+  /** Folder name, used as the id */
   id: string
   name: string
-  taskId: string
-  /** USD stage path on the station */
-  usd: string
+  /** Absolute folder on the station */
+  path: string
+  description?: string
+  /** Task this environment reproduces, if it maps to one */
+  taskId?: string
+  /** Camera keys the environment renders (must cover the model's cameras) */
   cameras: string[]
+  /** Size of the action / joint state vectors the environment accepts */
+  actionDim: number
+  /** Default time limit per episode (s) */
+  maxSeconds: number
   /** Camera poses, FOV and joint limits were matched to the real rig */
   calibrated: boolean
-  note?: string
+  state: SimEnvState
+  /** Why the folder could not be loaded (state "invalid") */
+  error?: string
+  /** env.yaml as found on disk */
+  manifest: string
+  files: SimEnvFile[]
+  registeredAt: string
+  updatedAt: string
+}
+
+/** What a model needs from an environment */
+export type ModelSpec = { cameras: string[]; actionDim: number }
+
+export type CompatIssue = { level: "error" | "warn"; text: string }
+
+/** Can this model be loaded into this environment? Errors block an evaluation, warnings don't */
+export function envCompat(env: SimEnv, spec: ModelSpec): CompatIssue[] {
+  const issues: CompatIssue[] = []
+  if (env.state !== "ready") issues.push({ level: "error", text: env.error ?? "Environment failed to load" })
+  const missing = spec.cameras.filter((c) => !env.cameras.includes(c))
+  if (missing.length) issues.push({ level: "error", text: `Missing camera ${missing.join(", ")}` })
+  if (env.actionDim !== spec.actionDim)
+    issues.push({ level: "error", text: `Action size ${env.actionDim}, model expects ${spec.actionDim}` })
+  if (!env.calibrated) issues.push({ level: "warn", text: "Not matched to the real rig" })
+  return issues
 }
 
 /** How strongly lighting, object poses / colours and camera pose are randomized per episode */
@@ -19,17 +59,17 @@ export type SimEpisode = {
   seed: number
   success: boolean
   seconds: number
-  /** Why a failed episode failed (from the scene's success checker) */
+  /** Why a failed episode failed (from the environment's success check) */
   reason?: string
 }
 
 export type SimJobStatus = "running" | "queued" | "done" | "failed" | "stopped"
 
-/** One batch evaluation of a model in a scene */
+/** One batch evaluation of a model loaded into an environment */
 export type SimJob = {
   id: string
   modelId: string
-  sceneId: string
+  envId: string
   status: SimJobStatus
   episodes: number
   randomization: Randomization

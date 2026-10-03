@@ -1,9 +1,9 @@
 import { StatusDot } from "@/components/common/status-dot"
-import type { SimScene } from "@/domain/simulation"
+import type { SimEnv } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
 /** Selectable scene rows with their task, cameras and whether they were matched to the real rig */
-export function SceneList({ scenes, value, onChange }: { scenes: SimScene[]; value: string; onChange: (id: string) => void }) {
+export function SceneList({ scenes, value, onChange }: { scenes: SimEnv[]; value: string; onChange: (id: string) => void }) {
   return (
     <ul className="grid gap-1.5" role="radiogroup" aria-label="Scene">
       {scenes.map((s) => {
@@ -34,7 +34,7 @@ export function SceneList({ scenes, value, onChange }: { scenes: SimScene[]; val
                   </StatusDot>
                 ) : (
                   <StatusDot tone="warn" className="items-baseline text-xs text-muted-foreground">
-                    Not matched{s.note && `, ${s.note}`}
+                    Not matched{s.description && `, ${s.description}`}
                   </StatusDot>
                 )}
               </span>

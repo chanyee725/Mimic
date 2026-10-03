@@ -5,7 +5,7 @@ import { LuCircleCheck, LuClock, LuFootprints, LuTimer } from "react-icons/lu"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { StatStrip } from "@/components/common/stat-strip"
 import { getModel } from "@/api/models"
-import { SIM_GPU, getSimJob, getSimScene } from "@/api/simulation"
+import { SIM_GPU, getSimJob, getSimEnv } from "@/api/simulation"
 import { simSuccessRate, type SimJob } from "@/domain/simulation"
 import { formatPct } from "@/lib/format"
 
@@ -27,7 +27,7 @@ export function SimJobPage() {
 
 function SimJobView({ job }: { job: SimJob }) {
   const model = getModel(job.modelId)
-  const scene = getSimScene(job.sceneId)
+  const env = getSimEnv(job.envId)
   const modelName = model?.name ?? job.modelId
   const done = job.results.length
   const avg = avgSeconds(job.results)
@@ -41,7 +41,7 @@ function SimJobView({ job }: { job: SimJob }) {
     <Page
       fit
       title={<SimJobTitle job={job} modelName={modelName} />}
-      description={jobDescription(job, scene)}
+      description={jobDescription(job, env)}
       actions={<SimJobActions job={job} />}
     >
       {job.error && <div className="rounded-md bg-bad-muted px-3 py-2.5 text-[13px] text-bad">{job.error}</div>}
@@ -68,20 +68,15 @@ function SimJobView({ job }: { job: SimJob }) {
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Scrolls only on short screens where the episode table would get too small */}
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <RolloutViewer
-            job={job}
-            cameras={scene?.cameras ?? ["top", "wrist"]}
-            episode={episode}
-            onShowLive={() => setSelected(undefined)}
-          />
+          <RolloutViewer job={job} cameras={env?.cameras ?? ["top", "wrist"]} episode={episode} onShowLive={() => setSelected(undefined)} />
           <EpisodeTable job={job} selected={selected} onSelect={setSelected} />
         </div>
 
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <SimVsReal job={job} model={model} scene={scene} />
+          <SimVsReal job={job} model={model} env={env} />
           <FailureReasons job={job} />
           <Panel title="Config" className="shrink-0">
-            <SimJobConfig job={job} modelName={modelName} scene={scene} />
+            <SimJobConfig job={job} modelName={modelName} env={env} />
           </Panel>
         </div>
       </div>

@@ -39,7 +39,7 @@ export type Settings = {
     codec: "av1" | "h264"
     crf: number
   }
-  training: { lerobotCommit: string; defaultCompute: "local" | "runpod"; saveFreq: number; simGpu: string }
+  training: { lerobotCommit: string; defaultCompute: "local" | "runpod"; saveFreq: number; simGpu: string; simEnvsPath: string }
   notifications: {
     slackWebhook: Secret
     events: { key: string; label: string; on: boolean }[]

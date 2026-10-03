@@ -1,7 +1,7 @@
 import { Panel } from "@/components/layout/page-layout"
 import { ProgressBar } from "@/components/common/progress-bar"
 import { successRate, type Model } from "@/domain/model"
-import { simSuccessRate, type SimJob, type SimScene } from "@/domain/simulation"
+import { simSuccessRate, type SimJob, type SimEnv } from "@/domain/simulation"
 import { formatPct, plural } from "@/lib/format"
 
 import { successCount } from "../job-stats"
@@ -10,7 +10,7 @@ import { successCount } from "../job-stats"
 const CLOSE_GAP = 5
 
 /** Sim success rate next to the model's real-robot success from Evaluate */
-export function SimVsReal({ job, model, scene }: { job: SimJob; model?: Model; scene?: SimScene }) {
+export function SimVsReal({ job, model, env }: { job: SimJob; model?: Model; env?: SimEnv }) {
   const sim = simSuccessRate(job)
   const real = model ? successRate(model) : undefined
   const trials = model?.evals.reduce((a, e) => a + e.trials, 0) ?? 0
@@ -42,9 +42,9 @@ export function SimVsReal({ job, model, scene }: { job: SimJob; model?: Model; s
         />
       </div>
       <p className="text-xs text-muted-foreground">{note}</p>
-      {scene && !scene.calibrated && (
+      {env && !env.calibrated && (
         <p className="rounded-md bg-warn-muted px-2.5 py-2 text-xs text-warn">
-          이 장면은 아직 rig 와 맞춰지지 않아 차이가 클 수 있습니다{scene.note ? ` (${scene.note})` : ""}.
+          이 환경은 아직 rig 와 맞춰지지 않아 차이가 클 수 있습니다{env.description ? ` (${env.description})` : ""}.
         </p>
       )}
     </Panel>
