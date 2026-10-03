@@ -3,7 +3,8 @@ import pytest
 from app.services import models as models
 from app.seeds.training import parse_duration
 from app.services import training as service
-from app.services.training_metrics import _rng, _seed_of
+from app.services.training import jobs
+from app.utils.rng import hash_seed, mulberry32
 
 LOCAL = {"dataset": "local/open_drawer", "compute": "local", "gpu": "cuda:0", "overrides": {}}
 RUNPOD = {
@@ -24,8 +25,8 @@ def test_parse_duration(text, seconds):
 
 def test_rng_matches_web():
     # Reference values from the web mulberry32 (rng(seedOf("job_036")))
-    assert _seed_of("job_036") == 2172098858
-    rand = _rng(_seed_of("job_036"))
+    assert hash_seed("job_036") == 2172098858
+    rand = mulberry32(hash_seed("job_036"))
     assert [rand() for _ in range(3)] == [
         0.9922949697356671,
         0.9047266284469515,
@@ -113,7 +114,7 @@ def test_create_validation(client, patch, loc):
 def test_create_runpod_errors(client, monkeypatch):
     r = client.post("/training/jobs", json={**RUNPOD, "gpu": "B200", "runpod": None})
     assert r.status_code == 409
-    monkeypatch.setattr(service, "_secret_set", lambda name: name != "runpod_api_key")
+    monkeypatch.setattr(jobs, "_secret_set", lambda name: name != "runpod_api_key")
     r = client.post("/training/jobs", json=RUNPOD)
     assert r.status_code == 424
     # Local jobs do not need the key
@@ -218,7 +219,7 @@ def test_checkpoint_push_and_download(client, monkeypatch):
     r = client.post("/training/jobs/job_035/checkpoints/5000/push", json={"repo": "vla-lab/x"})
     assert r.json() == {"repo": "vla-lab/x"}
     assert client.post("/training/jobs/job_035/checkpoints/1/push", json={}).status_code == 404
-    monkeypatch.setattr(service, "_secret_set", lambda name: False)
+    monkeypatch.setattr(jobs, "_secret_set", lambda name: False)
     assert client.post("/training/jobs/job_035/checkpoints/5000/push").status_code == 424
     assert client.get("/training/jobs/job_035/checkpoints/5000/download").status_code == 501
     assert client.get("/training/jobs/job_035/checkpoints/1/download").status_code == 404

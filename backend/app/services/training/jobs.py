@@ -1,9 +1,7 @@
 """Training jobs (in memory, seeded from the web mocks). Jobs do not advance on their own yet."""
 
 import math
-import re
 
-from app.utils.time import now_iso
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.models import Model
@@ -23,10 +21,12 @@ from app.schemas.training import (
 from app.seeds.training import jobs as seed_jobs
 from app.services import datasets
 from app.services import models
-from app.services import training_config as cfg
-from app.services import training_params as params
-from app.services.training_metrics import SERIES, Run, bucket
-from app.services.training_plan import Plan
+from app.services.training import config as cfg
+from app.services.training import params
+from app.services.training.metrics import SERIES, Run, bucket
+from app.services.training.plan import Plan
+from app.utils.ids import next_seq_id, slugify
+from app.utils.time import now_iso
 
 CHECKPOINT_MB = 1850
 ACTIVE = ("running", "queued")
@@ -129,11 +129,6 @@ def _secret_set(name: str) -> bool:
     return models.secret_set(name)
 
 
-def _next_id() -> str:
-    n = max((int(m.group(1)) for j in _jobs if (m := re.fullmatch(r"job_(\d+)", j))), default=0)
-    return f"job_{n + 1:03d}"
-
-
 def _epochs(dataset: str, steps: int, batch: int) -> int:
     frames = sum(e.frames for e in datasets.dataset_episodes(dataset))
     return max(1, math.ceil(steps * batch / frames)) if frames else 1
@@ -146,7 +141,7 @@ def create_job(body: JobCreate) -> TrainJob:
     total = int(body.overrides.get("steps", params.DEFAULTS["steps"]))
     batch = int(body.overrides.get("batch_size", params.DEFAULTS["batch_size"]))
     queued = body.compute == "local" and _local_busy(plan.gpu_name) is not None
-    job_id = _next_id()
+    job_id = next_seq_id("job", _jobs)
     job = TrainJob(
         id=job_id,
         policy=cfg.policy(),
@@ -166,8 +161,7 @@ def create_job(body: JobCreate) -> TrainJob:
         _start(job)
     if plan.options is not None:
         job.price_per_hr = round(plan.rate, 4)
-        slug = re.sub(r"[^a-z0-9]+", "", plan.gpu_name.lower().split()[-1])
-        job.pod = f"pod-{slug}-{job_id.split('_')[1]}"
+        job.pod = _pod_name(plan.gpu_name, job_id)
         job.pod_state = PodState(
             state="running", auto_terminate=plan.options.terminate_on_finish, since=now_iso()
         )
@@ -175,6 +169,12 @@ def create_job(body: JobCreate) -> TrainJob:
     _jobs[job.id] = job
     bus.publish("training.updated", job)
     return job
+
+
+def _pod_name(gpu_name: str, job_id: str) -> str:
+    """ "RTX 4090", "job_001" → "pod-4090-001"."""
+    slug = slugify(gpu_name.split()[-1], sep="")
+    return f"pod-{slug}-{job_id.split('_')[1]}"
 
 
 def _start(job: TrainJob) -> None:
@@ -299,6 +299,3 @@ def save_checkpoint(job_id: str, step: int, body: CheckpointSave) -> Model:
         local_path=f"~/vla/models/{job.task_id}/{job.id}-{step:06d}",
     )
     return models.add_model(model)
-
-
-reset()

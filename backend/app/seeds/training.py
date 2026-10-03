@@ -2,9 +2,9 @@
 
 import re
 
-from app.utils.time import iso
 from app.models.training import TrainJob
 from app.seeds import load
+from app.utils.time import iso
 
 
 def parse_duration(text: str | None) -> int | None:

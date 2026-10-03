@@ -5,7 +5,7 @@ import math
 from app.schemas.training import PriceFactor, RunPodGpu, RunPodOptions, RunPodVolume
 from app.seeds import load
 from app.services import datasets
-from app.services import training_params as params
+from app.services.training import params
 
 
 def raw(key: str):
