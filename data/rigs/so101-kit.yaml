@@ -1,39 +1,39 @@
 id: so101-kit
 name: SO-101 Kit
-master: SO-101 Leader
-slave: SO-101 Follower
-robots:
-- follower
-devices:
-- leader
+
+# Follower arm: executes actions, publishes observation.state
+robot:
+  id: follower
+  type: so101_follower
+  name: SO-101 Follower
+  port: /dev/so101_follower
+  joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
+
+# Teleop leader arm: the operator moves it, it publishes action
+device:
+  id: leader
+  type: so101_leader
+  name: SO-101 Leader
+  port: /dev/so101_leader
+
+# Cameras by key (device id = key, feature = observation.images.<key>)
 cameras:
-- id: top
-  key: top
-  name: Top camera
-  feature: observation.images.top
-  resolution: 640×480
-  fps: 30
-  default_on: true
-- id: wrist
-  key: wrist
-  name: Wrist camera
-  feature: observation.images.wrist
-  resolution: 640×480
-  fps: 30
-  default_on: true
-joints:
-- shoulder_pan
-- shoulder_lift
-- elbow_flex
-- wrist_flex
-- wrist_roll
-- gripper
-target_hz:
-  action: 60
-  video: 30
-action_hz_options:
-- 30
-- 60
-video_fps_options:
-- 15
-- 30
+  top:
+    name: Top camera
+    port: /dev/cam_top
+    resolution: 640x480
+    fps: 30
+    default_on: true
+  wrist:
+    name: Wrist camera
+    port: /dev/cam_wrist
+    resolution: 640x480
+    fps: 30
+    default_on: true
+
+# Recording rates: action (leader → follower) in Hz, cameras in fps
+rates:
+  action_hz: 60
+  video_fps: 30
+  action_hz_options: [30, 60]
+  video_fps_options: [15, 30]

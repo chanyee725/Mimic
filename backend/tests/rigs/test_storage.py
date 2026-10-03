@@ -11,7 +11,8 @@ def test_seed_writes_rig_files_only():
     assert files == ["so101-bimanual-kit.yaml", "so101-kit.yaml"]
     assert not storage.exists("devices")  # devices are live state, kept in memory
     doc = storage.read("rigs/so101-kit.yaml")
-    assert doc["id"] == "so101-kit" and "target_hz" in doc and "targetHz" not in doc
+    assert doc["id"] == "so101-kit" and doc["robot"]["id"] == "follower"
+    assert doc["rates"]["action_hz"] == 60 and "master" not in doc
 
 
 def test_reload_restores_hand_edits():
@@ -53,5 +54,5 @@ def test_broken_files_are_skipped(caplog):
 
 def test_files_are_snake_case_yaml():
     text = storage.read_text("rigs/so101-kit.yaml")
-    assert "action_hz_options" in text
+    assert "action_hz_options" in text and "actionHzOptions" not in text
     assert yaml.safe_load(text)["id"] == "so101-kit"
