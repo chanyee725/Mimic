@@ -1,69 +1,32 @@
 {
-  "DISK": {
-    "totalGB": 2000,
-    "parts": [
-      {
-        "key": "raw",
-        "label": "Raw MCAP",
-        "gb": 412
-      },
-      {
-        "key": "datasets",
-        "label": "Datasets",
-        "gb": 96
-      },
-      {
-        "key": "models",
-        "label": "Models",
-        "gb": 38
-      },
-      {
-        "key": "other",
-        "label": "Other",
-        "gb": 74
-      }
-    ]
-  },
   "SETTINGS": {
     "integrations": {
       "hf": {
         "namespace": "vla-lab",
         "privateByDefault": true,
-        "state": "ok"
+        "state": "unknown"
       },
       "runpod": {
         "region": "any",
         "volume": "vla-datasets",
         "monthlyBudget": 300,
         "idleAlertMin": 15,
-        "spentThisMonth": 142.3,
-        "state": "ok"
+        "state": "unknown"
       }
-    },
-    "storage": {
-      "rawPath": "data/recordings",
-      "datasetsPath": "~/vla/datasets",
-      "modelsPath": "~/vla/models",
-      "warnAtPct": 85,
-      "deleteRejected": true,
-      "deleteRejectedAfterDays": 14,
-      "keepCheckpoints": 4
     },
     "connection": {
       "api": {
         "url": "http://localhost:8000",
-        "state": "ok",
-        "latencyMs": 4
+        "state": "unknown"
       },
       "grpc": {
         "url": "localhost:50051",
-        "state": "ok",
-        "latencyMs": 2
+        "state": "unknown"
       },
       "webrtc": {
         "stun": "stun:stun.l.google.com:19302",
         "turn": "",
-        "state": "ok"
+        "state": "unknown"
       }
     },
     "notifications": {
@@ -203,28 +166,6 @@
           "action": "Mark fail"
         }
       ]
-    }
-  ],
-  "VERSIONS": [
-    {
-      "k": "Web app",
-      "v": "0.1.0"
-    },
-    {
-      "k": "Backend",
-      "v": "0.1.0"
-    },
-    {
-      "k": "lerobot",
-      "v": "[COMMIT HASH]"
-    },
-    {
-      "k": "CUDA driver",
-      "v": "560.35"
-    },
-    {
-      "k": "Isaac Sim",
-      "v": "4.5"
     }
   ]
 }

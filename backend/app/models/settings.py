@@ -8,7 +8,7 @@ from app.schemas.common import CamelModel
 
 ConnState = Literal["ok", "error", "unknown"]
 SecretName = Literal["hf_token", "runpod_api_key", "slack_webhook"]
-Section = Literal["integrations", "storage", "connection", "notifications"]
+Section = Literal["integrations", "connection", "notifications"]
 
 
 class Secret(CamelModel):
@@ -36,23 +36,14 @@ class RunpodSettings(CamelModel):
     volume: str
     monthly_budget: float = Field(ge=0)
     idle_alert_min: int = Field(ge=0)
-    spent_this_month: float
+    # Not tracked yet (needs the RunPod billing API)
+    spent_this_month: float | None = None
     state: ConnState
 
 
 class Integrations(CamelModel):
     hf: HfSettings
     runpod: RunpodSettings
-
-
-class StorageSettings(CamelModel):
-    raw_path: str = Field(min_length=1)
-    datasets_path: str = Field(min_length=1)
-    models_path: str = Field(min_length=1)
-    warn_at_pct: int = Field(ge=1, le=100)
-    delete_rejected: bool
-    delete_rejected_after_days: int = Field(ge=0)
-    keep_checkpoints: int = Field(ge=1)
 
 
 class Endpoint(CamelModel):
@@ -87,14 +78,12 @@ class NotificationSettings(CamelModel):
 class Settings(CamelModel):
     version: int = 1
     integrations: Integrations
-    storage: StorageSettings
     connection: ConnectionSettings
     notifications: NotificationSettings
 
 
 SECTIONS: dict[str, type[CamelModel]] = {
     "integrations": Integrations,
-    "storage": StorageSettings,
     "connection": ConnectionSettings,
     "notifications": NotificationSettings,
 }

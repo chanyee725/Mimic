@@ -1,7 +1,0 @@
-raw_path: data/recordings
-datasets_path: ~/vla/datasets
-models_path: ~/vla/models
-warn_at_pct: 85
-delete_rejected: true
-delete_rejected_after_days: 14
-keep_checkpoints: 4
