@@ -1,6 +1,7 @@
 """Recordings: paged list, import, review, samples and media."""
 
 from fastapi import APIRouter, Query, Response, UploadFile
+from fastapi.responses import FileResponse
 
 from app.api.deps import Pagination, TaskIdFilter
 from app.models.recordings import Recording, RecordingReview, RecordingSource
@@ -44,7 +45,8 @@ def delete_recording(recording_id: str):
 
 @router.get("/{recording_id}/file")
 def download_file(recording_id: str):
-    return service.file(recording_id)
+    path = service.file_path(recording_id)
+    return FileResponse(path, media_type="application/octet-stream", filename=path.name)
 
 
 @router.get("/{recording_id}/samples", response_model=Samples)
