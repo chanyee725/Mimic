@@ -4,9 +4,9 @@ from typing import Literal
 
 from fastapi import APIRouter, Query, Response
 
-from app.core.errors import ApiError
+from app.models.models import Model
+from app.schemas.models import ModelFile, ModelPatch, ModelPush
 from app.services import models as service
-from app.schemas.models import Model, ModelFile, ModelPatch, ModelPush
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -26,7 +26,7 @@ def get_model(model_id: str):
 
 @router.patch("/{model_id}", response_model=Model)
 def patch_model(model_id: str, body: ModelPatch):
-    return service.rename(model_id, body.name.strip())
+    return service.rename(model_id, body.name)
 
 
 @router.delete("/{model_id}", status_code=204)
@@ -37,16 +37,14 @@ def delete_model(model_id: str):
 
 @router.get("/{model_id}/files", response_model=list[ModelFile])
 def model_files(model_id: str):
-    service.require_model(model_id)
-    return service.model_files()
+    return service.model_files(model_id)
 
 
 @router.get("/{model_id}/download")
 def download_model(model_id: str):
-    service.require_model(model_id)
-    raise ApiError(501, "Model download is not implemented yet")
+    return service.download(model_id)
 
 
 @router.post("/{model_id}/push", response_model=Model, status_code=202)
 def push_model(model_id: str, body: ModelPush | None = None):
-    return service.push(model_id, body.repo if body else None)
+    return service.push(model_id, body)

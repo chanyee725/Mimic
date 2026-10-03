@@ -9,7 +9,8 @@ from app.services import capture
 from app.core import clock
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.schemas.evaluate import EvalRun, EvalRunCreate
+from app.models.evaluate import EvalRun
+from app.schemas.evaluate import EvalRunCreate
 from app.services import models
 
 _runs: dict[str, EvalRun] = {}

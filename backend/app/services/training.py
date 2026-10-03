@@ -3,61 +3,36 @@
 import math
 import re
 
-from app.core.clock import iso, now_iso
+from app.core.clock import now_iso
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.seeds import load
-from app.services import datasets
-from app.services import models
-from app.schemas.models import Model
-from app.services import training_params as params
-from app.services.training_metrics import SERIES, Run, bucket
+from app.models.models import Model
+from app.models.training import Checkpoint, PodState, TrainJob
 from app.schemas.training import (
-    Checkpoint,
+    CheckpointPush,
+    CheckpointPushed,
+    CheckpointSave,
+    CommandOut,
     CommandPreview,
     JobCreate,
     LocalGpu,
     Metrics,
-    PodState,
-    PriceFactor,
     RunPodConfig,
-    RunPodGpu,
-    RunPodOptions,
-    RunPodVolume,
     TrainingConfig,
-    TrainJob,
 )
+from app.seeds.training import jobs as seed_jobs
+from app.services import datasets
+from app.services import models
+from app.services import training_config as cfg
+from app.services import training_params as params
+from app.services.training_metrics import SERIES, Run, bucket
+from app.services.training_plan import Plan
 
 CHECKPOINT_MB = 1850
 ACTIVE = ("running", "queued")
 
 _jobs: dict[str, TrainJob] = {}
 _runs: dict[str, Run] = {}
-
-
-def parse_duration(text: str | None) -> int | None:
-    """ "2h 08m" / "58m" / "15h 49m" → seconds."""
-    if not text:
-        return None
-    parts = dict((u, int(n)) for n, u in re.findall(r"(\d+)\s*([hms])", text))
-    return parts.get("h", 0) * 3600 + parts.get("m", 0) * 60 + parts.get("s", 0)
-
-
-def _seed_job(j: dict) -> TrainJob:
-    j["elapsedS"] = parse_duration(j.pop("elapsed", None))
-    j["etaS"] = parse_duration(j.pop("eta", None))
-    if j.get("startedAt"):
-        j["startedAt"] = iso(j["startedAt"])
-    if pod := j.get("podState"):
-        pod["idleForS"] = parse_duration(pod.pop("idleFor", None))
-        if pod.get("since"):
-            pod["since"] = iso(pod["since"])
-    for c in j["checkpoints"]:
-        c["savedAt"] = iso(c["savedAt"])
-    j["overrides"] = {}
-    job = TrainJob.model_validate(j)
-    _derive(job)
-    return job
 
 
 def _derive(job: TrainJob) -> None:
@@ -71,28 +46,16 @@ def _derive(job: TrainJob) -> None:
 def reset() -> None:
     _jobs.clear()
     _runs.clear()
-    for j in load("training", "JOBS"):
-        job = _seed_job(j)
+    for job in seed_jobs():
+        _derive(job)
         _jobs[job.id] = job
 
 
 # Config
 
 
-def _raw(key: str):
-    return load("training", key)
-
-
-def runpod_gpus() -> list[RunPodGpu]:
-    return [RunPodGpu.model_validate(g) for g in _raw("RUNPOD_GPUS")]
-
-
-def price_factor() -> PriceFactor:
-    return PriceFactor.model_validate(_raw("RUNPOD_PRICE_FACTOR"))
-
-
 def local_gpus() -> list[LocalGpu]:
-    gpus = [LocalGpu.model_validate(g) for g in _raw("LOCAL_GPUS")]
+    gpus = [LocalGpu.model_validate(g) for g in cfg.raw("LOCAL_GPUS")]
     for g in gpus:
         busy = _local_busy(g.name)
         g.busy_by = busy.id if busy else None
@@ -110,26 +73,20 @@ def _local_busy(gpu_name: str) -> TrainJob | None:
     )
 
 
-def trainable_datasets() -> list[str]:
-    return [
-        d.repo_id for d in datasets.list_datasets() if d.kind == "lerobot" and d.status == "ready"
-    ]
-
-
 def get_config() -> TrainingConfig:
     return TrainingConfig(
-        policy=_raw("POLICY"),
-        policy_base=_raw("POLICY_BASE"),
+        policy=cfg.policy(),
+        policy_base=cfg.policy_base(),
         local_gpus=local_gpus(),
         runpod=RunPodConfig(
-            gpus=runpod_gpus(),
-            regions=_raw("RUNPOD_REGIONS"),
-            volumes=[RunPodVolume.model_validate(v) for v in _raw("RUNPOD_VOLUMES")],
-            price_factor=price_factor(),
-            defaults=RunPodOptions.model_validate(_raw("RUNPOD_DEFAULTS")),
+            gpus=cfg.runpod_gpus(),
+            regions=cfg.runpod_regions(),
+            volumes=cfg.runpod_volumes(),
+            price_factor=cfg.price_factor(),
+            defaults=cfg.runpod_defaults(),
         ),
         param_groups=params.PARAM_GROUPS,
-        trainable_datasets=trainable_datasets(),
+        trainable_datasets=cfg.trainable_datasets(),
     )
 
 
@@ -149,84 +106,18 @@ def get_job(job_id: str) -> TrainJob:
     return job
 
 
-def _invalid(msg: str, *loc: str) -> ApiError:
-    return ApiError(422, msg, {"errors": [{"loc": ["body", *loc], "msg": msg}]})
-
-
-def runpod_rate(base: float, o: RunPodOptions) -> float:
-    f = price_factor()
-    return base * o.gpu_count * f.cloud[o.cloud] * f.pricing[o.pricing]
-
-
-def runpod_cap_hours(o: RunPodOptions, rate: float) -> float:
-    """Hours until the max runtime or the budget is hit (0 = no limit)."""
-    if o.budget:
-        return min(o.max_hours or math.inf, o.budget / rate)
-    return o.max_hours
-
-
-class _Plan:
-    """A validated POST /training/jobs body."""
-
-    def __init__(self, body: JobCreate) -> None:
-        if body.dataset not in trainable_datasets():
-            raise _invalid("Dataset is not a ready LeRobot dataset", "dataset")
-        if errors := params.check_overrides(body.overrides):
-            raise ApiError(422, "Unknown or invalid training parameters", {"errors": errors})
-        self.body = body
-        self.options: RunPodOptions | None = None
-        self.base_price: float | None = None
-        if body.compute == "local":
-            gpu = next((g for g in local_gpus() if body.gpu in (g.id, g.name)), None)
-            if gpu is None:
-                raise _invalid("Unknown local GPU", "gpu")
-            self.gpu_name = gpu.name
-            return
-        rp = next((g for g in runpod_gpus() if g.name == body.gpu), None)
-        if rp is None:
-            raise _invalid("Unknown RunPod GPU", "gpu")
-        if rp.stock == "none":
-            raise conflict(f"RunPod GPU '{rp.name}' is out of stock")
-        o = body.runpod or RunPodOptions.model_validate(_raw("RUNPOD_DEFAULTS"))
-        if o.cloud == "community" and not rp.community:
-            raise _invalid("GPU is not offered on the community cloud", "runpod", "cloud")
-        if o.region not in _raw("RUNPOD_REGIONS"):
-            raise _invalid("Unknown RunPod region", "runpod", "region")
-        if o.volume not in {v["id"] for v in _raw("RUNPOD_VOLUMES")}:
-            raise _invalid("Unknown RunPod volume", "runpod", "volume")
-        self.gpu_name, self.options, self.base_price = rp.name, o, rp.price_per_hr
-
-    @property
-    def rate(self) -> float | None:
-        if self.options is None or self.base_price is None:
-            return None
-        return runpod_rate(self.base_price, self.options)
-
-
-def build_command(dataset: str, overrides: dict) -> str:
-    flags = params.override_flags(overrides)
-    head = [
-        "lerobot-train",
-        f"--policy.path={_raw('POLICY_BASE')}",
-        f"--dataset.repo_id={dataset}",
-        "--policy.device=cuda",
-    ]
-    return " ".join(head + flags)
-
-
-def job_command(job_id: str) -> str:
+def job_command(job_id: str) -> CommandOut:
     job = get_job(job_id)
     # Seed jobs carry steps / batch as fields only
-    return build_command(
-        job.dataset, {"steps": job.total, "batch_size": job.batch, **job.overrides}
-    )
+    overrides = {"steps": job.total, "batch_size": job.batch, **job.overrides}
+    return CommandOut(command=cfg.build_command(job.dataset, overrides))
 
 
 def preview(body: JobCreate) -> CommandPreview:
-    plan = _Plan(body)
-    out = CommandPreview(command=build_command(body.dataset, body.overrides))
+    plan = Plan(body, local_gpus())
+    out = CommandPreview(command=cfg.build_command(body.dataset, body.overrides))
     if (rate := plan.rate) is not None and plan.options is not None:
-        cap = runpod_cap_hours(plan.options, rate)
+        cap = cfg.runpod_cap_hours(plan.options, rate)
         out.rate_per_hr = round(rate, 4)
         if cap:
             out.cap_hours = round(cap, 2)
@@ -249,7 +140,7 @@ def _epochs(dataset: str, steps: int, batch: int) -> int:
 
 
 def create_job(body: JobCreate) -> TrainJob:
-    plan = _Plan(body)
+    plan = Plan(body, local_gpus())
     if body.compute == "runpod" and not _secret_set("runpod_api_key"):
         raise ApiError(424, "RunPod API key is not set")
     total = int(body.overrides.get("steps", params.DEFAULTS["steps"]))
@@ -258,7 +149,7 @@ def create_job(body: JobCreate) -> TrainJob:
     job_id = _next_id()
     job = TrainJob(
         id=job_id,
-        policy=_raw("POLICY"),
+        policy=cfg.policy(),
         dataset=body.dataset,
         task_id=datasets.get_dataset(body.dataset).task_id,
         compute=body.compute,
@@ -376,22 +267,28 @@ def get_checkpoint(job_id: str, step: int) -> tuple[TrainJob, Checkpoint]:
     return job, ckpt
 
 
-def push_checkpoint(job_id: str, step: int, repo: str | None) -> str:
+def download_checkpoint(job_id: str, step: int):
+    get_checkpoint(job_id, step)
+    raise ApiError(501, "Checkpoint download is not implemented yet")
+
+
+def push_checkpoint(job_id: str, step: int, body: CheckpointPush | None = None) -> CheckpointPushed:
     job, _ = get_checkpoint(job_id, step)
     if not _secret_set("hf_token"):
         raise ApiError(424, "Hugging Face token is not set")
     # Upload is not wired yet; report the target repo
-    return repo or models.default_repo(job.task_id)
+    repo = body.repo if body else None
+    return CheckpointPushed(repo=repo or models.default_repo(job.task_id))
 
 
-def save_checkpoint(job_id: str, step: int, name: str) -> Model:
+def save_checkpoint(job_id: str, step: int, body: CheckpointSave) -> Model:
     job, ckpt = get_checkpoint(job_id, step)
     model_id = f"m-{job.id}-{step:06d}"
     if models.get_model(model_id) is not None:
         raise conflict(f"Checkpoint {step} of '{job_id}' is already saved", modelId=model_id)
     model = Model(
         id=model_id,
-        name=name.strip(),
+        name=body.name.strip(),
         task_id=job.task_id,
         dataset=job.dataset,
         job_id=job.id,

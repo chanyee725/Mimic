@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter, Query
 
+from app.models.evaluate import EvalRun
+from app.schemas.evaluate import EvalResult, EvalRunCreate
 from app.services import evaluate as service
-from app.schemas.evaluate import EvalResult, EvalRun, EvalRunCreate
 
 router = APIRouter(prefix="/evaluate", tags=["evaluate"])
 
