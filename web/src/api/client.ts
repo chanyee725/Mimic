@@ -42,6 +42,10 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
   }
   if (res.status === 204) return undefined as T
   const type = res.headers.get("content-type") ?? ""
+  // The SPA's index.html means /api isn't reaching the backend (dev proxy missing or backend down)
+  if (type.includes("text/html")) {
+    throw new ApiError(502, "backend_unreachable", "백엔드에 연결할 수 없습니다. 백엔드(:8000)와 dev 서버의 /api 프록시를 확인하세요.")
+  }
   return (type.includes("application/json") ? res.json() : res.text()) as Promise<T>
 }
 
