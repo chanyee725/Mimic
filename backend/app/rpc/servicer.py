@@ -1,4 +1,9 @@
-"""RobotStream gRPC service (proto/robot.proto), backed by the mock joint source."""
+"""RobotStream gRPC service (proto/robot.proto).
+
+No robot drivers exist yet: while a rig's arms are not connected (always, for now) both streams
+abort with UNAVAILABLE instead of streaming made-up joints. The mock signal is only a placeholder
+source for a connected rig until drivers provide real frames.
+"""
 
 import asyncio
 import time
@@ -9,7 +14,7 @@ import grpc
 from app.services.realtime import mock_robot
 from app.rpc.gen import robot_pb2, robot_pb2_grpc
 from app.models.rigs import Rig
-from app.services.rigs import get_rig
+from app.services.rigs import get_device, get_rig
 
 MAX_HZ = 1000
 RATES_PERIOD_S = 0.5  # ~2 Hz
@@ -32,6 +37,19 @@ class RobotStreamService(robot_pb2_grpc.RobotStreamServicer):
             await context.abort(grpc.StatusCode.NOT_FOUND, f"Rig '{rig_id}' does not exist")
         return rig
 
+    async def _require_connected(self, rig: Rig, context: grpc.aio.ServicerContext) -> None:
+        """The arms (robots and teleop devices) must be connected to stream joints."""
+        off = [
+            i
+            for i in [*rig.robots, *rig.devices]
+            if (d := get_device(i)) is None or d.health == "off"
+        ]
+        if off:
+            await context.abort(
+                grpc.StatusCode.UNAVAILABLE,
+                f"Rig '{rig.id}' devices are not connected: {', '.join(off)}",
+            )
+
     async def _ticks(self, hz: float) -> AsyncIterator[int]:
         """Yields station-clock timestamps (ns) on a fixed grid, without drift."""
         period_ns = round(1e9 / hz)
@@ -47,6 +65,7 @@ class RobotStreamService(robot_pb2_grpc.RobotStreamServicer):
         self, request: robot_pb2.StreamRequest, context: grpc.aio.ServicerContext
     ) -> AsyncIterator[robot_pb2.JointFrame]:
         rig = await self._rig(request.rig_id, context)
+        await self._require_connected(rig, context)
         if request.hz > MAX_HZ:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT, f"hz must be between 0 and {MAX_HZ}"
@@ -60,6 +79,7 @@ class RobotStreamService(robot_pb2_grpc.RobotStreamServicer):
         self, request: robot_pb2.RatesRequest, context: grpc.aio.ServicerContext
     ) -> AsyncIterator[robot_pb2.Rates]:
         rig = await self._rig(request.rig_id, context)
+        await self._require_connected(rig, context)
         target = rig.target_hz.action
         async for t_ns in self._ticks(1 / RATES_PERIOD_S):
             t = t_ns / 1e9
