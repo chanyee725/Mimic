@@ -2,9 +2,10 @@
 
 from fastapi import APIRouter
 
+from app.models.capture import CaptureState
+from app.models.recordings import Recording
+from app.schemas.capture import SaveBody, StartBody, SubtaskBody
 from app.services import capture as service
-from app.schemas.capture import CaptureState, SaveBody, StartBody, SubtaskBody
-from app.schemas.recordings import Recording
 
 router = APIRouter(prefix="/capture", tags=["capture"])
 

@@ -5,35 +5,22 @@ repoId contains a slash, so routes use the path converter; the suffixed routes c
 
 from fastapi import APIRouter, Query, Response
 
-from app.core.errors import ApiError
+from app.models.datasets import Dataset, DatasetEpisode, DatasetKind
 from app.schemas.common import Page
+from app.schemas.datasets import ConvertBody, ConvertPreview, PushBody
 from app.services import datasets as service
-from app.schemas.datasets import (
-    ConvertBody,
-    ConvertPreview,
-    Dataset,
-    DatasetEpisode,
-    DatasetKind,
-    PushBody,
-)
 
 router = APIRouter(prefix="", tags=["datasets"])
 
 
-def _ids(csv: str | None) -> list[str]:
-    return [s.strip() for s in (csv or "").split(",") if s.strip()]
-
-
 @router.get("/convert/preview", response_model=ConvertPreview)
 def convert_preview(task_id: str = Query(alias="taskId"), exclude: str | None = None):
-    return service.preview(task_id, _ids(exclude))
+    return service.preview(task_id, exclude)
 
 
 @router.post("/convert", status_code=202, response_model=Dataset)
 async def convert(body: ConvertBody):
-    ds = service.start_conversion(body.task_id, body.repo_id, body.exclude)
-    service.schedule(ds.repo_id)
-    return ds
+    return service.convert(body.task_id, body.repo_id, body.exclude)
 
 
 @router.get("/datasets", response_model=list[Dataset])
@@ -48,8 +35,7 @@ def list_episodes(repo_id: str, limit: int = Query(50, ge=1, le=500), cursor: st
 
 @router.get("/datasets/{repo_id:path}/thumbnail")
 def thumbnail(repo_id: str):
-    service.require(repo_id)
-    raise ApiError(501, "Thumbnails are not available yet")
+    return service.thumbnail(repo_id)
 
 
 @router.post("/datasets/{repo_id:path}/push", status_code=202, response_model=Dataset)
