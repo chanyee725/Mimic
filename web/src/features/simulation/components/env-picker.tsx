@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 
 import { StatusDot } from "@/components/common/status-dot"
-import { getTask } from "@/api/tasks"
+import type { Task } from "@/domain/task"
 import { cn } from "@/lib/utils"
 
 import type { EnvOption } from "../new-eval"
@@ -11,7 +11,19 @@ import type { EnvOption } from "../new-eval"
  * the rest are listed muted under their own label with the reason they can't load it.
  * Arrow keys move the selection between selectable rows (roving tabindex).
  */
-export function EnvPicker({ options, value, onChange }: { options: EnvOption[]; value?: string; onChange: (id: string) => void }) {
+export function EnvPicker({
+  options,
+  tasks,
+  value,
+  onChange,
+}: {
+  options: EnvOption[]
+  /** For task names */
+  tasks: Task[]
+  value?: string
+  onChange: (id: string) => void
+}) {
+  const taskName = (id?: string) => (id && tasks.find((t) => t.id === id)?.name) ?? id ?? "No task"
   const refs = useRef(new Map<string, HTMLButtonElement>())
   const listRef = useRef<HTMLDivElement>(null)
   const usable = options.filter((o) => o.usable)
@@ -54,6 +66,7 @@ export function EnvPicker({ options, value, onChange }: { options: EnvOption[]; 
         <EnvRow
           key={o.env.id}
           option={o}
+          taskName={taskName(o.env.taskId)}
           on={o.env.id === value}
           tabbable={o.env.id === focusId}
           onSelect={() => onChange(o.env.id)}
@@ -67,7 +80,7 @@ export function EnvPicker({ options, value, onChange }: { options: EnvOption[]; 
         <>
           <span className="mt-1.5 text-xs text-muted-foreground">Can&apos;t load this model</span>
           {blocked.map((o) => (
-            <EnvRow key={o.env.id} option={o} on={false} tabbable={false} />
+            <EnvRow key={o.env.id} option={o} taskName={taskName(o.env.taskId)} on={false} tabbable={false} />
           ))}
         </>
       )}
@@ -77,12 +90,14 @@ export function EnvPicker({ options, value, onChange }: { options: EnvOption[]; 
 
 function EnvRow({
   option: { env, issues, usable },
+  taskName,
   on,
   tabbable,
   onSelect,
   buttonRef,
 }: {
   option: EnvOption
+  taskName: string
   on: boolean
   tabbable: boolean
   onSelect?: () => void
@@ -117,7 +132,7 @@ function EnvRow({
       <span className="grid min-w-0 flex-1 gap-0.5">
         <span className={cn("truncate", usable && "font-medium")}>{env.name}</span>
         <span className="truncate text-xs text-muted-foreground">
-          {env.id}, {(env.taskId && getTask(env.taskId)?.name) ?? env.taskId ?? "No task"}, {env.cameras.join(" + ")}
+          {env.id}, {taskName}, {env.cameras.join(" + ")}
         </span>
         {errors.length > 0 ? (
           <StatusDot tone="bad" className="items-baseline text-xs text-muted-foreground">
