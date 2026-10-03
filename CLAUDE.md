@@ -52,10 +52,11 @@ Guidance for working in this repository.
                              __init__.py re-exports the public functions
     seeds/                   load(); data/*.json (the mock data); seeds/<area>.py converters
     rpc/                     gRPC: gen/ (generated), servicer.py, server.py
-    core/                    errors, events bus
+    core/                    errors, events bus, storage (YAML files under config.data_dir)
     utils/                   domain-free helpers: time (now, ISO, set_clock for tests), paths, ids, rng
   tests/<area>/, tests/utils/
   ```
+- Station data persists as YAML under `data/` (git-ignored; `VLA_DATA_DIR`): `settings.yaml`, `secrets.yaml` (raw keys, 0600, never returned by the API), `tasks/<id>.yaml` (task export format + `meta`), `rigs/<id>.yaml`, `devices/<id>.yaml`. A missing file/folder is seeded from `seeds/data` once; after that the files win and hand edits load on restart. Every write goes through `app.core.storage`. Tests get a fresh data folder per test (tests/conftest.py).
 - Routers never hold state or rules; services never import FastAPI routers. Cross-area reads go through `app.services.<area>`. Date, path, id and seeded-random helpers live in `app.utils` — don't re-implement them in a service.
 - Errors via `ApiError` / `not_found` / `conflict` (uniform `{"error": {...}}` body). Large lists use `paginate()`. Publish changes on `app.core.events.bus`.
 - Comments: short, English. No PII; secrets are write-only.

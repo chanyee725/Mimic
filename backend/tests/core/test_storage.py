@@ -6,12 +6,12 @@ from app.core import storage
 
 
 def test_write_read_roundtrip():
-    storage.write("tasks/a.yaml", {"name": "블록", "n": [1, 2]})
-    assert storage.read("tasks/a.yaml") == {"name": "블록", "n": [1, 2]}
-    assert "블록" in storage.read_text("tasks/a.yaml")
-    assert [p.name for p in storage.list_yaml("tasks")] == ["a.yaml"]
-    storage.delete("tasks/a.yaml")
-    assert storage.read("tasks/a.yaml") is None
+    storage.write("scratch/a.yaml", {"name": "블록", "n": [1, 2]})
+    assert storage.read("scratch/a.yaml") == {"name": "블록", "n": [1, 2]}
+    assert "블록" in storage.read_text("scratch/a.yaml")
+    assert [p.name for p in storage.list_yaml("scratch")] == ["a.yaml"]
+    storage.delete("scratch/a.yaml")
+    assert storage.read("scratch/a.yaml") is None
     assert storage.list_yaml("missing") == []
 
 
