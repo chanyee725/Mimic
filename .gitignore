@@ -14,9 +14,13 @@ credentials*.json
 *.mcap
 *.bag
 *.db3
-# data/: settings/ and rigs/ are committed; video / recording data is not (secrets.yaml: legacy, moved to .env)
+# data/: settings/ and rigs/ are committed; tasks, recordings, datasets and models are station data
+# (secrets.yaml: legacy, moved to .env)
 /data/secrets.yaml
+/data/tasks/
 /data/recordings/
+/data/datasets/
+/data/models/
 /data/videos/
 /raw/
 /datasets/

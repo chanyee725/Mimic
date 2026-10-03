@@ -1,0 +1,44 @@
+task_id: open-drawer
+name: Open drawer
+label: open the top drawer
+variants:
+- pull the top drawer open
+tags:
+- articulated
+rig: so101-kit
+cameras:
+- top
+- wrist
+rates:
+  action_hz: 60
+  video_fps: 30
+episode:
+  target: 40
+  duration_s: 25.0
+  reset_s: 10.0
+  countdown_s: 3.0
+outcomes:
+  success: →
+  fail: F
+  partial: P
+subtasks:
+- key: '1'
+  name: reach
+  description: 손잡이로 접근
+- key: '2'
+  name: grasp
+  description: 손잡이 파지
+- key: '3'
+  name: pull
+  description: 당겨서 열기
+success_criteria: 서랍이 10cm 이상 열려 있을 것
+status: completed
+output:
+  repo_id: local/open_drawer
+  format: lerobot_v3
+  fps: 30
+  push_to_hub: private
+meta:
+  version: 1
+  updated_at: '2026-09-30T00:00:00+09:00'
+  updated_by: OP-03

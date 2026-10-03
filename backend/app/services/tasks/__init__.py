@@ -1,8 +1,7 @@
-"""Tasks area: task and session store, YAML export / import."""
+"""Tasks area: task files under data/tasks, sessions derived from recordings, YAML I/O."""
 
 from app.services.tasks import yaml_io
 from app.services.tasks.tasks import (
-    bump_collected,
     create_task,
     delete_task,
     duplicate_task,
@@ -18,7 +17,6 @@ from app.services.tasks.tasks import (
 )
 
 __all__ = [
-    "bump_collected",
     "create_task",
     "delete_task",
     "duplicate_task",

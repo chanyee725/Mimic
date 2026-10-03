@@ -24,7 +24,7 @@ CaptureState = {
 | Method | Path | Body | Returns | UI |
 | --- | --- | --- | --- | --- |
 | GET | `/capture/state` | | `CaptureState` | Capture load |
-| POST | `/capture/start` | `{ taskId, operator }` | `CaptureState` (countdown → recording); 404 unknown task; 409 if not idle; 503 if a rig device is off | Space |
+| POST | `/capture/start` | `{ taskId, operator }` | `CaptureState` (countdown → recording); 404 unknown task; 409 if not idle; 503 if a rig device is off (`details.devices` = their ids) — always today, since no device drivers exist yet | Space |
 | POST | `/capture/subtask` | `{ index }` | `CaptureState` (writes a `/labels/subtask` event at the current time); 409 unless recording; 422 index out of range | 1–4 |
 | POST | `/capture/stop` | | `CaptureState` (phase review); 409 unless recording | Space |
 | POST | `/capture/save` | `{ outcome: Outcome }` | `201 Recording` (review "pending"); phase idle; 409 unless recording / review | → / F / P |
@@ -38,6 +38,7 @@ Phase changes are pushed as `capture.state` events. Saving also emits `recording
 - Start runs the task's `countdownS` countdown, then records. Recording stops by itself at the task's `durationS` (phase review).
 - Saving while still recording stops implicitly. The episode number is
   `max(task.collected, highest recorded episode, last issued) + 1`, so numbers are never reused after a delete.
+  A save does not touch the task: `collected` is counted from the recordings ([tasks.md](tasks.md)).
 - Starting a task with subtasks places the first marker (index 0) at 0 s. Consecutive markers become `subtasks` spans; the last
   one ends at the episode end.
 - The saved recording's topics follow the rig (one action topic per leader device, one state topic per follower, one

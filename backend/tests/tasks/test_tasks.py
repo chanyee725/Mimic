@@ -2,7 +2,16 @@ import copy
 
 import pytest
 
+from conftest import add_tasks
+
 TASK = "stack-two-blocks"
+
+
+@pytest.fixture(autouse=True)
+def fixture_tasks(request):
+    # Every fixture task (tests/fixtures/tasks) except for the empty-start test
+    if "empty" not in request.node.name:
+        add_tasks()
 
 
 @pytest.fixture
@@ -16,6 +25,12 @@ def new_task(client):
 
 def errors(r):
     return r.json()["error"]["details"]["errors"]
+
+
+def test_empty_start(client):
+    assert client.get("/tasks").json() == []
+    assert client.get("/sessions").json() == []
+    assert client.get(f"/tasks/{TASK}").status_code == 404
 
 
 def test_list_tasks(client):
@@ -88,9 +103,9 @@ def test_update_task(client):
     t = r.json()
     assert (t["name"], t["version"], t["updatedBy"], t["collected"]) == (
         "Stack blocks",
-        4,
+        2,
         "OP-03",
-        46,
+        0,
     )
 
 
@@ -99,7 +114,7 @@ def test_update_task_stale_version(client):
     assert client.put(f"/tasks/{TASK}", json=body).status_code == 200
     r = client.put(f"/tasks/{TASK}", json=body)
     assert r.status_code == 409
-    assert r.json()["error"]["details"]["current"]["version"] == 4
+    assert r.json()["error"]["details"]["current"]["version"] == 2
 
 
 def test_update_task_errors(client):
@@ -131,10 +146,11 @@ def test_delete_task(client):
     assert client.delete("/tasks/sort-by-color").status_code == 404
 
 
-def test_delete_task_with_recordings(client):
+def test_delete_task_with_recordings(client, record):
+    record()
     r = client.delete(f"/tasks/{TASK}")
     assert r.status_code == 409
-    assert r.json()["error"]["details"]["recordings"] > 0
+    assert r.json()["error"]["details"]["recordings"] == 1
 
 
 def test_task_yaml(client):

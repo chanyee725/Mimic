@@ -1,37 +1,57 @@
-"""Task and session store (in memory, seeded from the web mocks)."""
+"""Tasks persist as data/tasks/<id>.yaml (store.py); collected and sessions come from recordings.
+
+No seeds: a missing or empty folder means no tasks.
+"""
+
+from collections import Counter
 
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.tasks import Session, Task, TaskFields, TaskStatus
 from app.schemas.tasks import TaskDuplicate, TaskInput, TaskUpdate
-from app.seeds import load
 from app.services.rigs import get_rig
-from app.services.tasks import yaml_io
-from app.utils.time import iso, now_iso
+from app.services.tasks import sessions, store, yaml_io
+from app.utils.time import now_iso
 
+# Stored tasks; `collected` is filled in on the way out (_view)
 _tasks: dict[str, Task] = {}
-_sessions: dict[str, Session] = {}
 
 
 def reset() -> None:
     _tasks.clear()
-    for t in load("tasks", "TASKS"):
-        t["updatedAt"] = iso(t["updatedAt"])
-        _tasks[t["id"]] = Task.model_validate(t)
-    _sessions.clear()
-    _sessions.update({s["id"]: Session.model_validate(s) for s in load("sessions", "SESSIONS")})
+    _tasks.update({t.id: t for t in store.load_all()})
+
+
+def _recordings(task_id: str | None = None):
+    # Lazy import: recordings may import tasks
+    from app.services.recordings import list_recordings
+
+    return list_recordings(task_id)
+
+
+def _collected(recs) -> Counter:
+    """Usable episodes per task: accepted + pending (rejected ones do not count)."""
+    return Counter(r.task_id for r in recs if r.task_id and r.review != "rejected")
+
+
+def _view(task: Task, counts: Counter | None = None) -> Task:
+    if counts is None:
+        counts = _collected(_recordings(task.id))
+    return task.model_copy(update={"collected": counts.get(task.id, 0)})
 
 
 def list_tasks(status: TaskStatus | None = None) -> list[Task]:
-    return [t for t in _tasks.values() if status is None or t.status == status]
+    counts = _collected(_recordings())
+    return [_view(t, counts) for t in _tasks.values() if status is None or t.status == status]
 
 
 def get_task(task_id: str) -> Task | None:
-    return _tasks.get(task_id)
+    task = _tasks.get(task_id)
+    return _view(task) if task else None
 
 
 def require_task(task_id: str) -> Task:
-    task = _tasks.get(task_id)
+    task = get_task(task_id)
     if task is None:
         raise not_found("Task", task_id)
     return task
@@ -85,7 +105,10 @@ def _ensure_new(task_id: str) -> None:
 
 
 def _store(task: Task, event: str) -> Task:
+    task = task.model_copy(update={"collected": 0})  # never stored
+    store.save(task)
     _tasks[task.id] = task
+    task = _view(task)
     bus.publish(event, task)
     return task
 
@@ -141,12 +164,10 @@ def duplicate_task(task_id: str, body: TaskDuplicate, operator: str) -> Task:
 
 def delete_task(task_id: str) -> None:
     require_task(task_id)
-    # Lazy import: recordings may import tasks
-    from app.services.recordings import list_recordings
-
-    count = len(list_recordings(task_id))
+    count = len(_recordings(task_id))
     if count:
         raise conflict(f"Task '{task_id}' has {count} recordings", recordings=count)
+    store.remove(task_id)
     del _tasks[task_id]
     bus.publish("task.deleted", {"id": task_id})
 
@@ -168,16 +189,9 @@ def import_task(text: str, operator: str) -> Task:
 # --- sessions ---------------------------------------------------------------
 
 
-def bump_collected(task_id: str, by: int = 1) -> None:
-    """Capture saved an episode; not a user edit, so the version stays."""
-    task = _tasks.get(task_id)
-    if task:
-        _tasks[task_id] = task.model_copy(update={"collected": max(0, task.collected + by)})
-
-
 def list_sessions(task_id: str | None = None) -> list[Session]:
-    rows = [s for s in _sessions.values() if task_id is None or s.task_id == task_id]
-    return sorted(rows, key=lambda s: (s.date, s.id), reverse=True)
+    """Recordings grouped by task and station day, newest first."""
+    return sessions.from_recordings(_recordings(task_id))
 
 
 reset()
