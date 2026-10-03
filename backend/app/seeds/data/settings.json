@@ -28,21 +28,7 @@
     "station": {
       "name": "Station 01",
       "id": "st-01",
-      "timezone": "Asia/Seoul",
-      "operators": [
-        {
-          "id": "OP-01",
-          "role": "admin"
-        },
-        {
-          "id": "OP-02",
-          "role": "operator"
-        },
-        {
-          "id": "OP-03",
-          "role": "operator"
-        }
-      ]
+      "timezone": "Asia/Seoul"
     },
     "integrations": {
       "hf": {
@@ -100,14 +86,6 @@
         "turn": "",
         "state": "ok"
       }
-    },
-    "recording": {
-      "actionHz": 60,
-      "videoFps": 30,
-      "mcapCompression": "zstd",
-      "chunkMB": 4,
-      "codec": "av1",
-      "crf": 30
     },
     "training": {
       "lerobotCommit": "[COMMIT HASH]",
