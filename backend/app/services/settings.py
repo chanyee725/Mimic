@@ -1,5 +1,7 @@
-"""Station settings, kept in data/settings.yaml; raw secrets in data/secrets.yaml (0600).
+"""Station settings, kept as data/settings/<part>.yaml; raw secrets in data/secrets.yaml (0600).
 
+Part files hold only editable values: no document version (memory only, 1 on load) and no
+live fields (state, latency, spend), so connection tests never churn the committed files.
 Secrets never leave this module.
 """
 
@@ -14,19 +16,50 @@ from app.core import storage
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.seeds import load
-from app.models.settings import SECTIONS, Secret, SecretName, Settings
+from app.models.settings import (
+    SECTIONS,
+    ConnectionSettings,
+    HfSettings,
+    NotificationSettings,
+    RunpodSettings,
+    Secret,
+    SecretName,
+    Settings,
+    StationSettings,
+    StorageSettings,
+    TrainingSettings,
+    WandbSettings,
+)
+from app.schemas.common import CamelModel
 from app.schemas.settings import ConnTestResult, Disk, ShortcutGroup, VersionRow
 from app.utils.paths import display_path, resolve_user_path
 
 log = logging.getLogger(__name__)
 
-SETTINGS_FILE = "settings.yaml"
+SETTINGS_DIR = "settings"
+LEGACY_FILE = "settings.yaml"  # single-file layout, migrated on load
 SECRETS_FILE = "secrets.yaml"
 SECRETS_HEADER = "# write-only, do not commit\n"
+
+# Part file name → (path in the snake_case document, model)
+PARTS: dict[str, tuple[tuple[str, ...], type[CamelModel]]] = {
+    "station": (("station",), StationSettings),
+    "huggingface": (("integrations", "hf"), HfSettings),
+    "runpod": (("integrations", "runpod"), RunpodSettings),
+    "wandb": (("integrations", "wandb"), WandbSettings),
+    "storage": (("storage",), StorageSettings),
+    "connection": (("connection",), ConnectionSettings),
+    "training": (("training",), TrainingSettings),
+    "notifications": (("notifications",), NotificationSettings),
+}
+# Live values: kept in memory, never written (snake_case keys)
+LIVE_FIELDS = {"state", "latency_ms", "spent_this_month"}
 
 _doc: dict[str, Settings] = {}
 # Raw secret values, mirrored to secrets.yaml
 _secrets: dict[str, str] = {}
+# Part → YAML text last written / loaded; a part is rewritten only when its text changes
+_disk: dict[str, str] = {}
 
 # Fields a PATCH never changes (live values, secrets, station id)
 READ_ONLY = {"state", "latencyMs", "spentThisMonth", "token", "apiKey", "slackWebhook"}
@@ -50,24 +83,38 @@ LATENCY_MS = {"hf": 180, "runpod": 240, "wandb": 150, "slack": 210, "api": 4, "g
 
 
 def reset() -> None:
-    """Load settings.yaml, or seed and write it when missing.
+    """Seed document overlaid with each part file; missing part files are written.
 
-    A broken file is left untouched (seeds are used) so it can be fixed by hand.
+    A broken part file is left untouched (seed values are used) so it can be fixed by hand.
     Never rescans simulation here: it reads config.sim_envs_dir in its own reset.
     """
     _secrets.clear()
     _secrets.update(_read_secrets())
-    loaded = _read_settings()
-    doc = loaded or _seed()
-    doc = _reconcile(doc)
+    _disk.clear()
+    _migrate_legacy()
+
+    data = _seed().model_dump(mode="json")
+    loaded: set[str] = set()
+    broken: set[str] = set()
+    for part, (path, model) in PARTS.items():
+        try:
+            values = _read_part(part, _get_at(data, path), model)
+        except _BrokenPart:
+            broken.add(part)
+            continue
+        if values is not None:
+            _set_at(data, path, values)
+            loaded.add(part)
+
+    doc = _reconcile(Settings.model_validate(data))
     _doc["current"] = doc
-    if loaded is not None:
-        if doc.training.sim_envs_path:
-            config.sim_envs_dir = resolve_user_path(doc.training.sim_envs_path)
-        if doc != loaded:
-            _write_settings()
-    elif not storage.exists(SETTINGS_FILE):
-        _write_settings()
+    # Broken files count as written: untouched until their part really changes
+    current = doc.model_dump(mode="json")
+    for part in broken:
+        _disk[part] = storage.dumps(_persisted(_get_at(current, PARTS[part][0])))
+    if "training" in loaded and doc.training.sim_envs_path:
+        config.sim_envs_dir = resolve_user_path(doc.training.sim_envs_path)
+    _write_settings()
 
 
 def _seed() -> Settings:
@@ -76,15 +123,65 @@ def _seed() -> Settings:
     return Settings.model_validate({"version": 1, **raw})
 
 
-def _read_settings() -> Settings | None:
+def _part_file(part: str) -> str:
+    return f"{SETTINGS_DIR}/{part}.yaml"
+
+
+def _overlay(base: Any, top: Any) -> Any:
+    """Nested dicts merge key by key; secrets ({set, last4}) and other values replace."""
+    if isinstance(base, dict) and isinstance(top, dict) and "set" not in top:
+        return {**base, **{k: _overlay(base.get(k), v) for k, v in top.items()}}
+    return top
+
+
+class _BrokenPart(Exception):
+    pass
+
+
+def _read_part(part: str, seed: dict[str, Any], model: type[CamelModel]) -> dict[str, Any] | None:
+    """Seed values overlaid with the part file; None when missing, _BrokenPart when invalid.
+
+    A valid file is remembered as written (normalised) so loading alone never rewrites it.
+    """
+    rel = _part_file(part)
     try:
-        data = storage.read(SETTINGS_FILE)
-        if data is None:
+        raw = storage.read(rel)
+        if raw is None:
             return None
-        return Settings.model_validate(data)
-    except (storage.StorageError, ValidationError) as e:
-        log.warning("%s is invalid, using seed settings: %s", storage.path(SETTINGS_FILE), e)
-        return None
+        if not isinstance(raw, dict):
+            raise ValueError("expected a mapping")
+        values = model.model_validate(_overlay(seed, raw)).model_dump(mode="json")
+    except (storage.StorageError, ValidationError, ValueError) as e:
+        log.warning("%s is invalid, using seed values: %s", storage.path(rel), e)
+        raise _BrokenPart from e
+    _disk[part] = storage.dumps(_persisted(values))
+    return values
+
+
+def _migrate_legacy() -> None:
+    """Split an old data/settings.yaml into part files, then delete it."""
+    if not storage.exists(LEGACY_FILE) or storage.exists(SETTINGS_DIR):
+        return
+    try:
+        old = storage.read(LEGACY_FILE)
+        if not isinstance(old, dict):
+            raise ValueError("expected a mapping")
+    except (storage.StorageError, ValueError) as e:
+        log.warning("%s is invalid, not migrating it: %s", storage.path(LEGACY_FILE), e)
+        return
+    seed = _seed().model_dump(mode="json")
+    for part, (path, model) in PARTS.items():
+        try:
+            values = _get_at(old, path)
+            if not isinstance(values, dict):
+                raise ValueError("missing")
+            merged = model.model_validate(_overlay(_get_at(seed, path), values))
+        except (KeyError, TypeError, ValueError, ValidationError) as e:
+            log.warning("%s: '%s' not migrated, using seed values: %s", LEGACY_FILE, part, e)
+            continue
+        storage.write(_part_file(part), _persisted(merged.model_dump(mode="json")))
+    storage.delete(LEGACY_FILE)
+    log.info("migrated %s to %s/", LEGACY_FILE, SETTINGS_DIR)
 
 
 def _read_secrets() -> dict[str, str]:
@@ -108,8 +205,23 @@ def _reconcile(doc: Settings) -> Settings:
     return Settings.model_validate(data)
 
 
+def _persisted(value: Any) -> Any:
+    """Drop live fields (at any depth) from a snake_case dump."""
+    if isinstance(value, dict):
+        return {k: _persisted(v) for k, v in value.items() if k not in LIVE_FIELDS}
+    if isinstance(value, list):
+        return [_persisted(v) for v in value]
+    return value
+
+
 def _write_settings() -> None:
-    storage.write(SETTINGS_FILE, get_settings().model_dump(mode="json"))
+    """Rewrite only the part files whose persisted content changed."""
+    data = get_settings().model_dump(mode="json")
+    for part, (path, _) in PARTS.items():
+        text = storage.dumps(_persisted(_get_at(data, path)))
+        if _disk.get(part) != text:
+            storage.write_text(_part_file(part), text)
+            _disk[part] = text
 
 
 def _write_secrets() -> None:
@@ -210,6 +322,12 @@ def _apply_sim_envs_path(value: str | None) -> None:
 
 
 # --- secrets ----------------------------------------------------------------
+
+
+def _get_at(data: dict[str, Any], path: tuple[str, ...]) -> Any:
+    for part in path:
+        data = data[part]
+    return data
 
 
 def _set_at(data: dict[str, Any], path: tuple[str, ...], value: Any) -> None:

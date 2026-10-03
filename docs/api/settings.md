@@ -26,9 +26,17 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 
 ## Storage
 
-- `data/settings.yaml`: the whole document (incl. `version`) in snake_case keys; hand-editable. Written on first start from the seeds and after every change. Secrets appear only as `{set, last4}`.
-- `data/secrets.yaml`: raw secret values (mode 0600, write-only, never returned by the API). Its values win over `last4` in settings.yaml on load.
-- An invalid settings.yaml is left untouched and the seeds are used (a warning is logged) until it is fixed.
+- `data/settings/<part>.yaml`, one file per part, snake_case keys, hand-editable and committed:
+  `station`, `huggingface` (integrations.hf), `runpod`, `wandb`, `storage`, `connection`, `training`, `notifications`.
+  Files hold only editable values: no `version` (kept in memory, 1 after each start) and no live fields
+  (`state`, `latency_ms`, `spent_this_month`), so connection tests never change them. Secrets appear only as `{set, last4}`.
+- On load the seed document is overlaid with each file (nested objects merge, other values replace), so missing keys and live
+  fields get seed values. A missing file is written from the seeds; an invalid one is left untouched and that part uses the seeds
+  (a warning is logged) until it is fixed or that part is saved.
+- A save rewrites only the files whose content changed.
+- `data/secrets.yaml`: raw secret values (mode 0600, ignored by version control, write-only, never returned by the API). Its
+  values win over `last4` in the part files on load.
+- Migration: an old `data/settings.yaml` is split into the part files when `data/settings/` does not exist yet, then deleted.
 - On start, `training.sim_envs_path` sets the simulation environments folder.
 - Disk, shortcuts and versions are not stored.
 
