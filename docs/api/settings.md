@@ -8,7 +8,7 @@ Station settings, secrets and connection checks. Web: `api/settings.ts`, Setting
 Secret    = { set: boolean; last4?: string }          // write-only values
 ConnState = "ok" | "error" | "unknown"
 Settings  = { version: number } & {
-  station: { name; id; timezone; operators: { id; role: "operator" | "admin" }[] }
+  station: { name; id; timezone }
   integrations: {
     hf:     { token: Secret; namespace; privateByDefault; state: ConnState }
     runpod: { apiKey: Secret; region; volume; monthlyBudget; idleAlertMin; spentThisMonth; state: ConnState }
@@ -16,7 +16,6 @@ Settings  = { version: number } & {
   }
   storage:    { rawPath; datasetsPath; modelsPath; warnAtPct; deleteRejected; deleteRejectedAfterDays; keepCheckpoints }
   connection: { api: { url; state; latencyMs? }; grpc: { url; state; latencyMs? }; webrtc: { stun; turn; state } }
-  recording:  { actionHz; videoFps; mcapCompression: "zstd" | "lz4" | "none"; chunkMB; codec: "av1" | "h264"; crf }
   training:   { lerobotCommit; defaultCompute: "local" | "runpod"; saveFreq; simGpu; simEnvsPath }
   notifications: { slackWebhook: Secret; events: { key; label; on: boolean }[] }
 }
@@ -46,13 +45,12 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 | GET | `/settings/shortcuts` | | `{ page; keys: { keys: string[]; action }[] }[]` | `getShortcuts()` |
 | GET | `/settings/versions` | | `{ k: string; v: string }[]` (web app, backend, lerobot, CUDA driver, Isaac Sim) | `getVersions()` |
 
-`section` ∈ `station | integrations | storage | connection | recording | training | notifications`.
+`section` ∈ `station | integrations | storage | connection | training | notifications` (recording rates live on each rig).
 `training.simEnvsPath` is repo-relative (`sim/envs`) or absolute; changing it re-points the simulation scanner and rescans.
-Operators: IDs must match `^OP-\d{2}$`, unique; at least one admin.
 
 Rules:
 
-- PATCH merges: nested objects merge key by key, other values (incl. `operators`) replace. Keys may be camelCase or snake_case;
+- PATCH merges: nested objects merge key by key, other values replace. Keys may be camelCase or snake_case;
   unknown keys are ignored. Read-only: `state`, `latencyMs`, `spentThisMonth`, secrets (`token`, `apiKey`, `slackWebhook`), `station.id`.
 - `notifications.events` is matched by `key`; only `on` is editable (unknown key → 422).
 - A missing `version` or an invalid section value → 422 (`details.errors[].loc` starts with `body`); a stale version → 409 with

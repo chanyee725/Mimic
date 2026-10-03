@@ -16,7 +16,7 @@ def read_file(name):
 def test_seed_writes_snake_case_file():
     doc = read_file("settings.yaml")
     assert doc["version"] == 1
-    assert doc["recording"]["chunk_mb"] == 4
+    assert doc["storage"]["keep_checkpoints"] == 4
     assert "private_by_default" in doc["integrations"]["hf"]
     assert doc["integrations"]["hf"]["token"] == {"set": True, "last4": "3kQz"}
     assert "simEnvsPath" not in doc["training"] and doc["training"]["sim_envs_path"]
@@ -24,16 +24,16 @@ def test_seed_writes_snake_case_file():
 
 
 def test_patch_persists_and_reloads(client):
-    body = {"version": 1, "crf": 24, "chunkMB": 8}
-    assert client.patch("/settings/recording", json=body).status_code == 200
-    assert read_file("settings.yaml")["recording"]["chunk_mb"] == 8
+    body = {"version": 1, "warnAtPct": 90, "keepCheckpoints": 8}
+    assert client.patch("/settings/storage", json=body).status_code == 200
+    assert read_file("settings.yaml")["storage"]["keep_checkpoints"] == 8
     body = {"version": 2, "events": [{"key": "sim_done", "on": True}]}
     assert client.patch("/settings/notifications", json=body).status_code == 200
 
     service.reset()  # data dir kept
     s = client.get("/settings").json()
     assert s["version"] == 3
-    assert (s["recording"]["crf"], s["recording"]["chunkMB"]) == (24, 8)
+    assert (s["storage"]["warnAtPct"], s["storage"]["keepCheckpoints"]) == (90, 8)
     assert next(e for e in s["notifications"]["events"] if e["key"] == "sim_done")["on"] is True
 
 
@@ -45,14 +45,18 @@ def test_connection_test_persists(client):
 def test_hand_edited_file_loads(client):
     doc = read_file("settings.yaml")
     doc["station"]["name"] = "Hand Bench"
-    doc["recording"]["chunk_mb"] = 16
+    doc["storage"]["keep_checkpoints"] = 16
     first = doc["notifications"]["events"][0]
     first["on"] = not first["on"]
     doc["version"] = 7
     storage.path("settings.yaml").write_text(yaml.safe_dump(doc, sort_keys=False))
     service.reset()
     s = client.get("/settings").json()
-    assert (s["version"], s["station"]["name"], s["recording"]["chunkMB"]) == (7, "Hand Bench", 16)
+    assert (s["version"], s["station"]["name"], s["storage"]["keepCheckpoints"]) == (
+        7,
+        "Hand Bench",
+        16,
+    )
     assert s["notifications"]["events"][0]["on"] is first["on"]
 
 
@@ -92,7 +96,7 @@ def test_secrets_file_wins_over_settings_last4(client):
 
 def test_broken_file_falls_back_untouched(client):
     p = storage.path("settings.yaml")
-    for broken in ("station: [unclosed\n", "version: 1\nrecording: {crf: 999}\n"):
+    for broken in ("station: [unclosed\n", "version: 1\nstorage: {warn_at_pct: 999}\n"):
         p.write_text(broken)
         service.reset()
         assert p.read_text() == broken

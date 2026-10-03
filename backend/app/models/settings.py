@@ -9,9 +9,7 @@ from app.schemas.common import CamelModel
 
 ConnState = Literal["ok", "error", "unknown"]
 SecretName = Literal["hf_token", "runpod_api_key", "wandb_api_key", "slack_webhook"]
-Section = Literal[
-    "station", "integrations", "storage", "connection", "recording", "training", "notifications"
-]
+Section = Literal["station", "integrations", "storage", "connection", "training", "notifications"]
 
 
 class Secret(CamelModel):
@@ -24,16 +22,10 @@ class Secret(CamelModel):
         return {k: v for k, v in handler(self).items() if v is not None}
 
 
-class Operator(CamelModel):
-    id: str = Field(pattern=r"^OP-\d{2}$")
-    role: Literal["operator", "admin"]
-
-
 class StationSettings(CamelModel):
     name: str = Field(min_length=1)
     id: str
     timezone: str
-    operators: list[Operator]
 
     @field_validator("timezone")
     @classmethod
@@ -42,16 +34,6 @@ class StationSettings(CamelModel):
             ZoneInfo(v)
         except Exception:
             raise ValueError(f"unknown timezone '{v}'")
-        return v
-
-    @field_validator("operators")
-    @classmethod
-    def _operators(cls, v: list[Operator]) -> list[Operator]:
-        ids = [o.id for o in v]
-        if len(set(ids)) != len(ids):
-            raise ValueError("operator ids must be unique")
-        if not any(o.role == "admin" for o in v):
-            raise ValueError("at least one operator must be an admin")
         return v
 
 
@@ -113,15 +95,6 @@ class ConnectionSettings(CamelModel):
     webrtc: WebrtcSettings
 
 
-class RecordingSettings(CamelModel):
-    action_hz: int = Field(gt=0)
-    video_fps: int = Field(gt=0)
-    mcap_compression: Literal["zstd", "lz4", "none"]
-    chunk_mb: int = Field(gt=0, alias="chunkMB")
-    codec: Literal["av1", "h264"]
-    crf: int = Field(ge=0, le=63)
-
-
 class TrainingSettings(CamelModel):
     lerobot_commit: str
     default_compute: Literal["local", "runpod"]
@@ -147,7 +120,6 @@ class Settings(CamelModel):
     integrations: Integrations
     storage: StorageSettings
     connection: ConnectionSettings
-    recording: RecordingSettings
     training: TrainingSettings
     notifications: NotificationSettings
 
@@ -157,7 +129,6 @@ SECTIONS: dict[str, type[CamelModel]] = {
     "integrations": Integrations,
     "storage": StorageSettings,
     "connection": ConnectionSettings,
-    "recording": RecordingSettings,
     "training": TrainingSettings,
     "notifications": NotificationSettings,
 }
