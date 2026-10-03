@@ -117,3 +117,9 @@ def test_empty_folder_is_not_reseeded():
         p.unlink()
     service.reset()
     assert service.list_tasks() == []
+
+
+def test_reload_keeps_seed_order():
+    before = [t.id for t in service.list_tasks()]
+    service.reset()
+    assert [t.id for t in service.list_tasks()] == before
