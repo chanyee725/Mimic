@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react"
 
 import { useCaptureActions, useCaptureState } from "@/api/capture"
-import { useSettings } from "@/api/settings"
 import { captureElapsedS, type CaptureState } from "@/domain/capture"
 import type { Outcome, Task } from "@/domain/task"
 
-import { FALLBACK_OPERATOR } from "../lib"
+import { STATION_OPERATOR } from "../lib"
 
 /** Re-renders every 100 ms while recording so the elapsed time ticks between server events */
 function useLiveElapsedS(state: CaptureState | undefined, maxS: number) {
@@ -26,11 +25,9 @@ function useLiveElapsedS(state: CaptureState | undefined, maxS: number) {
 export function useCapture(task: Task | undefined) {
   const query = useCaptureState()
   const actions = useCaptureActions()
-  const settings = useSettings()
   const state = query.data
   const phase = state?.phase ?? "idle"
   const elapsedS = useLiveElapsedS(state, task?.durationS ?? Infinity)
-  const operator = settings.data?.station.operators[0]?.id ?? FALLBACK_OPERATOR
 
   // The station advances countdown → recording → review lazily, without events, so ask again from each boundary
   // until the phase changes (startedAt has whole-second precision, so the first ask can be early)
@@ -63,7 +60,7 @@ export function useCapture(task: Task | undefined) {
     run(() => {
       if (phase === "recording") actions.stop.mutate()
       else if (phase === "review") actions.rerecord.mutate()
-      else if (phase === "idle" && task) actions.start.mutate({ taskId: task.id, operator })
+      else if (phase === "idle" && task) actions.start.mutate({ taskId: task.id, operator: STATION_OPERATOR })
     })
   const save = (outcome: Outcome) =>
     run(() => {

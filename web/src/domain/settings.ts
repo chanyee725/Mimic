@@ -5,7 +5,7 @@ export type ConnState = "ok" | "error" | "unknown"
 /** Station settings document; every section save sends `version` (stale → 409) */
 export type Settings = {
   version: number
-  station: { name: string; id: string; timezone: string; operators: { id: string; role: "operator" | "admin" }[] }
+  station: { name: string; id: string; timezone: string }
   integrations: {
     hf: { token: Secret; namespace: string; privateByDefault: boolean; state: ConnState }
     runpod: {
@@ -32,14 +32,6 @@ export type Settings = {
     api: { url: string; state: ConnState; latencyMs?: number }
     grpc: { url: string; state: ConnState; latencyMs?: number }
     webrtc: { stun: string; turn: string; state: ConnState }
-  }
-  recording: {
-    actionHz: number
-    videoFps: number
-    mcapCompression: "zstd" | "lz4" | "none"
-    chunkMB: number
-    codec: "av1" | "h264"
-    crf: number
   }
   training: { lerobotCommit: string; defaultCompute: "local" | "runpod"; saveFreq: number; simGpu: string; simEnvsPath: string }
   notifications: {

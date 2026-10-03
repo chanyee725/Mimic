@@ -29,9 +29,3 @@ export function errorText(err: Error | null): string | null {
   })
   return [err.message, ...lines].join("\n")
 }
-
-/** Next free pseudonymous operator ID (OP-nn) */
-export function nextOperatorId(ids: string[]) {
-  const max = Math.max(0, ...ids.map((id) => Number(/^OP-(\d+)$/.exec(id)?.[1] ?? 0)))
-  return `OP-${String(max + 1).padStart(2, "0")}`
-}

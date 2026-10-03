@@ -1,11 +1,7 @@
-import { LuPlus, LuTrash2 } from "react-icons/lu"
-
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 
 import { useSettingsDraft } from "../hooks/use-draft"
-import { nextOperatorId } from "../lib"
 import { ChoiceSelect } from "./choice-select"
 import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
@@ -34,58 +30,6 @@ export function StationSection() {
             onChange={(v) => set("timezone", v)}
           />
         </SettingRow>
-      </SettingsSection>
-      <SettingsSection title="Operators">
-        <p className="text-xs text-muted-foreground">작업자는 가명 ID 로만 기록합니다. 실명이나 이메일은 저장하지 않습니다.</p>
-        <ul className="divide-y rounded-md border">
-          {draft.operators.map((op, i) => (
-            <li key={op.id} className="flex items-center gap-3 px-3 py-1.5 text-[13px]">
-              <span className="w-16 font-mono">{op.id}</span>
-              <div className="w-36">
-                <ChoiceSelect
-                  value={op.role}
-                  options={[
-                    { value: "operator", label: "Operator" },
-                    { value: "admin", label: "Admin" },
-                  ]}
-                  onChange={(role) =>
-                    set(
-                      "operators",
-                      draft.operators.map((x, j) => (j === i ? { ...x, role } : x)),
-                    )
-                  }
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="ml-auto text-muted-foreground hover:text-bad"
-                aria-label={`Remove ${op.id}`}
-                disabled={draft.operators.length === 1}
-                onClick={() =>
-                  set(
-                    "operators",
-                    draft.operators.filter((_, j) => j !== i),
-                  )
-                }
-              >
-                <LuTrash2 />
-              </Button>
-            </li>
-          ))}
-        </ul>
-        <div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              set("operators", [...draft.operators, { id: nextOperatorId(draft.operators.map((o) => o.id)), role: "operator" }])
-            }
-          >
-            <LuPlus />
-            Add operator
-          </Button>
-        </div>
       </SettingsSection>
       <SaveBar {...saveBar} />
     </SettingsGroup>

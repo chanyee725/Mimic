@@ -9,15 +9,18 @@ def test_get_settings(client):
     s = get(client)
     assert s["version"] == 1
     assert s["integrations"]["hf"]["token"] == {"set": True, "last4": "3kQz"}
-    assert s["recording"]["chunkMB"] == 4
+    assert s["storage"]["keepCheckpoints"] == 4
+    assert "recording" not in s
+    assert set(s["station"]) == {"name", "id", "timezone"}
 
 
 def test_patch_section(client):
-    r = client.patch("/settings/recording", json={"version": 1, "crf": 24, "chunk_mb": 8})
+    body = {"version": 1, "warn_at_pct": 90, "keepCheckpoints": 8}
+    r = client.patch("/settings/storage", json=body)
     assert r.status_code == 200
     s = r.json()
     assert s["version"] == 2
-    assert (s["recording"]["crf"], s["recording"]["chunkMB"]) == (24, 8)
+    assert (s["storage"]["warnAtPct"], s["storage"]["keepCheckpoints"]) == (90, 8)
     assert get(client)["version"] == 2
 
 
@@ -57,12 +60,9 @@ def test_patch_stale_version(client):
 @pytest.mark.parametrize(
     "section,body",
     [
-        ("recording", {"crf": 99}),
-        ("recording", {"codec": "vp9"}),
         ("storage", {"warnAtPct": 0}),
-        ("station", {"operators": [{"id": "OP-1", "role": "admin"}]}),
-        ("station", {"operators": [{"id": "OP-01", "role": "operator"}]}),
-        ("station", {"operators": [{"id": "OP-01", "role": "admin"}] * 2}),
+        ("storage", {"keepCheckpoints": 0}),
+        ("station", {"name": ""}),
         ("station", {"timezone": "Mars/Base"}),
         ("training", {"defaultCompute": "cloud"}),
     ],
@@ -75,8 +75,18 @@ def test_patch_validation(client, section, body):
 
 
 def test_patch_bad_request(client):
-    assert client.patch("/settings/recording", json={"crf": 20}).status_code == 422
+    assert client.patch("/settings/storage", json={"warnAtPct": 20}).status_code == 422
     assert client.patch("/settings/nope", json={"version": 1}).status_code == 422
+
+
+def test_removed_sections_and_fields(client):
+    # The recording section is gone: treated like any unknown section
+    r = client.patch("/settings/recording", json={"version": 1, "crf": 24})
+    assert r.status_code == 422
+    # Operators are no longer part of station settings; the key is ignored
+    body = {"version": 1, "operators": [{"id": "OP-09", "role": "admin"}]}
+    s = client.patch("/settings/station", json=body).json()
+    assert "operators" not in s["station"]
 
 
 def test_secrets_write_only(client):

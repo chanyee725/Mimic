@@ -1,4 +1,4 @@
-"""YAML files under config.data_dir (tasks/, rigs/, settings.yaml, …)."""
+"""YAML files under config.data_dir (rigs/, settings/, secrets.yaml, …)."""
 
 import os
 import tempfile
