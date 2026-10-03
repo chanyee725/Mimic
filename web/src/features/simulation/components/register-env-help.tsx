@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { LuChevronRight } from "react-icons/lu"
 
-import { getSimEnvsDir } from "@/api/simulation"
+import { useSimConfig } from "@/api/simulation"
 import { cn } from "@/lib/utils"
 
 const LAYOUT: { file: string; hint: string }[] = [
@@ -12,6 +12,7 @@ const LAYOUT: { file: string; hint: string }[] = [
 
 /** How to register an environment: the expected folder layout. Collapsible so the list keeps its room */
 export function RegisterEnvHelp({ defaultOpen = false, className }: { defaultOpen?: boolean; className?: string }) {
+  const envsDir = useSimConfig().data?.envsDir ?? "…"
   return (
     <details open={defaultOpen} className={cn("group rounded-md border border-dashed px-3 py-2", className)}>
       <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[13px] font-medium [&::-webkit-details-marker]:hidden">
@@ -20,7 +21,7 @@ export function RegisterEnvHelp({ defaultOpen = false, className }: { defaultOpe
       </summary>
       <div className="grid gap-2 pt-2">
         <div className="grid gap-0.5 overflow-x-auto font-mono text-[11px] leading-5">
-          <span className="whitespace-nowrap">{getSimEnvsDir()}/&lt;env-name&gt;/</span>
+          <span className="whitespace-nowrap">{envsDir}/&lt;env-name&gt;/</span>
           {LAYOUT.map((l) => (
             <span key={l.file} className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2 pl-3">
               <span>{l.file}</span>
