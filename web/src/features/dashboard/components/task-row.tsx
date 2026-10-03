@@ -1,17 +1,15 @@
 import { Link } from "react-router-dom"
 
 import { ProgressRing } from "@/components/common/progress-ring"
-import { listSessions } from "@/api/sessions"
-import { getCurrentTaskId } from "@/api/tasks"
+import type { Session } from "@/domain/session"
 import { TASK_RING_TONE, type Task } from "@/domain/task"
 import { plural } from "@/lib/format"
 
-export function TaskRow({ task }: { task: Task }) {
-  const sessions = listSessions().filter((s) => s.taskId === task.id)
-  const episodes = sessions.reduce((a, s) => a + s.episodes, 0)
-  const success = episodes ? Math.round(sessions.reduce((a, s) => a + s.successPct * s.episodes, 0) / episodes) : null
-  const pct = Math.min(100, Math.round((task.collected / task.targetEpisodes) * 100))
-  const current = task.id === getCurrentTaskId()
+/** sessions is undefined while they load; current marks the task being captured */
+export function TaskRow({ task, sessions, current }: { task: Task; sessions: Session[] | undefined; current: boolean }) {
+  const episodes = sessions?.reduce((a, s) => a + s.episodes, 0) ?? 0
+  const success = sessions && episodes ? Math.round(sessions.reduce((a, s) => a + s.successPct * s.episodes, 0) / episodes) : null
+  const pct = task.targetEpisodes ? Math.min(100, Math.round((task.collected / task.targetEpisodes) * 100)) : 0
 
   return (
     <li className="flex min-h-16 flex-1">
@@ -26,7 +24,7 @@ export function TaskRow({ task }: { task: Task }) {
             <span className="text-foreground">
               {task.collected} / {task.targetEpisodes}
             </span>
-            <span>{plural(sessions.length, "session")}</span>
+            <span>{sessions ? plural(sessions.length, "session") : "— sessions"}</span>
             <span>success {success === null ? "—" : `${success}%`}</span>
           </div>
         </div>

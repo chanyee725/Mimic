@@ -1,4 +1,6 @@
-import { getEpisodeActivity } from "@/api/station"
+import { Skeleton } from "@/components/ui/skeleton"
+import { QueryView } from "@/components/common/query-state"
+import { useEpisodeActivity } from "@/api/station"
 import type { DayCount } from "@/domain/activity"
 import { cn } from "@/lib/utils"
 
@@ -22,13 +24,29 @@ function level(count: number, max: number) {
 
 /** GitHub-style contribution grid of episodes collected per day, one column per week. SVG, so it scales to the panel width. */
 export function EpisodeHeatmap() {
-  const days = getEpisodeActivity()
-  const firstDow = new Date(`${days[0].date}T00:00:00`).getDay()
+  const activity = useEpisodeActivity()
+  return (
+    <QueryView
+      query={activity}
+      loading={
+        <div className="grid gap-3">
+          <h2 className="text-sm font-semibold">Episodes collected</h2>
+          <Skeleton className="aspect-[730/101] w-full" />
+        </div>
+      }
+    >
+      {(days) => <ActivityGrid days={days} />}
+    </QueryView>
+  )
+}
+
+function ActivityGrid({ days }: { days: DayCount[] }) {
+  const firstDow = days.length ? new Date(`${days[0].date}T00:00:00`).getDay() : 0
   const cells: (DayCount | null)[] = [...Array(firstDow).fill(null), ...days]
   const weeks: (DayCount | null)[][] = []
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
 
-  const max = Math.max(...days.map((d) => d.count))
+  const max = Math.max(1, ...days.map((d) => d.count))
   const total = days.reduce((a, d) => a + d.count, 0)
   const activeDays = days.filter((d) => d.count > 0).length
 
