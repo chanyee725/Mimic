@@ -1,6 +1,6 @@
 # VLA Data Pipeline — Backend API
 
-Specification of the station backend that replaces the web app's mocks (`web/src/dummy`, read through `web/src/api`).
+Specification of the station backend the web app reads through `web/src/api` (mock data is served from `backend/app/seeds`).
 Every function in `web/src/api` maps to an endpoint here; actions that are no-ops in the UI today (Start, Stop, Save, Push, …) are specified too.
 
 | File | Area | Web pages |

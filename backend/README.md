@@ -14,11 +14,7 @@ uv run black .                            # 포맷
 
 ## 목업 데이터
 
-`app/seeds/data/*.json` 은 웹 목업(`web/src/dummy`)을 그대로 내보낸 것입니다. 웹 목업을 바꾸면 다시 만듭니다:
-
-```sh
-cd web && npx tsx --tsconfig tsconfig.app.json ../backend/scripts/dump-seed.ts
-```
+`app/seeds/data/*.json` 이 목업 데이터의 원본입니다 (웹은 더 이상 자체 목업을 갖지 않습니다).
 
 ## gRPC (로봇 60 Hz 스트림)
 
