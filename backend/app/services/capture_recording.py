@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from app.models.recordings import McapTopic, Recording, RecordingCheck, SubtaskSpan
-from app.schemas.rigs import Rig
-from app.schemas.tasks import Outcome, Task
+from app.models.rigs import Rig
+from app.models.tasks import Outcome, Task
 
 # Rough MCAP size model (matches the seeded recordings: ~1.9 MB/s with two cameras)
 _MB_PER_CAMERA_S = 0.9

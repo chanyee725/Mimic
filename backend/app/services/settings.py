@@ -10,16 +10,8 @@ from app.configs.config import REPO_ROOT, config
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.seeds import load
-from app.schemas.settings import (
-    SECTIONS,
-    ConnTestResult,
-    Disk,
-    Secret,
-    SecretName,
-    Settings,
-    ShortcutGroup,
-    VersionRow,
-)
+from app.models.settings import SECTIONS, Secret, SecretName, Settings
+from app.schemas.settings import ConnTestResult, Disk, ShortcutGroup, VersionRow
 
 _doc: dict[str, Settings] = {}
 # Raw secret values, memory only

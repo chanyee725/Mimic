@@ -6,7 +6,8 @@ import yaml
 from pydantic import ValidationError
 
 from app.core.errors import ApiError
-from app.schemas.tasks import Task, TaskInput
+from app.models.tasks import Task
+from app.schemas.tasks import TaskInput
 
 DEFAULT_OUTCOMES = {"success": "→", "fail": "F", "partial": "P"}
 

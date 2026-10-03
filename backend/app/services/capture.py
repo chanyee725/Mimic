@@ -11,8 +11,8 @@ from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.capture import CaptureState
 from app.models.recordings import Recording
-from app.schemas.rigs import Rig
-from app.schemas.tasks import Outcome, Task
+from app.models.rigs import Rig
+from app.models.tasks import Outcome, Task
 from app.services import recordings, tasks
 from app.services.capture_recording import Session, build_recording
 from app.services.rigs import get_device, get_rig

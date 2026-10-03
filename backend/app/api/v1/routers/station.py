@@ -5,7 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.services import station as service
-from app.schemas.station import CurrentTask, DataTotal, DayCount, Station
+from app.models.station import DataTotal, Station
+from app.schemas.station import CurrentTask, DayCount
 
 router = APIRouter(prefix="/station", tags=["station"])
 
