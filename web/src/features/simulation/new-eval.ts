@@ -1,3 +1,4 @@
+import { listModels } from "@/api/models"
 import { getRig } from "@/api/rigs"
 import { listSimEnvs, listSimJobs } from "@/api/simulation"
 import { getTask } from "@/api/tasks"
@@ -42,4 +43,22 @@ export function simGpuHolder(): string | undefined {
   const sim = listSimJobs().find((j) => j.status === "running")
   if (sim) return sim.id
   return listJobs().find((j) => j.compute === "local" && j.status === "running")?.id
+}
+
+/** The preferred environment if the model can be loaded into it, else the first usable one */
+export function usableEnvId(options: EnvOption[], preferredId?: string): string | undefined {
+  const preferred = options.find((o) => o.env.id === preferredId)
+  if (preferred?.usable) return preferred.env.id
+  return options.find((o) => o.usable)?.env.id
+}
+
+/**
+ * Initial model and environment for the form. An environment from ?env= wins; when the default
+ * model can't be loaded into it, the first model (listModels order) that can is chosen instead.
+ */
+export function initialSelection(envId?: string): { modelId: string; envId?: string } {
+  const models = listModels()
+  const fits = (m: Model) => envOptions(m).some((o) => o.env.id === envId && o.usable)
+  const model = envId && models[0] && !fits(models[0]) ? (models.find(fits) ?? models[0]) : models[0]
+  return { modelId: model?.id ?? "", envId: usableEnvId(envOptions(model), envId) }
 }
