@@ -7,9 +7,10 @@ export type DatasetFeature = {
   key: string
   dtype: string
   shape: string
-  note?: string
+  note: string | null
 }
 
+/** One item of the paged GET /datasets/{repoId}/episodes */
 export type DatasetEpisode = {
   index: number
   source: string // source MCAP
@@ -25,10 +26,29 @@ export type Dataset = {
   format: string
   fps: number
   status: DatasetStatus
-  progress?: number // 0–100 while converting
+  progress: number | null // 0–100 while converting
+  error: string | null // when failed
+  /** ISO 8601 */
   createdAt: string
   sizeGB: number
   hub: { pushed: boolean; private: boolean }
   features: DatasetFeature[]
-  episodes: DatasetEpisode[]
+  episodeCount: number
 }
+
+/** What converting a task's accepted recordings (minus excluded ones) would produce */
+export type ConvertPreview = {
+  fps: number
+  actionHz: number
+  features: DatasetFeature[]
+  episodes: number
+  frames: number
+  lengthS: number
+  mcapMB: number
+  estOutputMB: number
+  /** ISO range of the source recordings; null when there are no episodes */
+  recordedFrom: string | null
+  recordedTo: string | null
+}
+
+export const isConverting = (d: Dataset) => d.status === "converting"
