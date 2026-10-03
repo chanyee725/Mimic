@@ -1,12 +1,12 @@
 """Behaviour that spans areas."""
 
-from app.core.config import config
+from app.configs.config import config
 
 
 def test_capture_save_counts_toward_task(client):
     before = client.get("/tasks/stack-two-blocks").json()
     client.post("/capture/start", json={"taskId": "stack-two-blocks", "operator": "OP-01"})
-    from app.capture import service as capture
+    from app.services import capture as capture
 
     capture.set_clock(lambda: capture._session.recording_at.replace(second=59))
     r = client.post("/capture/save", json={"outcome": "success"})

@@ -1,8 +1,8 @@
 import pytest
 
-from app.models import service as models
-from app.training import service
-from app.training.metrics import _rng, _seed_of
+from app.services import models as models
+from app.services import training as service
+from app.services.training_metrics import _rng, _seed_of
 
 LOCAL = {"dataset": "local/open_drawer", "compute": "local", "gpu": "cuda:0", "overrides": {}}
 RUNPOD = {

@@ -25,7 +25,7 @@ _AREAS = [
 def _reset_services():
     for area in _AREAS:
         try:
-            service = importlib.import_module(f"app.{area}.service")
+            service = importlib.import_module(f"app.services.{area}")
         except ModuleNotFoundError:
             continue
         reset = getattr(service, "reset", None)

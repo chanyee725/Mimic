@@ -2,7 +2,7 @@ import os
 import pytest
 from pathlib import Path
 
-from app.simulation.scanner import scan_envs
+from app.services.simulation_scanner import scan_envs
 
 MANIFEST = """\
 name: Test scene

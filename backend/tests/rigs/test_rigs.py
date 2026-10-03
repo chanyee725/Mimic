@@ -56,7 +56,7 @@ def test_calibrate_errors(client):
 
 
 def test_calibrate_twice(client):
-    from app.rigs import service
+    from app.services import rigs as service
 
     service.start_calibration("leader")
     assert client.post("/devices/leader/calibrate").status_code == 409

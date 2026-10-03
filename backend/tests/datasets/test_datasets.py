@@ -1,8 +1,8 @@
 import pytest
 
 from app.core.events import bus
-from app.datasets import service
-from app.recordings import service as recordings
+from app.services import datasets as service
+from app.services import recordings as recordings
 
 NEW = {"taskId": "stack-two-blocks", "repoId": "local/stack_v2", "format": "lerobot_v3"}
 

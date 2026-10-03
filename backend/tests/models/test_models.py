@@ -1,4 +1,4 @@
-from app.models import service
+from app.services import models as service
 
 
 def test_list_newest_first(client):

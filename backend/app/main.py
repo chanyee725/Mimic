@@ -3,35 +3,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.capture.router import router as capture
+from app.api.v1 import api_router
 from app.core import errors
-from app.core.config import config
-from app.datasets.router import router as datasets
-from app.evaluate.router import router as evaluate
-from app.models.router import router as models
-from app.realtime.router import router as realtime
-from app.recordings.router import router as recordings
-from app.rigs.router import router as rigs
-from app.settings.router import router as settings
-from app.simulation.router import router as simulation
-from app.station.router import router as station
-from app.tasks.router import router as tasks
-from app.training.router import router as training
-
-ROUTERS = [
-    station,
-    tasks,
-    rigs,
-    capture,
-    recordings,
-    datasets,
-    training,
-    models,
-    evaluate,
-    simulation,
-    settings,
-    realtime,
-]
+from app.configs.config import config
 
 
 def create_app() -> FastAPI:
@@ -54,8 +28,7 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    for r in ROUTERS:
-        app.include_router(r, prefix=p)
+    app.include_router(api_router, prefix=p)
     return app
 
 

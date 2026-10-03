@@ -1,10 +1,10 @@
 """Cross-area read services load the seeds."""
 
-from app.datasets.service import list_datasets
-from app.models.service import list_models
-from app.recordings.service import list_recordings
-from app.rigs.service import get_rig, list_devices
-from app.tasks.service import get_task, list_tasks
+from app.services.datasets import list_datasets
+from app.services.models import list_models
+from app.services.recordings import list_recordings
+from app.services.rigs import get_rig, list_devices
+from app.services.tasks import get_task, list_tasks
 
 
 def test_seeds_load():

@@ -3,10 +3,10 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.capture import service
+from app.services import capture as service
 from app.core.events import bus
-from app.recordings import service as recordings
-from app.rigs import service as rigs
+from app.services import recordings as recordings
+from app.services import rigs as rigs
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
 START = {"taskId": "stack-two-blocks", "operator": "OP-01"}
