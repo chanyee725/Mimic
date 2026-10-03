@@ -1,16 +1,14 @@
-"""Capture session record and the Recording built from it on save."""
+"""Capture session record and the Recording + MCAP content built from it on save."""
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from app.models.recordings import McapTopic, Recording, RecordingCheck, SubtaskSpan
+from app.models.recordings import Recording, RecordingCheck, SubtaskSpan
 from app.models.rigs import Rig
 from app.models.tasks import Outcome, Task
+from app.services.recordings_mcap import Episode, topics
+from app.utils.rng import unit_seed
 from app.utils.time import to_iso
-
-# Rough MCAP size model (matches the seeded recordings: ~1.9 MB/s with two cameras)
-_MB_PER_CAMERA_S = 0.9
-_MB_PER_JOINT_TOPIC_S = 0.05
 
 
 @dataclass
@@ -44,64 +42,34 @@ def _spans(s: Session, duration: float) -> list[SubtaskSpan]:
     ]
 
 
-def build_recording(s: Session, duration: float, outcome: Outcome) -> Recording:
+def build_episode(s: Session, duration: float, outcome: Outcome) -> tuple[Recording, Episode]:
+    """The Recording (sidecar) and the MCAP content of a saved episode.
+
+    No camera frames yet (cameras are mock): the file holds action, state and subtask labels.
+    """
     task, rig = s.task, s.rig
-    prefix = rig.id.split("-")[0]
-    n_action = round(duration * task.action_hz)
-    n_frames = round(duration * task.video_fps)
-    topics = [
-        McapTopic(
-            name=f"/{prefix}_{d}/action",
-            schema_="vla.robot.JointCommand",
-            kind="action",
-            rate_hz=task.action_hz,
-            messages=n_action,
-        )
-        for d in rig.devices
-    ]
-    topics += [
-        McapTopic(
-            name=f"/{prefix}_{r}/state",
-            schema_="vla.robot.JointState",
-            kind="state",
-            rate_hz=task.action_hz,
-            messages=n_action,
-        )
-        for r in rig.robots
-    ]
-    topics += [
-        McapTopic(
-            name=f"/cam_{cam}/image",
-            schema_="foxglove.CompressedVideo",
-            kind="video",
-            rate_hz=task.video_fps,
-            messages=n_frames,
-        )
-        for cam in task.cameras
-    ]
+    rec_id = f"{task.id}-{s.episode}"
     spans = _spans(s, duration)
-    if task.subtasks:
-        topics.append(
-            McapTopic(
-                name="/labels/subtask",
-                schema_="vla.session.SubtaskEvent",
-                kind="label",
-                rate_hz=None,
-                messages=len(spans),
-            )
-        )
-    topics.append(
-        McapTopic(
-            name="/labels/outcome",
-            schema_="vla.session.OutcomeEvent",
-            kind="label",
-            rate_hz=None,
-            messages=1,
-        )
+    ep = Episode(
+        start_ns=int(s.recording_at.timestamp() * 1e9),
+        duration_s=duration,
+        hz=task.action_hz,
+        joints=list(rig.joints),
+        seed=unit_seed(rec_id),
+        subtasks=spans,
+        metadata={
+            "recording_id": rec_id,
+            "task_id": task.id,
+            "rig_id": rig.id,
+            "episode": str(s.episode),
+            "operator": s.operator,
+            "outcome": outcome,
+        },
     )
+    n = ep.n_samples
     checks = [
-        RecordingCheck(label="Action samples", value=f"{n_action} / {n_action}", ok=True),
-        RecordingCheck(label="Video frames", value=f"{n_frames} / {n_frames}", ok=True),
+        RecordingCheck(label="Action samples", value=f"{n} / {n}", ok=True),
+        RecordingCheck(label="State samples", value=f"{n} / {n}", ok=True),
         RecordingCheck(
             label="Timestamp gap", value=f"max {round(1000 / task.action_hz)} ms", ok=True
         ),
@@ -111,10 +79,8 @@ def build_recording(s: Session, duration: float, outcome: Outcome) -> Recording:
         checks.append(
             RecordingCheck(label="Subtasks", value=f"{done} / {len(task.subtasks)}", ok=True)
         )
-    joint_topics = len(rig.devices) + len(rig.robots)
-    size = duration * (_MB_PER_CAMERA_S * len(task.cameras) + _MB_PER_JOINT_TOPIC_S * joint_topics)
-    return Recording(
-        id=f"{task.id}-{s.episode}",
+    rec = Recording(
+        id=rec_id,
         file=f"{task.id}/ep_{s.episode:04d}.mcap",
         source="capture",
         task_id=task.id,
@@ -122,11 +88,12 @@ def build_recording(s: Session, duration: float, outcome: Outcome) -> Recording:
         episode=s.episode,
         recorded_at=to_iso(s.recording_at),
         duration_s=duration,
-        size_mb=round(size, 1),
+        size_mb=0,  # set from the written file
         outcome=outcome,
         review="pending",
-        topics=topics,
+        topics=topics(ep),
         subtasks=spans,
         drops=[],
         checks=checks,
     )
+    return rec, ep
