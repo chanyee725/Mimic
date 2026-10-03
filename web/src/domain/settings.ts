@@ -17,15 +17,6 @@ export type Settings = {
       state: ConnState
     }
   }
-  storage: {
-    rawPath: string
-    datasetsPath: string
-    modelsPath: string
-    warnAtPct: number
-    deleteRejectedAfterDays: number
-    deleteRejected: boolean
-    keepCheckpoints: number
-  }
   connection: {
     api: { url: string; state: ConnState; latencyMs?: number }
     grpc: { url: string; state: ConnState; latencyMs?: number }
