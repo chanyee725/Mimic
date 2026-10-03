@@ -58,7 +58,6 @@ Read-only in v1 (rigs are not edited through the API).
 
 ## Storage
 
-- One file per entity: `data/rigs/<rig-id>.yaml` and `data/devices/<device-id>.yaml` (under `VLA_DATA_DIR`), snake_case keys of `Rig` / `Device`. The id is read from the file content.
-- On startup each folder is loaded if it exists; otherwise it is seeded from the mocks and written. Add a rig or device by dropping a file in (restart to pick it up). Invalid files are logged and skipped.
-- Seeded rigs keep their mock order; new files follow, by file name.
-- A finished calibration is saved to the device file; the transient `Calibrating…` state stays in memory only. `health` is saved as the last-known value.
+- Rigs: one file per rig in `data/rigs/<rig-id>.yaml` (under `VLA_DATA_DIR`), snake_case keys of `Rig`; the id is read from the file content. The folder is committed to git (the station ships with `so101-kit`).
+- On startup the folder is loaded if it exists; otherwise it is seeded from the mocks and written. Add a rig by dropping a file in (restart to pick it up). Invalid files are logged and skipped. Seeded rigs keep their mock order; new files follow, by file name.
+- Devices are live hardware state and stay in memory (seeded from the mocks); calibration results are not written to disk.

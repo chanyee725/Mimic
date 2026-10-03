@@ -1,0 +1,92 @@
+version: 3
+station:
+  name: Station 01
+  id: st-01
+  timezone: Asia/Seoul
+  operators:
+  - id: OP-01
+    role: admin
+  - id: OP-02
+    role: operator
+  - id: OP-03
+    role: operator
+integrations:
+  hf:
+    token:
+      set: true
+      last4: 3kQz
+    namespace: vla-lab
+    private_by_default: true
+    state: ok
+  runpod:
+    api_key:
+      set: true
+      last4: 9F2A
+    region: any
+    volume: vla-datasets
+    monthly_budget: 300.0
+    idle_alert_min: 15
+    spent_this_month: 142.3
+    state: ok
+  wandb:
+    api_key:
+      set: false
+    project: vla-smolvla
+    enable_by_default: false
+    state: unknown
+storage:
+  raw_path: ~/vla/raw
+  datasets_path: ~/vla/datasets
+  models_path: ~/vla/models
+  warn_at_pct: 85
+  delete_rejected: true
+  delete_rejected_after_days: 14
+  keep_checkpoints: 4
+connection:
+  api:
+    url: http://localhost:8000
+    state: ok
+    latency_ms: 4
+  grpc:
+    url: localhost:50051
+    state: ok
+    latency_ms: 2
+  webrtc:
+    stun: stun:stun.l.google.com:19302
+    turn: ''
+    state: ok
+recording:
+  action_hz: 60
+  video_fps: 30
+  mcap_compression: zstd
+  chunk_mb: 4
+  codec: av1
+  crf: 30
+training:
+  lerobot_commit: '[COMMIT HASH]'
+  default_compute: local
+  save_freq: 5000
+  sim_gpu: RTX 4090 (cuda:0)
+  sim_envs_path: sim/envs
+notifications:
+  slack_webhook:
+    set: false
+  events:
+  - key: train_done
+    label: Training finished
+    'on': true
+  - key: train_failed
+    label: Training failed
+    'on': true
+  - key: pod_idle
+    label: RunPod pod still running after training
+    'on': true
+  - key: budget
+    label: RunPod monthly budget reached 80%
+    'on': true
+  - key: disk
+    label: Disk almost full
+    'on': true
+  - key: sim_done
+    label: Simulation evaluation finished
+    'on': false
