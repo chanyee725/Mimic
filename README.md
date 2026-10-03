@@ -3,7 +3,7 @@
 SO-101 로봇 팔의 텔레오퍼레이션 데이터를 모아 VLA(Vision-Language-Action) 모델 학습까지 이어 주는 스테이션 도구.
 
 ```
-Capture ─▶ Review ─▶ Convert ─▶ Datasets ─▶ Training ─▶ Models ─▶ Evaluate / Simulation
+Capture ─▶ Review ─▶ Convert ─▶ Datasets ─▶ Training ─▶ Models ─▶ Simulation / Evaluate
  (MCAP)    (검수)    (LeRobot)   (HF Hub)    (SmolVLA)   (checkpoint)  (실제 로봇 / Isaac Sim)
 ```
 
