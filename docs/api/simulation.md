@@ -34,6 +34,19 @@ Scanning rules: every direct sub-folder of the environments folder is one enviro
 `_` or `.` are skipped). It is `invalid` (with `error`) when `env.yaml` is missing or not valid YAML, a required key is missing,
 or a referenced file (`scene`, the `success` module) does not exist.
 
+- Required keys: `name`, `scene`, `cameras` (non-empty mapping of camera keys, or a list), `action_dim` (positive integer),
+  `episode.success` (`<file>:<function>`). Optional: `task`, `description`, `robot`, `calibrated` (default `false`),
+  `episode.max_seconds` (default 40).
+- `error` texts: `env.yaml not found`, `env.yaml: invalid YAML (line N)`, `env.yaml: missing key 'action_dim'`,
+  `env.yaml: scene.usd not found`, `env.yaml: success.py not found (expected success.py:check)`.
+- Invalid folders still report whatever parsed (`name` falls back to the id) plus `manifest` and `files`.
+- `files`: every file under the folder (recursive, posix paths, sorted), skipping hidden files and `__pycache__`;
+  `sizeKB` is rounded up.
+- `registeredAt`: first time the backend saw the folder (per process). `updatedAt`: latest mtime of the folder or any file in it
+  (editing `env.yaml` in place does not change the folder's own mtime).
+- The list is cached; `GET /sim/envs` returns the last scan (done at startup), `POST /sim/envs/rescan` refreshes it.
+  Folder: `VLA_SIM_ENVS_DIR` (backend config).
+
 ## Types
 
 ```ts
@@ -63,6 +76,8 @@ SimJob = {
 
 Compatibility (same rule as `web/src/domain/simulation.ts#envCompat`): the model's task cameras must all be in `cameras`
 (error), `actionDim` must equal the rig's joint count (error), an invalid environment is an error, `calibrated: false` is a warning.
+The model's cameras come from its task, its action size from `len(rig.joints)` of the task's rig. `/compat` is ordered like the
+web: usable models for the environment's task, other usable ones, then blocked ones.
 
 ## Endpoints
 
@@ -79,6 +94,15 @@ Compatibility (same rule as `web/src/domain/simulation.ts#envCompat`): the model
 | POST | `/sim/jobs/{id}/stop` | | `SimJob` (stopped); 409 if not active | Stop evaluation / Cancel |
 | GET | `/sim/jobs/{id}/episodes?result=success\|fail&limit=&cursor=` | | `Page<SimEpisode>` by index | Episodes table |
 | GET | `/sim/jobs/{id}/episodes/{index}/video/{camera}` | | `video/mp4` | Rollout replay |
+
+Notes:
+
+- `POST /sim/jobs`: an unknown `modelId` / `envId` or an incompatible pair is `422 validation_error`; for an incompatible pair
+  `details.issues` is the `CompatIssue[]`. Warnings alone don't block. Body defaults: `episodes` 50 (1–10000), `seedStart` 1000,
+  `maxSeconds` 40, `randomization` `"low"`. New ids are `sim_<n+1>` (zero-padded to 3).
+- One job holds the GPU at a time (`/sim/config` `gpu.busyBy`). When the running job ends (done, failed, stopped), the oldest
+  queued job starts.
+- Episode video is `501 not_implemented` until Isaac Sim is connected; unknown job / episode index / camera is 404.
 
 Live: `sim.updated` (status, counts, eta) and `sim.episode` (each finished episode) events; live Isaac Sim view over WebRTC.
 
