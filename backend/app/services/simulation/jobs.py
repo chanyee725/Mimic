@@ -1,117 +1,35 @@
-"""Simulation state: scanned environments and evaluation jobs (in memory)."""
+"""Simulation evaluation jobs (in memory); advance() finishes episodes until Isaac Sim is wired in."""
 
 import random
-import threading
 
-from app.utils.time import now_iso
 from app.configs.config import config
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.services.models import get_model, list_models
-from app.models.models import Model
-from app.services.rigs import get_rig
-from app.services.simulation_scanner import scan_envs
-from app.models.simulation import SimConfig, SimEnv, SimEpisode, SimJob
+from app.models.simulation import SimConfig, SimEpisode, SimJob
 from app.schemas.common import Page, paginate
-from app.schemas.simulation import (
-    CompatIssue,
-    ModelCompat,
-    RescanResult,
-    SimEpisodeEvent,
-    SimJobCreate,
-)
+from app.schemas.simulation import SimEpisodeEvent, SimJobCreate
 from app.seeds.simulation import counts, seed_gpu, seed_jobs
-from app.services.tasks import get_task
+from app.services.models import get_model
+from app.services.simulation.envs import find_env, get_env, lock, model_compat
+from app.utils.ids import seq_num
+from app.utils.time import now_iso
 
 ACTIVE = ("running", "queued")
 # Mock rollout outcomes used by advance() until Isaac Sim is wired in
 _SUCCESS_P = {"none": 0.85, "low": 0.75, "high": 0.6}
 _REASONS = ["Timed out", "Dropped object", "Wrong placement", "Grasp slipped"]
 
-_lock = threading.RLock()
-_first_seen: dict[str, str] = {}
-_envs: dict[str, SimEnv] = {}
 _jobs: dict[str, SimJob] = {}
 _episodes: dict[str, list[SimEpisode]] = {}
 
 
 def reset() -> None:
-    with _lock:
-        _first_seen.clear()
+    with lock:
         _jobs.clear()
         _episodes.clear()
         jobs, episodes = seed_jobs()
         _jobs.update({j.id: j for j in jobs})
         _episodes.update(episodes)
-        _scan()
-
-
-# Environments
-
-
-def _scan() -> list[SimEnv]:
-    envs = scan_envs(config.sim_envs_dir, _first_seen)
-    for e in envs:
-        _first_seen.setdefault(e.id, e.registered_at)
-    _envs.clear()
-    _envs.update({e.id: e for e in envs})
-    return envs
-
-
-def list_envs(state: str | None = None) -> list[SimEnv]:
-    return [e for e in _envs.values() if state is None or e.state == state]
-
-
-def get_env(env_id: str) -> SimEnv:
-    env = _envs.get(env_id)
-    if env is None:
-        raise not_found("Environment", env_id)
-    return env
-
-
-def rescan() -> RescanResult:
-    with _lock:
-        envs = _scan()
-    bus.publish("sim.envs", {"envs": [e.model_dump(by_alias=True, mode="json") for e in envs]})
-    return RescanResult(dir=str(config.sim_envs_dir), scanned_at=now_iso(), envs=envs)
-
-
-def model_spec(model: Model) -> tuple[list[str], int]:
-    """Cameras and action size a model expects, from its task and rig."""
-    task = get_task(model.task_id)
-    rig = get_rig(task.rig_id) if task else None
-    return (list(task.cameras) if task else []), (len(rig.joints) if rig else 0)
-
-
-def env_compat(env: SimEnv, cameras: list[str], action_dim: int) -> list[CompatIssue]:
-    """Same rules as web/src/domain/simulation.ts#envCompat."""
-    issues: list[CompatIssue] = []
-    if env.state != "ready":
-        issues.append(CompatIssue(level="error", text=env.error or "Environment failed to load"))
-    missing = [c for c in cameras if c not in env.cameras]
-    if missing:
-        issues.append(CompatIssue(level="error", text=f"Missing camera {', '.join(missing)}"))
-    if env.action_dim != action_dim:
-        text = f"Action size {env.action_dim}, model expects {action_dim}"
-        issues.append(CompatIssue(level="error", text=text))
-    if not env.calibrated:
-        issues.append(CompatIssue(level="warn", text="Not matched to the real rig"))
-    return issues
-
-
-def _compat(env: SimEnv, model: Model) -> ModelCompat:
-    issues = env_compat(env, *model_spec(model))
-    usable = not any(i.level == "error" for i in issues)
-    return ModelCompat(model_id=model.id, usable=usable, issues=issues)
-
-
-def compat(env_id: str) -> list[ModelCompat]:
-    """Every saved model: usable for the env's task first, other usable ones, then blocked."""
-    env = get_env(env_id)
-    models = {m.id: m for m in list_models()}
-    rows = [_compat(env, m) for m in models.values()]
-    rank = lambda c: 2 if not c.usable else 0 if models[c.model_id].task_id == env.task_id else 1
-    return sorted(rows, key=rank)
 
 
 def sim_config() -> SimConfig:
@@ -124,14 +42,9 @@ def sim_config() -> SimConfig:
 # Jobs
 
 
-def _num(job_id: str) -> int:
-    tail = job_id.rsplit("_", 1)[-1]
-    return int(tail) if tail.isdigit() else 0
-
-
 def list_jobs(status: str | None = None) -> list[SimJob]:
     jobs = [j for j in _jobs.values() if status is None or j.status == status]
-    return sorted(jobs, key=lambda j: _num(j.id), reverse=True)
+    return sorted(jobs, key=lambda j: seq_num(j.id), reverse=True)
 
 
 def get_job(job_id: str) -> SimJob:
@@ -142,14 +55,14 @@ def get_job(job_id: str) -> SimJob:
 
 
 def create_job(body: SimJobCreate) -> SimJob:
-    with _lock:
+    with lock:
         model = get_model(body.model_id)
         if model is None:
             raise ApiError(422, f"Model '{body.model_id}' does not exist")
-        env = _envs.get(body.env_id)
+        env = find_env(body.env_id)
         if env is None:
             raise ApiError(422, f"Environment '{body.env_id}' does not exist")
-        issues = _compat(env, model).issues
+        issues = model_compat(env, model).issues
         if any(i.level == "error" for i in issues):
             raise ApiError(
                 422,
@@ -158,7 +71,7 @@ def create_job(body: SimJobCreate) -> SimJob:
             )
         busy = any(j.status == "running" for j in _jobs.values())
         job = SimJob(
-            id=f"sim_{max((_num(i) for i in _jobs), default=0) + 1:03d}",
+            id=f"sim_{max((seq_num(i) for i in _jobs), default=0) + 1:03d}",
             **body.model_dump(),
             status="queued" if busy else "running",
         )
@@ -171,7 +84,7 @@ def create_job(body: SimJobCreate) -> SimJob:
 
 
 def stop_job(job_id: str) -> SimJob:
-    with _lock:
+    with lock:
         job = get_job(job_id)
         if job.status not in ACTIVE:
             raise conflict(f"Simulation job '{job_id}' is {job.status}", status=job.status)
@@ -215,7 +128,7 @@ def episode_video(job_id: str, index: int, camera: str) -> bytes:
 
 def advance(job_id: str, n: int = 1) -> SimJob:
     """Finish up to n more episodes of a running job with deterministic mock outcomes."""
-    with _lock:
+    with lock:
         job = get_job(job_id)
         if job.status != "running":
             raise conflict(f"Simulation job '{job_id}' is {job.status}", status=job.status)
@@ -266,9 +179,6 @@ def _promote() -> SimJob | None:
     queued = [j for j in _jobs.values() if j.status == "queued"]
     if not queued:
         return None
-    job = min(queued, key=lambda j: _num(j.id))
+    job = min(queued, key=lambda j: seq_num(j.id))
     _start(job)
     return job
-
-
-reset()
