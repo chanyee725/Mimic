@@ -51,3 +51,14 @@ export const formatRate = (usdPerHr: number) => `${formatUsd(usdPerHr)}/h`
 
 /** "1 episode" / "1,212 episodes" */
 export const plural = (n: number, word: string, many = `${word}s`) => `${n.toLocaleString()} ${n === 1 ? word : many}`
+
+/** ISO timestamp → "2026-10-02 14:05" in the browser's time zone */
+export function formatDateTime(iso?: string | null) {
+  if (!iso) return "—"
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** ISO timestamp → "2026-10-02" */
+export const formatDate = (iso?: string | null) => formatDateTime(iso).slice(0, 10)

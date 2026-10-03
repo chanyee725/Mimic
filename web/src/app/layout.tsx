@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar"
 import { APP_NAME, NAV, type NavItem } from "@/app/nav"
 import { getStation } from "@/api/station"
+import { useServerEvents } from "@/api/events"
 
 // Light sidebar: regular weight and thin icons, only the active item is emphasised
 const NAV_ITEM_CLASS =
@@ -91,6 +92,7 @@ function AppSidebar() {
 }
 
 export function AppLayout() {
+  useServerEvents()
   return (
     <SidebarProvider>
       <AppSidebar />
