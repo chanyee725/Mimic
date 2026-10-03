@@ -32,5 +32,17 @@ class Config(BaseSettings):
         v = Path(v).expanduser()
         return v if v.is_absolute() else REPO_ROOT / v
 
+    @property
+    def recordings_dir(self) -> Path:
+        return self.data_dir / "recordings"
+
+    @property
+    def datasets_dir(self) -> Path:
+        return self.data_dir / "datasets"
+
+    @property
+    def models_dir(self) -> Path:
+        return self.data_dir / "models"
+
 
 config = Config()
