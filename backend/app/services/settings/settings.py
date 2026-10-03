@@ -2,7 +2,7 @@
 
 Part files hold only editable values: no document version (memory only, 1 on load), no
 live fields (state, latency, spend) and no secrets, so connection tests and key changes never
-churn the committed files. Secret {set, last4} is derived from .env (settings_secrets).
+churn the committed files. Secret {set, last4} is derived from .env (settings/secrets.py).
 Raw secrets never leave the backend.
 """
 
@@ -29,7 +29,7 @@ from app.models.settings import (
 )
 from app.schemas.common import CamelModel
 from app.schemas.settings import ConnTestResult, Disk, ShortcutGroup, VersionRow
-from app.services import settings_secrets
+from app.services.settings import secrets as settings_secrets
 
 log = logging.getLogger(__name__)
 
