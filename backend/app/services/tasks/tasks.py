@@ -16,10 +16,7 @@ _sessions: dict[str, Session] = {}
 def reset() -> None:
     _tasks.clear()
     if store.exists():
-        # Seeded ids keep their mock order (pages default to the first task); new files follow
-        rank = {t["id"]: i for i, t in enumerate(load("tasks", "TASKS"))}
-        loaded = sorted(store.load_all(), key=lambda t: rank.get(t.id, len(rank)))
-        _tasks.update({t.id: t for t in loaded})
+        _tasks.update({t.id: t for t in store.load_all()})
     else:
         # First run: seed and write every task file
         for t in load("tasks", "TASKS"):
