@@ -1,9 +1,9 @@
-import type { SeriesKey } from "./run"
+import type { MetricSeries } from "@/domain/training"
 
 // Metric plots
 
 type MetricLine = {
-  key: SeriesKey
+  key: MetricSeries
   label: string
   /** CSS variable name (--series-1, ...) */
   color: string

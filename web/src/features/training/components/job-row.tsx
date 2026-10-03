@@ -4,7 +4,7 @@ import { LuChevronRight, LuCloud, LuServer } from "react-icons/lu"
 import { ProgressBar } from "@/components/common/progress-bar"
 import { StatusDot } from "@/components/common/status-dot"
 import { jobPct, type TrainJob } from "@/domain/training"
-import { formatRate } from "@/lib/format"
+import { formatDuration, formatRate } from "@/lib/format"
 
 import { JOB_STATUS, computeText } from "../lib"
 
@@ -53,8 +53,8 @@ export function JobRow({ job }: { job: TrainJob }) {
           <span>
             Step {job.step.toLocaleString()} / {job.total.toLocaleString()}
           </span>
-          {job.elapsed && <span>Elapsed {job.elapsed}</span>}
-          {job.eta && <span>ETA {job.eta}</span>}
+          {job.elapsedS != null && <span>Elapsed {formatDuration(job.elapsedS)}</span>}
+          {job.etaS != null && job.status === "running" && <span>ETA {formatDuration(job.etaS)}</span>}
           {job.status === "queued" && <span>Waiting for a GPU</span>}
           {job.podState?.state === "idle" && <span className="text-warn">Pod still running, {formatRate(job.pricePerHr ?? 0)}</span>}
         </div>

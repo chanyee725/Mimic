@@ -15,7 +15,7 @@ const stepLabel = (s: number) => (s >= 1000 ? `${s / 1000}k` : String(s))
 /**
  * Training metric plots styled like Capture's JointPlots.
  * One plot per metric, x axis is step (0 → now), latest value at the top right.
- * A single rAF loop redraws only when the step advances (no React state per step).
+ * A single rAF loop redraws only when a sample is appended (no React state per step).
  */
 export function MetricPlots({
   run,
@@ -45,30 +45,42 @@ export function MetricPlots({
       const f = prepareCanvas(canvas, PAD_LEFT)
       if (!f) return
       const { ctx, x0, x1, y0, y1 } = f
-      const n = run.count
+      const n = run.steps.length
       ctx.font = `10px ${font}`
       if (n < 2) return
 
-      // Downsample to one bucket average per pixel of width
+      // Downsample to one bucket average per pixel column; x is the step of each sample
+      const s0 = run.steps[0]
+      const s1 = run.steps[n - 1]
+      const xOf = (s: number) => x0 + ((s - s0) / (s1 - s0 || 1)) * (x1 - x0)
       const cols = Math.max(2, Math.floor(x1 - x0))
-      const reduce = (buf: Float32Array) => {
-        const out = new Float32Array(Math.min(cols, n))
-        const per = n / out.length
-        for (let c = 0; c < out.length; c++) {
-          const a = Math.floor(c * per)
-          const b = Math.max(a + 1, Math.floor((c + 1) * per))
-          let sum = 0
-          for (let k = a; k < b; k++) sum += buf[k]
-          out[c] = sum / (b - a)
+      const reduce = (buf: number[]) => {
+        const pts: [number, number][] = []
+        let col = -1
+        let sum = 0
+        let cnt = 0
+        let x = 0
+        for (let i = 0; i < n; i++) {
+          const c = Math.floor(((run.steps[i] - s0) / (s1 - s0 || 1)) * (cols - 1))
+          if (c !== col && cnt) {
+            pts.push([x, sum / cnt])
+            sum = 0
+            cnt = 0
+          }
+          col = c
+          x = xOf(run.steps[i])
+          sum += buf[i]
+          cnt++
         }
-        return out
+        if (cnt) pts.push([x, sum / cnt])
+        return pts
       }
       const lines = m.lines.map((l) => ({ ...l, pts: reduce(run.data[l.key]) }))
 
       let lo = Infinity
       let hi = -Infinity
       for (const l of lines)
-        for (const p of l.pts) {
+        for (const [, p] of l.pts) {
           lo = Math.min(lo, p)
           hi = Math.max(hi, p)
         }
@@ -88,16 +100,16 @@ export function MetricPlots({
       )
 
       // x ticks: steps, at most 5. Labels too close to the right edge are skipped
-      const tick = STEP_TICKS.find((t) => n / t <= 5) ?? 100000
+      const tick = STEP_TICKS.find((t) => (s1 - s0) / t <= 5) ?? 100000
       const xTicks: { x: number; label?: string }[] = []
-      for (let s = 0; s < n; s += tick) {
-        const x = x0 + (s / (n - 1)) * (x1 - x0)
+      for (let s = Math.ceil(s0 / tick) * tick; s <= s1; s += tick) {
+        const x = xOf(s)
         xTicks.push({ x, label: x < x1 - 24 ? stepLabel(s) : undefined })
       }
       drawXGrid(f, xTicks, color.grid, color.text)
 
-      const points = function* (pts: Float32Array): Generator<[number, number]> {
-        for (let c = 0; c < pts.length; c++) yield [x0 + (c / (pts.length - 1)) * (x1 - x0), yOf(pts[c])]
+      const points = function* (pts: [number, number][]): Generator<[number, number]> {
+        for (const [x, val] of pts) yield [x, yOf(val)]
       }
       for (const l of lines) drawLine(f, points(l.pts), v(l.color), { dashed: l.dashed, alpha: l.faint ? 0.25 : 1 })
 
@@ -120,9 +132,9 @@ export function MetricPlots({
     let raf = 0
     const loop = () => {
       const sz = canvases.current.map((c) => `${c?.clientWidth}x${c?.clientHeight}`).join()
-      if (run.count !== drawn || sz !== size) {
+      if (run.steps.length !== drawn || sz !== size) {
         canvases.current.forEach((c, i) => c && i < metrics.length && drawPlot(c, metrics[i]))
-        drawn = run.count
+        drawn = run.steps.length
         size = sz
       }
       raf = requestAnimationFrame(loop)

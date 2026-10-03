@@ -2,17 +2,19 @@ import { useState } from "react"
 
 import { Panel } from "@/components/layout/page-layout"
 import { Segmented } from "@/components/common/segmented"
-import { listJobs } from "@/api/training"
+import { useJobs } from "@/api/training"
 import { isActive } from "@/domain/training"
 
 import { JobRow } from "./job-row"
+import { ErrorNote, Loading } from "./query-state"
 
 type Tab = "all" | "active" | "finished"
 
 /** Job list, filtered by all, running or finished */
 export function JobsPanel() {
   const [tab, setTab] = useState<Tab>("all")
-  const jobs = listJobs()
+  const query = useJobs()
+  const jobs = query.data ?? []
   const active = jobs.filter(isActive)
   const finished = jobs.filter((j) => !isActive(j))
   const shown = tab === "all" ? jobs : tab === "active" ? active : finished
@@ -34,7 +36,11 @@ export function JobsPanel() {
         />
       }
     >
-      {shown.length === 0 ? (
+      {query.isPending ? (
+        <Loading />
+      ) : query.isError ? (
+        <ErrorNote error={query.error} onRetry={() => query.refetch()} />
+      ) : shown.length === 0 ? (
         <p className="grid flex-1 place-items-center py-10 text-[13px] text-muted-foreground">
           {tab !== "finished" ? "돌고 있는 학습이 없습니다. 오른쪽에서 학습을 시작하세요." : "끝난 학습이 없습니다."}
         </p>

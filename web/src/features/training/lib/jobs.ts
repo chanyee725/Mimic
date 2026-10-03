@@ -1,6 +1,5 @@
 import type { Tone } from "@/components/common/status-dot"
-import { listDatasets } from "@/api/datasets"
-import type { Checkpoint, Compute, JobStatus, TrainJob } from "@/domain/training"
+import type { Compute, JobStatus, TrainJob } from "@/domain/training"
 import { formatRate } from "@/lib/format"
 
 // Job status and display
@@ -20,23 +19,24 @@ export function computeText(j: TrainJob) {
   return [COMPUTE_LABEL[j.compute], j.gpu, j.pricePerHr && formatRate(j.pricePerHr)].filter(Boolean).join(", ")
 }
 
-/** Datasets that can be trained on: converted LeRobot datasets only */
-export function trainableDatasets() {
-  return listDatasets()
-    .filter((d) => d.kind === "lerobot" && d.status === "ready")
-    .map((d) => d.repoId)
-}
+/** Default model name when a checkpoint is saved to Models: "open-drawer job_036 (15k)" */
+export const checkpointModelName = (j: TrainJob, step: number) => `${j.taskId} ${j.id} (${step >= 1000 ? `${step / 1000}k` : step})`
 
-// Checkpoint
-
-const SAVE_EVERY = 5000
-
-/** Saved checkpoints plus save points passed while training */
-export function checkpointsAt(job: TrainJob, step: number): Checkpoint[] {
-  const saved = [...job.checkpoints]
-  const last = saved.at(-1)?.step ?? 0
-  for (let s = last + SAVE_EVERY; s <= step && job.status === "running"; s += SAVE_EVERY) {
-    saved.push({ step: s, savedAt: "just now", sizeMB: saved[0]?.sizeMB ?? 1850 })
+/**
+ * Downloads a file from the station backend. Endpoints that are not ready (501) or fail
+ * reject with the server's message so the caller can show it.
+ */
+export async function downloadFile(url: string) {
+  const res = await fetch(url)
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error?.message ?? res.statusText)
   }
-  return saved
+  const blob = await res.blob()
+  const name = res.headers.get("content-disposition")?.match(/filename="?([^";]+)"?/)?.[1] ?? "checkpoint.zip"
+  const a = document.createElement("a")
+  a.href = URL.createObjectURL(blob)
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(a.href)
 }

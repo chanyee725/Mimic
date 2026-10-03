@@ -4,12 +4,11 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Segmented } from "@/components/common/segmented"
-import { RUNPOD_DEFAULTS, RUNPOD_REGIONS, RUNPOD_VOLUMES } from "@/api/training"
-import type { RunPodOptions } from "@/domain/training"
+import { runpodRate, type RunPodConfig, type RunPodGpu, type RunPodOptions } from "@/domain/training"
 import { useDraftOnOpen } from "@/hooks/use-draft-on-open"
 import { formatRate, formatUsd } from "@/lib/format"
 
-import { runpodCapHours, runpodRate } from "../lib"
+import { runpodCapHours } from "../lib"
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -28,15 +27,16 @@ export function RunPodDialog({
   open,
   onOpenChange,
   gpu,
-  basePrice,
+  runpod,
   options,
   onSave,
   communityOk = true,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  gpu: string
-  basePrice: number
+  gpu: RunPodGpu
+  /** Regions, volumes, price factors and defaults from /training/config */
+  runpod: RunPodConfig
   options: RunPodOptions
   onSave: (o: RunPodOptions) => void
   /** Whether the chosen GPU is also available on Community cloud */
@@ -44,7 +44,7 @@ export function RunPodDialog({
 }) {
   const [draft, setDraft] = useDraftOnOpen(open, options)
   const set = <K extends keyof RunPodOptions>(k: K, v: RunPodOptions[K]) => setDraft((d) => ({ ...d, [k]: v }))
-  const rate = runpodRate(basePrice, draft)
+  const rate = runpodRate(gpu, draft, runpod.priceFactor)
   const capHours = runpodCapHours(draft, rate)
 
   return (
@@ -52,7 +52,7 @@ export function RunPodDialog({
       <DialogContent className="grid max-h-[85svh] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>RunPod options</DialogTitle>
-          <DialogDescription>{gpu} pod 를 어떻게 빌릴지 정합니다. 요금은 예시 값입니다.</DialogDescription>
+          <DialogDescription>{gpu.name} pod 를 어떻게 빌릴지 정합니다. 요금은 예시 값입니다.</DialogDescription>
         </DialogHeader>
 
         <div className="-mx-4 min-h-0 divide-y overflow-y-auto px-4">
@@ -61,7 +61,9 @@ export function RunPodDialog({
             <Row
               label="Cloud"
               hint={
-                communityOk ? "Community 는 개인 호스트라 더 싸지만 성능 편차가 있습니다" : `${gpu} 는 Secure cloud 에서만 빌릴 수 있습니다`
+                communityOk
+                  ? "Community 는 개인 호스트라 더 싸지만 성능 편차가 있습니다"
+                  : `${gpu.name} 는 Secure cloud 에서만 빌릴 수 있습니다`
               }
             >
               <Segmented
@@ -109,7 +111,7 @@ export function RunPodDialog({
                   <SelectValue>{(v: string) => (v === "any" ? "Any available" : v)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {RUNPOD_REGIONS.map((r) => (
+                  {runpod.regions.map((r) => (
                     <SelectItem key={r} value={r} className="text-[13px]">
                       {r === "any" ? "Any available" : r}
                     </SelectItem>
@@ -161,13 +163,13 @@ export function RunPodDialog({
                 <span className="text-xs text-muted-foreground">GB</span>
               </div>
             </Row>
-            <Row label="Network volume" hint={RUNPOD_VOLUMES.find((v) => v.id === draft.volume)?.note}>
+            <Row label="Network volume" hint={runpod.volumes.find((v) => v.id === draft.volume)?.note}>
               <Select value={draft.volume} onValueChange={(v) => v && set("volume", v as string)}>
                 <SelectTrigger className="h-8 w-full text-[13px]">
-                  <SelectValue>{(v: string) => RUNPOD_VOLUMES.find((x) => x.id === v)?.label ?? v}</SelectValue>
+                  <SelectValue>{(v: string) => runpod.volumes.find((x) => x.id === v)?.label ?? v}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {RUNPOD_VOLUMES.map((v) => (
+                  {runpod.volumes.map((v) => (
                     <SelectItem key={v.id} value={v.id} className="text-[13px]">
                       {v.label}
                     </SelectItem>
@@ -193,7 +195,7 @@ export function RunPodDialog({
             {formatRate(rate)}
             <span className="text-muted-foreground">
               {" "}
-              ({draft.gpuCount} × {gpu})
+              ({draft.gpuCount} × {gpu.name})
             </span>
           </span>
           <span className="text-muted-foreground">
@@ -208,7 +210,7 @@ export function RunPodDialog({
         </div>
 
         <DialogFooter className="items-center sm:justify-between">
-          <Button variant="ghost" size="sm" onClick={() => setDraft(RUNPOD_DEFAULTS)}>
+          <Button variant="ghost" size="sm" onClick={() => setDraft(runpod.defaults)}>
             Reset
           </Button>
           <div className="flex gap-2">
