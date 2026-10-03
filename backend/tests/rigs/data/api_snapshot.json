@@ -1,0 +1,501 @@
+{
+  "rigs": [
+    {
+      "id": "so101-kit",
+      "name": "SO-101 Kit",
+      "master": "SO-101 Leader",
+      "slave": "SO-101 Follower",
+      "robots": [
+        "follower"
+      ],
+      "devices": [
+        "leader"
+      ],
+      "cameras": [
+        {
+          "id": "top",
+          "key": "top",
+          "name": "Top camera",
+          "feature": "observation.images.top",
+          "resolution": "640×480",
+          "fps": 30,
+          "defaultOn": true
+        },
+        {
+          "id": "wrist",
+          "key": "wrist",
+          "name": "Wrist camera",
+          "feature": "observation.images.wrist",
+          "resolution": "640×480",
+          "fps": 30,
+          "defaultOn": true
+        }
+      ],
+      "joints": [
+        "shoulder_pan",
+        "shoulder_lift",
+        "elbow_flex",
+        "wrist_flex",
+        "wrist_roll",
+        "gripper"
+      ],
+      "targetHz": {
+        "action": 60,
+        "video": 30
+      },
+      "actionHzOptions": [
+        30,
+        60
+      ],
+      "videoFpsOptions": [
+        15,
+        30
+      ]
+    },
+    {
+      "id": "so101-bimanual-kit",
+      "name": "SO-101 Bimanual Kit",
+      "master": "SO-101 Leader ×2",
+      "slave": "SO-101 Follower ×2",
+      "robots": [
+        "bi-follower-l",
+        "bi-follower-r"
+      ],
+      "devices": [
+        "bi-leader-l",
+        "bi-leader-r"
+      ],
+      "cameras": [
+        {
+          "id": "bi-cam-top",
+          "key": "top",
+          "name": "Top camera",
+          "feature": "observation.images.top",
+          "resolution": "640×480",
+          "fps": 30,
+          "defaultOn": true
+        },
+        {
+          "id": "bi-cam-wrist-l",
+          "key": "left_wrist",
+          "name": "Left wrist camera",
+          "feature": "observation.images.left_wrist",
+          "resolution": "640×480",
+          "fps": 30,
+          "defaultOn": true
+        },
+        {
+          "id": "bi-cam-wrist-r",
+          "key": "right_wrist",
+          "name": "Right wrist camera",
+          "feature": "observation.images.right_wrist",
+          "resolution": "640×480",
+          "fps": 30,
+          "defaultOn": true
+        }
+      ],
+      "joints": [
+        "left_shoulder_pan",
+        "left_shoulder_lift",
+        "left_elbow_flex",
+        "left_wrist_flex",
+        "left_wrist_roll",
+        "left_gripper",
+        "right_shoulder_pan",
+        "right_shoulder_lift",
+        "right_elbow_flex",
+        "right_wrist_flex",
+        "right_wrist_roll",
+        "right_gripper"
+      ],
+      "targetHz": {
+        "action": 60,
+        "video": 30
+      },
+      "actionHzOptions": [
+        30,
+        60
+      ],
+      "videoFpsOptions": [
+        15,
+        30
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "id": "leader",
+      "name": "SO-101 Leader",
+      "type": "teleop",
+      "port": "/dev/so101_leader",
+      "health": "ok",
+      "calibration": {
+        "done": true,
+        "note": "Calibrated · 2026-09-28"
+      },
+      "streams": [
+        {
+          "key": "action",
+          "shape": "[6]",
+          "targetHz": 60.0,
+          "measuredHz": 59.8,
+          "unit": "Hz"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Max motor temp",
+          "value": "38°C"
+        },
+        {
+          "label": "Voltage",
+          "value": "12.1 V"
+        },
+        {
+          "label": "Bus latency",
+          "value": "2.1 ms"
+        }
+      ]
+    },
+    {
+      "id": "follower",
+      "name": "SO-101 Follower",
+      "type": "robot",
+      "port": "/dev/so101_follower",
+      "health": "warn",
+      "calibration": {
+        "done": true,
+        "note": "Calibrated · 2026-09-28"
+      },
+      "streams": [
+        {
+          "key": "observation.state",
+          "shape": "[6]",
+          "targetHz": 60.0,
+          "measuredHz": 59.9,
+          "unit": "Hz"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Max motor temp",
+          "value": "52°C"
+        },
+        {
+          "label": "Voltage",
+          "value": "12.1 V"
+        },
+        {
+          "label": "Bus latency",
+          "value": "2.3 ms"
+        }
+      ]
+    },
+    {
+      "id": "top",
+      "name": "Top camera",
+      "type": "camera",
+      "port": "/dev/cam_top",
+      "health": "ok",
+      "calibration": {
+        "done": true,
+        "note": "Intrinsics registered"
+      },
+      "streams": [
+        {
+          "key": "images.top",
+          "shape": "480×640×3",
+          "targetHz": 30.0,
+          "measuredHz": 30.0,
+          "unit": "fps"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Resolution",
+          "value": "640×480"
+        },
+        {
+          "label": "Exposure",
+          "value": "auto"
+        },
+        {
+          "label": "USB",
+          "value": "3.0"
+        }
+      ]
+    },
+    {
+      "id": "wrist",
+      "name": "Wrist camera",
+      "type": "camera",
+      "port": "/dev/cam_wrist",
+      "health": "warn",
+      "calibration": {
+        "done": true,
+        "note": "Intrinsics registered"
+      },
+      "streams": [
+        {
+          "key": "images.wrist",
+          "shape": "480×640×3",
+          "targetHz": 30.0,
+          "measuredHz": 28.7,
+          "unit": "fps"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Resolution",
+          "value": "640×480"
+        },
+        {
+          "label": "Exposure",
+          "value": "auto"
+        },
+        {
+          "label": "USB",
+          "value": "2.0"
+        }
+      ]
+    },
+    {
+      "id": "bi-leader-l",
+      "name": "SO-101 Leader (L)",
+      "type": "teleop",
+      "port": "/dev/bi_leader_l",
+      "health": "off",
+      "calibration": {
+        "done": false,
+        "note": "Calibration required"
+      },
+      "streams": [
+        {
+          "key": "action.left",
+          "shape": "[6]",
+          "targetHz": 60.0,
+          "measuredHz": null,
+          "unit": "Hz"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Max motor temp",
+          "value": "—"
+        },
+        {
+          "label": "Voltage",
+          "value": "—"
+        },
+        {
+          "label": "Bus latency",
+          "value": "—"
+        }
+      ]
+    },
+    {
+      "id": "bi-leader-r",
+      "name": "SO-101 Leader (R)",
+      "type": "teleop",
+      "port": "/dev/bi_leader_r",
+      "health": "off",
+      "calibration": {
+        "done": false,
+        "note": "Calibration required"
+      },
+      "streams": [
+        {
+          "key": "action.right",
+          "shape": "[6]",
+          "targetHz": 60.0,
+          "measuredHz": null,
+          "unit": "Hz"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Max motor temp",
+          "value": "—"
+        },
+        {
+          "label": "Voltage",
+          "value": "—"
+        },
+        {
+          "label": "Bus latency",
+          "value": "—"
+        }
+      ]
+    },
+    {
+      "id": "bi-follower-l",
+      "name": "SO-101 Follower (L)",
+      "type": "robot",
+      "port": "/dev/bi_follower_l",
+      "health": "off",
+      "calibration": {
+        "done": false,
+        "note": "Calibration required"
+      },
+      "streams": [
+        {
+          "key": "observation.state.left",
+          "shape": "[6]",
+          "targetHz": 60.0,
+          "measuredHz": null,
+          "unit": "Hz"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Max motor temp",
+          "value": "—"
+        },
+        {
+          "label": "Voltage",
+          "value": "—"
+        },
+        {
+          "label": "Bus latency",
+          "value": "—"
+        }
+      ]
+    },
+    {
+      "id": "bi-follower-r",
+      "name": "SO-101 Follower (R)",
+      "type": "robot",
+      "port": "/dev/bi_follower_r",
+      "health": "off",
+      "calibration": {
+        "done": false,
+        "note": "Calibration required"
+      },
+      "streams": [
+        {
+          "key": "observation.state.right",
+          "shape": "[6]",
+          "targetHz": 60.0,
+          "measuredHz": null,
+          "unit": "Hz"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Max motor temp",
+          "value": "—"
+        },
+        {
+          "label": "Voltage",
+          "value": "—"
+        },
+        {
+          "label": "Bus latency",
+          "value": "—"
+        }
+      ]
+    },
+    {
+      "id": "bi-cam-top",
+      "name": "Top camera",
+      "type": "camera",
+      "port": "/dev/bi_cam_top",
+      "health": "ok",
+      "calibration": {
+        "done": true,
+        "note": "Intrinsics registered"
+      },
+      "streams": [
+        {
+          "key": "images.top",
+          "shape": "480×640×3",
+          "targetHz": 30.0,
+          "measuredHz": 30.0,
+          "unit": "fps"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Resolution",
+          "value": "640×480"
+        },
+        {
+          "label": "Exposure",
+          "value": "auto"
+        },
+        {
+          "label": "USB",
+          "value": "3.0"
+        }
+      ]
+    },
+    {
+      "id": "bi-cam-wrist-l",
+      "name": "Left wrist camera",
+      "type": "camera",
+      "port": "/dev/bi_cam_wrist_l",
+      "health": "off",
+      "calibration": {
+        "done": false,
+        "note": "Not registered"
+      },
+      "streams": [
+        {
+          "key": "images.left_wrist",
+          "shape": "480×640×3",
+          "targetHz": 30.0,
+          "measuredHz": null,
+          "unit": "fps"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Resolution",
+          "value": "640×480"
+        },
+        {
+          "label": "Exposure",
+          "value": "auto"
+        },
+        {
+          "label": "USB",
+          "value": "3.0"
+        }
+      ]
+    },
+    {
+      "id": "bi-cam-wrist-r",
+      "name": "Right wrist camera",
+      "type": "camera",
+      "port": "/dev/bi_cam_wrist_r",
+      "health": "off",
+      "calibration": {
+        "done": false,
+        "note": "Not registered"
+      },
+      "streams": [
+        {
+          "key": "images.right_wrist",
+          "shape": "480×640×3",
+          "targetHz": 30.0,
+          "measuredHz": null,
+          "unit": "fps"
+        }
+      ],
+      "stats": [
+        {
+          "label": "Resolution",
+          "value": "640×480"
+        },
+        {
+          "label": "Exposure",
+          "value": "auto"
+        },
+        {
+          "label": "USB",
+          "value": "3.0"
+        }
+      ]
+    }
+  ]
+}
