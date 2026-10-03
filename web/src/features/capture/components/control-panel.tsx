@@ -4,7 +4,7 @@ import type { Task } from "@/domain/task"
 
 import type { CaptureControls } from "../hooks/use-capture"
 import { EpisodeControls } from "./episode-controls"
-import { ErrorNote } from "./query-note"
+import { ErrorNote } from "@/components/common/query-state"
 import { RecordingStatus } from "./recording-status"
 import { TaskProgress } from "./task-progress"
 

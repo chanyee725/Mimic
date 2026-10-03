@@ -7,7 +7,7 @@ import type { Recording, RecordingReview } from "@/domain/recording"
 import { cn } from "@/lib/utils"
 
 import { REVIEW_TONE } from "../lib"
-import { ErrorNote } from "./query-note"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** Validation results of the selected episode with accept, reject and delete buttons */
 export function ReviewActions({ recording, onDelete }: { recording: Recording; onDelete: () => void }) {

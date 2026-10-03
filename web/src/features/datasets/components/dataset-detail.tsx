@@ -18,7 +18,7 @@ import { formatDateTime, formatLength } from "@/lib/format"
 import { STATUS } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
 import { DeleteDatasetDialog } from "./delete-dataset-dialog"
-import { ErrorNote, QueryNote } from "./query-note"
+import { ErrorNote, QueryNote } from "@/components/common/query-state"
 
 /**
  * Detail of one dataset. `fallback` (the list row) shows until the detail query answers.

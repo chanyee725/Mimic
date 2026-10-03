@@ -14,11 +14,12 @@ export function LoadingNote({ className, children = "Loading…" }: { className?
 }
 
 /** Small red note with the server's error message and a Retry button */
-export function ErrorNote({ error, onRetry, className }: { error: Error | null; onRetry?: () => void; className?: string }) {
+export function ErrorNote({ error, onRetry, className }: { error: unknown; onRetry?: () => void; className?: string }) {
   if (!error) return null
+  const message = error instanceof Error ? error.message : String(error)
   return (
     <div role="alert" className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-bad", className)}>
-      <span className="min-w-0">{error.message || "Request failed"}</span>
+      <span className="min-w-0">{message || "Request failed"}</span>
       {onRetry && (
         <Button variant="outline" size="xs" onClick={onRetry}>
           <LuRotateCw />
@@ -27,6 +28,15 @@ export function ErrorNote({ error, onRetry, className }: { error: Error | null; 
       )}
     </div>
   )
+}
+
+type QueryLike = { isPending: boolean; error: Error | null; refetch: () => unknown }
+
+/** Loading note while a query loads, the error with Retry when it failed, nothing once it has data */
+export function QueryNote({ query, className }: { query: QueryLike; className?: string }) {
+  if (query.error) return <ErrorNote error={query.error} onRetry={() => void query.refetch()} className={className} />
+  if (query.isPending) return <LoadingNote className={className} />
+  return null
 }
 
 /** Renders the loading note or the error note for a query, and children(data) once it has data */

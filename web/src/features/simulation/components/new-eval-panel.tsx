@@ -24,7 +24,7 @@ import type { Task } from "@/domain/task"
 import { RANDOMIZATION } from "../lib"
 import { NEW_EVAL_DEFAULTS, envOptions, initialSelection, modelSpec, usableEnvId, type EnvOption } from "../new-eval"
 import { EnvPicker } from "./env-picker"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 type FormData = { models: Model[]; envs: SimEnv[]; tasks: Task[]; rigs: Rig[] }
 
@@ -42,7 +42,7 @@ export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: 
       {failed ? (
         <ErrorNote error={failed.error} onRetry={() => queries.forEach((q) => q.isError && q.refetch())} />
       ) : !models.data || !envs.data || !tasks.data || !rigs.data ? (
-        <Loading />
+        <LoadingNote />
       ) : (
         <NewEvalForm
           data={{ models: models.data, envs: envs.data, tasks: tasks.data, rigs: rigs.data }}

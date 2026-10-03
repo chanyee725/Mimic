@@ -8,7 +8,7 @@ import type { ModelCompat, SimEnv } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
 import { evalHref } from "../envs"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 function compatStatus({ issues, usable }: ModelCompat): { tone: Tone; label: string; detail?: string } {
   if (!usable) return { tone: "bad", label: "Not compatible", detail: issues.filter((i) => i.level === "error")[0]?.text }
@@ -24,7 +24,7 @@ export function EnvCompatList({ env, query }: { env: SimEnv; query: UseQueryResu
 
   let body: React.ReactNode
   if (env.state !== "ready") body = <EmptyState>환경을 불러오지 못해 모델을 넣어 볼 수 없습니다.</EmptyState>
-  else if (query.isPending) body = <Loading className="py-4" />
+  else if (query.isPending) body = <LoadingNote className="py-4" />
   else if (query.isError) body = <ErrorNote error={query.error} onRetry={query.refetch} />
   else if (rows.length === 0) body = <EmptyState>저장한 모델이 없습니다.</EmptyState>
   else

@@ -12,7 +12,7 @@ import { formatTimecode } from "@/lib/format"
 
 import { CameraGrid } from "./components/camera-grid"
 import { ControlPanel } from "./components/control-panel"
-import { QueryNote } from "./components/query-note"
+import { QueryNote } from "@/components/common/query-state"
 import { useCapture } from "./hooks/use-capture"
 
 export function CapturePage() {

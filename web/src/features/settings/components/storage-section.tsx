@@ -6,7 +6,8 @@ import { diskUsedPct } from "@/domain/settings"
 import { cn } from "@/lib/utils"
 
 import { useSettingsDraft } from "../hooks/use-draft"
-import { Loading, QueryError, SectionPending } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 
@@ -20,8 +21,8 @@ const PART_COLOR: Record<string, string> = {
 function DiskUsage({ warnAtPct }: { warnAtPct: number }) {
   const query = useDiskUsage()
   const disk = query.data
-  if (query.isError) return <QueryError error={query.error} onRetry={() => void query.refetch()} />
-  if (!disk) return <Loading className="py-2" />
+  if (query.isError) return <ErrorNote error={query.error} onRetry={() => void query.refetch()} />
+  if (!disk) return <LoadingNote className="py-2" />
   const used = disk.parts.reduce((a, p) => a + p.gb, 0)
   const pct = diskUsedPct(disk)
   return (

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Panel } from "@/components/layout/page-layout"
 import { plural } from "@/lib/format"
 
-import { ErrorNote } from "./query-note"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** Output settings (dataset name · format · feature preview) and the convert button */
 export function OutputPanel({

@@ -10,7 +10,7 @@ import type { Task } from "@/domain/task"
 import { rateOptions } from "../lib"
 import { Field } from "./field"
 import { Info } from "./info"
-import { Loading, QueryError } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { SimpleSelect } from "./simple-select"
 import { UnitInput } from "./unit-input"
 
@@ -49,9 +49,9 @@ export function TaskDefinition({ task, onChange }: Props) {
 
       <SettingsSection title="Rig">
         {rigs.isError ? (
-          <QueryError error={rigs.error} onRetry={() => void rigs.refetch()} />
+          <ErrorNote error={rigs.error} onRetry={() => void rigs.refetch()} />
         ) : !rigs.data ? (
-          <Loading />
+          <LoadingNote />
         ) : !rig ? (
           <p className="text-[13px] text-bad">Rig &quot;{task.rigId}&quot; 를 찾을 수 없습니다.</p>
         ) : (

@@ -18,7 +18,7 @@ import type { Model } from "@/domain/model"
 import { formatClock } from "@/lib/format"
 
 import { ModelField } from "./components/model-field"
-import { ErrorNote, Loading } from "./components/query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RunControls } from "./components/run-controls"
 import { TrialsList } from "./components/trials-list"
 import { useEvalRun } from "./hooks/use-eval-run"
@@ -41,7 +41,7 @@ export function EvaluatePage() {
       <Page fit title="Evaluate" description={DESCRIPTION}>
         <Panel className="flex-1">
           {models.isPending ? (
-            <Loading />
+            <LoadingNote />
           ) : models.isError ? (
             <ErrorNote error={models.error} onRetry={() => models.refetch()} />
           ) : (
@@ -150,7 +150,7 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
           />
           <ErrorNote error={run.error} />
           {run.runs.isPending ? (
-            <Loading className="py-5" />
+            <LoadingNote className="py-5" />
           ) : run.runs.isError ? (
             <ErrorNote error={run.runs.error} onRetry={() => run.runs.refetch()} />
           ) : (

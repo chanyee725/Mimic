@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 import { FILTERS, KIND_DOT, KIND_LABEL, type Filter } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
-import { QueryNote } from "./query-note"
+import { QueryNote } from "@/components/common/query-state"
 
 type ListQuery = { isPending: boolean; error: Error | null; refetch: () => unknown }
 

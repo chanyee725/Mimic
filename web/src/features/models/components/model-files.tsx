@@ -1,7 +1,7 @@
 import { useModelFiles } from "@/api/models"
 
 import { formatFileSize } from "../lib"
-import { ErrorNote } from "./query-state"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** Files inside the checkpoint folder */
 export function ModelFiles({ modelId }: { modelId: string }) {

@@ -15,7 +15,7 @@ import { CheckpointsPanel } from "./components/checkpoints-panel"
 import { JobConfig } from "./components/job-config"
 import { MetricPlots } from "./components/metric-plots"
 import { PodBar } from "./components/pod-bar"
-import { ErrorNote, Loading } from "./components/query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { useJobRun } from "./hooks/use-job-run"
 import { JOB_STATUS, METRICS, computeText } from "./lib"
 
@@ -26,7 +26,7 @@ export function JobPage() {
   if (job.isPending || job.isError)
     return (
       <Page fit title={<BackTitle>{jobId}</BackTitle>}>
-        <Panel className="flex-1">{job.isPending ? <Loading /> : <ErrorNote error={job.error} onRetry={() => job.refetch()} />}</Panel>
+        <Panel className="flex-1">{job.isPending ? <LoadingNote /> : <ErrorNote error={job.error} onRetry={() => job.refetch()} />}</Panel>
       </Page>
     )
   return <JobView key={job.data.id} job={job.data} />
@@ -123,7 +123,7 @@ function JobView({ job }: { job: TrainJob }) {
           }
         >
           {metrics.isPending ? (
-            <Loading />
+            <LoadingNote />
           ) : metrics.isError ? (
             <ErrorNote error={metrics.error} onRetry={() => metrics.refetch()} />
           ) : run.steps.length > 1 ? (

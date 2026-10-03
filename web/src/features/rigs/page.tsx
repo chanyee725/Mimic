@@ -5,7 +5,7 @@ import { Page, Panel } from "@/components/layout/page-layout"
 import { StatStrip } from "@/components/common/stat-strip"
 
 import { DeviceDetail } from "./components/device-detail"
-import { Loading, QueryError } from "./components/query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RigDevices } from "./components/rig-devices"
 import { RigList } from "./components/rig-list"
 import { useRigSelection } from "./hooks/use-rig-selection"
@@ -67,9 +67,11 @@ export function RigsPage() {
             onSelectDevice={selectDevice}
           />
         ) : (
-          <Panel>{rigsQuery.isError ? <QueryError error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} /> : <Loading />}</Panel>
+          <Panel>
+            {rigsQuery.isError ? <ErrorNote error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} /> : <LoadingNote />}
+          </Panel>
         )}
-        {selected ? <DeviceDetail device={selected} /> : <Panel>{devicesQuery.isPending && <Loading />}</Panel>}
+        {selected ? <DeviceDetail device={selected} /> : <Panel>{devicesQuery.isPending && <LoadingNote />}</Panel>}
       </div>
     </Page>
   )

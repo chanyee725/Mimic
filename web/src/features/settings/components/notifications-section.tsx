@@ -4,7 +4,7 @@ import { SettingsGroup, SettingsSection } from "@/components/common/settings-sec
 import { useTestConnection } from "@/api/settings"
 
 import { useSettingsDraft } from "../hooks/use-draft"
-import { SectionPending } from "./query-state"
+import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
 import { SecretField } from "./secret-field"
 import { SettingRow } from "./setting-row"

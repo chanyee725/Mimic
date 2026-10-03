@@ -12,7 +12,7 @@ import { formatDuration, formatPct } from "@/lib/format"
 
 import { EpisodeTable } from "./components/episode-table"
 import { FailureReasons } from "./components/failure-reasons"
-import { ErrorNote, Loading } from "./components/query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RolloutViewer } from "./components/rollout-viewer"
 import { SimJobConfig } from "./components/sim-job-config"
 import { SimJobActions, SimJobTitle } from "./components/sim-job-header"
@@ -27,7 +27,7 @@ export function SimJobPage() {
   if (!query.data)
     return (
       <Page fit title={jobId} description="Simulation evaluation">
-        <Panel className="flex-1">{query.isError ? <ErrorNote error={query.error} onRetry={query.refetch} /> : <Loading />}</Panel>
+        <Panel className="flex-1">{query.isError ? <ErrorNote error={query.error} onRetry={query.refetch} /> : <LoadingNote />}</Panel>
       </Page>
     )
   return <SimJobView key={query.data.id} job={query.data} />

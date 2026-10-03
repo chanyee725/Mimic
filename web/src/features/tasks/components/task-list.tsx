@@ -15,7 +15,7 @@ import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { errorText, newTaskInput, successByTask } from "../lib"
-import { Loading, QueryError } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { TaskIdDialog } from "./task-id-dialog"
 
 export function TaskList({ selectedId }: { selectedId: string | undefined }) {
@@ -69,11 +69,11 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {tasksQuery.isError && <QueryError error={tasksQuery.error} onRetry={() => void tasksQuery.refetch()} />}
+      {tasksQuery.isError && <ErrorNote error={tasksQuery.error} onRetry={() => void tasksQuery.refetch()} />}
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {tasksQuery.isPending && (
           <li>
-            <Loading />
+            <LoadingNote />
           </li>
         )}
         {tasks.map((t) => {

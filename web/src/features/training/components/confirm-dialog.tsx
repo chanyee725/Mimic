@@ -9,7 +9,7 @@ import type { JobCreate, TrainingConfig } from "@/domain/training"
 import { formatRate, formatUsd } from "@/lib/format"
 
 import { runpodSummary, type TrainingPlan } from "../lib"
-import { ErrorNote } from "./query-state"
+import { ErrorNote } from "@/components/common/query-state"
 
 // Values can be long or multi-line, so allow wrapping and use a wider gap
 const ROWS = "[&_dd]:overflow-visible [&_dd]:whitespace-normal [&>div]:gap-6"

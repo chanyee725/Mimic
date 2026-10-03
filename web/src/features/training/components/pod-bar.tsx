@@ -6,7 +6,7 @@ import { useTerminatePod } from "@/api/training"
 import type { TrainJob } from "@/domain/training"
 import { formatDateTime, formatDuration, formatRate, formatUsd } from "@/lib/format"
 
-import { ErrorNote } from "./query-state"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** RunPod pod status bar. Highlights a pod still running after training so it does not keep billing */
 export function PodBar({ job }: { job: TrainJob }) {

@@ -19,6 +19,14 @@ const INVALIDATES: Record<string, readonly (readonly string[])[]> = {
   settings: [qk.settings],
 }
 
+/** Forget cached detail queries of a deleted resource so they don't refetch into a 404 */
+function dropDeleted(roots: readonly (readonly string[])[], data: unknown) {
+  const d = (data ?? {}) as { id?: string; repoId?: string }
+  const id = d.id ?? d.repoId
+  if (!id) return
+  for (const root of roots) queryClient.removeQueries({ queryKey: root, predicate: (q) => q.queryKey.includes(id) })
+}
+
 const listeners = new Set<(e: ServerEvent) => void>()
 
 /** Listen to raw events (e.g. per-step training.metrics) without refetching */
@@ -43,7 +51,9 @@ export function useServerEvents() {
         if (e.type === "hello" || e.type === "pong") return
         listeners.forEach((l) => l(e))
         if (e.type === "training.metrics") return // high rate: listeners only
-        for (const key of INVALIDATES[e.type.split(".")[0]] ?? []) queryClient.invalidateQueries({ queryKey: key })
+        const roots = INVALIDATES[e.type.split(".")[0]] ?? []
+        if (e.type.endsWith(".deleted")) dropDeleted(roots, e.data)
+        for (const key of roots) queryClient.invalidateQueries({ queryKey: key })
       }
       ws.onclose = () => {
         if (!closed) retry = setTimeout(connect, 2000)

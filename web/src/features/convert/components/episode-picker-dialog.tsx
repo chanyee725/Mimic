@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import type { Recording } from "@/domain/recording"
 
 import { PICKER_PAGE } from "../lib"
-import { QueryNote } from "./query-note"
+import { QueryNote } from "@/components/common/query-state"
 
 /** What the dialog needs from the paged accepted-recordings query */
 export type AcceptedPages = {

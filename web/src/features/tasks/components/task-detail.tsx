@@ -16,7 +16,7 @@ import { formatDateTime } from "@/lib/format"
 
 import { errorText, isDirty, STATUS } from "../lib"
 import { ImportYamlDialog } from "./import-yaml-dialog"
-import { Loading, QueryError } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { TaskDefinition } from "./task-definition"
 import { TaskIdDialog } from "./task-id-dialog"
 
@@ -27,7 +27,7 @@ export function TaskDetail({ id }: { id: string }) {
   if (!query.data) {
     return (
       <Panel className="min-w-0">
-        {query.isError ? <QueryError error={query.error} onRetry={() => void query.refetch()} /> : <Loading />}
+        {query.isError ? <ErrorNote error={query.error} onRetry={() => void query.refetch()} /> : <LoadingNote />}
       </Panel>
     )
   }
@@ -149,9 +149,9 @@ function TaskEditor({ base }: { base: Task }) {
         <TabsContent value="yaml" className="grid min-h-0 min-w-0 flex-1 content-start gap-2 overflow-y-auto">
           {dirty && <p className="text-xs text-muted-foreground">저장된 버전의 YAML입니다. 저장하지 않은 변경은 반영되지 않습니다.</p>}
           {yaml.isError ? (
-            <QueryError error={yaml.error} onRetry={() => void yaml.refetch()} />
+            <ErrorNote error={yaml.error} onRetry={() => void yaml.refetch()} />
           ) : yaml.data === undefined ? (
-            <Loading />
+            <LoadingNote />
           ) : (
             <pre className="rounded-md bg-muted p-4 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">{yaml.data}</pre>
           )}

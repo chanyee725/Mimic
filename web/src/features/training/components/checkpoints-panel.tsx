@@ -9,7 +9,7 @@ import { formatDateTime } from "@/lib/format"
 import { useCheckpointActions } from "../hooks/use-checkpoint-actions"
 import type { JobRun } from "../lib"
 import { CheckpointsDialog } from "./checkpoints-dialog"
-import { ErrorNote } from "./query-state"
+import { ErrorNote } from "@/components/common/query-state"
 
 /** Checkpoint list beside the job detail. View all opens the full dialog */
 export function CheckpointsPanel({ job, run }: { job: TrainJob; run: JobRun }) {

@@ -8,7 +8,7 @@ import { useRigs } from "@/api/rigs"
 import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rigDeviceIds, rigHealth } from "../lib"
-import { Loading, QueryError } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 export function RigList({ selectedId, onSelect }: { selectedId: string | undefined; onSelect: (id: string) => void }) {
   const rigsQuery = useRigs()
@@ -37,11 +37,11 @@ export function RigList({ selectedId, onSelect }: { selectedId: string | undefin
         </Button>
       }
     >
-      {rigsQuery.isError && <QueryError error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} />}
+      {rigsQuery.isError && <ErrorNote error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} />}
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {rigsQuery.isPending && (
           <li>
-            <Loading />
+            <LoadingNote />
           </li>
         )}
         {rigs.map((r) => {

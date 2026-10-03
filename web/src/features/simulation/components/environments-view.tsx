@@ -6,7 +6,7 @@ import { useSimEnvs } from "@/api/simulation"
 
 import { EnvDetail } from "./env-detail"
 import { EnvList } from "./env-list"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RegisterEnvHelp } from "./register-env-help"
 
 /** Environments registered in the environments folder: list on the left, detail on the right */
@@ -23,7 +23,7 @@ export function EnvironmentsView() {
         <EnvDetail env={env} />
       ) : query.isPending ? (
         <Panel>
-          <Loading />
+          <LoadingNote />
         </Panel>
       ) : query.isError ? (
         <Panel>

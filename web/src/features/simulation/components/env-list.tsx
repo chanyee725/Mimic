@@ -14,7 +14,7 @@ import { formatDateTime, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { ENV_FILTERS, ENV_STATE, type EnvFilter } from "../envs"
-import { ErrorNote, Loading } from "./query-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RegisterEnvHelp } from "./register-env-help"
 
 /** Rescan button: the backend rescans the environments folder and the lists refetch */
@@ -85,7 +85,7 @@ export function EnvList({
       />
 
       {query.isPending ? (
-        <Loading />
+        <LoadingNote />
       ) : query.isError ? (
         <ErrorNote error={query.error} onRetry={query.refetch} />
       ) : (
