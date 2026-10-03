@@ -1,25 +1,28 @@
 import { useState } from "react"
 
-import { devicesOf } from "@/api/devices"
-import { getRig, listRigs } from "@/api/rigs"
+import { useRigDevices } from "@/api/devices"
+import { useRigs } from "@/api/rigs"
 import { rigGroups } from "@/domain/rig"
 
 /** Selected rig, device group (tab) and device. Changing the rig or group selects its first device */
 export function useRigSelection() {
-  const [rigId, setRigId] = useState(() => listRigs()[0].id)
-  const rig = getRig(rigId)
-  const devices = devicesOf(rig.id)
-  const groups = rigGroups(rig)
+  const rigsQuery = useRigs()
+  const rigs = rigsQuery.data ?? []
+  const [rigId, setRigId] = useState<string | undefined>()
+  const rig = rigs.find((r) => r.id === rigId) ?? rigs[0]
+  const devicesQuery = useRigDevices(rig?.id)
+  const devices = devicesQuery.data ?? []
+  const groups = rig ? rigGroups(rig) : []
   const [group, setGroup] = useState<string>("robot")
   const groupIds = groups.find((g) => g.key === group)?.ids ?? []
   const groupDevices = devices.filter((d) => groupIds.includes(d.id))
-  const [selectedId, setSelectedId] = useState("follower")
+  const [selectedId, setSelectedId] = useState<string | undefined>()
   const selected = devices.find((d) => d.id === selectedId) ?? groupDevices[0] ?? devices[0]
 
   const selectRig = (id: string) => {
     setRigId(id)
     setGroup("robot")
-    setSelectedId(devicesOf(id)[0]?.id ?? "")
+    setSelectedId(undefined)
   }
   const selectGroup = (key: string) => {
     setGroup(key)
@@ -27,5 +30,16 @@ export function useRigSelection() {
     if (first) setSelectedId(first)
   }
 
-  return { rig, groups, group, groupDevices, selected, selectRig, selectGroup, selectDevice: setSelectedId }
+  return {
+    rigsQuery,
+    devicesQuery,
+    rig,
+    groups,
+    group,
+    groupDevices,
+    selected,
+    selectRig,
+    selectGroup,
+    selectDevice: setSelectedId,
+  }
 }
