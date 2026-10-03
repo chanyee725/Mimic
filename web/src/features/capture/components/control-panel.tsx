@@ -12,11 +12,14 @@ import { TaskProgress } from "./task-progress"
 export function ControlPanel({
   task,
   ep,
+  offline,
   onSelectTask,
   taskError,
 }: {
   task: Task
   ep: CaptureControls
+  /** Names of required devices that are not connected */
+  offline: string[]
   onSelectTask: (id: string) => void
   taskError: Error | null
 }) {
@@ -41,6 +44,7 @@ export function ControlPanel({
       <EpisodeControls
         phase={ep.phase}
         busy={ep.busy}
+        blocked={ep.phase === "idle" && offline.length > 0 ? offline : null}
         error={ep.error}
         onToggle={ep.toggle}
         onSave={ep.save}

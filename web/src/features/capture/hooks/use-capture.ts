@@ -22,7 +22,7 @@ function useLiveElapsedS(state: CaptureState | undefined, maxS: number) {
  * Episode controls over the station's state machine (idle → countdown → recording → review → save | re-record | discard).
  * Phase and elapsed time come from the server; every transition is a capture mutation.
  */
-export function useCapture(task: Task | undefined) {
+export function useCapture(task: Task | undefined, { startBlocked = false }: { startBlocked?: boolean } = {}) {
   const query = useCaptureState()
   const actions = useCaptureActions()
   const state = query.data
@@ -60,7 +60,7 @@ export function useCapture(task: Task | undefined) {
     run(() => {
       if (phase === "recording") actions.stop.mutate()
       else if (phase === "review") actions.rerecord.mutate()
-      else if (phase === "idle" && task) actions.start.mutate({ taskId: task.id, operator: STATION_OPERATOR })
+      else if (phase === "idle" && task && !startBlocked) actions.start.mutate({ taskId: task.id, operator: STATION_OPERATOR })
     })
   const save = (outcome: Outcome) =>
     run(() => {
@@ -86,6 +86,7 @@ export function useCapture(task: Task | undefined) {
     episode: state?.nextEpisode ?? 1,
     lastOutcome: actions.save.data?.outcome ?? null,
     busy,
+    startBlocked,
     error: query.error ?? all.find((m) => m.error)?.error ?? null,
     toggle,
     save,

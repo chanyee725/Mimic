@@ -12,6 +12,7 @@ import { ErrorNote } from "@/components/common/query-state"
 export function EpisodeControls({
   phase,
   busy,
+  blocked,
   error,
   onToggle,
   onSave,
@@ -21,6 +22,8 @@ export function EpisodeControls({
   phase: CapturePhase
   /** A transition is in flight (or the state is not loaded yet) */
   busy: boolean
+  /** Names of offline devices that keep Start disabled */
+  blocked: string[] | null
   error: Error | null
   onToggle: () => void
   onSave: (outcome: Outcome) => void
@@ -34,9 +37,15 @@ export function EpisodeControls({
   return (
     <div className="mt-auto grid gap-2">
       <ErrorNote error={error} />
+      {blocked && (
+        <p className="text-[13px] text-muted-foreground">
+          연결되지 않은 장치가 있어 녹화를 시작할 수 없습니다: <span className="text-foreground">{blocked.join(", ")}</span>. Rigs 에서
+          장치를 연결하세요.
+        </p>
+      )}
       <Button
         onClick={onToggle}
-        disabled={busy || countdown}
+        disabled={busy || countdown || (idle && !!blocked)}
         className={cn("h-11 w-full", recording && "bg-destructive text-white hover:bg-destructive/90")}
       >
         {recording ? <LuSquare /> : <LuCircle />}
