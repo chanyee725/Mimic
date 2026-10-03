@@ -1,29 +1,22 @@
 """Task and session store (in memory, seeded from the web mocks)."""
 
-from app.utils.time import iso, now_iso
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.seeds import load
-from app.services.rigs import get_rig
-from app.services import tasks_yaml as yaml_io
 from app.models.tasks import Session, Task, TaskFields, TaskStatus
 from app.schemas.tasks import TaskDuplicate, TaskInput, TaskUpdate
+from app.seeds import load
+from app.services.rigs import get_rig
+from app.services.tasks import yaml_io
+from app.utils.time import iso, now_iso
 
 _tasks: dict[str, Task] = {}
 _sessions: dict[str, Session] = {}
 
 
-def _seed_time(value: str) -> str:
-    # Seeds carry "YYYY-MM-DD" or "YYYY-MM-DD HH:MM"
-    if "T" in value:
-        return value
-    return iso(value if " " in value else f"{value} 00:00")
-
-
 def reset() -> None:
     _tasks.clear()
     for t in load("tasks", "TASKS"):
-        t["updatedAt"] = _seed_time(t["updatedAt"])
+        t["updatedAt"] = iso(t["updatedAt"])
         _tasks[t["id"]] = Task.model_validate(t)
     _sessions.clear()
     _sessions.update({s["id"]: Session.model_validate(s) for s in load("sessions", "SESSIONS")})

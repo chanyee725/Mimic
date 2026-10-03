@@ -1,5 +1,7 @@
 """Event type → WebSocket topic mapping (docs/api/realtime.md)."""
 
+from app.utils.ids import split_csv
+
 # Event type prefix (before the first ".") → topic
 PREFIX_TOPICS: dict[str, str] = {
     "capture": "capture",
@@ -22,7 +24,7 @@ def topic_of(event_type: str) -> str | None:
 
 def parse_topics(raw: str | None) -> tuple[list[str], list[str]]:
     """`?topics=training,sim` → (accepted, unknown). Missing or empty means every topic."""
-    names = [t.strip() for t in (raw or "").split(",") if t.strip()]
+    names = split_csv(raw)
     if not names:
         return list(TOPICS), []
     accepted = [t for t in TOPICS if t in names]
