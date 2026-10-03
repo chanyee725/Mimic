@@ -53,12 +53,14 @@ export function usableEnvId(options: EnvOption[], preferredId?: string): string 
 }
 
 /**
- * Initial model and environment for the form. An environment from ?env= wins; when the default
- * model can't be loaded into it, the first model (listModels order) that can is chosen instead.
+ * Initial model and environment for the form. A model from ?model= wins; otherwise, when the default
+ * model can't be loaded into the ?env= environment, the first model (listModels order) that can is chosen.
  */
-export function initialSelection(envId?: string): { modelId: string; envId?: string } {
+export function initialSelection(envId?: string, modelId?: string): { modelId: string; envId?: string } {
   const models = listModels()
   const fits = (m: Model) => envOptions(m).some((o) => o.env.id === envId && o.usable)
-  const model = envId && models[0] && !fits(models[0]) ? (models.find(fits) ?? models[0]) : models[0]
+  // An explicitly requested model wins; otherwise prefer one that fits the requested environment
+  const requested = models.find((m) => m.id === modelId)
+  const model = requested ?? (envId && models[0] && !fits(models[0]) ? (models.find(fits) ?? models[0]) : models[0])
   return { modelId: model?.id ?? "", envId: usableEnvId(envOptions(model), envId) }
 }

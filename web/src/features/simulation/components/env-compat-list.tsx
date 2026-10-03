@@ -53,7 +53,7 @@ export function EnvCompatList({ env, rows }: { env: SimEnv; rows: ModelCompat[] 
                   )}
                 </div>
                 <LinkButton
-                  to={evalHref(env.id)}
+                  to={evalHref(env.id, r.model.id)}
                   variant="outline"
                   size="xs"
                   disabled={!r.usable}

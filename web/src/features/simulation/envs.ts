@@ -19,7 +19,8 @@ export const ENV_FILTERS: { value: EnvFilter; label: string; fits: (e: SimEnv) =
 ]
 
 /** Link that opens the new evaluation form with this environment preselected */
-export const evalHref = (envId: string) => `/simulation?env=${envId}`
+/** Evaluations view with the environment (and optionally the model) preselected in the form */
+export const evalHref = (envId: string, modelId?: string) => `/simulation?env=${envId}${modelId ? `&model=${modelId}` : ""}`
 
 export type ModelCompat = { model: Model; issues: CompatIssue[]; usable: boolean }
 

@@ -13,8 +13,9 @@ type View = "evaluations" | "environments"
 export function SimulationPage() {
   const [params, setParams] = useSearchParams()
   const view: View = params.get("view") === "environments" ? "environments" : "evaluations"
-  // ?env=<id> preselects an environment in the new evaluation form
+  // ?env=<id>&model=<id> preselect the environment and model in the new evaluation form
   const envId = params.get("env") ?? undefined
+  const modelId = params.get("model") ?? undefined
 
   return (
     <Page
@@ -38,7 +39,7 @@ export function SimulationPage() {
       ) : (
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <SimJobsPanel />
-          <NewEvalPanel key={envId} initialEnvId={envId} />
+          <NewEvalPanel key={`${envId}/${modelId}`} initialEnvId={envId} initialModelId={modelId} />
         </div>
       )}
     </Page>

@@ -22,8 +22,8 @@ import { EnvPicker } from "./env-picker"
  * New evaluation form. Pick a saved model, load it into one of the registered environments,
  * set the rollout count, then start (or queue) on the local GPU.
  */
-export function NewEvalPanel({ initialEnvId }: { initialEnvId?: string }) {
-  const [initial] = useState(() => initialSelection(initialEnvId))
+export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: string; initialModelId?: string }) {
+  const [initial] = useState(() => initialSelection(initialEnvId, initialModelId))
   const [modelId, setModelId] = useState(initial.modelId)
   const model = getModel(modelId)
   const options = envOptions(model)
