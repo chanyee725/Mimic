@@ -16,7 +16,11 @@ export function ConnectionSection() {
     <SettingsGroup className="@container">
       <SettingsSection title="Backend API">
         <SettingRow label="Status">
-          <ConnStatus target="api" state={server.api.state} detail={server.api.latencyMs ? `${server.api.latencyMs} ms` : undefined} />
+          <ConnStatus
+            target="api"
+            state={server.api.state}
+            detail={server.api.latencyMs != null ? `${server.api.latencyMs} ms` : undefined}
+          />
         </SettingRow>
         <SettingRow label="URL" hint="FastAPI. Task · 데이터셋 · 학습 관리" htmlFor="cn-api">
           <Input
@@ -29,7 +33,11 @@ export function ConnectionSection() {
       </SettingsSection>
       <SettingsSection title="Robot data">
         <SettingRow label="Status">
-          <ConnStatus target="grpc" state={server.grpc.state} detail={server.grpc.latencyMs ? `${server.grpc.latencyMs} ms` : undefined} />
+          <ConnStatus
+            target="grpc"
+            state={server.grpc.state}
+            detail={server.grpc.latencyMs != null ? `${server.grpc.latencyMs} ms` : undefined}
+          />
         </SettingRow>
         <SettingRow label="gRPC endpoint" hint="60 Hz 관절 · action 스트림" htmlFor="cn-grpc">
           <Input

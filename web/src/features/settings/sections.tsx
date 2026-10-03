@@ -1,4 +1,4 @@
-import { LuBell, LuCable, LuHardDrive, LuInfo, LuKeyboard, LuPlug } from "react-icons/lu"
+import { LuBell, LuCable, LuInfo, LuKeyboard, LuPlug } from "react-icons/lu"
 import type { IconType } from "react-icons"
 
 import { AboutSection } from "./components/about-section"
@@ -6,7 +6,6 @@ import { ConnectionSection } from "./components/connection-section"
 import { IntegrationsSection } from "./components/integrations-section"
 import { NotificationsSection } from "./components/notifications-section"
 import { ShortcutsSection } from "./components/shortcuts-section"
-import { StorageSection } from "./components/storage-section"
 
 type Section = { id: string; label: string; icon: IconType; description: string; render: () => React.ReactNode }
 
@@ -18,13 +17,6 @@ export const SECTIONS: Section[] = [
     icon: LuPlug,
     description: "Hugging Face, RunPod 계정을 연결합니다.",
     render: () => <IntegrationsSection />,
-  },
-  {
-    id: "storage",
-    label: "Storage",
-    icon: LuHardDrive,
-    description: "녹화 · 데이터셋 · 모델 저장 위치와 정리 규칙입니다.",
-    render: () => <StorageSection />,
   },
   {
     id: "connection",
@@ -47,5 +39,5 @@ export const SECTIONS: Section[] = [
     description: "Capture · Review · Evaluate 단축키입니다.",
     render: () => <ShortcutsSection />,
   },
-  { id: "about", label: "About", icon: LuInfo, description: "앱과 백엔드 버전입니다.", render: () => <AboutSection /> },
+  { id: "about", label: "About", icon: LuInfo, description: "앱과 백엔드 버전, 디스크 사용량입니다.", render: () => <AboutSection /> },
 ]

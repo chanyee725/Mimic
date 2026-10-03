@@ -75,7 +75,7 @@ export function DatasetList({
                   on && "bg-accent hover:bg-accent",
                 )}
               >
-                <DatasetThumb taskId={d.taskId} className="w-20" />
+                <DatasetThumb className="w-20" />
                 <span className="grid min-w-0 flex-1 gap-0.5">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className={cn("size-1.5 shrink-0 rounded-full", KIND_DOT[d.kind])} aria-hidden />

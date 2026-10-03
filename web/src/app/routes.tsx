@@ -5,6 +5,7 @@ import { CapturePage } from "@/features/capture/page"
 import { ConvertPage } from "@/features/convert/page"
 import { DashboardPage } from "@/features/dashboard/page"
 import { DatasetsPage } from "@/features/datasets/page"
+import { MergePage } from "@/features/merge/page"
 import { ReviewPage } from "@/features/review/page"
 import { RigsPage } from "@/features/rigs/page"
 import { TasksPage } from "@/features/tasks/page"
@@ -29,6 +30,7 @@ export function AppRoutes() {
         <Route path="review" element={<ReviewPage />} />
         <Route path="convert" element={<ConvertPage />} />
         <Route path="datasets" element={<DatasetsPage />} />
+        <Route path="merge" element={<MergePage />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="training/:jobId" element={<JobPage />} />
         <Route path="models" element={<ModelsPage />} />

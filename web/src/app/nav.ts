@@ -9,6 +9,7 @@ import {
   LuFlaskConical,
   LuLayoutDashboard,
   LuListChecks,
+  LuMerge,
   LuRadioTower,
   LuRepeat,
   LuSlidersHorizontal,
@@ -41,6 +42,7 @@ export const NAV: NavGroup[] = [
       { to: "/review", label: "Review", icon: LuClipboardCheck },
       { to: "/convert", label: "Convert", icon: LuRepeat },
       { to: "/datasets", label: "Datasets", icon: LuDatabase },
+      { to: "/merge", label: "Merge", icon: LuMerge },
     ],
   },
   {

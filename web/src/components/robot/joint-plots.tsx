@@ -1,46 +1,75 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
+import { LuActivity } from "react-icons/lu"
 
+import type { RecordingSamples } from "@/domain/recording"
 import { cn } from "@/lib/utils"
 
 import { drawCursor, drawLegend, drawLine, drawXGrid, drawYGrid, prepareCanvas } from "./plot-canvas"
 
 type Props = {
-  /** Joint names defined by the rig (action / observation.state vector order) */
+  /** Joint names defined by the rig (action / observation.state vector order); the data's own joints win when given */
   joints: readonly string[]
-  /** Sample rate (Hz). Only used to generate mock data */
+  /** Recorded (playback) or target (live) rate, shown in the legend */
   hz: number
   /** Visible time window (seconds) */
   windowSec?: number
   /** Device names shown in the legend (e.g. SO-101 Leader / SO-101 Follower) */
   actionSource?: string
   stateSource?: string
+  /** Joint series to draw. Without it the plots show "No signal" (there is no live joint stream yet) */
+  data?: RecordingSamples | null
   /**
    * Playback mode: returns the current playback position (s). When given, draws the
-   * last windowSec up to that position instead of live data (MCAP playback in Review)
+   * last windowSec up to that position; otherwise the window ends at the last sample
    */
   playhead?: () => number
-  /** Per-file value (0–1) so each recording replays a different trajectory */
-  seed?: number
+  /** Replaces "No signal" while there is no data (e.g. "Loading…") */
+  emptyLabel?: string
+  /** Korean hint under the empty label */
+  hint?: string
   className?: string
 }
 
-const Y_MIN = -90
-const Y_MAX = 90
 const PAD_LEFT = 30
+
+/** y range covering ±90° and the data, rounded out to 30° steps */
+function rangeOf(series: number[][][]) {
+  let lo = -90
+  let hi = 90
+  for (const topic of series)
+    for (const joint of topic)
+      for (const v of joint) {
+        if (v < lo) lo = v
+        if (v > hi) hi = v
+      }
+  return { min: Math.floor(lo / 30) * 30, max: Math.ceil(hi / 30) * 30 }
+}
 
 /**
  * Per-joint plots modelled on Rerun's time series view.
  * Each joint gets one plot with action (solid) over observation.state (dashed),
  * a shared time axis, y ticks, a current-time cursor and a latest-value legend.
- * All plots share one rAF loop and ring buffer (no React state per sample).
+ * All plots share one rAF loop that reads the playhead directly (no React state per frame).
  */
-export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSource, playhead, seed = 0, className }: Props) {
+export function JointPlots({
+  joints,
+  hz,
+  windowSec = 5,
+  actionSource,
+  stateSource,
+  data,
+  playhead,
+  emptyLabel = "No signal",
+  hint = "장치가 연결되면 관절값이 표시됩니다.",
+  className,
+}: Props) {
   const canvases = useRef<(HTMLCanvasElement | null)[]>([])
-  // Measured receive rate. Only the DOM text is updated every 0.5 s (no React state)
-  const actionRate = useRef<HTMLSpanElement>(null)
-  const stateRate = useRef<HTMLSpanElement>(null)
+  const names = data?.joints.length ? data.joints : joints
+  const hasData = !!data && data.t.length > 0 && !!(data.series.action || data.series.state)
+  const range = useMemo(() => (data ? rangeOf([data.series.action ?? [], data.series.state ?? []]) : { min: -90, max: 90 }), [data])
 
   useEffect(() => {
+    if (!hasData || !data) return
     const first = canvases.current[0]
     if (!first) return
     const css = getComputedStyle(first)
@@ -52,46 +81,28 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
       cursor: css.getPropertyValue("--foreground").trim(),
     }
     const font = css.fontFamily
-
-    const capacity = hz * windowSec
-    const action = joints.map(() => new Float32Array(capacity))
-    const state = joints.map(() => new Float32Array(capacity))
-    let head = 0
-    let t = 0
-    let last = performance.now()
+    const { t, series } = data
+    const t0 = t[0]
+    const step = t.length > 1 ? t[1] - t[0] : 1 / hz
+    const count = Math.max(2, Math.round(windowSec / step))
+    const { min, max } = range
     let raf = 0
-    // Receive timestamps (ms); the measured rate uses the last 2 s
-    const stamps = { action: [] as number[], state: [] as number[] }
-    let rateAt = last
 
-    // Mock signal: angles (°) with a different period/phase per joint; state lags action by 0.15 s
-    const sample = (i: number, time: number) =>
-      (Math.sin(time * (0.55 + (i % 6) * 0.22) + i + seed * 6) * 0.7 + Math.sin(time * 2.7 + i + seed) * 0.08) * Y_MAX
-
-    for (let k = 0; k < capacity; k++) {
-      t += 1 / hz
-      for (let i = 0; i < joints.length; i++) {
-        action[i][k] = sample(i, t)
-        state[i][k] = sample(i, t - 0.15)
-      }
-    }
-
-    const drawPlot = (canvas: HTMLCanvasElement, i: number) => {
+    const drawPlot = (canvas: HTMLCanvasElement, i: number, end: number) => {
       const f = prepareCanvas(canvas, PAD_LEFT)
       if (!f) return
       const { ctx, x0, x1, y0, y1 } = f
-      const yOf = (v: number) => y0 + ((Y_MAX - v) / (Y_MAX - Y_MIN)) * (y1 - y0)
-      const xOf = (j: number) => x0 + (j / (capacity - 1)) * (x1 - x0)
+      const yOf = (v: number) => y0 + ((max - v) / (max - min)) * (y1 - y0)
+      const xOf = (j: number) => x0 + (j / (count - 1)) * (x1 - x0)
       ctx.font = `10px ${font}`
 
-      // y ticks: -90 / 0 / 90°
       drawYGrid(
         f,
-        [Y_MIN, 0, Y_MAX].map((v) => ({ y: yOf(v), label: `${v}°` })),
+        [min, 0, max].map((v) => ({ y: yOf(v), label: `${v}°` })),
         color.grid,
         color.text,
       )
-      // x ticks every second, right edge is now; the leftmost label is skipped because it overlaps the -90° tick
+      // x ticks every second, right edge is the playhead; the leftmost label is skipped because it overlaps the min tick
       drawXGrid(
         f,
         Array.from({ length: windowSec + 1 }, (_, s) => ({
@@ -102,111 +113,77 @@ export function JointPlots({ joints, hz, windowSec = 5, actionSource, stateSourc
         color.text,
       )
 
-      const points = function* (buf: Float32Array): Generator<[number, number]> {
-        for (let j = 0; j < capacity; j++) yield [xOf(j), yOf(buf[(head + j) % capacity])]
+      // Sample index at the right edge; indexes before the first sample are gaps
+      const last = Math.min(t.length - 1, Math.floor((end - t0) / step + 1e-6))
+      const valueAt = (buf: number[] | undefined, k: number) => (buf && k >= 0 && k < buf.length ? buf[k] : Number.NaN)
+      const points = function* (buf: number[] | undefined): Generator<[number, number]> {
+        for (let j = 0; j < count; j++) yield [xOf(j), yOf(valueAt(buf, last - count + 1 + j))]
       }
-      drawLine(f, points(state[i]), color.state, { dashed: true })
-      drawLine(f, points(action[i]), color.action)
+      const state = series.state?.[i]
+      const action = series.action?.[i]
+      if (state) drawLine(f, points(state), color.state, { dashed: true })
+      if (action) drawLine(f, points(action), color.action)
       drawCursor(f, color.cursor)
 
-      // Legend with latest values (top right)
-      const latest = (buf: Float32Array) => {
-        const v = buf[(head - 1 + capacity) % capacity]
-        return Number.isNaN(v) ? 0 : v
+      const latest = (buf: number[] | undefined) => {
+        const v = valueAt(buf, last)
+        return Number.isNaN(v) ? "—" : `${v.toFixed(1)}°`
       }
       drawLegend(
         f,
         [
-          { label: `obs ${latest(state[i]).toFixed(1)}°`, color: color.state },
-          { label: `act ${latest(action[i]).toFixed(1)}°`, color: color.action },
+          ...(state ? [{ label: `obs ${latest(state)}`, color: color.state }] : []),
+          ...(action ? [{ label: `act ${latest(action)}`, color: color.action }] : []),
         ],
         color.cursor,
       )
     }
 
-    const draw = (now: number) => {
-      if (playhead) {
-        // Playback mode: refill the window ending at the playhead (empty before 0 s)
-        const end = playhead()
-        for (let k = 0; k < capacity; k++) {
-          const tk = end - windowSec + (k + 1) / hz
-          for (let i = 0; i < joints.length; i++) {
-            action[i][k] = tk < 0 ? Number.NaN : sample(i, tk)
-            state[i][k] = tk < 0.15 ? Number.NaN : sample(i, tk - 0.15)
-          }
-        }
-        head = 0
-        canvases.current.forEach((c, i) => c && i < joints.length && drawPlot(c, i))
-        raf = requestAnimationFrame(draw)
-        return
-      }
-      const n = Math.floor(((now - last) / 1000) * hz)
-      // Advance time only by the samples generated so fractional remainders are kept
-      last += (n * 1000) / hz
-      for (let k = 0; k < Math.min(n, capacity); k++) {
-        t += 1 / hz
-        for (let i = 0; i < joints.length; i++) {
-          action[i][head] = sample(i, t)
-          state[i][head] = sample(i, t - 0.15)
-        }
-        head = (head + 1) % capacity
-        // Mock receive: simulate slight jitter and occasional dropped packets
-        const ts = t * 1000
-        if (Math.random() > 0.01) stamps.action.push(ts + (Math.random() - 0.5) * 2)
-        if (Math.random() > 0.015) stamps.state.push(ts + 150 + (Math.random() - 0.5) * 3)
-      }
-      if (now - rateAt >= 500) {
-        const rateOf = (xs: number[]) => {
-          const end = xs[xs.length - 1]
-          while (xs.length && xs[0] < end - 2000) xs.shift()
-          return xs.length > 1 ? ((xs.length - 1) * 1000) / (end - xs[0]) : 0
-        }
-        if (actionRate.current) actionRate.current.textContent = `${rateOf(stamps.action).toFixed(1)} Hz`
-        if (stateRate.current) stateRate.current.textContent = `${rateOf(stamps.state).toFixed(1)} Hz`
-        rateAt = now
-      }
-      canvases.current.forEach((c, i) => c && i < joints.length && drawPlot(c, i))
+    const draw = () => {
+      const end = playhead ? playhead() : t[t.length - 1]
+      canvases.current.forEach((c, i) => c && i < names.length && drawPlot(c, i, end))
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [joints, hz, windowSec, playhead, seed])
+  }, [data, hasData, names, hz, windowSec, playhead, range])
 
   return (
     <div className={cn("flex min-h-0 flex-col gap-2", className)}>
-      {/* Legend with measured receive rates */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
         <span className="flex items-center gap-1.5">
           <span className="h-0.5 w-3 rounded-full bg-series-1" />
           Action{actionSource ? ` (${actionSource})` : ""}
-          <span ref={actionRate} className="text-foreground">
-            {hz.toFixed(1)} Hz
-          </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-0.5 w-3 rounded-full border-t border-dashed border-series-3" />
           Observation{stateSource ? ` (${stateSource})` : ""}
-          <span ref={stateRate} className="text-foreground">
-            {hz.toFixed(1)} Hz
-          </span>
         </span>
         <span className="ml-auto">{playhead ? `Recorded at ${hz} Hz` : `Target ${hz} Hz`}</span>
       </div>
 
-      <div className="grid min-h-0 flex-1 auto-rows-[minmax(7rem,1fr)] gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
-        {joints.map((j, i) => (
-          <figure key={j} className="m-0 flex min-h-0 flex-col rounded-md border bg-card px-2 pt-1.5 pb-1">
-            <figcaption className="truncate text-[11px] font-medium">{j}</figcaption>
-            <canvas
-              ref={(el) => {
-                canvases.current[i] = el
-              }}
-              className="min-h-0 w-full flex-1"
-              aria-label={`${j} action and observation`}
-            />
-          </figure>
-        ))}
-      </div>
+      {hasData ? (
+        <div className="grid min-h-0 flex-1 auto-rows-[minmax(7rem,1fr)] gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
+          {names.map((j, i) => (
+            <figure key={j} className="m-0 flex min-h-0 flex-col rounded-md border bg-card px-2 pt-1.5 pb-1">
+              <figcaption className="truncate text-[11px] font-medium">{j}</figcaption>
+              <canvas
+                ref={(el) => {
+                  canvases.current[i] = el
+                }}
+                className="min-h-0 w-full flex-1"
+                aria-label={`${j} action and observation`}
+              />
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 rounded-md border bg-card px-4 text-center text-xs text-muted-foreground">
+          <LuActivity className="mb-0.5 size-5" />
+          <span className="font-medium text-foreground">{emptyLabel}</span>
+          {hint}
+        </div>
+      )}
     </div>
   )
 }
