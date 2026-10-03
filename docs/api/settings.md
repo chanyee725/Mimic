@@ -39,4 +39,16 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 | GET | `/settings/versions` | | `{ k: string; v: string }[]` (web app, backend, lerobot, CUDA driver, Isaac Sim) | `getVersions()` |
 
 `section` ∈ `station | integrations | storage | connection | recording | training | notifications`.
-Operators: IDs must match `^OP-\d{2}$`; at least one admin.
+Operators: IDs must match `^OP-\d{2}$`, unique; at least one admin.
+
+Rules:
+
+- PATCH merges: nested objects merge key by key, other values (incl. `operators`) replace. Keys may be camelCase or snake_case;
+  unknown keys are ignored. Read-only: `state`, `latencyMs`, `spentThisMonth`, secrets (`token`, `apiKey`, `slackWebhook`), `station.id`.
+- `notifications.events` is matched by `key`; only `on` is editable (unknown key → 422).
+- A missing `version` or an invalid section value → 422 (`details.errors[].loc` starts with `body`); a stale version → 409 with
+  the whole document in `details.current`. Success bumps `version` and publishes `settings.updated` (data `Settings`).
+- Unknown `section`, secret `name` or test `target` in the path → 422.
+- Secret writes do not bump `version`; they reset the related integration `state` to `unknown`. Raw values stay in backend memory only.
+- `POST /settings/test/{target}` stores the result in the matching `state` (and `latencyMs` for api / grpc). The mock answers `ok`
+  for api / grpc / webrtc, and for hf / runpod / wandb / slack when the related secret is set (else `error` with `detail`).

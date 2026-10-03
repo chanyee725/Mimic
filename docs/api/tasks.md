@@ -49,15 +49,19 @@ Session = { id: string; taskId: string; operator: string; episodes: number; acce
 | GET | `/tasks?status=` | | `Task[]` | `listTasks()` |
 | GET | `/tasks/{id}` | | `Task` | `getTask(id)` |
 | POST | `/tasks` | `TaskInput` | `201 Task` (version 1); 409 if id exists | Tasks "+" |
-| PUT | `/tasks/{id}` | `TaskInput & { version }` | `Task`; 409 on stale version | Tasks Save |
+| PUT | `/tasks/{id}` | `TaskInput & { version }` (`id` optional; 422 if it differs from the path) | `Task`; 409 on stale version (`details.current`) | Tasks Save |
 | POST | `/tasks/{id}/duplicate` | `{ id, name }` | `201 Task` (status draft) | Tasks Duplicate |
-| DELETE | `/tasks/{id}` | | `204`; 409 if it has recordings | — |
+| DELETE | `/tasks/{id}` | | `204`; 409 if it has recordings (`details.recordings` = count) | — |
 | GET | `/tasks/{id}/yaml` | | `text/yaml` | Tasks YAML tab |
 | POST | `/tasks/import` | `text/yaml` (same format) | `201 Task`; 422 with line errors | Tasks Import YAML |
 | GET | `/sessions?taskId=` | | `Session[]` (newest first) | `listSessions()` |
 
 Validation: `rigId` must exist; `cameras` ⊆ rig camera keys; `actionHz` ∈ rig `actionHzOptions`; `videoFps` ∈ rig `videoFpsOptions`;
-subtask keys unique; `updatedBy` comes from the `X-Operator` header (pseudonymous ID), default `OP-01`.
+subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
+`cameras` and `outcomes` non-empty. Rule failures return `422` with `details.errors = [{ loc: ["body", field, ...], msg }]`.
+`updatedBy` comes from the `X-Operator` header (pseudonymous ID matching `^OP-\d{2}$`, else 422), default `OP-01`.
+
+Events: `task.created` / `task.updated` (data `Task`), `task.deleted` (data `{ id }`).
 
 ### Task YAML
 
@@ -70,12 +74,21 @@ rig: so101-kit
 cameras: [top, wrist]
 rates: { action_hz: 60, video_fps: 30 }
 episode: { target: 50, duration_s: 30, reset_s: 10, countdown_s: 3 }
+variants: [put the blue block on the red one]      # optional, default []
+outcomes: { success: "→", fail: F, partial: P }    # optional, default as shown
+subtasks:                                          # optional, default []
+  - { key: "1", name: reach, description: 블록으로 접근 }
+success_criteria: ...                              # optional, default ""
+status: active                                     # optional; import defaults to draft
 output:
   repo_id: local/stack_two_blocks
-  format: lerobot_v3
-  fps: 30
-  push_to_hub: private
+  format: lerobot_v3                               # only lerobot_v3
+  fps: 30                                          # must equal rates.video_fps
+  push_to_hub: private                             # private | public | true → pushToHub true; false → false
 ```
+
+`GET /tasks/{id}/yaml` emits every key above (export → import round-trips). `POST /tasks/import` returns
+`422` with `details.errors = [{ line, loc, msg }]` (`line` is 1-based, `loc` the YAML key path), and `409` if `task_id` exists.
 
 ## Changes from the web mocks
 

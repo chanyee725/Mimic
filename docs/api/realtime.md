@@ -30,6 +30,10 @@ Three channels besides REST:
 | `sim.envs` | `{ envs: SimEnv[] }` after a rescan | sim |
 | `device.updated` | `Device` | devices |
 | `station.warnings` | `string[]` | station |
+| `station.current_task` | `{ taskId }` | station |
+| `task.created` / `task.updated` | `Task` | tasks |
+| `task.deleted` | `{ id }` | tasks |
+| `settings.updated` | `Settings` | settings |
 
 Client → server: `{ "type": "ping" }` → `{ "type": "pong" }`. The server sends `{ "type": "hello", "topics": [...] }` on connect.
 
