@@ -1,14 +1,17 @@
 import { DetailList } from "@/components/common/detail-list"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getVersions } from "@/api/settings"
+import { useVersions } from "@/api/settings"
+
+import { SectionPending } from "./query-state"
 
 export function AboutSection() {
-  const versions = getVersions()
+  const query = useVersions()
+  if (!query.data) return <SectionPending query={query} />
 
   return (
     <SettingsGroup>
       <SettingsSection title="Versions">
-        <DetailList rows={versions.map((v) => ({ k: v.k, v: <span className="font-mono">{v.v}</span> }))} />
+        <DetailList rows={query.data.map((v) => ({ k: v.k, v: <span className="font-mono">{v.v}</span> }))} />
       </SettingsSection>
     </SettingsGroup>
   )

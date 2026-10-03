@@ -1,10 +1,12 @@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getDiskUsage, getSettings } from "@/api/settings"
+import { useDiskUsage } from "@/api/settings"
+import { diskUsedPct } from "@/domain/settings"
 import { cn } from "@/lib/utils"
 
-import { useDraft } from "../hooks/use-draft"
+import { useSettingsDraft } from "../hooks/use-draft"
+import { Loading, QueryError, SectionPending } from "./query-state"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 
@@ -16,9 +18,12 @@ const PART_COLOR: Record<string, string> = {
 }
 
 function DiskUsage({ warnAtPct }: { warnAtPct: number }) {
-  const disk = getDiskUsage()
+  const query = useDiskUsage()
+  const disk = query.data
+  if (query.isError) return <QueryError error={query.error} onRetry={() => void query.refetch()} />
+  if (!disk) return <Loading className="py-2" />
   const used = disk.parts.reduce((a, p) => a + p.gb, 0)
-  const pct = (used / disk.totalGB) * 100
+  const pct = diskUsedPct(disk)
   return (
     <div className="grid gap-2">
       <div className="flex items-baseline justify-between text-[13px] tabular-nums">
@@ -46,7 +51,8 @@ function DiskUsage({ warnAtPct }: { warnAtPct: number }) {
 }
 
 export function StorageSection() {
-  const { draft, set, dirty, save, reset } = useDraft(getSettings().storage)
+  const { query, draft, set, saveBar } = useSettingsDraft("storage")
+  if (!draft) return <SectionPending query={query} />
   const path = (key: "rawPath" | "datasetsPath" | "modelsPath", label: string, hint: string) => (
     <SettingRow label={label} hint={hint} htmlFor={`st-${key}`}>
       <Input id={`st-${key}`} className="h-8 font-mono text-[13px]" value={draft[key]} onChange={(e) => set(key, e.target.value)} />
@@ -104,7 +110,7 @@ export function StorageSection() {
           />
         </SettingRow>
       </SettingsSection>
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} />
+      <SaveBar {...saveBar} />
     </SettingsGroup>
   )
 }

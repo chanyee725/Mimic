@@ -1,14 +1,15 @@
 import { Input } from "@/components/ui/input"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getSettings } from "@/api/settings"
 
-import { useDraft } from "../hooks/use-draft"
+import { useSettingsDraft } from "../hooks/use-draft"
 import { ChoiceSelect } from "./choice-select"
+import { SectionPending } from "./query-state"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 
 export function RecordingSection() {
-  const { draft, set, dirty, save, reset } = useDraft(getSettings().recording)
+  const { query, draft, set, saveBar } = useSettingsDraft("recording")
+  if (!draft) return <SectionPending query={query} />
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Recording defaults">
@@ -73,7 +74,7 @@ export function RecordingSection() {
           />
         </SettingRow>
       </SettingsSection>
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} />
+      <SaveBar {...saveBar} />
     </SettingsGroup>
   )
 }
