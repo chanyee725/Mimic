@@ -1,8 +1,9 @@
 import { ProgressRing } from "@/components/common/progress-ring"
 import { TASK_RING_TONE, type Task } from "@/domain/task"
 
-/** Collection progress, including episodes saved in this session */
-export function TaskProgress({ task, collected }: { task: Task; collected: number }) {
+/** Collection progress (the server refetches `collected` after every save) */
+export function TaskProgress({ task }: { task: Task }) {
+  const collected = task.collected
   const pct = Math.min(100, Math.round((collected / task.targetEpisodes) * 100))
   return (
     <div className="flex items-center gap-4">

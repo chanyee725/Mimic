@@ -3,18 +3,20 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 
 import { ErrorNote } from "./query-note"
 
-/** Confirm MCAP deletion */
-export function DeleteRecordingDialog({
+/** Confirm dataset deletion (also cancels a running conversion) */
+export function DeleteDatasetDialog({
   open,
   onOpenChange,
-  file,
+  repoId,
+  converting,
   pending,
   error,
   onConfirm,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  file?: string
+  repoId: string
+  converting: boolean
   pending: boolean
   error: Error | null
   onConfirm: () => void
@@ -23,14 +25,17 @@ export function DeleteRecordingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete recording?</DialogTitle>
-          <DialogDescription>{file} 파일을 삭제합니다. 삭제한 MCAP 은 되돌릴 수 없습니다.</DialogDescription>
+          <DialogTitle>Delete dataset?</DialogTitle>
+          <DialogDescription>
+            {repoId} 데이터셋을 로컬에서 삭제합니다.{converting && " 진행 중인 변환도 취소됩니다."} 원본 MCAP 과 HF Hub 에 올린 사본은
+            그대로 남습니다.
+          </DialogDescription>
         </DialogHeader>
         <ErrorNote error={error} />
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button className="bg-destructive text-white hover:bg-destructive/90" disabled={pending} onClick={onConfirm}>
-            {pending ? "Deleting…" : "Delete recording"}
+            {pending ? "Deleting…" : "Delete dataset"}
           </Button>
         </DialogFooter>
       </DialogContent>
