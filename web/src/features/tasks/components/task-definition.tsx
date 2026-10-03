@@ -3,13 +3,14 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getRig, listRigs } from "@/api/rigs"
+import { useRigs } from "@/api/rigs"
 import { rigDefaults } from "@/domain/rig"
 import type { Task } from "@/domain/task"
 
 import { rateOptions } from "../lib"
 import { Field } from "./field"
 import { Info } from "./info"
+import { Loading, QueryError } from "./query-state"
 import { SimpleSelect } from "./simple-select"
 import { UnitInput } from "./unit-input"
 
@@ -19,7 +20,8 @@ type Props = {
 }
 
 export function TaskDefinition({ task, onChange }: Props) {
-  const rig = getRig(task.rigId)
+  const rigs = useRigs()
+  const rig = rigs.data?.find((r) => r.id === task.rigId)
 
   return (
     <SettingsGroup className="-mx-5 rounded-none border-x-0 border-b-0">
@@ -46,56 +48,69 @@ export function TaskDefinition({ task, onChange }: Props) {
       </SettingsSection>
 
       <SettingsSection title="Rig">
-        {/* Changing the rig also loads its master/slave, rate and camera defaults. The label repeats the section title, so it is hidden */}
-        <div>
-          <Label htmlFor="t-rig" className="sr-only">
-            Rig
-          </Label>
-          <SimpleSelect
-            id="t-rig"
-            value={rig.id}
-            options={listRigs().map((r) => ({ value: r.id, label: r.name }))}
-            onChange={(id) => onChange(rigDefaults(getRig(id)))}
-          />
-        </div>
-        <div className="grid gap-x-4 gap-y-3 rounded-md bg-muted/50 px-3 py-2.5 @md:grid-cols-3">
-          <Info label="Master">{rig.master}</Info>
-          <Info label="Slave">{rig.slave}</Info>
-          <Info label="Target rate">
-            {rig.targetHz.action} Hz · {rig.targetHz.video} fps
-          </Info>
-        </div>
-        <div className="grid gap-1.5">
-          <span className="text-[13px] font-medium">
-            Action space <span className="font-normal text-muted-foreground">· {rig.joints.length} DoF</span>
-          </span>
-          <span className="text-xs leading-relaxed text-muted-foreground">{rig.joints.join(" · ")}</span>
-        </div>
-        <div className="grid gap-1.5">
-          <span className="text-[13px] font-medium">Cameras</span>
-          <div className="divide-y rounded-md border">
-            {rig.cameras.map((c) => {
-              const on = task.cameras.includes(c.key)
-              return (
-                <div key={c.key} className="flex items-center gap-3 px-3 py-2.5">
-                  <div className="grid min-w-0 flex-1 gap-0.5">
-                    <span className="text-sm">{c.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {c.feature} · {c.resolution} @{c.fps}
-                    </span>
-                  </div>
-                  <Switch
-                    aria-label={c.name}
-                    checked={on}
-                    onCheckedChange={(checked) =>
-                      onChange({ cameras: checked ? [...task.cameras, c.key] : task.cameras.filter((k) => k !== c.key) })
-                    }
-                  />
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        {rigs.isError ? (
+          <QueryError error={rigs.error} onRetry={() => void rigs.refetch()} />
+        ) : !rigs.data ? (
+          <Loading />
+        ) : !rig ? (
+          <p className="text-[13px] text-bad">Rig &quot;{task.rigId}&quot; 를 찾을 수 없습니다.</p>
+        ) : (
+          <>
+            {/* Changing the rig also loads its master/slave, rate and camera defaults. The label repeats the section title, so it is hidden */}
+            <div>
+              <Label htmlFor="t-rig" className="sr-only">
+                Rig
+              </Label>
+              <SimpleSelect
+                id="t-rig"
+                value={rig.id}
+                options={rigs.data.map((r) => ({ value: r.id, label: r.name }))}
+                onChange={(id) => {
+                  const next = rigs.data.find((r) => r.id === id)
+                  if (next) onChange(rigDefaults(next))
+                }}
+              />
+            </div>
+            <div className="grid gap-x-4 gap-y-3 rounded-md bg-muted/50 px-3 py-2.5 @md:grid-cols-3">
+              <Info label="Master">{rig.master}</Info>
+              <Info label="Slave">{rig.slave}</Info>
+              <Info label="Target rate">
+                {rig.targetHz.action} Hz · {rig.targetHz.video} fps
+              </Info>
+            </div>
+            <div className="grid gap-1.5">
+              <span className="text-[13px] font-medium">
+                Action space <span className="font-normal text-muted-foreground">· {rig.joints.length} DoF</span>
+              </span>
+              <span className="text-xs leading-relaxed text-muted-foreground">{rig.joints.join(" · ")}</span>
+            </div>
+            <div className="grid gap-1.5">
+              <span className="text-[13px] font-medium">Cameras</span>
+              <div className="divide-y rounded-md border">
+                {rig.cameras.map((c) => {
+                  const on = task.cameras.includes(c.key)
+                  return (
+                    <div key={c.key} className="flex items-center gap-3 px-3 py-2.5">
+                      <div className="grid min-w-0 flex-1 gap-0.5">
+                        <span className="text-sm">{c.name}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {c.feature} · {c.resolution} @{c.fps}
+                        </span>
+                      </div>
+                      <Switch
+                        aria-label={c.name}
+                        checked={on}
+                        onCheckedChange={(checked) =>
+                          onChange({ cameras: checked ? [...task.cameras, c.key] : task.cameras.filter((k) => k !== c.key) })
+                        }
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </SettingsSection>
 
       <SettingsSection title="Recording">
@@ -104,7 +119,7 @@ export function TaskDefinition({ task, onChange }: Props) {
             <SimpleSelect
               id="r-action"
               value={String(task.actionHz)}
-              options={rateOptions(rig.actionHzOptions, "Hz")}
+              options={rateOptions(rig?.actionHzOptions ?? [task.actionHz], "Hz")}
               onChange={(v) => onChange({ actionHz: Number(v) })}
             />
           </Field>
@@ -112,7 +127,7 @@ export function TaskDefinition({ task, onChange }: Props) {
             <SimpleSelect
               id="r-video"
               value={String(task.videoFps)}
-              options={rateOptions(rig.videoFpsOptions, "fps")}
+              options={rateOptions(rig?.videoFpsOptions ?? [task.videoFps], "fps")}
               onChange={(v) => onChange({ videoFps: Number(v) })}
             />
           </Field>
