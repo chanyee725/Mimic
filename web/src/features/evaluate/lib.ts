@@ -1,6 +1,13 @@
+import { judgedRuns, type EvalRun, type EvalVerdict } from "@/domain/evaluate"
+
 /** One run: idle -> policy running -> human judges the result */
 export type RunPhase = "idle" | "running" | "judging"
 
-export type TrialResult = "success" | "fail"
+export type Trial = { n: number; instruction: string; seconds: number; result: EvalVerdict }
 
-export type Trial = { n: number; instruction: string; seconds: number; result: TrialResult }
+/** Judged runs of this session as numbered trials, oldest first */
+export function trialsOf(runs: EvalRun[]): Trial[] {
+  return judgedRuns(runs)
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .map((r, i) => ({ n: i + 1, instruction: r.instruction, seconds: r.elapsedS, result: r.result! }))
+}
