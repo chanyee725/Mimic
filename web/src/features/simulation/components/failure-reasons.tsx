@@ -4,7 +4,7 @@ import type { SimJob } from "@/domain/simulation"
 
 import { failureReasons } from "../job-stats"
 
-/** Failed episodes grouped by the scene checker's reason */
+/** Failed episodes grouped by the environment's success check reason */
 export function FailureReasons({ job }: { job: SimJob }) {
   const reasons = failureReasons(job.results)
   const fails = reasons.reduce((a, r) => a + r.count, 0)

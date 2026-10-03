@@ -42,7 +42,13 @@ export const SETTINGS: Settings = {
     webrtc: { stun: "stun:stun.l.google.com:19302", turn: "", state: "ok" },
   },
   recording: { actionHz: 60, videoFps: 30, mcapCompression: "zstd", chunkMB: 4, codec: "av1", crf: 30 },
-  training: { lerobotCommit: "[COMMIT HASH]", defaultCompute: "local", saveFreq: 5000, simGpu: "RTX 4090 (cuda:0)" },
+  training: {
+    lerobotCommit: "[COMMIT HASH]",
+    defaultCompute: "local",
+    saveFreq: 5000,
+    simGpu: "RTX 4090 (cuda:0)",
+    simEnvsPath: "~/vla/sim/envs",
+  },
   notifications: {
     slackWebhook: { set: false },
     events: [

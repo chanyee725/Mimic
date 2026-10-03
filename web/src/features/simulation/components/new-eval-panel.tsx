@@ -5,31 +5,47 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Panel } from "@/components/layout/page-layout"
+import { EmptyState } from "@/components/common/empty-state"
+import { LinkButton } from "@/components/common/link-button"
 import { Segmented } from "@/components/common/segmented"
 import { StatusDot } from "@/components/common/status-dot"
 import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
-import { getModel, listModels } from "@/api/models"
-import { SIM_GPU } from "@/api/simulation"
+import { getModel } from "@/api/models"
+import { SIM_GPU, getSimEnv } from "@/api/simulation"
 import type { Randomization } from "@/domain/simulation"
 
 import { RANDOMIZATION } from "../lib"
-import { NEW_EVAL_DEFAULTS, scenesForTask, simGpuHolder } from "../new-eval"
-import { SceneList } from "./scene-list"
+import { NEW_EVAL_DEFAULTS, envOptions, initialSelection, simGpuHolder, usableEnvId } from "../new-eval"
+import { EnvPicker } from "./env-picker"
 
-/** New evaluation form. Pick a saved model and a scene, set the rollout count, then start (or queue) on the local GPU */
-export function NewEvalPanel() {
-  const [modelId, setModelId] = useState(() => listModels()[0]?.id ?? "")
+/**
+ * New evaluation form. Pick a saved model, load it into one of the registered environments,
+ * set the rollout count, then start (or queue) on the local GPU.
+ */
+export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: string; initialModelId?: string }) {
+  const [initial] = useState(() => initialSelection(initialEnvId, initialModelId))
+  const [modelId, setModelId] = useState(initial.modelId)
   const model = getModel(modelId)
-  const scenes = scenesForTask(model?.taskId)
-  const [sceneId, setSceneId] = useState(() => scenes[0]?.id ?? "")
-  const scene = scenes.find((s) => s.id === sceneId)
+  const options = envOptions(model)
+  const [envId, setEnvId] = useState(initial.envId)
+  const selected = options.find((o) => o.env.id === envId && o.usable)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [episodes, setEpisodes] = useState(NEW_EVAL_DEFAULTS.episodes)
   const [seedStart, setSeedStart] = useState(NEW_EVAL_DEFAULTS.seedStart)
-  const [maxSeconds, setMaxSeconds] = useState(NEW_EVAL_DEFAULTS.maxSeconds)
+  const [maxSeconds, setMaxSeconds] = useState(() => getSimEnv(initial.envId ?? "")?.maxSeconds ?? NEW_EVAL_DEFAULTS.maxSeconds)
   const [randomization, setRandomization] = useState<Randomization>(NEW_EVAL_DEFAULTS.randomization)
   const busyBy = simGpuHolder()
   const hint = RANDOMIZATION.find((r) => r.value === randomization)?.hint
+  // ?env= named an environment the chosen model can't be loaded into
+  const requested = initialEnvId && initialEnvId !== envId ? options.find((o) => o.env.id === initialEnvId && !o.usable) : undefined
+
+  // A newly selected environment brings its own default time limit
+  const selectEnv = (id?: string) => {
+    if (id === envId) return
+    setEnvId(id)
+    const next = getSimEnv(id ?? "")
+    if (next) setMaxSeconds(next.maxSeconds)
+  }
 
   return (
     <Panel title="New evaluation" className="min-h-0">
@@ -54,10 +70,21 @@ export function NewEvalPanel() {
         </div>
 
         <div className="grid gap-1.5">
-          <span className="text-xs text-muted-foreground">Scene</span>
-          <SceneList scenes={scenes} value={sceneId} onChange={setSceneId} />
-          {scene && !scene.calibrated && (
-            <p className="text-xs text-warn">이 장면은 실제 리그와 맞추지 않아 결과가 실제 로봇과 다를 수 있습니다.</p>
+          <div className="flex h-5 items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">Environment</span>
+            <LinkButton to="/simulation?view=environments" variant="ghost" size="xs" className="-mr-2 text-muted-foreground">
+              Manage
+            </LinkButton>
+          </div>
+          {requested && (
+            <p className="text-xs text-muted-foreground">{requested.env.name} 에는 이 모델을 불러올 수 없어 다른 환경을 골랐습니다.</p>
+          )}
+          {!options.some((o) => o.usable) && (
+            <EmptyState className="px-4">이 모델을 불러올 수 있는 환경이 없습니다. 환경 폴더를 추가하세요.</EmptyState>
+          )}
+          {options.length > 0 && <EnvPicker options={options} value={selected?.env.id} onChange={selectEnv} />}
+          {selected?.issues.some((i) => i.level === "warn") && (
+            <p className="text-xs text-warn">이 환경은 실제 rig 와 맞춰지지 않아 결과가 실제 로봇과 다를 수 있습니다.</p>
           )}
         </div>
 
@@ -104,7 +131,7 @@ export function NewEvalPanel() {
       </div>
 
       {busyBy && <p className="text-xs text-muted-foreground">GPU 가 사용 중이라 {busyBy} 가 끝나면 시작합니다.</p>}
-      <Button size="lg" className="w-full" disabled={!model || !scene}>
+      <Button size="lg" className="w-full" disabled={!model || !selected}>
         <LuPlay />
         {busyBy ? "Queue evaluation" : "Start evaluation"}
       </Button>
@@ -114,8 +141,8 @@ export function NewEvalPanel() {
         value={modelId}
         onSelect={(id) => {
           setModelId(id)
-          // Jump to the first scene for the new model's task
-          setSceneId(scenesForTask(getModel(id)?.taskId)[0]?.id ?? "")
+          // Keep the environment if the new model still loads into it, else jump to the first usable one
+          selectEnv(usableEnvId(envOptions(getModel(id)), envId))
         }}
       />
     </Panel>

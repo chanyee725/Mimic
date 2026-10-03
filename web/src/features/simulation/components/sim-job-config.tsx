@@ -1,21 +1,21 @@
 import { DetailList } from "@/components/common/detail-list"
 import { SIM_GPU } from "@/api/simulation"
-import type { SimJob, SimScene } from "@/domain/simulation"
+import type { SimJob, SimEnv } from "@/domain/simulation"
 import { plural } from "@/lib/format"
 
 import { randomizationLabel, seedRange } from "../job-stats"
 
-/** Evaluation config summary (model, scene, episodes, randomization, ...) */
-export function SimJobConfig({ job, modelName, scene }: { job: SimJob; modelName: string; scene?: SimScene }) {
+/** Evaluation config summary (model, environment, episodes, randomization, ...) */
+export function SimJobConfig({ job, modelName, env }: { job: SimJob; modelName: string; env?: SimEnv }) {
   return (
     <DetailList
       rows={[
         { k: "Model", v: modelName },
-        { k: "Scene", v: scene?.name ?? job.sceneId },
-        ...(scene
+        { k: "Environment", v: env?.name ?? job.envId },
+        ...(env
           ? [
-              { k: "USD", v: <span title={scene.usd}>{scene.usd}</span> },
-              { k: "Cameras", v: scene.cameras.join(", ") },
+              { k: "Folder", v: <span title={env.path}>{env.path}</span> },
+              { k: "Cameras", v: env.cameras.join(", ") },
             ]
           : []),
         { k: "Episodes", v: plural(job.episodes, "episode") },
