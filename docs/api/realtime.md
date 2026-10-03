@@ -33,6 +33,12 @@ Three channels besides REST:
 
 Client → server: `{ "type": "ping" }` → `{ "type": "pong" }`. The server sends `{ "type": "hello", "topics": [...] }` on connect.
 
+- The topic is taken from the type prefix (`recording.*` → `recordings`, `device.*` → `devices`, …, per the table).
+- Unknown topic names are not an error: they are left out of `hello.topics` and listed in `hello.ignored`
+  (`{ "type": "hello", "topics": ["training"], "ignored": ["bogus"] }`).
+- Other client messages (unknown types, invalid JSON) are ignored. Slow clients drop events (queue of 1000) rather than
+  blocking publishers; reload the resource over REST after a reconnect.
+
 ## gRPC robot stream
 
 `backend/proto/robot.proto`:
@@ -56,13 +62,26 @@ service RobotStream {
 }
 ```
 
+- `StreamJoints`: `hz = 0` streams at the rig's `targetHz.action`; `hz > 1000` → `INVALID_ARGUMENT`. Frames sit on a
+  fixed grid (`t_ns` steps by `1e9 / hz`, no drift).
+- Unknown `rig_id` → `NOT_FOUND` on both RPCs.
+- `StreamRates` emits every 0.5 s.
+- Until the robot layer exists the server uses a mock source: the same sine signal as the web JointPlots mock, with
+  state lagging action by 0.15 s, and rates slightly under the rig's target.
+- Browsers cannot speak native gRPC: the web app goes through grpc-web / Connect via an Envoy (or similar) proxy.
+
 The web JointPlots read frames into their ring buffer (no React state per sample). Evaluate uses the same stream: `action` is the policy output.
 
 ## WebRTC
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| POST | `/webrtc/offer` | `{ sdp, type: "offer", source: "rig" \| "sim", rigId?, simJobId?, cameras: string[] }` | `{ sdp, type: "answer", tracks: { camera: string; mid: string }[] }` |
+| POST | `/webrtc/offer` | `{ sdp, type: "offer", source: "rig" \| "sim", rigId?, simJobId?, cameras: string[] }` | `{ sessionId, sdp, type: "answer", tracks: { camera: string; mid: string }[] }` |
 | DELETE | `/webrtc/sessions/{id}` | | `204` |
 
-STUN / TURN come from `settings.connection.webrtc`. v1 of the backend may answer `501` until the camera pipeline exists.
+- `sdp` must be non-empty and `cameras` non-empty; `rigId` is required for `source: "rig"`, `simJobId` for `"sim"` (`422`).
+- Unknown `rigId` → `404`. `DELETE` of an unknown session → `404`.
+- The answer carries `sessionId`, used by `DELETE /webrtc/sessions/{id}` to hang up.
+
+STUN / TURN come from `settings.connection.webrtc`. Until the camera pipeline exists a valid offer answers
+`501` with `{ "error": { "code": "not_implemented", ... } }`.
