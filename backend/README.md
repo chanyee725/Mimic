@@ -10,7 +10,7 @@ uv run pytest                             # 테스트
 uv run black .                            # 포맷
 ```
 
-구조: 계층별 폴더에 영역마다 같은 이름의 파일을 둡니다 — `api/v1/<기능>/` (HTTP — 기능마다 패키지, 하위 리소스마다 모듈. 공용 파라미터는 `api/deps.py`), `schemas/` (요청 · 응답), `models/` (도메인 엔티티), `services/` (상태 · 규칙 — 보조 모듈이 있는 training · simulation · capture · tasks · realtime · settings · recordings · rigs 는 패키지), `seeds/` (목업 데이터), `configs/`, `rpc/` (gRPC), `core/` (에러 · 이벤트), `utils/` (시각 · 경로 · ID · 난수 공용 함수). 설정 데이터는 저장소 루트의 `data/`(`VLA_DATA_DIR` 로 변경)에 YAML 로 저장하고 git 에 올립니다 — `settings/<part>.yaml`(huggingface · runpod · storage · connection · notifications, 편집 가능한 값만 — `version` · 연결 상태 · API 키는 저장하지 않음), `rigs/<id>.yaml`(SO-101 Kit). 영상 · 녹화 데이터(`data/recordings/`, `data/videos/`)는 git 에서 제외합니다. Capture 로 저장한 에피소드와 가져온 MCAP 은 원본 폴더(설정 `storage.raw_path`, 기본 `data/recordings`)에 `<task-id>/ep_<NNNN>.mcap` 과 같은 이름의 `.yaml`(녹화 정보 인덱스)로 저장되어 재시작해도 남습니다. 파일이 없으면 처음 한 번 목업(`app/seeds/data`)으로 만들고, 그다음부터는 파일을 읽습니다. 파일을 직접 고친 뒤 재시작하면 반영됩니다. 나머지(Task, 장치, 목업 녹화, 데이터셋, 학습, 모델, 시뮬레이션 job)는 아직 메모리 목업입니다.
+구조: 계층별 폴더에 영역마다 같은 이름의 파일을 둡니다 — `api/v1/<기능>/` (HTTP — 기능마다 패키지, 하위 리소스마다 모듈. 공용 파라미터는 `api/deps.py`), `schemas/` (요청 · 응답), `models/` (도메인 엔티티), `services/` (상태 · 규칙 — 보조 모듈이 있는 training · simulation · capture · tasks · realtime · settings · recordings · rigs 는 패키지), `seeds/` (목업 데이터), `configs/`, `rpc/` (gRPC), `core/` (에러 · 이벤트), `utils/` (시각 · 경로 · ID · 난수 공용 함수). 데이터는 모두 저장소 루트의 `data/`(`VLA_DATA_DIR` 로 변경)에 있습니다 (Storage 설정은 없음). git 에 올리는 것: `settings/<part>.yaml`(huggingface · runpod · connection · notifications — 편집 가능한 값만, `version` · 연결 상태 · API 키는 저장하지 않음), `rigs/<id>.yaml`(SO-101 Kit — robot · device · cameras · rates 를 직접 적는 형식, rig seed 가 없으므로 새 data 폴더에는 이 파일이 있어야 함). git 에서 제외: `tasks/<id>.yaml`, `recordings/<task-id>/ep_<NNNN>.mcap` + `.yaml`(목록용), `datasets/<ns>/<name>/`(실제 LeRobot v3.0 폴더, pyarrow 로 작성), `models/<id>/`. API 키 원문은 저장소 루트 `.env` 에 둡니다. 파일을 직접 고친 뒤 재시작하면 반영됩니다.
 
 ## `.env` (API 키 · 환경 변수)
 
@@ -27,7 +27,7 @@ API 키 원문은 저장소 루트의 `.env` 에 둡니다 (git 에서 제외, �
 
 ## 목업 데이터
 
-`app/seeds/data/*.json` 이 목업 데이터의 원본입니다 (웹은 더 이상 자체 목업을 갖지 않습니다).
+더미 데이터는 없습니다. 스테이션은 빈 상태로 시작하고 모든 목록은 `data/` 아래 파일에서 읽습니다. `app/seeds/data/*.json` 에는 기본값(설정 기본값, 단축키, 학습 옵션)만 남아 있습니다. 장치 드라이버 · 카메라 파이프라인 · 학습기 · 시뮬레이션/평가 실행기가 아직 없어서 장치는 "off" 로 보이고, Capture · 보정 · 학습 · 평가 · 시뮬레이션 시작은 503 을 돌려줍니다.
 
 ## gRPC (로봇 60 Hz 스트림)
 

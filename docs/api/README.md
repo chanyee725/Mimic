@@ -1,6 +1,6 @@
 # VLA Data Pipeline — Backend API
 
-Specification of the station backend the web app reads through `web/src/api` (mock data is served from `backend/app/seeds`).
+Specification of the station backend the web app reads through `web/src/api`.
 Every function in `web/src/api` maps to an endpoint here; actions that are no-ops in the UI today (Start, Stop, Save, Push, …) are specified too.
 
 | File | Area | Web pages |
@@ -22,7 +22,7 @@ Every function in `web/src/api` maps to an endpoint here; actions that are no-op
 
 - FastAPI, Python 3.12, Pydantic v2, formatted with black. Code lives in [`backend/`](../../backend).
 - Layered: `backend/app/api/v1/<feature>/<sub-resource>.py`, `schemas/<area>.py`, `models/<area>.py`, `services/<area>.py`, `seeds/`, `configs/`.
-- Until the hardware and storage layers exist, services keep state in memory, seeded with the same data as the web mocks.
+- No dummy data: services index files under the data folder (tasks, rigs, recordings, datasets, models, settings). Hardware, trainer and runners don't exist yet; their start endpoints answer 503.
 
 ## Frontend mapping
 
