@@ -53,7 +53,7 @@ def test_jobs_list_and_get(client):
     assert (j["elapsedS"], j["etaS"], j["overrides"]) == (7680, 4320, {})
     assert j["stepsPerS"] == round(7200 / 4320, 3)
     assert j["costUsd"] == round(1.89 * 7680 / 3600, 2)
-    assert j["checkpoints"][0]["sizeMb"] == 1850
+    assert j["checkpoints"][0]["sizeMB"] == 1850
     idle = client.get("/training/jobs/job_035").json()["podState"]
     assert idle["idleForS"] == 56940 and idle["since"].startswith("2026-10-01T23:11")
     assert client.get("/training/jobs/nope").status_code == 404

@@ -22,6 +22,7 @@ Three channels besides REST:
 | `recording.created` / `recording.updated` | `Recording` | recordings |
 | `recording.deleted` | `{ id }` | recordings |
 | `dataset.updated` | `Dataset` | datasets |
+| `dataset.deleted` | `{ repoId }` | datasets |
 | `training.updated` | `TrainJob` | training |
 | `training.metrics` | `{ jobId, step, values: Record<MetricSeries, number> }` | training |
 | `evaluate.run` | `EvalRun` | evaluate |

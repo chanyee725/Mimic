@@ -139,6 +139,7 @@ def test_thumbnail_not_implemented(client):
 
 
 def test_push_needs_hf_token(client):
+    client.delete("/settings/secrets/hf_token")
     r = client.post("/datasets/raw/sort_by_color/push", json={"private": False})
     assert r.status_code == 424 and r.json()["error"]["code"] == "dependency_failed"
 

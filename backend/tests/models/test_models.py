@@ -4,7 +4,7 @@ from app.models import service
 def test_list_newest_first(client):
     items = client.get("/models").json()
     assert [m["id"] for m in items][0] == "m-stack-10k"
-    assert items[0]["sizeMb"] == 1850
+    assert items[0]["sizeMB"] == 1850
     dates = [m["savedAt"] for m in items]
     assert dates == sorted(dates, reverse=True)
 
@@ -40,7 +40,7 @@ def test_delete(client):
 
 def test_files(client):
     files = client.get("/models/m-stack-20k/files").json()
-    assert files[0] == {"path": "pretrained_model/model.safetensors", "sizeMb": 1790}
+    assert files[0] == {"path": "pretrained_model/model.safetensors", "sizeMB": 1790}
     assert client.get("/models/nope/files").status_code == 404
 
 

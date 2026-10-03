@@ -39,6 +39,7 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 | GET | `/settings/versions` | | `{ k: string; v: string }[]` (web app, backend, lerobot, CUDA driver, Isaac Sim) | `getVersions()` |
 
 `section` ∈ `station | integrations | storage | connection | recording | training | notifications`.
+`training.simEnvsPath` is repo-relative (`sim/envs`) or absolute; changing it re-points the simulation scanner and rescans.
 Operators: IDs must match `^OP-\d{2}$`, unique; at least one admin.
 
 Rules:

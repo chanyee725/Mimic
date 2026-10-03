@@ -18,7 +18,7 @@ class Model(CamelModel):
     job_id: str
     step: int
     loss: float
-    size_mb: float
+    size_mb: float = Field(alias="sizeMB")
     saved_at: str
     local_path: str | None = None
     hub_repo: str | None = None
@@ -27,7 +27,7 @@ class Model(CamelModel):
 
 class ModelFile(CamelModel):
     path: str
-    size_mb: float
+    size_mb: float = Field(alias="sizeMB")
 
 
 class ModelPatch(CamelModel):

@@ -29,7 +29,8 @@ Non-2xx responses share one body:
 | 404 | `not_found` | Unknown id |
 | 409 | `conflict` | Version mismatch, GPU busy, invalid state transition (e.g. stop a finished job) |
 | 422 | `validation_error` | Request body / query failed validation (`details.errors` lists fields) |
-| 424 | `dependency_failed` | External service failed (HF Hub, RunPod, Isaac Sim) |
+| 424 | `dependency_failed` | External service failed or its key is missing (HF Hub, RunPod, Isaac Sim) |
+| 501 | `not_implemented` | Endpoint exists but its hardware / storage layer is not built yet (file downloads, video, WebRTC) |
 | 503 | `unavailable` | Hardware not connected (robot, camera) |
 
 ## Lists and paging

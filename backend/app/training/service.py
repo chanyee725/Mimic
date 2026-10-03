@@ -54,7 +54,6 @@ def _seed_job(j: dict) -> TrainJob:
             pod["since"] = iso(pod["since"])
     for c in j["checkpoints"]:
         c["savedAt"] = iso(c["savedAt"])
-        c["sizeMb"] = c.pop("sizeMB")
     j["overrides"] = {}
     job = TrainJob.model_validate(j)
     _derive(job)

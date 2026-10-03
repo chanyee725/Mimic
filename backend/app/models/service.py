@@ -6,8 +6,7 @@ from app.core.clock import iso, now_iso
 from app.core.errors import ApiError, not_found
 from app.core.seed import load
 from app.models.schemas import Model, ModelEval, ModelFile
-
-HF_NAMESPACE = "vla-lab"
+from app.settings import service as settings
 
 _models: dict[str, Model] = {}
 
@@ -15,7 +14,6 @@ _models: dict[str, Model] = {}
 def reset() -> None:
     _models.clear()
     for m in load("models", "MODELS"):
-        m["sizeMb"] = m.pop("sizeMB")
         m["savedAt"] = iso(m["savedAt"])
         for e in m["evals"]:
             e["at"] = iso(e["at"])
@@ -68,17 +66,13 @@ def delete(model_id: str) -> None:
 
 
 def secret_set(name: str) -> bool:
-    """Guarded: the settings service may not expose a secret check yet (then assume set)."""
-    try:
-        from app.settings import service as settings  # type: ignore[attr-defined]
-    except ImportError:
-        return True
-    check = getattr(settings, "secret_is_set", None)
-    return bool(check(name)) if callable(check) else True
+    return settings.has_secret(name)
 
 
 def default_repo(task_id: str) -> str:
-    return f"{HF_NAMESPACE}/smolvla_{task_id.replace('-', '_')}"
+    return (
+        f"{settings.get_settings().integrations.hf.namespace}/smolvla_{task_id.replace('-', '_')}"
+    )
 
 
 def push(model_id: str, repo: str | None) -> Model:
