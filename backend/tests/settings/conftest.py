@@ -1,9 +1,9 @@
 import pytest
 
-from app.rigs import service as rigs
-from app.settings import service as settings
-from app.station import service as station
-from app.tasks import service as tasks
+from app.services import rigs as rigs
+from app.services import settings as settings
+from app.services import station as station
+from app.services import tasks as tasks
 
 
 @pytest.fixture(autouse=True)

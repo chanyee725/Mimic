@@ -1,5 +1,5 @@
 from app.core.events import bus
-from app.realtime.topics import TOPICS, topic_of
+from app.services.realtime_topics import TOPICS, topic_of
 
 # websocket_connect ignores the client's base_url
 WS = "/api/v1/ws/events"
@@ -37,7 +37,7 @@ def test_forwards_only_requested_topics(client):
 
 
 def test_forwards_schema_models_as_camel_case(client):
-    from app.rigs.service import get_rig
+    from app.services.rigs import get_rig
 
     with client.websocket_connect(f"{WS}?topics=devices") as ws:
         ws.receive_json()

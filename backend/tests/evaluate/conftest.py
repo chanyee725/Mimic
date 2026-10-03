@@ -1,7 +1,7 @@
 import pytest
 
-from app.evaluate import service as evaluate
-from app.models import service as models
+from app.services import evaluate as evaluate
+from app.services import models as models
 
 
 @pytest.fixture(autouse=True)

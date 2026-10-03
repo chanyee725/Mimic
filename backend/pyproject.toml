@@ -21,7 +21,7 @@ dev = ["pytest>=8", "httpx>=0.27", "black>=24"]
 line-length = 100
 target-version = ["py312"]
 # protoc output (see README: gRPC)
-extend-exclude = "app/realtime/grpc_gen/robot_pb2"
+extend-exclude = "app/rpc/gen/robot_pb2"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

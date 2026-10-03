@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.events import bus
-from app.recordings import service
+from app.services import recordings as service
 
 MCAP = b"\x89MCAP0\r\n" + b"\x00" * 64
 

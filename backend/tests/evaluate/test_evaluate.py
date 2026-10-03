@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 from app.core import clock
-from app.evaluate import service
-from app.models import service as models
+from app.services import evaluate as service
+from app.services import models
 
 BODY = {"modelId": "m-stack-20k", "instruction": "stack the blocks", "limitS": 60, "record": False}
 

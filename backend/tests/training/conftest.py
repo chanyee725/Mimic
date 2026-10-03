@@ -1,7 +1,7 @@
 import pytest
 
-from app.models import service as models
-from app.training import service as training
+from app.services import models as models
+from app.services import training as training
 
 
 @pytest.fixture(autouse=True)

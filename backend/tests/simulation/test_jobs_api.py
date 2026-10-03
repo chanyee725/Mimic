@@ -1,8 +1,8 @@
 import pytest
 
 from app.core.errors import ApiError
-from app.simulation import service
-from app.simulation.seed import parse_duration
+from app.services import simulation as service
+from app.seeds.simulation import parse_duration
 
 NEW = {
     "modelId": "m-stack-20k",

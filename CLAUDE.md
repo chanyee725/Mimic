@@ -36,7 +36,22 @@ Guidance for working in this repository.
 
 - FastAPI, Python 3.12 (uv), Pydantic v2, black (line length 100), pytest. API spec: `docs/api/` — update it with every endpoint change.
 - `cd backend && uv sync && uv run uvicorn app.main:app --reload` (port 8000); `uv run pytest`; `uv run black .` before committing.
-- One package per area: `app/<area>/router.py` (routes only) · `schemas.py` (CamelModel: snake_case in Python, camelCase JSON) · `service.py` (state + rules) · `seed.py` (mock data matching `web/src/dummy`). Shared code in `app/core` (config, errors, schemas/paging, clock, events bus).
+- Layered layout (one file per area in each layer, same file name across layers):
+  ```
+  app/
+    main.py                  create_app, mounts api_router under /api/v1
+    configs/config.py        Config (env VLA_*), REPO_ROOT
+    api/v1/__init__.py       api_router (includes every area router)
+    api/v1/routers/<area>.py HTTP only: params, status codes, call a service
+    schemas/<area>.py        request / response bodies (CamelModel); schemas/common.py: CamelModel, Page, paginate
+    models/<area>.py         domain entities kept by services (CamelModel)
+    services/<area>.py       state + rules; helpers as services/<area>_<topic>.py
+    seeds/                   load(); data/*.json exported from web/src/dummy; seeds/<area>.py converters
+    rpc/                     gRPC: gen/ (generated), servicer.py, server.py
+    core/                    errors, events bus, clock
+  tests/<area>/
+  ```
+- Routers never hold state or rules; services never import FastAPI routers. Cross-area reads go through `app.services.<area>`.
 - Errors via `ApiError` / `not_found` / `conflict` (uniform `{"error": {...}}` body). Large lists use `paginate()`. Publish changes on `app.core.events.bus`.
 - Comments: short, English. No PII; secrets are write-only.
 - Branches: `feat/backend` ← `feat/backend-*`.

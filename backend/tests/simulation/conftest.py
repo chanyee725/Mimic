@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import REPO_ROOT, config
+from app.configs.config import REPO_ROOT, config
 from app.core.events import bus
-from app.simulation import service
+from app.services import simulation as service
 
 REPO_ENVS = REPO_ROOT / "sim" / "envs"
 

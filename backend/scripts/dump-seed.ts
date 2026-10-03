@@ -1,4 +1,4 @@
-// Exports web/src/dummy to backend/app/core/seed/*.json. Run from web/ (see backend/README.md).
+// Exports web/src/dummy to backend/app/seeds/data/*.json. Run from web/ (see backend/README.md).
 import { writeFileSync } from "node:fs"
 import * as activity from "@/dummy/activity"
 import * as datasets from "@/dummy/datasets"
@@ -16,5 +16,5 @@ import * as training from "@/dummy/training"
 const mods = { activity, datasets, devices, models, recordings, rigs, sessions, settings, simulation, station, tasks, training }
 for (const [name, mod] of Object.entries(mods)) {
   const data = Object.fromEntries(Object.entries(mod).filter(([, v]) => typeof v !== "function"))
-  writeFileSync(`../backend/app/core/seed/${name}.json`, JSON.stringify(data, null, 2) + "\n")
+  writeFileSync(`../backend/app/seeds/data/${name}.json`, JSON.stringify(data, null, 2) + "\n")
 }

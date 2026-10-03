@@ -1,6 +1,6 @@
 import pytest
 
-from app.models import service as models
+from app.services import models as models
 
 
 @pytest.fixture(autouse=True)
