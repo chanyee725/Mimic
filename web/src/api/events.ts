@@ -8,7 +8,7 @@ export type ServerEvent = { type: string; at: string; data: unknown }
 // Event type prefix → query roots to refetch (docs/api/realtime.md)
 const INVALIDATES: Record<string, readonly (readonly string[])[]> = {
   capture: [qk.capture],
-  recording: [qk.recordings, qk.convert, qk.tasks],
+  recording: [qk.recordings, qk.convert, qk.tasks, qk.sessions, qk.station],
   dataset: [qk.datasets],
   training: [qk.training, qk.models],
   evaluate: [qk.evaluate, qk.models],
