@@ -27,15 +27,10 @@ export function RolloutViewer({
   const current = job.done
 
   let caption: string
-  let placeholder = "Isaac Sim replay"
   if (episode) caption = episodeText(episode)
-  else if (live) {
-    caption = `Episode #${current}, seed ${job.seedStart + current}, in progress`
-    placeholder = "Isaac Sim live"
-  } else if (job.status === "queued") {
-    caption = "GPU 가 비면 시작합니다."
-    placeholder = "Waiting for GPU"
-  } else caption = current ? "에피소드를 선택하면 다시 재생합니다." : "실행된 에피소드가 없습니다."
+  else if (live) caption = `Episode #${current}, seed ${job.seedStart + current}, in progress`
+  else if (job.status === "queued") caption = "GPU 가 비면 시작합니다."
+  else caption = current ? "에피소드를 선택하면 다시 재생합니다." : "실행된 에피소드가 없습니다."
 
   return (
     <Panel
@@ -63,10 +58,10 @@ export function RolloutViewer({
             key={cam}
             label={live ? `${cam}, live` : cam}
             resolution={SIM_RESOLUTION}
-            measuredFps={live || episode ? SIM_FPS : null}
+            measuredFps={null}
             targetFps={SIM_FPS}
             timecode={episode ? formatTimecode(episode.seconds * 1000, SIM_FPS) : undefined}
-            placeholder={placeholder}
+            hint="Isaac Sim 영상 스트림이 연결되면 표시됩니다."
           />
         ))}
       </div>

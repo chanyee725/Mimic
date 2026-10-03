@@ -1,4 +1,4 @@
-import { LuVideo } from "react-icons/lu"
+import { LuVideoOff } from "react-icons/lu"
 
 import { cn } from "@/lib/utils"
 
@@ -11,12 +11,12 @@ type Props = {
   recording?: boolean
   /** mm:ss:ff (ff = frame) */
   timecode?: string
-  /** Placeholder text shown before the video is attached */
-  placeholder?: string
+  /** Hint under "No signal" while no video track is attached */
+  hint?: string
   className?: string
 }
 
-/** Slot for the WebRTC video track. Only draws a placeholder for now. */
+/** Slot for a video track. No source is wired yet, so it shows an honest "No signal" state. */
 export function VideoTile({
   label,
   resolution,
@@ -24,7 +24,7 @@ export function VideoTile({
   targetFps,
   recording = false,
   timecode,
-  placeholder = "WebRTC stream",
+  hint = "장치가 연결되면 영상이 표시됩니다.",
   className,
 }: Props) {
   const low = measuredFps !== null && targetFps !== null && measuredFps < targetFps * 0.98
@@ -38,9 +38,10 @@ export function VideoTile({
       )}
     >
       {/* <video autoPlay muted playsInline ref={...} /> */}
-      <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground">
-        <LuVideo className="size-6" />
-        {placeholder}
+      <div className="flex flex-col items-center gap-1 px-4 text-center text-xs text-muted-foreground">
+        <LuVideoOff className="mb-0.5 size-6" />
+        <span className="font-medium text-foreground">No signal</span>
+        {hint}
       </div>
       <figcaption className="absolute top-2.5 left-2.5 rounded-md border bg-background px-2 py-0.5 text-xs font-medium">{label}</figcaption>
       {recording ? (
@@ -61,7 +62,7 @@ export function VideoTile({
           low ? "text-warn" : "text-muted-foreground",
         )}
       >
-        {resolution}, {measuredFps?.toFixed(1) ?? "—"} fps
+        {resolution || "—"}, {measuredFps?.toFixed(1) ?? "—"} fps
       </span>
     </figure>
   )

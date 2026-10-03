@@ -40,11 +40,12 @@ export const SPEEDS = [0.5, 1, 2] as const
 
 export type Speed = (typeof SPEEDS)[number]
 
-/** Seed derived from the recording id (the same file always yields the same trajectory) */
-export function seedOf(id: string) {
-  let h = 0
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 1000
-  return h / 1000
+/** Max samples per series the samples endpoint returns */
+const MAX_SAMPLES = 100_000
+
+/** Plot sample rate: the recorded action rate, lowered so a long file stays under the endpoint's sample limit */
+export function samplesHz(actionHz: number, durationS: number) {
+  return Math.max(1, Math.min(actionHz, Math.floor(MAX_SAMPLES / Math.max(durationS, 1)) - 1))
 }
 
 /** `/cam_top/image` → `Top`; any other topic name is returned as is */
