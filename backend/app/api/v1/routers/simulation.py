@@ -2,21 +2,18 @@
 
 from fastapi import APIRouter, Query
 
-from app.core.errors import ApiError
-from app.schemas.common import Page, paginate
-from app.services import simulation as service
-from app.schemas.simulation import (
+from app.models.simulation import (
     EpisodeResult,
-    ModelCompat,
-    RescanResult,
     SimConfig,
     SimEnv,
     SimEnvState,
     SimEpisode,
     SimJob,
-    SimJobCreate,
     SimJobStatus,
 )
+from app.schemas.common import Page
+from app.schemas.simulation import ModelCompat, RescanResult, SimJobCreate
+from app.services import simulation as service
 
 router = APIRouter(prefix="/sim", tags=["simulation"])
 
@@ -73,12 +70,9 @@ def list_episodes(
     limit: int = Query(50, ge=1, le=500),
     cursor: str | None = None,
 ):
-    return paginate(service.list_episodes(job_id, result), limit, cursor)
+    return service.page_episodes(job_id, result, limit, cursor)
 
 
 @router.get("/jobs/{job_id}/episodes/{index}/video/{camera}")
 def episode_video(job_id: str, index: int, camera: str):
-    service.get_episode(job_id, index)
-    if camera not in service.get_env(service.get_job(job_id).env_id).cameras:
-        raise ApiError(404, f"Camera '{camera}' is not rendered by this environment")
-    raise ApiError(501, "Rollout video is not available until Isaac Sim is connected")
+    return service.episode_video(job_id, index, camera)

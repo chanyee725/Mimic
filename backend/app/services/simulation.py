@@ -11,15 +11,13 @@ from app.services.models import get_model, list_models
 from app.schemas.models import Model
 from app.services.rigs import get_rig
 from app.services.simulation_scanner import scan_envs
+from app.models.simulation import SimConfig, SimEnv, SimEpisode, SimJob
+from app.schemas.common import Page, paginate
 from app.schemas.simulation import (
     CompatIssue,
     ModelCompat,
     RescanResult,
-    SimConfig,
-    SimEnv,
-    SimEpisode,
     SimEpisodeEvent,
-    SimJob,
     SimJobCreate,
 )
 from app.seeds.simulation import counts, seed_gpu, seed_jobs
@@ -199,6 +197,20 @@ def get_episode(job_id: str, index: int) -> SimEpisode:
     if not 0 <= index < len(eps):
         raise not_found("Episode", f"{job_id}/{index}")
     return eps[index]
+
+
+def page_episodes(
+    job_id: str, result: str | None, limit: int, cursor: str | None
+) -> Page[SimEpisode]:
+    return paginate(list_episodes(job_id, result), limit, cursor)
+
+
+def episode_video(job_id: str, index: int, camera: str) -> bytes:
+    """Rollout video of one episode camera; always refused until Isaac Sim is connected."""
+    get_episode(job_id, index)
+    if camera not in get_env(get_job(job_id).env_id).cameras:
+        raise ApiError(404, f"Camera '{camera}' is not rendered by this environment")
+    raise ApiError(501, "Rollout video is not available until Isaac Sim is connected")
 
 
 def advance(job_id: str, n: int = 1) -> SimJob:

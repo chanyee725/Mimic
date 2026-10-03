@@ -11,7 +11,7 @@ import yaml
 
 from app.core.clock import now_iso
 from app.configs.config import config
-from app.schemas.simulation import SimEnv, SimEnvFile
+from app.models.simulation import SimEnv, SimEnvFile
 
 MANIFEST = "env.yaml"
 REQUIRED = ("name", "scene", "cameras", "action_dim", "episode.success")

@@ -5,7 +5,7 @@ from typing import Any
 
 from app.core.clock import iso
 from app.seeds import load
-from app.schemas.simulation import SimEpisode, SimGpu, SimJob
+from app.models.simulation import SimEpisode, SimGpu, SimJob
 
 _UNITS = {"h": 3600, "m": 60, "s": 1}
 
