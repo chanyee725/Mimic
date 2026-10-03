@@ -16,6 +16,8 @@ class Config(BaseSettings):
     timezone: str = "Asia/Seoul"
     # Folder scanned for Isaac Sim environments (one sub-folder per environment)
     sim_envs_dir: Path = REPO_ROOT / "sim" / "envs"
+    # Station data kept as YAML (tasks, settings, rigs, …); git-ignored
+    data_dir: Path = REPO_ROOT / "data"
 
 
 config = Config()

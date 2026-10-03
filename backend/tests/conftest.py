@@ -1,10 +1,16 @@
 import importlib
+import os
+import tempfile
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import create_app
-from app.utils import time
+# Services seed their YAML files at import time; keep them out of the repo's data/
+os.environ.setdefault("VLA_DATA_DIR", tempfile.mkdtemp(prefix="vla-data-"))
+
+from app.configs.config import config  # noqa: E402
+from app.main import create_app  # noqa: E402
+from app.utils import time  # noqa: E402
 
 # Every area keeps in-memory state; reset all of them so tests never leak into each other.
 _AREAS = [
@@ -23,7 +29,9 @@ _AREAS = [
 
 
 @pytest.fixture(autouse=True)
-def _reset_services():
+def _reset_services(tmp_path):
+    # Fresh, empty data folder per test: every service reseeds its files
+    config.data_dir = tmp_path / "data"
     for area in _AREAS:
         try:
             service = importlib.import_module(f"app.services.{area}")
