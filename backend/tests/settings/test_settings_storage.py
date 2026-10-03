@@ -1,11 +1,9 @@
-"""data/settings/<part>.yaml / secrets.yaml persistence."""
+"""data/settings/<part>.yaml persistence (secrets: test_settings_secrets.py)."""
 
 import os
-import stat
 
 import yaml
 
-from app.configs.config import config
 from app.core import storage
 from app.services import settings as service
 
@@ -14,9 +12,7 @@ PART_FILES = [
     "huggingface.yaml",
     "notifications.yaml",
     "runpod.yaml",
-    "station.yaml",
     "storage.yaml",
-    "training.yaml",
     "wandb.yaml",
 ]
 
@@ -27,10 +23,6 @@ def part(name):
 
 def read_part(name):
     return yaml.safe_load(part(name).read_text())
-
-
-def read_file(name):
-    return yaml.safe_load(storage.path(name).read_text())
 
 
 def snapshot():
@@ -55,23 +47,16 @@ def keys(value):
 def test_seed_writes_part_files():
     assert sorted(p.name for p in storage.list_yaml("settings")) == PART_FILES
     assert not storage.exists("settings.yaml")
-    assert read_part("station") == {"name": "Station 01", "id": "st-01", "timezone": "Asia/Seoul"}
-    hf = read_part("huggingface")
-    assert hf == {
-        "token": {"set": True, "last4": "3kQz"},
-        "namespace": "vla-lab",
-        "private_by_default": True,
-    }
+    assert read_part("huggingface") == {"namespace": "vla-lab", "private_by_default": True}
     assert read_part("storage")["keep_checkpoints"] == 4
-    training = read_part("training")
-    assert "simEnvsPath" not in training and training["sim_envs_path"]
     assert {"key", "label", "on"} <= set(read_part("notifications")["events"][0])
 
 
-def test_files_have_no_version_or_live_fields():
+def test_files_have_no_version_live_fields_or_secrets():
+    banned = {"version", "state", "latency_ms", "spent_this_month", "operators"}
+    banned |= {"token", "api_key", "slack_webhook"}
     for p in storage.list_yaml("settings"):
-        found = keys(yaml.safe_load(p.read_text()))
-        assert not found & {"version", "state", "latency_ms", "spent_this_month", "operators"}, p
+        assert not keys(yaml.safe_load(p.read_text())) & banned, p
     assert "spent_this_month" not in read_part("runpod")
     assert read_part("connection")["api"] == {"url": "http://localhost:8000"}
 
@@ -131,22 +116,20 @@ def test_connection_test_does_not_touch_files(client):
 
 
 def test_hand_edited_file_loads(client):
-    station = read_part("station")
-    station["name"] = "Hand Bench"
-    part("station").write_text(yaml.safe_dump(station, sort_keys=False))
+    hf = read_part("huggingface")
+    hf["namespace"] = "hand-lab"
+    part("huggingface").write_text(yaml.safe_dump(hf, sort_keys=False))
     # A partial file: missing keys come from the seed
     part("storage").write_text("keep_checkpoints: 16\n")
     notes = read_part("notifications")
     first = notes["events"][0]
     first["on"] = not first["on"]
     part("notifications").write_text(yaml.safe_dump(notes, sort_keys=False))
-    part("runpod").write_text(
-        "api_key: {set: false}\nregion: eu\nvolume: v\nmonthly_budget: 1\nidle_alert_min: 2\n"
-    )
+    part("runpod").write_text("region: eu\nvolume: v\nmonthly_budget: 1\nidle_alert_min: 2\n")
 
     service.reset()
     s = client.get("/settings").json()
-    assert (s["version"], s["station"]["name"]) == (1, "Hand Bench")
+    assert (s["version"], s["integrations"]["hf"]["namespace"]) == (1, "hand-lab")
     assert (s["storage"]["keepCheckpoints"], s["storage"]["warnAtPct"]) == (16, 85)
     assert s["notifications"]["events"][0]["on"] is first["on"]
     runpod = s["integrations"]["runpod"]
@@ -157,28 +140,28 @@ def test_hand_edited_file_loads(client):
 
 def test_missing_part_file_is_reseeded(client):
     client.patch("/settings/storage", json={"version": 1, "warnAtPct": 90})
-    part("station").unlink()
+    part("wandb").unlink()
     service.reset()
-    assert read_part("station")["name"] == "Station 01"
+    assert read_part("wandb")["project"] == "vla-smolvla"
     assert read_part("storage")["warn_at_pct"] == 90
 
 
 def test_broken_file_falls_back_untouched(client):
-    for broken in ("name: [unclosed\n", "name: ''\n", "- a list\n", "timezone: Mars/Base\n"):
-        part("station").write_text(broken)
+    for broken in ("raw_path: [unclosed\n", "raw_path: ''\n", "- a list\n", "warn_at_pct: 0\n"):
+        part("storage").write_text(broken)
         service.reset()
-        assert part("station").read_text() == broken
+        assert part("storage").read_text() == broken
         s = client.get("/settings").json()
-        assert s["station"]["name"] == "Station 01"
+        assert s["storage"]["rawPath"] == "~/vla/raw"
 
         # Saving another part leaves the broken file alone
-        client.patch("/settings/storage", json={"version": 1, "warnAtPct": 70})
+        client.patch("/settings/integrations", json={"version": 1, "hf": {"namespace": "x"}})
         client.put("/settings/secrets/hf_token", json={"value": "hf_new_value_ABCD"})
-        assert part("station").read_text() == broken
+        assert part("storage").read_text() == broken
 
     # Saving the broken part itself rewrites it
-    client.patch("/settings/station", json={"version": 2, "name": "Fixed"})
-    assert read_part("station")["name"] == "Fixed"
+    client.patch("/settings/storage", json={"version": 2, "rawPath": "/fixed"})
+    assert read_part("storage")["raw_path"] == "/fixed"
 
 
 def test_migrates_legacy_settings_yaml(client):
@@ -206,72 +189,35 @@ def test_migrates_legacy_settings_yaml(client):
     service.reset()
     assert not storage.exists("settings.yaml")
     assert sorted(p.name for p in storage.list_yaml("settings")) == PART_FILES
-    assert read_part("station") == {"name": "Legacy", "id": "st-01", "timezone": "Asia/Seoul"}
-    assert read_part("huggingface")["token"] == {"set": False}
+    assert read_part("huggingface") == {"namespace": "old", "private_by_default": False}
     assert read_part("runpod")["monthly_budget"] == 300.0  # invalid part → seed
     assert read_part("storage")["warn_at_pct"] == 70
-    assert read_part("training")["save_freq"] == 1234
     for p in storage.list_yaml("settings"):
-        assert not keys(yaml.safe_load(p.read_text())) & {"version", "state", "operators"}
+        assert not keys(yaml.safe_load(p.read_text())) & {"version", "state", "operators", "token"}
     s = client.get("/settings").json()
-    assert (s["version"], s["station"]["name"], s["integrations"]["hf"]["namespace"]) == (
-        1,
-        "Legacy",
-        "old",
-    )
-    assert "recording" not in s
+    assert (s["version"], s["integrations"]["hf"]["namespace"]) == (1, "old")
+    assert not {"recording", "station", "training"} & set(s)
 
 
 def test_legacy_file_ignored_when_folder_exists():
-    storage.write("settings.yaml", {"station": {"name": "Legacy"}})
+    storage.write("settings.yaml", {"storage": {"warn_at_pct": 11}})
     service.reset()
     assert storage.exists("settings.yaml")
-    assert read_part("station")["name"] == "Station 01"
+    assert read_part("storage")["warn_at_pct"] == 85
 
 
-def test_secret_put_goes_to_private_file(client):
-    value = "hf_super_secret_value_WXYZ"
-    mark_old()
-    before = snapshot()
-    assert client.put("/settings/secrets/hf_token", json={"value": value}).status_code == 200
-    secrets = storage.path("secrets.yaml")
-    assert stat.S_IMODE(secrets.stat().st_mode) == 0o600
-    assert secrets.read_text().startswith("#")
-    assert read_file("secrets.yaml") == {"hf_token": value}
-    after = snapshot()
-    assert [n for n in PART_FILES if after[n] != before[n]] == ["huggingface.yaml"]
-    for p in storage.list_yaml("settings"):
-        text = p.read_text()
-        assert value not in text and "secret_value" not in text
-    assert read_part("huggingface")["token"] == {"set": True, "last4": "WXYZ"}
-
+def test_obsolete_part_files_are_removed():
+    storage.write("settings/station.yaml", {"name": "Old", "id": "st-01"})
+    storage.write("settings/training.yaml", {"sim_envs_path": "/elsewhere"})
     service.reset()
-    assert service._secrets == {"hf_token": value}
-    assert service.get_settings().integrations.hf.token.last4 == "WXYZ"
+    assert sorted(p.name for p in storage.list_yaml("settings")) == PART_FILES
 
 
-def test_delete_secret_removes_it(client):
-    client.put("/settings/secrets/wandb_api_key", json={"value": "wandb-key-1234"})
-    assert client.delete("/settings/secrets/wandb_api_key").status_code == 200
-    assert "wandb_api_key" not in (read_file("secrets.yaml") or {})
-    assert read_part("wandb")["api_key"] == {"set": False}
+def test_old_secret_keys_are_cleaned_from_files(client):
+    part("huggingface").write_text(
+        "token: {set: true, last4: 3kQz}\nnamespace: vla-lab\nprivate_by_default: true\n"
+    )
     service.reset()
-    assert "wandb_api_key" not in service._secrets
-
-
-def test_secrets_file_wins_over_settings_last4(client):
-    storage.write_text("secrets.yaml", "runpod_api_key: rp-abcd9876\n", private=True)
-    service.reset()
-    key = client.get("/settings").json()["integrations"]["runpod"]["apiKey"]
-    assert key == {"set": True, "last4": "9876"}
-    assert read_part("runpod")["api_key"]["last4"] == "9876"
-
-
-def test_persisted_sim_envs_path_applied(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "sim_envs_dir", config.sim_envs_dir)
-    envs = tmp_path / "my-envs"
-    training = read_part("training")
-    training["sim_envs_path"] = str(envs)
-    storage.write("settings/training.yaml", training)
-    service.reset()
-    assert config.sim_envs_dir == envs
+    assert read_part("huggingface") == {"namespace": "vla-lab", "private_by_default": True}
+    # The file's {set, last4} is ignored: no secret is configured
+    assert client.get("/settings").json()["integrations"]["hf"]["token"] == {"set": False}

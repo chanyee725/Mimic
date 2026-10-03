@@ -1,5 +1,0 @@
-lerobot_commit: '[COMMIT HASH]'
-default_compute: local
-save_freq: 5000
-sim_gpu: RTX 4090 (cuda:0)
-sim_envs_path: sim/envs

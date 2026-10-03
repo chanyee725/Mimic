@@ -81,6 +81,7 @@ def test_create_local_running_when_gpu_free(client):
 
 
 def test_create_runpod(client):
+    client.put("/settings/secrets/runpod_api_key", json={"value": "rp_test_key"})
     job = client.post("/training/jobs", json=RUNPOD).json()
     assert job["status"] == "running"
     assert job["pricePerHr"] == round(1.64 * 2 * 0.8 * 0.5, 4)
@@ -213,6 +214,7 @@ def test_checkpoint_save_creates_model(client):
 
 
 def test_checkpoint_push_and_download(client, monkeypatch):
+    client.put("/settings/secrets/hf_token", json={"value": "hf_test_token"})
     r = client.post("/training/jobs/job_035/checkpoints/5000/push", json={})
     assert r.status_code == 202
     assert r.json() == {"repo": "vla-lab/smolvla_open_drawer"}
