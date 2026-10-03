@@ -2,13 +2,14 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
+from app.models.realtime import StreamSource, WebRtcTrack
 from app.schemas.common import CamelModel
 
 
 class WebRtcOffer(CamelModel):
     sdp: str = Field(min_length=1)
     type: Literal["offer"]
-    source: Literal["rig", "sim"]
+    source: StreamSource
     rig_id: str | None = None
     sim_job_id: str | None = None
     cameras: list[str] = Field(min_length=1)
@@ -20,11 +21,6 @@ class WebRtcOffer(CamelModel):
         if self.source == "sim" and not self.sim_job_id:
             raise ValueError("simJobId is required when source is 'sim'")
         return self
-
-
-class WebRtcTrack(CamelModel):
-    camera: str
-    mid: str
 
 
 class WebRtcAnswer(CamelModel):

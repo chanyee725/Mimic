@@ -1,53 +1,35 @@
 """Realtime endpoints — see docs/api/realtime.md."""
 
 import asyncio
-import json
-from typing import Any
 
 from fastapi import APIRouter, Response, WebSocket, WebSocketDisconnect
 
-from app.core.events import bus
-from app.services import realtime as service
 from app.schemas.realtime import WebRtcAnswer, WebRtcOffer
-from app.services.realtime_topics import parse_topics, topic_of
+from app.services import realtime as service
 
 router = APIRouter(prefix="", tags=["realtime"])
 
 
-async def _forward(ws: WebSocket, q: asyncio.Queue[dict[str, Any]], topics: set[str]) -> None:
-    while True:
-        msg = await q.get()
-        if topic_of(msg["type"]) in topics:
-            await ws.send_json(msg)
-
-
 @router.websocket("/ws/events")
 async def events(ws: WebSocket, topics: str | None = None) -> None:
-    accepted, unknown = parse_topics(topics)
+    wanted, hello = service.open_events(topics)
     await ws.accept()
     # Subscribe before "hello" so nothing published after it is missed
-    q = bus.subscribe()
+    q = service.subscribe()
     forward: asyncio.Task[None] | None = None
     try:
-        hello: dict[str, Any] = {"type": "hello", "topics": accepted}
-        if unknown:
-            hello["ignored"] = unknown
         await ws.send_json(hello)
-        forward = asyncio.create_task(_forward(ws, q, set(accepted)))
+        forward = asyncio.create_task(service.forward(q, wanted, ws.send_json))
         while True:
-            text = await ws.receive_text()
-            try:
-                msg = json.loads(text)
-            except ValueError:
-                continue
-            if isinstance(msg, dict) and msg.get("type") == "ping":
-                await ws.send_json({"type": "pong"})
+            reply = service.reply_to(await ws.receive_text())
+            if reply is not None:
+                await ws.send_json(reply)
     except WebSocketDisconnect:
         pass
     finally:
         if forward:
             forward.cancel()
-        bus.unsubscribe(q)
+        service.unsubscribe(q)
 
 
 @router.post(
