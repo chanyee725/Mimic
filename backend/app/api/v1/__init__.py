@@ -1,11 +1,12 @@
-"""Version 1 of the REST + WebSocket API: one router module per area."""
+"""Version 1 of the REST + WebSocket API: one package per feature, one module per sub-resource."""
 
 from fastapi import APIRouter
 
-from app.api.v1.routers import (
+from app.api.v1 import (
     capture,
     datasets,
     evaluate,
+    health,
     models,
     realtime,
     recordings,
@@ -19,6 +20,7 @@ from app.api.v1.routers import (
 
 api_router = APIRouter()
 for module in (
+    health,
     station,
     tasks,
     rigs,

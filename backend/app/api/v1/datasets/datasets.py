@@ -1,26 +1,17 @@
-"""Datasets endpoints — see docs/api/datasets.md.
+"""Datasets: search, episodes, thumbnail, push, delete.
 
 repoId contains a slash, so routes use the path converter; the suffixed routes come first.
 """
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Response
 
+from app.api.deps import Pagination
 from app.models.datasets import Dataset, DatasetEpisode, DatasetKind
 from app.schemas.common import Page
-from app.schemas.datasets import ConvertBody, ConvertPreview, PushBody
+from app.schemas.datasets import PushBody
 from app.services import datasets as service
 
-router = APIRouter(prefix="", tags=["datasets"])
-
-
-@router.get("/convert/preview", response_model=ConvertPreview)
-def convert_preview(task_id: str = Query(alias="taskId"), exclude: str | None = None):
-    return service.preview(task_id, exclude)
-
-
-@router.post("/convert", status_code=202, response_model=Dataset)
-async def convert(body: ConvertBody):
-    return service.convert(body.task_id, body.repo_id, body.exclude)
+router = APIRouter()
 
 
 @router.get("/datasets", response_model=list[Dataset])
@@ -29,8 +20,8 @@ def list_datasets(kind: DatasetKind | None = None, q: str | None = None):
 
 
 @router.get("/datasets/{repo_id:path}/episodes", response_model=Page[DatasetEpisode])
-def list_episodes(repo_id: str, limit: int = Query(50, ge=1, le=500), cursor: str | None = None):
-    return service.page_episodes(repo_id, limit, cursor)
+def list_episodes(repo_id: str, page: Pagination):
+    return service.page_episodes(repo_id, page.limit, page.cursor)
 
 
 @router.get("/datasets/{repo_id:path}/thumbnail")

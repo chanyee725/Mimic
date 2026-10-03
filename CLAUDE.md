@@ -41,8 +41,10 @@ Guidance for working in this repository.
   app/
     main.py                  create_app, mounts api_router under /api/v1
     configs/config.py        Config (env VLA_*), REPO_ROOT
-    api/v1/__init__.py       api_router (includes every area router)
-    api/v1/routers/<area>.py HTTP only: params, status codes, call a service
+    api/deps.py              shared params: Pagination (limit/cursor), TaskIdFilter (?taskId)
+    api/v1/__init__.py       api_router (health + every feature package's router)
+    api/v1/<feature>/        __init__.py: router (tags, prefix per include); one module per
+                             sub-resource (e.g. training/jobs.py) — HTTP only: params, status codes, call a service
     schemas/<area>.py        request / response bodies (CamelModel); schemas/common.py: CamelModel, Page, paginate
     models/<area>.py         domain entities kept by services (CamelModel)
     services/<area>.py       state + rules; helpers as services/<area>_<topic>.py

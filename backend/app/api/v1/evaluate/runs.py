@@ -1,4 +1,4 @@
-"""Evaluate endpoints — see docs/api/models.md."""
+"""Real-robot evaluation runs: start, stop, judge."""
 
 from fastapi import APIRouter, Query
 
@@ -6,7 +6,7 @@ from app.models.evaluate import EvalRun
 from app.schemas.evaluate import EvalResult, EvalRunCreate
 from app.services import evaluate as service
 
-router = APIRouter(prefix="/evaluate", tags=["evaluate"])
+router = APIRouter()
 
 
 @router.get("/runs", response_model=list[EvalRun])

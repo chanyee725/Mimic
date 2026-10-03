@@ -1,21 +1,19 @@
-"""Models endpoints — see docs/api/models.md."""
+"""Saved models: list, rename, delete, files, download, push."""
 
 from typing import Literal
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Response
 
+from app.api.deps import TaskIdFilter
 from app.models.models import Model
 from app.schemas.models import ModelFile, ModelPatch, ModelPush
 from app.services import models as service
 
-router = APIRouter(prefix="/models", tags=["models"])
+router = APIRouter()
 
 
 @router.get("", response_model=list[Model])
-def list_models(
-    task_id: str | None = Query(None, alias="taskId"),
-    location: Literal["local", "hub"] | None = None,
-):
+def list_models(task_id: TaskIdFilter = None, location: Literal["local", "hub"] | None = None):
     return service.list_models(task_id, location)
 
 

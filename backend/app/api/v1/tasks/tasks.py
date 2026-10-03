@@ -1,14 +1,14 @@
-"""Tasks endpoints — see docs/api/tasks.md."""
+"""Task definitions: CRUD, YAML import / export, duplicate."""
 
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Query, Request, Response
+from fastapi import APIRouter, Header, Request, Response
 
-from app.services import tasks as service
-from app.models.tasks import Session, Task, TaskStatus
+from app.models.tasks import Task, TaskStatus
 from app.schemas.tasks import OPERATOR_ID, TaskDuplicate, TaskInput, TaskUpdate
+from app.services import tasks as service
 
-router = APIRouter(prefix="", tags=["tasks"])
+router = APIRouter()
 
 # Pseudonymous operator making the change
 Operator = Annotated[str, Header(alias="X-Operator", pattern=OPERATOR_ID)]
@@ -64,8 +64,3 @@ def delete_task(task_id: str):
 )
 def task_yaml(task_id: str):
     return Response(service.task_yaml(task_id), media_type=YAML)
-
-
-@router.get("/sessions", response_model=list[Session])
-def list_sessions(task_id: Annotated[str | None, Query(alias="taskId")] = None):
-    return service.list_sessions(task_id)

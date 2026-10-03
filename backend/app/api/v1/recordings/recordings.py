@@ -1,24 +1,24 @@
-"""Recordings endpoints — see docs/api/recordings.md."""
+"""Recordings: paged list, import, review, samples and media."""
 
 from fastapi import APIRouter, Query, Response, UploadFile
 
+from app.api.deps import Pagination, TaskIdFilter
 from app.models.recordings import Recording, RecordingReview, RecordingSource
 from app.schemas.common import Page
 from app.schemas.recordings import ReviewPatch, Samples
 from app.services import recordings as service
 
-router = APIRouter(prefix="/recordings", tags=["recordings"])
+router = APIRouter()
 
 
 @router.get("", response_model=Page[Recording])
 def list_recordings(
-    task_id: str | None = Query(None, alias="taskId"),
+    page: Pagination,
+    task_id: TaskIdFilter = None,
     review: RecordingReview | None = None,
     source: RecordingSource | None = None,
-    limit: int = Query(50, ge=1, le=500),
-    cursor: str | None = None,
 ):
-    return service.page_recordings(task_id, review, source, limit, cursor)
+    return service.page_recordings(task_id, review, source, page.limit, page.cursor)
 
 
 @router.post("/import", status_code=201, response_model=Recording)
