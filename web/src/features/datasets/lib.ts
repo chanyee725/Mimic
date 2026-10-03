@@ -1,5 +1,4 @@
 import type { Tone } from "@/components/common/status-dot"
-import { listDatasets } from "@/api/datasets"
 import type { DatasetKind, DatasetStatus } from "@/domain/dataset"
 
 export const STATUS: Record<DatasetStatus, { tone: Tone; label: string }> = {
@@ -17,6 +16,3 @@ export const FILTERS: { id: Filter; label: string }[] = [
 export const KIND_LABEL: Record<DatasetKind, string> = { lerobot: "LeRobot", mcap: "MCAP" }
 // List dot colour marks the format (status is shown in the detail header and the subtitle)
 export const KIND_DOT: Record<DatasetKind, string> = { lerobot: "bg-yellow-400", mcap: "bg-zinc-400" }
-
-// Newest first
-export const sortedDatasets = () => [...listDatasets()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))

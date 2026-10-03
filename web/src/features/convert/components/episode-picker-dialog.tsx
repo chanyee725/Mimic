@@ -7,6 +7,17 @@ import { Label } from "@/components/ui/label"
 import type { Recording } from "@/domain/recording"
 
 import { PICKER_PAGE } from "../lib"
+import { QueryNote } from "./query-note"
+
+/** What the dialog needs from the paged accepted-recordings query */
+export type AcceptedPages = {
+  isPending: boolean
+  error: Error | null
+  refetch: () => unknown
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  fetchNextPage: () => Promise<unknown>
+}
 
 /** Dialog for excluding accepted episodes from conversion. The parent keys it by task to reset the page */
 export function EpisodePickerDialog({
@@ -14,20 +25,33 @@ export function EpisodePickerDialog({
   onOpenChange,
   taskId,
   accepted,
+  total,
+  query,
   excluded,
   onExcludedChange,
+  onExcludeAll,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   taskId?: string
+  /** Loaded accepted recordings (server pages) */
   accepted: Recording[]
+  /** All accepted recordings of the task */
+  total: number
+  query: AcceptedPages
   excluded: string[]
   onExcludedChange: (update: (ids: string[]) => string[]) => void
+  /** Excludes every accepted recording, loading the remaining pages first */
+  onExcludeAll: () => void
 }) {
   const [page, setPage] = useState(0)
   const skip = new Set(excluded)
-  const selected = accepted.filter((r) => !skip.has(r.id)).length
-  const pages = Math.ceil(accepted.length / PICKER_PAGE)
+  const selected = total - excluded.length
+  const pages = Math.ceil(total / PICKER_PAGE)
+  const next = async () => {
+    if ((page + 1) * PICKER_PAGE >= accepted.length && query.hasNextPage) await query.fetchNextPage()
+    setPage((n) => n + 1)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -38,13 +62,13 @@ export function EpisodePickerDialog({
         </DialogHeader>
         <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
           <span>
-            {selected.toLocaleString()} of {accepted.length.toLocaleString()} selected
+            {selected.toLocaleString()} of {total.toLocaleString()} selected
           </span>
           <span className="flex gap-1">
             <Button variant="ghost" size="sm" className="h-7" onClick={() => onExcludedChange(() => [])}>
               Select all
             </Button>
-            <Button variant="ghost" size="sm" className="h-7" onClick={() => onExcludedChange(() => accepted.map((r) => r.id))}>
+            <Button variant="ghost" size="sm" className="h-7" disabled={query.isFetchingNextPage} onClick={onExcludeAll}>
               Clear
             </Button>
           </span>
@@ -66,6 +90,11 @@ export function EpisodePickerDialog({
               </li>
             )
           })}
+          {(query.isPending || query.error || query.isFetchingNextPage) && (
+            <li className="px-2 py-4 text-center">
+              {query.isFetchingNextPage ? <span className="text-[13px] text-muted-foreground">Loading…</span> : <QueryNote query={query} />}
+            </li>
+          )}
         </ul>
         <DialogFooter className="items-center sm:justify-between">
           {pages > 1 ? (
@@ -74,7 +103,13 @@ export function EpisodePickerDialog({
                 Prev
               </Button>
               {page + 1} / {pages}
-              <Button variant="outline" size="sm" className="h-7" disabled={page >= pages - 1} onClick={() => setPage((n) => n + 1)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7"
+                disabled={page >= pages - 1 || query.isFetchingNextPage}
+                onClick={() => void next()}
+              >
                 Next
               </Button>
             </div>
