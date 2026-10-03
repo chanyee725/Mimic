@@ -32,6 +32,16 @@ Guidance for working in this repository.
 - English Conventional Commits, split by feature, ending with a `Co-Authored-By:` trailer.
 - Avoid `git stash` and `git reset --mixed` (see the Vite note below).
 
+## backend/
+
+- FastAPI, Python 3.12 (uv), Pydantic v2, black (line length 100), pytest. API spec: `docs/api/` — update it with every endpoint change.
+- `cd backend && uv sync && uv run uvicorn app.main:app --reload` (port 8000); `uv run pytest`; `uv run black .` before committing.
+- One package per area: `app/<area>/router.py` (routes only) · `schemas.py` (CamelModel: snake_case in Python, camelCase JSON) · `service.py` (state + rules) · `seed.py` (mock data matching `web/src/dummy`). Shared code in `app/core` (config, errors, schemas/paging, clock, events bus).
+- Errors via `ApiError` / `not_found` / `conflict` (uniform `{"error": {...}}` body). Large lists use `paginate()`. Publish changes on `app.core.events.bus`.
+- Comments: short, English. No PII; secrets are write-only.
+- Branches: `feat/backend` ← `feat/backend-*`.
+- Isaac Sim environments live in `sim/envs/<env-id>/` (see `sim/README.md`).
+
 ## web/ commands
 
 ```sh
