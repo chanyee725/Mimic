@@ -2,9 +2,8 @@
 
 from fastapi import APIRouter, Query
 
-from app.core.errors import ApiError
-from app.schemas.models import Model
-from app.services import training as service
+from app.models.models import Model
+from app.models.training import JobStatus, TrainJob
 from app.schemas.training import (
     CheckpointPush,
     CheckpointPushed,
@@ -12,11 +11,10 @@ from app.schemas.training import (
     CommandOut,
     CommandPreview,
     JobCreate,
-    JobStatus,
     Metrics,
     TrainingConfig,
-    TrainJob,
 )
+from app.services import training as service
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -67,22 +65,21 @@ def job_metrics(
 
 @router.get("/jobs/{job_id}/command", response_model=CommandOut)
 def job_command(job_id: str):
-    return CommandOut(command=service.job_command(job_id))
+    return service.job_command(job_id)
 
 
 @router.get("/jobs/{job_id}/checkpoints/{step}/download")
 def download_checkpoint(job_id: str, step: int):
-    service.get_checkpoint(job_id, step)
-    raise ApiError(501, "Checkpoint download is not implemented yet")
+    return service.download_checkpoint(job_id, step)
 
 
 @router.post(
     "/jobs/{job_id}/checkpoints/{step}/push", response_model=CheckpointPushed, status_code=202
 )
 def push_checkpoint(job_id: str, step: int, body: CheckpointPush | None = None):
-    return CheckpointPushed(repo=service.push_checkpoint(job_id, step, body.repo if body else None))
+    return service.push_checkpoint(job_id, step, body)
 
 
 @router.post("/jobs/{job_id}/checkpoints/{step}/save", response_model=Model, status_code=201)
 def save_checkpoint(job_id: str, step: int, body: CheckpointSave):
-    return service.save_checkpoint(job_id, step, body.name)
+    return service.save_checkpoint(job_id, step, body)

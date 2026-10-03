@@ -1,6 +1,7 @@
 import pytest
 
 from app.services import models as models
+from app.seeds.training import parse_duration
 from app.services import training as service
 from app.services.training_metrics import _rng, _seed_of
 
@@ -18,7 +19,7 @@ RUNPOD = {
     "text,seconds", [("2h 08m", 7680), ("58m", 3480), ("15h 49m", 56940), (None, None)]
 )
 def test_parse_duration(text, seconds):
-    assert service.parse_duration(text) == seconds
+    assert parse_duration(text) == seconds
 
 
 def test_rng_matches_web():

@@ -4,7 +4,8 @@ key is the CLI flag name as is (--key=value). Defaults follow lerobot TrainPipel
 SmolVLAConfig; verify them against the pinned lerobot version.
 """
 
-from app.schemas.training import Param, ParamGroup, ParamValue
+from app.models.training import ParamValue
+from app.schemas.training import Param, ParamGroup
 
 
 def _p(key: str, label: str, default: ParamValue, hint: str | None = None) -> Param:

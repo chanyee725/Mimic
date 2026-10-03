@@ -5,7 +5,8 @@ from typing import Literal
 from app.core.clock import iso, now_iso
 from app.core.errors import ApiError, not_found
 from app.seeds import load
-from app.schemas.models import Model, ModelEval, ModelFile
+from app.models.models import Model, ModelEval
+from app.schemas.models import ModelFile, ModelPush
 from app.services import settings
 
 _models: dict[str, Model] = {}
@@ -44,7 +45,8 @@ def require_model(model_id: str) -> Model:
     return m
 
 
-def model_files() -> list[ModelFile]:
+def model_files(model_id: str) -> list[ModelFile]:
+    require_model(model_id)
     return [ModelFile(path=f["path"], size_mb=f["sizeMB"]) for f in load("models", "MODEL_FILES")]
 
 
@@ -56,7 +58,7 @@ def add_model(model: Model) -> Model:
 
 def rename(model_id: str, name: str) -> Model:
     m = require_model(model_id)
-    m.name = name
+    m.name = name.strip()
     return m
 
 
@@ -75,8 +77,14 @@ def default_repo(task_id: str) -> str:
     )
 
 
-def push(model_id: str, repo: str | None) -> Model:
+def download(model_id: str):
+    require_model(model_id)
+    raise ApiError(501, "Model download is not implemented yet")
+
+
+def push(model_id: str, body: ModelPush | None = None) -> Model:
     m = require_model(model_id)
+    repo = body.repo if body else None
     if not secret_set("hf_token"):
         raise ApiError(424, "Hugging Face token is not set")
     # Upload is not wired yet; record the target repo right away

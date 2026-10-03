@@ -8,7 +8,7 @@ from app.configs.config import config
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.services.models import get_model, list_models
-from app.schemas.models import Model
+from app.models.models import Model
 from app.services.rigs import get_rig
 from app.services.simulation_scanner import scan_envs
 from app.models.simulation import SimConfig, SimEnv, SimEpisode, SimJob
