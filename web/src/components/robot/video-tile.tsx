@@ -62,7 +62,8 @@ export function VideoTile({
           low ? "text-warn" : "text-muted-foreground",
         )}
       >
-        {resolution || "—"}, {measuredFps?.toFixed(1) ?? "—"} fps
+        {resolution && `${resolution}, `}
+        {measuredFps?.toFixed(1) ?? "—"} fps
       </span>
     </figure>
   )
