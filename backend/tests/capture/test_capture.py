@@ -187,4 +187,4 @@ def test_discard_returns_to_idle(client, clock):
     record(client, clock, 8)
     st = client.post("/capture/discard").json()
     assert st["phase"] == "idle" and st["nextEpisode"] == 47
-    assert client.get("/recordings", params={"taskId": "stack-two-blocks"}).json()["total"] == 17
+    assert client.get("/recordings", params={"taskId": "stack-two-blocks"}).json()["total"] == 0

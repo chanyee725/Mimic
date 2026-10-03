@@ -132,6 +132,9 @@ def test_delete_task(client):
 
 
 def test_delete_task_with_recordings(client):
+    from tests.support import write_recording
+
+    write_recording(1, task_id=TASK)
     r = client.delete(f"/tasks/{TASK}")
     assert r.status_code == 409
     assert r.json()["error"]["details"]["recordings"] > 0

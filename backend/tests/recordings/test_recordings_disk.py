@@ -53,7 +53,7 @@ def save(client, clock, seconds: float = 10, outcome: str = "success") -> dict:
 
 
 def restart() -> None:
-    """In-memory state back to seeds, as after a backend restart."""
+    """In-memory state rebuilt from disk, as after a backend restart."""
     tasks.reset()
     capture.reset()
     recordings.reset()
@@ -104,7 +104,7 @@ def test_survives_restart(client, clock):
     restart()
     assert recordings.is_on_disk(REC_ID)
     assert client.get(f"/recordings/{REC_ID}").json() == rec
-    assert client.get("/recordings").json()["total"] == 22  # 21 seeds + 1
+    assert client.get("/recordings").json()["total"] == 1
 
 
 def test_episode_numbers_after_restart(client, clock):
@@ -174,7 +174,7 @@ def test_import_persists(client, raw):
     restart()
     assert client.get("/recordings/ext-bag").json() == rec
     assert client.get("/recordings/ext-bag/file").content == data
-    assert client.get("/recordings", params={"source": "external"}).json()["total"] == 4
+    assert client.get("/recordings", params={"source": "external"}).json()["total"] == 2
 
 
 def _sample_mcap(raw):
@@ -197,20 +197,8 @@ def test_broken_sidecar_skipped(client, clock, raw, caplog):
     (folder / "ep_0097.yaml").write_text("id: x\n")  # missing fields
     restart()
     assert recordings.is_on_disk(REC_ID)
-    assert client.get("/recordings").json()["total"] == 22
+    assert client.get("/recordings").json()["total"] == 1
     assert sum("is invalid" in m for m in caplog.messages) == 3
-
-
-def test_disk_overrides_seed(client, raw):
-    seed = client.get("/recordings/stack-two-blocks-30").json()
-    rec = recordings.get_recording("stack-two-blocks-30").model_copy(
-        update={"review": "rejected", "file": "stack-two-blocks/ep_0030.mcap"}
-    )
-    disk.write_sidecar(raw, rec)
-    restart()
-    assert client.get("/recordings/stack-two-blocks-30").json()["review"] == "rejected"
-    assert seed["review"] != "rejected"
-    assert client.get("/recordings").json()["total"] == 21
 
 
 def test_raw_path_change_rescans(client, clock, raw, tmp_path):
@@ -219,15 +207,10 @@ def test_raw_path_change_rescans(client, clock, raw, tmp_path):
     body = {"version": 1, "rawPath": str(other)}
     assert client.patch("/settings/storage", json=body).status_code == 200
     assert client.get(f"/recordings/{REC_ID}").status_code == 404
-    assert client.get("/recordings").json()["total"] == 21
+    assert client.get("/recordings").json()["total"] == 0
     saved = save(client, clock)
     assert saved["episode"] == 48  # issued numbers are still not reused in this session
     assert (other / "stack-two-blocks" / "ep_0048.mcap").is_file()
     body = {"version": 2, "rawPath": str(raw)}
     assert client.patch("/settings/storage", json=body).status_code == 200
     assert recordings.is_on_disk(REC_ID) and not recordings.is_on_disk(saved["id"])
-
-
-def test_seed_recordings_have_no_file(client):
-    assert not recordings.is_on_disk("stack-two-blocks-30")
-    assert client.get("/recordings/stack-two-blocks-30/file").status_code == 501

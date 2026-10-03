@@ -198,3 +198,33 @@ def resample(times: list[float], values: list[list[float]], at: list[float]) -> 
         for j in range(n_joints):
             out[j].append(round(row[j], 3))
     return out
+
+
+@dataclass
+class EpisodeData:
+    """One episode file read back: joint series and subtask spans, times in seconds from start."""
+
+    joints: list[str]
+    action: tuple[list[float], list[list[float]]]
+    state: tuple[list[float], list[list[float]]]
+    subtasks: list[SubtaskSpan]
+
+
+def read_episode(path: Path) -> EpisodeData:
+    """Action, state and subtask labels of an episode MCAP."""
+    data = read_joints(path, [ACTION_TOPIC, STATE_TOPIC])
+    spans: list[SubtaskSpan] = []
+    try:
+        with path.open("rb") as f:
+            for _, _, msg in make_reader(f).iter_messages(
+                topics=[SUBTASK_TOPIC], log_time_order=True
+            ):
+                spans.append(SubtaskSpan.model_validate(json.loads(msg.data)))
+    except (OSError, McapError, struct.error, ValueError) as e:
+        raise McapReadError(f"MCAP subtasks could not be read: {e}") from e
+    return EpisodeData(
+        joints=data.joints,
+        action=data.series[ACTION_TOPIC],
+        state=data.series[STATE_TOPIC],
+        subtasks=spans,
+    )
