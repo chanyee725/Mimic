@@ -3,36 +3,28 @@
 State machine: running → judging (stop, or automatically at limitS) → done (verdict).
 """
 
-from datetime import datetime
-
-from app.services import capture
-from app.core import clock
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.models.evaluate import EvalRun
 from app.schemas.evaluate import EvalRunCreate
-from app.services import models
+from app.services import capture, models
+from app.utils.time import now_iso, parse_iso, seconds_since
 
 _runs: dict[str, EvalRun] = {}
 _session_start = ""
 
 
-def now() -> datetime:
-    """Indirection so tests can move time forward."""
-    return clock.now()
-
-
 def reset() -> None:
     global _session_start
     _runs.clear()
-    _session_start = clock.now_iso()
+    _session_start = now_iso()
 
 
 def _tick(run: EvalRun) -> EvalRun:
     """Updates elapsed time; a running run past its limit moves to judging."""
     if run.state != "running":
         return run
-    elapsed = (now() - datetime.fromisoformat(run.started_at)).total_seconds()
+    elapsed = seconds_since(parse_iso(run.started_at))
     if elapsed >= run.limit_s:
         run.state, run.elapsed_s = "judging", run.limit_s
         bus.publish("evaluate.run", run)
@@ -81,7 +73,7 @@ def start(body: EvalRunCreate) -> EvalRun:
         limit_s=body.limit_s,
         record=body.record,
         state="running",
-        started_at=now().isoformat(timespec="milliseconds"),
+        started_at=now_iso(ms=True),
         elapsed_s=0,
     )
     _runs[run.id] = run

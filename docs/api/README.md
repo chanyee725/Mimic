@@ -21,7 +21,7 @@ Every function in `web/src/api` maps to an endpoint here; actions that are no-op
 ## Implementation
 
 - FastAPI, Python 3.12, Pydantic v2, formatted with black. Code lives in [`backend/`](../../backend).
-- Layered: `backend/app/api/v1/routers/<area>.py`, `schemas/<area>.py`, `models/<area>.py`, `services/<area>.py`, `seeds/`, `configs/`.
+- Layered: `backend/app/api/v1/<feature>/<sub-resource>.py`, `schemas/<area>.py`, `models/<area>.py`, `services/<area>.py`, `seeds/`, `configs/`.
 - Until the hardware and storage layers exist, services keep state in memory, seeded with the same data as the web mocks.
 
 ## Frontend mapping

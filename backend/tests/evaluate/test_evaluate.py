@@ -1,7 +1,6 @@
 from datetime import timedelta
 
-from app.core import clock
-from app.services import evaluate as service
+from app.utils import time as clock
 from app.services import models
 
 BODY = {"modelId": "m-stack-20k", "instruction": "stack the blocks", "limitS": 60, "record": False}
@@ -49,10 +48,10 @@ def test_only_one_active_run(client):
     assert client.post("/evaluate/runs", json=BODY).status_code == 409
 
 
-def test_auto_judging_at_limit(client, monkeypatch):
+def test_auto_judging_at_limit(client):
     run = _start(client, limitS=5)
     later = clock.now() + timedelta(seconds=10)
-    monkeypatch.setattr(service, "now", lambda: later)
+    clock.set_clock(lambda: later)
     r = client.get(f"/evaluate/runs/{run['id']}").json()
     assert r["state"] == "judging"
     assert r["elapsedS"] == 5

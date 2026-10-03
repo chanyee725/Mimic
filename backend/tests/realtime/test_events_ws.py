@@ -1,5 +1,5 @@
 from app.core.events import bus
-from app.services.realtime_topics import TOPICS, topic_of
+from app.services.realtime.topics import TOPICS, topic_of
 
 # websocket_connect ignores the client's base_url
 WS = "/api/v1/ws/events"

@@ -41,17 +41,22 @@ Guidance for working in this repository.
   app/
     main.py                  create_app, mounts api_router under /api/v1
     configs/config.py        Config (env VLA_*), REPO_ROOT
-    api/v1/__init__.py       api_router (includes every area router)
-    api/v1/routers/<area>.py HTTP only: params, status codes, call a service
+    api/deps.py              shared params: Pagination (limit/cursor), TaskIdFilter (?taskId)
+    api/v1/__init__.py       api_router (health + every feature package's router)
+    api/v1/<feature>/        __init__.py: router (tags, prefix per include); one module per
+                             sub-resource (e.g. training/jobs.py) — HTTP only: params, status codes, call a service
     schemas/<area>.py        request / response bodies (CamelModel); schemas/common.py: CamelModel, Page, paginate
     models/<area>.py         domain entities kept by services (CamelModel)
-    services/<area>.py       state + rules; helpers as services/<area>_<topic>.py
+    services/<area>.py       state + rules, one file per area; an area with helpers becomes a package
+                             services/<area>/ (training, simulation, capture, tasks, realtime) whose
+                             __init__.py re-exports the public functions
     seeds/                   load(); data/*.json (the mock data); seeds/<area>.py converters
     rpc/                     gRPC: gen/ (generated), servicer.py, server.py
-    core/                    errors, events bus, clock
-  tests/<area>/
+    core/                    errors, events bus
+    utils/                   domain-free helpers: time (now, ISO, set_clock for tests), paths, ids, rng
+  tests/<area>/, tests/utils/
   ```
-- Routers never hold state or rules; services never import FastAPI routers. Cross-area reads go through `app.services.<area>`.
+- Routers never hold state or rules; services never import FastAPI routers. Cross-area reads go through `app.services.<area>`. Date, path, id and seeded-random helpers live in `app.utils` — don't re-implement them in a service.
 - Errors via `ApiError` / `not_found` / `conflict` (uniform `{"error": {...}}` body). Large lists use `paginate()`. Publish changes on `app.core.events.bus`.
 - Comments: short, English. No PII; secrets are write-only.
 - Branches: `feat/backend` ← `feat/backend-*`.

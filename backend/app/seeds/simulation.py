@@ -1,11 +1,11 @@
-"""Simulation jobs and GPU from the web mocks (app/core/seed/simulation.json)."""
+"""Simulation jobs and GPU from the web mocks (seeds/data/simulation.json)."""
 
 import re
 from typing import Any
 
-from app.core.clock import iso
-from app.seeds import load
 from app.models.simulation import SimEpisode, SimGpu, SimJob
+from app.seeds import load
+from app.utils.time import iso
 
 _UNITS = {"h": 3600, "m": 60, "s": 1}
 

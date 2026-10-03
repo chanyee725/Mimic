@@ -4,7 +4,7 @@ import inspect
 import grpc
 import pytest
 
-from app.services import mock_robot
+from app.services.realtime import mock_robot
 from app.rpc.gen import robot_pb2
 from app.rpc.server import serve
 from app.rpc.servicer import RobotStreamService
