@@ -25,6 +25,14 @@ TestTarget = "hf" | "runpod" | "wandb" | "api" | "grpc" | "webrtc" | "slack"
 Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other"; label: string; gb: number }[] }
 ```
 
+## Storage
+
+- `data/settings.yaml`: the whole document (incl. `version`) in snake_case keys; hand-editable. Written on first start from the seeds and after every change. Secrets appear only as `{set, last4}`.
+- `data/secrets.yaml`: raw secret values (mode 0600, write-only, never returned by the API). Its values win over `last4` in settings.yaml on load.
+- An invalid settings.yaml is left untouched and the seeds are used (a warning is logged) until it is fixed.
+- On start, `training.sim_envs_path` sets the simulation environments folder.
+- Disk, shortcuts and versions are not stored.
+
 ## Endpoints
 
 | Method | Path | Body | Returns | Web |
