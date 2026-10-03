@@ -1,0 +1,1157 @@
+{
+  "SIM_ENVS": [
+    {
+      "id": "stack-two-blocks",
+      "name": "Tabletop, two blocks",
+      "path": "~/vla/sim/envs/stack-two-blocks",
+      "description": "Two 4 cm blocks on a 60×40 cm table, same layout as the real workbench.",
+      "taskId": "stack-two-blocks",
+      "cameras": [
+        "top",
+        "wrist"
+      ],
+      "actionDim": 6,
+      "maxSeconds": 40,
+      "calibrated": true,
+      "state": "ready",
+      "manifest": "name: Tabletop, two blocks\ntask: stack-two-blocks\nrobot: so101\nscene: scene.usd\ncameras:\n  top: { resolution: [640, 480], fps: 30 }\n  wrist: { resolution: [640, 480], fps: 30 }\naction_dim: 6\nepisode:\n  max_seconds: 40\n  success: success.py:check\n",
+      "files": [
+        {
+          "path": "env.yaml",
+          "sizeKB": 1
+        },
+        {
+          "path": "scene.usd",
+          "sizeKB": 18400
+        },
+        {
+          "path": "success.py",
+          "sizeKB": 3
+        },
+        {
+          "path": "assets/blocks.usd",
+          "sizeKB": 640
+        }
+      ],
+      "registeredAt": "2026-09-20 10:12",
+      "updatedAt": "2026-10-01 17:40"
+    },
+    {
+      "id": "pick-red-cube",
+      "name": "Tabletop, red cube and bowl",
+      "path": "~/vla/sim/envs/pick-red-cube",
+      "taskId": "pick-red-cube",
+      "cameras": [
+        "top",
+        "wrist"
+      ],
+      "actionDim": 6,
+      "maxSeconds": 40,
+      "calibrated": true,
+      "state": "ready",
+      "manifest": "name: Tabletop, red cube and bowl\ntask: pick-red-cube\nrobot: so101\nscene: scene.usd\ncameras:\n  top: { resolution: [640, 480], fps: 30 }\n  wrist: { resolution: [640, 480], fps: 30 }\naction_dim: 6\nepisode:\n  max_seconds: 40\n  success: success.py:check\n",
+      "files": [
+        {
+          "path": "env.yaml",
+          "sizeKB": 1
+        },
+        {
+          "path": "scene.usd",
+          "sizeKB": 18400
+        },
+        {
+          "path": "success.py",
+          "sizeKB": 3
+        }
+      ],
+      "registeredAt": "2026-09-22 14:30",
+      "updatedAt": "2026-09-28 09:05"
+    },
+    {
+      "id": "open-drawer",
+      "name": "Cabinet with top drawer",
+      "path": "~/vla/sim/envs/open-drawer",
+      "taskId": "open-drawer",
+      "cameras": [
+        "top",
+        "wrist"
+      ],
+      "actionDim": 6,
+      "maxSeconds": 40,
+      "calibrated": true,
+      "state": "ready",
+      "manifest": "name: Cabinet with top drawer\ntask: open-drawer\nrobot: so101\nscene: scene.usd\ncameras:\n  top: { resolution: [640, 480], fps: 30 }\n  wrist: { resolution: [640, 480], fps: 30 }\naction_dim: 6\nepisode:\n  max_seconds: 40\n  success: success.py:check\n",
+      "files": [
+        {
+          "path": "env.yaml",
+          "sizeKB": 1
+        },
+        {
+          "path": "scene.usd",
+          "sizeKB": 18400
+        },
+        {
+          "path": "success.py",
+          "sizeKB": 3
+        }
+      ],
+      "registeredAt": "2026-09-25 11:00",
+      "updatedAt": "2026-09-30 16:22"
+    },
+    {
+      "id": "sort-by-color",
+      "name": "Colour trays",
+      "path": "~/vla/sim/envs/sort-by-color",
+      "description": "Top camera pose not matched to the rig yet",
+      "taskId": "sort-by-color",
+      "cameras": [
+        "top",
+        "wrist"
+      ],
+      "actionDim": 6,
+      "maxSeconds": 40,
+      "calibrated": false,
+      "state": "ready",
+      "manifest": "name: Colour trays\ntask: sort-by-color\nrobot: so101\nscene: scene.usd\ncameras:\n  top: { resolution: [640, 480], fps: 30 }\n  wrist: { resolution: [640, 480], fps: 30 }\naction_dim: 6\nepisode:\n  max_seconds: 40\n  success: success.py:check\n",
+      "files": [
+        {
+          "path": "env.yaml",
+          "sizeKB": 1
+        },
+        {
+          "path": "scene.usd",
+          "sizeKB": 18400
+        },
+        {
+          "path": "success.py",
+          "sizeKB": 3
+        }
+      ],
+      "registeredAt": "2026-09-29 13:45",
+      "updatedAt": "2026-10-01 18:01"
+    },
+    {
+      "id": "clutter-stress",
+      "name": "Cluttered table (stress test)",
+      "path": "~/vla/sim/envs/clutter-stress",
+      "description": "Ten random distractor objects around the target. Not tied to a task; use it to check robustness.",
+      "cameras": [
+        "top",
+        "wrist"
+      ],
+      "actionDim": 6,
+      "maxSeconds": 40,
+      "calibrated": true,
+      "state": "ready",
+      "manifest": "name: Cluttered table (stress test)\nrobot: so101\nscene: scene.usd\ncameras:\n  top: { resolution: [640, 480], fps: 30 }\n  wrist: { resolution: [640, 480], fps: 30 }\naction_dim: 6\nepisode:\n  max_seconds: 40\n  success: success.py:check\n",
+      "files": [
+        {
+          "path": "env.yaml",
+          "sizeKB": 1
+        },
+        {
+          "path": "scene.usd",
+          "sizeKB": 18400
+        },
+        {
+          "path": "success.py",
+          "sizeKB": 3
+        }
+      ],
+      "registeredAt": "2026-10-01 20:10",
+      "updatedAt": "2026-10-01 20:10"
+    },
+    {
+      "id": "top-only-demo",
+      "name": "Top camera only",
+      "path": "~/vla/sim/envs/top-only-demo",
+      "description": "Older demo scene with only the top camera.",
+      "cameras": [
+        "top"
+      ],
+      "actionDim": 6,
+      "maxSeconds": 40,
+      "calibrated": true,
+      "state": "ready",
+      "manifest": "name: Top camera only\nrobot: so101\nscene: scene.usd\ncameras:\n  top: { resolution: [640, 480], fps: 30 }\naction_dim: 6\nepisode:\n  max_seconds: 40\n  success: success.py:check\n",
+      "files": [
+        {
+          "path": "env.yaml",
+          "sizeKB": 1
+        },
+        {
+          "path": "scene.usd",
+          "sizeKB": 18400
+        },
+        {
+          "path": "success.py",
+          "sizeKB": 3
+        }
+      ],
+      "registeredAt": "2026-09-18 09:30",
+      "updatedAt": "2026-09-18 09:30"
+    },
+    {
+      "id": "pour-into-cup",
+      "name": "Two cups",
+      "path": "~/vla/sim/envs/pour-into-cup",
+      "cameras": [
+        "top",
+        "wrist"
+      ],
+      "actionDim": 6,
+      "maxSeconds": 40,
+      "calibrated": true,
+      "state": "invalid",
+      "error": "env.yaml: success.py not found (expected success.py:check)",
+      "manifest": "name: Two cups\nrobot: so101\nscene: scene.usd\ncameras:\n  top: { resolution: [640, 480], fps: 30 }\n  wrist: { resolution: [640, 480], fps: 30 }\naction_dim: 6\nepisode:\n  max_seconds: 40\n  success: success.py:check\n",
+      "files": [
+        {
+          "path": "env.yaml",
+          "sizeKB": 1
+        },
+        {
+          "path": "scene.usd",
+          "sizeKB": 12100
+        }
+      ],
+      "registeredAt": "2026-10-02 08:50",
+      "updatedAt": "2026-10-02 08:50"
+    }
+  ],
+  "SIM_ENVS_DIR": "~/vla/sim/envs",
+  "SIM_GPU": {
+    "id": "cuda:0",
+    "name": "RTX 4090",
+    "vram": "24 GB"
+  },
+  "SIM_JOBS": [
+    {
+      "randomization": "low",
+      "maxSeconds": 40,
+      "id": "sim_012",
+      "modelId": "m-stack-20k",
+      "envId": "stack-two-blocks",
+      "status": "running",
+      "episodes": 100,
+      "seedStart": 1000,
+      "startedAt": "2026-10-02 14:05",
+      "elapsed": "21m",
+      "eta": "36m",
+      "results": [
+        {
+          "index": 0,
+          "seed": 1000,
+          "success": false,
+          "seconds": 32.8,
+          "reason": "Timed out"
+        },
+        {
+          "index": 1,
+          "seed": 1001,
+          "success": true,
+          "seconds": 21.9
+        },
+        {
+          "index": 2,
+          "seed": 1002,
+          "success": true,
+          "seconds": 23.9
+        },
+        {
+          "index": 3,
+          "seed": 1003,
+          "success": false,
+          "seconds": 28.5,
+          "reason": "Wrong placement"
+        },
+        {
+          "index": 4,
+          "seed": 1004,
+          "success": true,
+          "seconds": 29.1
+        },
+        {
+          "index": 5,
+          "seed": 1005,
+          "success": true,
+          "seconds": 19
+        },
+        {
+          "index": 6,
+          "seed": 1006,
+          "success": true,
+          "seconds": 27
+        },
+        {
+          "index": 7,
+          "seed": 1007,
+          "success": true,
+          "seconds": 19.9
+        },
+        {
+          "index": 8,
+          "seed": 1008,
+          "success": true,
+          "seconds": 23.9
+        },
+        {
+          "index": 9,
+          "seed": 1009,
+          "success": true,
+          "seconds": 27.8
+        },
+        {
+          "index": 10,
+          "seed": 1010,
+          "success": true,
+          "seconds": 26.9
+        },
+        {
+          "index": 11,
+          "seed": 1011,
+          "success": false,
+          "seconds": 32.9,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 12,
+          "seed": 1012,
+          "success": true,
+          "seconds": 22.2
+        },
+        {
+          "index": 13,
+          "seed": 1013,
+          "success": true,
+          "seconds": 18.5
+        },
+        {
+          "index": 14,
+          "seed": 1014,
+          "success": true,
+          "seconds": 21.6
+        },
+        {
+          "index": 15,
+          "seed": 1015,
+          "success": true,
+          "seconds": 27.4
+        },
+        {
+          "index": 16,
+          "seed": 1016,
+          "success": true,
+          "seconds": 22.1
+        },
+        {
+          "index": 17,
+          "seed": 1017,
+          "success": false,
+          "seconds": 36.9,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 18,
+          "seed": 1018,
+          "success": true,
+          "seconds": 29.6
+        },
+        {
+          "index": 19,
+          "seed": 1019,
+          "success": true,
+          "seconds": 22.3
+        },
+        {
+          "index": 20,
+          "seed": 1020,
+          "success": false,
+          "seconds": 27.6,
+          "reason": "Wrong placement"
+        },
+        {
+          "index": 21,
+          "seed": 1021,
+          "success": false,
+          "seconds": 26.3,
+          "reason": "Timed out"
+        },
+        {
+          "index": 22,
+          "seed": 1022,
+          "success": false,
+          "seconds": 30,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 23,
+          "seed": 1023,
+          "success": true,
+          "seconds": 22.2
+        },
+        {
+          "index": 24,
+          "seed": 1024,
+          "success": true,
+          "seconds": 27.4
+        },
+        {
+          "index": 25,
+          "seed": 1025,
+          "success": true,
+          "seconds": 21
+        },
+        {
+          "index": 26,
+          "seed": 1026,
+          "success": true,
+          "seconds": 19.2
+        },
+        {
+          "index": 27,
+          "seed": 1027,
+          "success": true,
+          "seconds": 29.2
+        },
+        {
+          "index": 28,
+          "seed": 1028,
+          "success": true,
+          "seconds": 26.2
+        },
+        {
+          "index": 29,
+          "seed": 1029,
+          "success": true,
+          "seconds": 27.3
+        },
+        {
+          "index": 30,
+          "seed": 1030,
+          "success": false,
+          "seconds": 26.3,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 31,
+          "seed": 1031,
+          "success": true,
+          "seconds": 23.2
+        },
+        {
+          "index": 32,
+          "seed": 1032,
+          "success": false,
+          "seconds": 35,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 33,
+          "seed": 1033,
+          "success": true,
+          "seconds": 20.5
+        },
+        {
+          "index": 34,
+          "seed": 1034,
+          "success": false,
+          "seconds": 30.2,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 35,
+          "seed": 1035,
+          "success": false,
+          "seconds": 28.9,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 36,
+          "seed": 1036,
+          "success": true,
+          "seconds": 23.2
+        }
+      ]
+    },
+    {
+      "randomization": "low",
+      "maxSeconds": 40,
+      "id": "sim_013",
+      "modelId": "m-stack-10k",
+      "envId": "stack-two-blocks",
+      "status": "queued",
+      "episodes": 100,
+      "seedStart": 1000,
+      "results": []
+    },
+    {
+      "randomization": "high",
+      "maxSeconds": 40,
+      "id": "sim_011",
+      "modelId": "m-open-drawer-20k",
+      "envId": "open-drawer",
+      "status": "done",
+      "episodes": 50,
+      "seedStart": 2000,
+      "startedAt": "2026-10-02 09:10",
+      "elapsed": "31m",
+      "results": [
+        {
+          "index": 0,
+          "seed": 2000,
+          "success": true,
+          "seconds": 20.9
+        },
+        {
+          "index": 1,
+          "seed": 2001,
+          "success": true,
+          "seconds": 20
+        },
+        {
+          "index": 2,
+          "seed": 2002,
+          "success": false,
+          "seconds": 21,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 3,
+          "seed": 2003,
+          "success": true,
+          "seconds": 17.8
+        },
+        {
+          "index": 4,
+          "seed": 2004,
+          "success": true,
+          "seconds": 18
+        },
+        {
+          "index": 5,
+          "seed": 2005,
+          "success": true,
+          "seconds": 17.8
+        },
+        {
+          "index": 6,
+          "seed": 2006,
+          "success": true,
+          "seconds": 23.3
+        },
+        {
+          "index": 7,
+          "seed": 2007,
+          "success": false,
+          "seconds": 30.1,
+          "reason": "Timed out"
+        },
+        {
+          "index": 8,
+          "seed": 2008,
+          "success": true,
+          "seconds": 19.9
+        },
+        {
+          "index": 9,
+          "seed": 2009,
+          "success": true,
+          "seconds": 15.5
+        },
+        {
+          "index": 10,
+          "seed": 2010,
+          "success": true,
+          "seconds": 21.2
+        },
+        {
+          "index": 11,
+          "seed": 2011,
+          "success": true,
+          "seconds": 17
+        },
+        {
+          "index": 12,
+          "seed": 2012,
+          "success": true,
+          "seconds": 16.4
+        },
+        {
+          "index": 13,
+          "seed": 2013,
+          "success": false,
+          "seconds": 22,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 14,
+          "seed": 2014,
+          "success": true,
+          "seconds": 22.6
+        },
+        {
+          "index": 15,
+          "seed": 2015,
+          "success": true,
+          "seconds": 14.4
+        },
+        {
+          "index": 16,
+          "seed": 2016,
+          "success": false,
+          "seconds": 30.2,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 17,
+          "seed": 2017,
+          "success": true,
+          "seconds": 17
+        },
+        {
+          "index": 18,
+          "seed": 2018,
+          "success": true,
+          "seconds": 23.5
+        },
+        {
+          "index": 19,
+          "seed": 2019,
+          "success": false,
+          "seconds": 26.1,
+          "reason": "Timed out"
+        },
+        {
+          "index": 20,
+          "seed": 2020,
+          "success": false,
+          "seconds": 22.9,
+          "reason": "Wrong placement"
+        },
+        {
+          "index": 21,
+          "seed": 2021,
+          "success": true,
+          "seconds": 23.5
+        },
+        {
+          "index": 22,
+          "seed": 2022,
+          "success": true,
+          "seconds": 14.7
+        },
+        {
+          "index": 23,
+          "seed": 2023,
+          "success": false,
+          "seconds": 28.1,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 24,
+          "seed": 2024,
+          "success": true,
+          "seconds": 21.6
+        },
+        {
+          "index": 25,
+          "seed": 2025,
+          "success": true,
+          "seconds": 21.3
+        },
+        {
+          "index": 26,
+          "seed": 2026,
+          "success": true,
+          "seconds": 14.8
+        },
+        {
+          "index": 27,
+          "seed": 2027,
+          "success": true,
+          "seconds": 22.8
+        },
+        {
+          "index": 28,
+          "seed": 2028,
+          "success": true,
+          "seconds": 14.3
+        },
+        {
+          "index": 29,
+          "seed": 2029,
+          "success": true,
+          "seconds": 18.8
+        },
+        {
+          "index": 30,
+          "seed": 2030,
+          "success": true,
+          "seconds": 23.5
+        },
+        {
+          "index": 31,
+          "seed": 2031,
+          "success": false,
+          "seconds": 22.6,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 32,
+          "seed": 2032,
+          "success": true,
+          "seconds": 21.1
+        },
+        {
+          "index": 33,
+          "seed": 2033,
+          "success": true,
+          "seconds": 16.4
+        },
+        {
+          "index": 34,
+          "seed": 2034,
+          "success": true,
+          "seconds": 19.4
+        },
+        {
+          "index": 35,
+          "seed": 2035,
+          "success": true,
+          "seconds": 14.9
+        },
+        {
+          "index": 36,
+          "seed": 2036,
+          "success": true,
+          "seconds": 23.5
+        },
+        {
+          "index": 37,
+          "seed": 2037,
+          "success": true,
+          "seconds": 18.7
+        },
+        {
+          "index": 38,
+          "seed": 2038,
+          "success": true,
+          "seconds": 19.5
+        },
+        {
+          "index": 39,
+          "seed": 2039,
+          "success": true,
+          "seconds": 21.2
+        },
+        {
+          "index": 40,
+          "seed": 2040,
+          "success": true,
+          "seconds": 23.6
+        },
+        {
+          "index": 41,
+          "seed": 2041,
+          "success": true,
+          "seconds": 19.7
+        },
+        {
+          "index": 42,
+          "seed": 2042,
+          "success": true,
+          "seconds": 19.3
+        },
+        {
+          "index": 43,
+          "seed": 2043,
+          "success": false,
+          "seconds": 20.1,
+          "reason": "Collision with table"
+        },
+        {
+          "index": 44,
+          "seed": 2044,
+          "success": true,
+          "seconds": 15.4
+        },
+        {
+          "index": 45,
+          "seed": 2045,
+          "success": true,
+          "seconds": 20.1
+        },
+        {
+          "index": 46,
+          "seed": 2046,
+          "success": true,
+          "seconds": 16
+        },
+        {
+          "index": 47,
+          "seed": 2047,
+          "success": true,
+          "seconds": 20.7
+        },
+        {
+          "index": 48,
+          "seed": 2048,
+          "success": true,
+          "seconds": 21.5
+        },
+        {
+          "index": 49,
+          "seed": 2049,
+          "success": true,
+          "seconds": 18.9
+        }
+      ]
+    },
+    {
+      "randomization": "high",
+      "maxSeconds": 40,
+      "id": "sim_010",
+      "modelId": "m-open-drawer-15k",
+      "envId": "open-drawer",
+      "status": "done",
+      "episodes": 50,
+      "seedStart": 2000,
+      "startedAt": "2026-10-01 20:40",
+      "elapsed": "33m",
+      "results": [
+        {
+          "index": 0,
+          "seed": 2000,
+          "success": false,
+          "seconds": 28.6,
+          "reason": "Wrong placement"
+        },
+        {
+          "index": 1,
+          "seed": 2001,
+          "success": false,
+          "seconds": 27.4,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 2,
+          "seed": 2002,
+          "success": false,
+          "seconds": 22.1,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 3,
+          "seed": 2003,
+          "success": false,
+          "seconds": 24.4,
+          "reason": "Collision with table"
+        },
+        {
+          "index": 4,
+          "seed": 2004,
+          "success": true,
+          "seconds": 18.9
+        },
+        {
+          "index": 5,
+          "seed": 2005,
+          "success": true,
+          "seconds": 18.8
+        },
+        {
+          "index": 6,
+          "seed": 2006,
+          "success": true,
+          "seconds": 24.5
+        },
+        {
+          "index": 7,
+          "seed": 2007,
+          "success": false,
+          "seconds": 31.6,
+          "reason": "Timed out"
+        },
+        {
+          "index": 8,
+          "seed": 2008,
+          "success": true,
+          "seconds": 20.9
+        },
+        {
+          "index": 9,
+          "seed": 2009,
+          "success": true,
+          "seconds": 16.4
+        },
+        {
+          "index": 10,
+          "seed": 2010,
+          "success": true,
+          "seconds": 22.4
+        },
+        {
+          "index": 11,
+          "seed": 2011,
+          "success": true,
+          "seconds": 17.9
+        },
+        {
+          "index": 12,
+          "seed": 2012,
+          "success": true,
+          "seconds": 17.3
+        },
+        {
+          "index": 13,
+          "seed": 2013,
+          "success": false,
+          "seconds": 23.2,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 14,
+          "seed": 2014,
+          "success": true,
+          "seconds": 23.8
+        },
+        {
+          "index": 15,
+          "seed": 2015,
+          "success": true,
+          "seconds": 15.2
+        },
+        {
+          "index": 16,
+          "seed": 2016,
+          "success": false,
+          "seconds": 31.8,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 17,
+          "seed": 2017,
+          "success": true,
+          "seconds": 17.9
+        },
+        {
+          "index": 18,
+          "seed": 2018,
+          "success": true,
+          "seconds": 24.8
+        },
+        {
+          "index": 19,
+          "seed": 2019,
+          "success": false,
+          "seconds": 27.5,
+          "reason": "Timed out"
+        },
+        {
+          "index": 20,
+          "seed": 2020,
+          "success": false,
+          "seconds": 24.1,
+          "reason": "Wrong placement"
+        },
+        {
+          "index": 21,
+          "seed": 2021,
+          "success": false,
+          "seconds": 32.2,
+          "reason": "Wrong placement"
+        },
+        {
+          "index": 22,
+          "seed": 2022,
+          "success": true,
+          "seconds": 15.4
+        },
+        {
+          "index": 23,
+          "seed": 2023,
+          "success": false,
+          "seconds": 29.6,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 24,
+          "seed": 2024,
+          "success": true,
+          "seconds": 22.8
+        },
+        {
+          "index": 25,
+          "seed": 2025,
+          "success": true,
+          "seconds": 22.4
+        },
+        {
+          "index": 26,
+          "seed": 2026,
+          "success": false,
+          "seconds": 20.2,
+          "reason": "Grasp slipped"
+        },
+        {
+          "index": 27,
+          "seed": 2027,
+          "success": true,
+          "seconds": 24
+        },
+        {
+          "index": 28,
+          "seed": 2028,
+          "success": true,
+          "seconds": 15
+        },
+        {
+          "index": 29,
+          "seed": 2029,
+          "success": true,
+          "seconds": 19.8
+        },
+        {
+          "index": 30,
+          "seed": 2030,
+          "success": true,
+          "seconds": 24.7
+        },
+        {
+          "index": 31,
+          "seed": 2031,
+          "success": false,
+          "seconds": 23.8,
+          "reason": "Dropped object"
+        },
+        {
+          "index": 32,
+          "seed": 2032,
+          "success": true,
+          "seconds": 22.2
+        },
+        {
+          "index": 33,
+          "seed": 2033,
+          "success": true,
+          "seconds": 17.2
+        },
+        {
+          "index": 34,
+          "seed": 2034,
+          "success": true,
+          "seconds": 20.4
+        },
+        {
+          "index": 35,
+          "seed": 2035,
+          "success": true,
+          "seconds": 15.7
+        },
+        {
+          "index": 36,
+          "seed": 2036,
+          "success": true,
+          "seconds": 24.8
+        },
+        {
+          "index": 37,
+          "seed": 2037,
+          "success": true,
+          "seconds": 19.7
+        },
+        {
+          "index": 38,
+          "seed": 2038,
+          "success": true,
+          "seconds": 20.5
+        },
+        {
+          "index": 39,
+          "seed": 2039,
+          "success": true,
+          "seconds": 22.3
+        },
+        {
+          "index": 40,
+          "seed": 2040,
+          "success": true,
+          "seconds": 24.8
+        },
+        {
+          "index": 41,
+          "seed": 2041,
+          "success": true,
+          "seconds": 20.7
+        },
+        {
+          "index": 42,
+          "seed": 2042,
+          "success": false,
+          "seconds": 26.4,
+          "reason": "Timed out"
+        },
+        {
+          "index": 43,
+          "seed": 2043,
+          "success": false,
+          "seconds": 21.1,
+          "reason": "Collision with table"
+        },
+        {
+          "index": 44,
+          "seed": 2044,
+          "success": true,
+          "seconds": 16.2
+        },
+        {
+          "index": 45,
+          "seed": 2045,
+          "success": true,
+          "seconds": 21.1
+        },
+        {
+          "index": 46,
+          "seed": 2046,
+          "success": false,
+          "seconds": 21.9,
+          "reason": "Timed out"
+        },
+        {
+          "index": 47,
+          "seed": 2047,
+          "success": false,
+          "seconds": 28.3,
+          "reason": "Wrong placement"
+        },
+        {
+          "index": 48,
+          "seed": 2048,
+          "success": true,
+          "seconds": 22.6
+        },
+        {
+          "index": 49,
+          "seed": 2049,
+          "success": true,
+          "seconds": 19.9
+        }
+      ]
+    },
+    {
+      "randomization": "low",
+      "maxSeconds": 40,
+      "id": "sim_009",
+      "modelId": "m-stack-20k",
+      "envId": "sort-by-color",
+      "status": "failed",
+      "episodes": 50,
+      "seedStart": 3000,
+      "startedAt": "2026-10-01 18:02",
+      "elapsed": "1m",
+      "results": [],
+      "error": "Isaac Sim could not load sort-by-color/scene.usd: missing asset trays/blue_tray.usd. Re-export the scene into the environment folder and rescan."
+    }
+  ]
+}

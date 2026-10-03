@@ -1,0 +1,665 @@
+{
+  "DATASETS": [
+    {
+      "kind": "lerobot",
+      "repoId": "local/stack_two_blocks",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "format": "LeRobot v3.0",
+      "fps": 30,
+      "status": "ready",
+      "createdAt": "2026-10-01 18:20",
+      "sizeGB": 1.4,
+      "hub": {
+        "pushed": true,
+        "private": true
+      },
+      "features": [
+        {
+          "key": "action",
+          "dtype": "float32",
+          "shape": "[6]",
+          "note": "60 Hz → 30 Hz"
+        },
+        {
+          "key": "observation.state",
+          "dtype": "float32",
+          "shape": "[6]"
+        },
+        {
+          "key": "observation.images.top",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "observation.images.wrist",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "subtask_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "timestamp",
+          "dtype": "float32",
+          "shape": "[1]"
+        },
+        {
+          "key": "frame_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "episode_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "task_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        }
+      ],
+      "episodes": [
+        {
+          "index": 0,
+          "source": "stack-two-blocks/ep_0030.mcap",
+          "lengthS": 24,
+          "frames": 720
+        },
+        {
+          "index": 1,
+          "source": "stack-two-blocks/ep_0031.mcap",
+          "lengthS": 27.5,
+          "frames": 825
+        },
+        {
+          "index": 2,
+          "source": "stack-two-blocks/ep_0032.mcap",
+          "lengthS": 22.1,
+          "frames": 663
+        },
+        {
+          "index": 3,
+          "source": "stack-two-blocks/ep_0033.mcap",
+          "lengthS": 21,
+          "frames": 630
+        },
+        {
+          "index": 4,
+          "source": "stack-two-blocks/ep_0034.mcap",
+          "lengthS": 26.5,
+          "frames": 795
+        },
+        {
+          "index": 5,
+          "source": "stack-two-blocks/ep_0035.mcap",
+          "lengthS": 23.5,
+          "frames": 705
+        },
+        {
+          "index": 6,
+          "source": "stack-two-blocks/ep_0036.mcap",
+          "lengthS": 25,
+          "frames": 750
+        },
+        {
+          "index": 7,
+          "source": "stack-two-blocks/ep_0037.mcap",
+          "lengthS": 20.5,
+          "frames": 615
+        },
+        {
+          "index": 8,
+          "source": "stack-two-blocks/ep_0038.mcap",
+          "lengthS": 28,
+          "frames": 840
+        },
+        {
+          "index": 9,
+          "source": "stack-two-blocks/ep_0039.mcap",
+          "lengthS": 22.5,
+          "frames": 675
+        }
+      ]
+    },
+    {
+      "kind": "lerobot",
+      "repoId": "local/open_drawer",
+      "taskId": "open-drawer",
+      "rigId": "so101-kit",
+      "format": "LeRobot v3.0",
+      "fps": 30,
+      "status": "ready",
+      "createdAt": "2026-09-30 21:05",
+      "sizeGB": 2.3,
+      "hub": {
+        "pushed": true,
+        "private": true
+      },
+      "features": [
+        {
+          "key": "action",
+          "dtype": "float32",
+          "shape": "[6]",
+          "note": "60 Hz → 30 Hz"
+        },
+        {
+          "key": "observation.state",
+          "dtype": "float32",
+          "shape": "[6]"
+        },
+        {
+          "key": "observation.images.top",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "observation.images.wrist",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "subtask_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "timestamp",
+          "dtype": "float32",
+          "shape": "[1]"
+        },
+        {
+          "key": "frame_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "episode_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "task_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        }
+      ],
+      "episodes": [
+        {
+          "index": 0,
+          "source": "open-drawer/ep_0001.mcap",
+          "lengthS": 18.5,
+          "frames": 555
+        },
+        {
+          "index": 1,
+          "source": "open-drawer/ep_0002.mcap",
+          "lengthS": 20,
+          "frames": 600
+        },
+        {
+          "index": 2,
+          "source": "open-drawer/ep_0003.mcap",
+          "lengthS": 19.2,
+          "frames": 576
+        },
+        {
+          "index": 3,
+          "source": "open-drawer/ep_0004.mcap",
+          "lengthS": 21.8,
+          "frames": 654
+        },
+        {
+          "index": 4,
+          "source": "open-drawer/ep_0005.mcap",
+          "lengthS": 17.9,
+          "frames": 537
+        },
+        {
+          "index": 5,
+          "source": "open-drawer/ep_0006.mcap",
+          "lengthS": 22.4,
+          "frames": 672
+        },
+        {
+          "index": 6,
+          "source": "open-drawer/ep_0007.mcap",
+          "lengthS": 20.6,
+          "frames": 618
+        },
+        {
+          "index": 7,
+          "source": "open-drawer/ep_0008.mcap",
+          "lengthS": 19,
+          "frames": 570
+        }
+      ]
+    },
+    {
+      "kind": "lerobot",
+      "repoId": "local/pick_red_cube",
+      "taskId": "pick-red-cube",
+      "rigId": "so101-kit",
+      "format": "LeRobot v3.0",
+      "fps": 30,
+      "status": "converting",
+      "progress": 37,
+      "createdAt": "2026-10-02 11:40",
+      "sizeGB": 0.3,
+      "hub": {
+        "pushed": false,
+        "private": true
+      },
+      "features": [
+        {
+          "key": "action",
+          "dtype": "float32",
+          "shape": "[6]",
+          "note": "60 Hz → 30 Hz"
+        },
+        {
+          "key": "observation.state",
+          "dtype": "float32",
+          "shape": "[6]"
+        },
+        {
+          "key": "observation.images.top",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "observation.images.wrist",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "subtask_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "timestamp",
+          "dtype": "float32",
+          "shape": "[1]"
+        },
+        {
+          "key": "frame_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "episode_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "task_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        }
+      ],
+      "episodes": [
+        {
+          "index": 0,
+          "source": "pick-red-cube/ep_0001.mcap",
+          "lengthS": 18.2,
+          "frames": 546
+        },
+        {
+          "index": 1,
+          "source": "pick-red-cube/ep_0002.mcap",
+          "lengthS": 19,
+          "frames": 570
+        },
+        {
+          "index": 2,
+          "source": "pick-red-cube/ep_0003.mcap",
+          "lengthS": 17.5,
+          "frames": 525
+        }
+      ]
+    },
+    {
+      "kind": "lerobot",
+      "repoId": "local/pour_into_cup",
+      "taskId": "pour-into-cup",
+      "rigId": "so101-kit",
+      "format": "LeRobot v3.0",
+      "fps": 30,
+      "status": "failed",
+      "createdAt": "2026-09-29 16:12",
+      "sizeGB": 0,
+      "hub": {
+        "pushed": false,
+        "private": true
+      },
+      "features": [
+        {
+          "key": "action",
+          "dtype": "float32",
+          "shape": "[6]",
+          "note": "60 Hz → 30 Hz"
+        },
+        {
+          "key": "observation.state",
+          "dtype": "float32",
+          "shape": "[6]"
+        },
+        {
+          "key": "observation.images.top",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "observation.images.wrist",
+          "dtype": "video",
+          "shape": "[480, 640, 3]",
+          "note": "AV1"
+        },
+        {
+          "key": "subtask_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "timestamp",
+          "dtype": "float32",
+          "shape": "[1]"
+        },
+        {
+          "key": "frame_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "episode_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        },
+        {
+          "key": "task_index",
+          "dtype": "int64",
+          "shape": "[1]"
+        }
+      ],
+      "episodes": []
+    },
+    {
+      "kind": "mcap",
+      "repoId": "raw/stack_two_blocks",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "format": "MCAP",
+      "fps": 30,
+      "status": "ready",
+      "createdAt": "2026-10-01 18:02",
+      "sizeGB": 0.9,
+      "hub": {
+        "pushed": true,
+        "private": true
+      },
+      "features": [
+        {
+          "key": "/so101_leader/action",
+          "dtype": "vla.robot.JointCommand",
+          "shape": "60 Hz"
+        },
+        {
+          "key": "/so101_follower/state",
+          "dtype": "vla.robot.JointState",
+          "shape": "60 Hz"
+        },
+        {
+          "key": "/cam_top/image",
+          "dtype": "foxglove.CompressedVideo",
+          "shape": "30 fps"
+        },
+        {
+          "key": "/cam_wrist/image",
+          "dtype": "foxglove.CompressedVideo",
+          "shape": "30 fps"
+        },
+        {
+          "key": "/labels/subtask",
+          "dtype": "vla.session.SubtaskEvent",
+          "shape": "event"
+        },
+        {
+          "key": "/labels/outcome",
+          "dtype": "vla.session.OutcomeEvent",
+          "shape": "event"
+        }
+      ],
+      "episodes": [
+        {
+          "index": 0,
+          "source": "stack-two-blocks/ep_0030.mcap",
+          "lengthS": 24,
+          "frames": 720
+        },
+        {
+          "index": 1,
+          "source": "stack-two-blocks/ep_0031.mcap",
+          "lengthS": 27.5,
+          "frames": 825
+        },
+        {
+          "index": 2,
+          "source": "stack-two-blocks/ep_0032.mcap",
+          "lengthS": 22.1,
+          "frames": 663
+        },
+        {
+          "index": 3,
+          "source": "stack-two-blocks/ep_0033.mcap",
+          "lengthS": 21,
+          "frames": 630
+        },
+        {
+          "index": 4,
+          "source": "stack-two-blocks/ep_0034.mcap",
+          "lengthS": 26.5,
+          "frames": 795
+        },
+        {
+          "index": 5,
+          "source": "stack-two-blocks/ep_0035.mcap",
+          "lengthS": 23.5,
+          "frames": 705
+        },
+        {
+          "index": 6,
+          "source": "stack-two-blocks/ep_0036.mcap",
+          "lengthS": 25,
+          "frames": 750
+        },
+        {
+          "index": 7,
+          "source": "stack-two-blocks/ep_0037.mcap",
+          "lengthS": 20.5,
+          "frames": 615
+        },
+        {
+          "index": 8,
+          "source": "stack-two-blocks/ep_0038.mcap",
+          "lengthS": 28,
+          "frames": 840
+        },
+        {
+          "index": 9,
+          "source": "stack-two-blocks/ep_0039.mcap",
+          "lengthS": 22.5,
+          "frames": 675
+        },
+        {
+          "index": 10,
+          "source": "stack-two-blocks/ep_0040.mcap",
+          "lengthS": 21.5,
+          "frames": 645
+        },
+        {
+          "index": 11,
+          "source": "stack-two-blocks/ep_0041.mcap",
+          "lengthS": 29,
+          "frames": 870
+        }
+      ]
+    },
+    {
+      "kind": "mcap",
+      "repoId": "raw/sort_by_color",
+      "taskId": "sort-by-color",
+      "rigId": "so101-kit",
+      "format": "MCAP",
+      "fps": 30,
+      "status": "ready",
+      "createdAt": "2026-09-27 10:44",
+      "sizeGB": 0.4,
+      "hub": {
+        "pushed": false,
+        "private": true
+      },
+      "features": [
+        {
+          "key": "/so101_leader/action",
+          "dtype": "vla.robot.JointCommand",
+          "shape": "60 Hz"
+        },
+        {
+          "key": "/so101_follower/state",
+          "dtype": "vla.robot.JointState",
+          "shape": "60 Hz"
+        },
+        {
+          "key": "/cam_top/image",
+          "dtype": "foxglove.CompressedVideo",
+          "shape": "30 fps"
+        },
+        {
+          "key": "/cam_wrist/image",
+          "dtype": "foxglove.CompressedVideo",
+          "shape": "30 fps"
+        },
+        {
+          "key": "/labels/subtask",
+          "dtype": "vla.session.SubtaskEvent",
+          "shape": "event"
+        },
+        {
+          "key": "/labels/outcome",
+          "dtype": "vla.session.OutcomeEvent",
+          "shape": "event"
+        }
+      ],
+      "episodes": [
+        {
+          "index": 0,
+          "source": "sort-by-color/ep_0001.mcap",
+          "lengthS": 31,
+          "frames": 930
+        },
+        {
+          "index": 1,
+          "source": "sort-by-color/ep_0002.mcap",
+          "lengthS": 34.5,
+          "frames": 1035
+        },
+        {
+          "index": 2,
+          "source": "sort-by-color/ep_0003.mcap",
+          "lengthS": 29.8,
+          "frames": 894
+        },
+        {
+          "index": 3,
+          "source": "sort-by-color/ep_0004.mcap",
+          "lengthS": 33.2,
+          "frames": 996
+        },
+        {
+          "index": 4,
+          "source": "sort-by-color/ep_0005.mcap",
+          "lengthS": 30.6,
+          "frames": 918
+        }
+      ]
+    },
+    {
+      "kind": "mcap",
+      "repoId": "raw/wipe_table",
+      "taskId": "wipe-table",
+      "rigId": "so101-kit",
+      "format": "MCAP",
+      "fps": 30,
+      "status": "ready",
+      "createdAt": "2026-09-25 14:20",
+      "sizeGB": 0.2,
+      "hub": {
+        "pushed": false,
+        "private": true
+      },
+      "features": [
+        {
+          "key": "/so101_leader/action",
+          "dtype": "vla.robot.JointCommand",
+          "shape": "60 Hz"
+        },
+        {
+          "key": "/so101_follower/state",
+          "dtype": "vla.robot.JointState",
+          "shape": "60 Hz"
+        },
+        {
+          "key": "/cam_top/image",
+          "dtype": "foxglove.CompressedVideo",
+          "shape": "30 fps"
+        },
+        {
+          "key": "/cam_wrist/image",
+          "dtype": "foxglove.CompressedVideo",
+          "shape": "30 fps"
+        },
+        {
+          "key": "/labels/subtask",
+          "dtype": "vla.session.SubtaskEvent",
+          "shape": "event"
+        },
+        {
+          "key": "/labels/outcome",
+          "dtype": "vla.session.OutcomeEvent",
+          "shape": "event"
+        }
+      ],
+      "episodes": [
+        {
+          "index": 0,
+          "source": "wipe-table/ep_0001.mcap",
+          "lengthS": 15.4,
+          "frames": 462
+        },
+        {
+          "index": 1,
+          "source": "wipe-table/ep_0002.mcap",
+          "lengthS": 17,
+          "frames": 510
+        },
+        {
+          "index": 2,
+          "source": "wipe-table/ep_0003.mcap",
+          "lengthS": 16.2,
+          "frames": 486
+        }
+      ]
+    }
+  ]
+}

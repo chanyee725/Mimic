@@ -1,0 +1,2009 @@
+{
+  "RECORDINGS": [
+    {
+      "id": "stack-two-blocks-30",
+      "file": "stack-two-blocks/ep_0030.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 30,
+      "recordedAt": "2026-09-30 09:00",
+      "durationS": 23,
+      "sizeMB": 43.7,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 690
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 690
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.1
+        },
+        {
+          "name": "grasp",
+          "startS": 5.1,
+          "endS": 9.2
+        },
+        {
+          "name": "lift",
+          "startS": 9.2,
+          "endS": 15
+        },
+        {
+          "name": "place",
+          "startS": 15,
+          "endS": 23
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1380 / 1380",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "690 / 690",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-31",
+      "file": "stack-two-blocks/ep_0031.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 31,
+      "recordedAt": "2026-09-30 10:07",
+      "durationS": 21.5,
+      "sizeMB": 41.9,
+      "outcome": "fail",
+      "review": "rejected",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1290
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1290
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 645
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 645
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 4.7
+        },
+        {
+          "name": "grasp",
+          "startS": 4.7,
+          "endS": 8.6
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1290 / 1290",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "645 / 645",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "2 / 4",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-32",
+      "file": "stack-two-blocks/ep_0032.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 32,
+      "recordedAt": "2026-09-30 11:14",
+      "durationS": 29,
+      "sizeMB": 57.1,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1740
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1740
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 870
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 870
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 6.4
+        },
+        {
+          "name": "grasp",
+          "startS": 6.4,
+          "endS": 11.6
+        },
+        {
+          "name": "lift",
+          "startS": 11.6,
+          "endS": 18.9
+        },
+        {
+          "name": "place",
+          "startS": 18.9,
+          "endS": 29
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1740 / 1740",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "870 / 870",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-33",
+      "file": "stack-two-blocks/ep_0033.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 33,
+      "recordedAt": "2026-09-30 12:21",
+      "durationS": 26,
+      "sizeMB": 52.4,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1560
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1560
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 780
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 780
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.7
+        },
+        {
+          "name": "grasp",
+          "startS": 5.7,
+          "endS": 10.4
+        },
+        {
+          "name": "lift",
+          "startS": 10.4,
+          "endS": 16.9
+        },
+        {
+          "name": "place",
+          "startS": 16.9,
+          "endS": 26
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1560 / 1560",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "780 / 780",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-34",
+      "file": "stack-two-blocks/ep_0034.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 34,
+      "recordedAt": "2026-09-30 13:28",
+      "durationS": 24.5,
+      "sizeMB": 50.5,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1470
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1470
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 735
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 735
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.4
+        },
+        {
+          "name": "grasp",
+          "startS": 5.4,
+          "endS": 9.8
+        },
+        {
+          "name": "lift",
+          "startS": 9.8,
+          "endS": 15.9
+        },
+        {
+          "name": "place",
+          "startS": 15.9,
+          "endS": 24.5
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1470 / 1470",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "735 / 735",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-35",
+      "file": "stack-two-blocks/ep_0035.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 35,
+      "recordedAt": "2026-09-30 14:35",
+      "durationS": 23,
+      "sizeMB": 48.7,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 690
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 690
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.1
+        },
+        {
+          "name": "grasp",
+          "startS": 5.1,
+          "endS": 9.2
+        },
+        {
+          "name": "lift",
+          "startS": 9.2,
+          "endS": 15
+        },
+        {
+          "name": "place",
+          "startS": 15,
+          "endS": 23
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1380 / 1380",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "690 / 690",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-36",
+      "file": "stack-two-blocks/ep_0036.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 36,
+      "recordedAt": "2026-09-30 15:42",
+      "durationS": 20,
+      "sizeMB": 44,
+      "outcome": "partial",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1200
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1200
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 600
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 600
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 4.4
+        },
+        {
+          "name": "grasp",
+          "startS": 4.4,
+          "endS": 8
+        },
+        {
+          "name": "lift",
+          "startS": 8,
+          "endS": 13
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1200 / 1200",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "600 / 600",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "3 / 4",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-37",
+      "file": "stack-two-blocks/ep_0037.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 37,
+      "recordedAt": "2026-09-30 16:49",
+      "durationS": 27.5,
+      "sizeMB": 59.3,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1650
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1650
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 825
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 825
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 6
+        },
+        {
+          "name": "grasp",
+          "startS": 6,
+          "endS": 11
+        },
+        {
+          "name": "lift",
+          "startS": 11,
+          "endS": 17.9
+        },
+        {
+          "name": "place",
+          "startS": 17.9,
+          "endS": 27.5
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1650 / 1650",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "825 / 825",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-38",
+      "file": "stack-two-blocks/ep_0038.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 38,
+      "recordedAt": "2026-09-30 17:56",
+      "durationS": 26,
+      "sizeMB": 57.4,
+      "outcome": "fail",
+      "review": "rejected",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1560
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1560
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 780
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 780
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.7
+        },
+        {
+          "name": "grasp",
+          "startS": 5.7,
+          "endS": 10.4
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1560 / 1560",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "780 / 780",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "2 / 4",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-39",
+      "file": "stack-two-blocks/ep_0039.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 39,
+      "recordedAt": "2026-10-01 09:03",
+      "durationS": 23,
+      "sizeMB": 52.7,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 690
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 690
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.1
+        },
+        {
+          "name": "grasp",
+          "startS": 5.1,
+          "endS": 9.2
+        },
+        {
+          "name": "lift",
+          "startS": 9.2,
+          "endS": 15
+        },
+        {
+          "name": "place",
+          "startS": 15,
+          "endS": 23
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1380 / 1380",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "690 / 690",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-40",
+      "file": "stack-two-blocks/ep_0040.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 40,
+      "recordedAt": "2026-10-01 10:10",
+      "durationS": 21.5,
+      "sizeMB": 50.9,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1290
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1290
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 645
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 645
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 4.7
+        },
+        {
+          "name": "grasp",
+          "startS": 4.7,
+          "endS": 8.6
+        },
+        {
+          "name": "lift",
+          "startS": 8.6,
+          "endS": 14
+        },
+        {
+          "name": "place",
+          "startS": 14,
+          "endS": 21.5
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1290 / 1290",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "645 / 645",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-41",
+      "file": "stack-two-blocks/ep_0041.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 41,
+      "recordedAt": "2026-10-01 11:17",
+      "durationS": 29,
+      "sizeMB": 66.1,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1740
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1740
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 870
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 870
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 6.4
+        },
+        {
+          "name": "grasp",
+          "startS": 6.4,
+          "endS": 11.6
+        },
+        {
+          "name": "lift",
+          "startS": 11.6,
+          "endS": 18.9
+        },
+        {
+          "name": "place",
+          "startS": 18.9,
+          "endS": 29
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1740 / 1740",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "870 / 870",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-42",
+      "file": "stack-two-blocks/ep_0042.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 42,
+      "recordedAt": "2026-10-01 12:24",
+      "durationS": 26,
+      "sizeMB": 61.4,
+      "outcome": "success",
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1560
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1560
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 780
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 780
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.7
+        },
+        {
+          "name": "grasp",
+          "startS": 5.7,
+          "endS": 10.4
+        },
+        {
+          "name": "lift",
+          "startS": 10.4,
+          "endS": 16.9
+        },
+        {
+          "name": "place",
+          "startS": 16.9,
+          "endS": 26
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1560 / 1560",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "780 / 780",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-43",
+      "file": "stack-two-blocks/ep_0043.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 43,
+      "recordedAt": "2026-10-01 13:31",
+      "durationS": 24.5,
+      "sizeMB": 59.5,
+      "outcome": "success",
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1470
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1470
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 735
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 735
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.4
+        },
+        {
+          "name": "grasp",
+          "startS": 5.4,
+          "endS": 9.8
+        },
+        {
+          "name": "lift",
+          "startS": 9.8,
+          "endS": 15.9
+        },
+        {
+          "name": "place",
+          "startS": 15.9,
+          "endS": 24.5
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1470 / 1470",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "735 / 735",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-44",
+      "file": "stack-two-blocks/ep_0044.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 44,
+      "recordedAt": "2026-10-01 14:38",
+      "durationS": 23,
+      "sizeMB": 57.7,
+      "outcome": "success",
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1380
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 690
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 676
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 5.1
+        },
+        {
+          "name": "grasp",
+          "startS": 5.1,
+          "endS": 9.2
+        },
+        {
+          "name": "lift",
+          "startS": 9.2,
+          "endS": 15
+        },
+        {
+          "name": "place",
+          "startS": 15,
+          "endS": 23
+        }
+      ],
+      "drops": [
+        14.3,
+        14.7
+      ],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1380 / 1380",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "676 / 690",
+          "ok": false
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 71 ms",
+          "ok": false
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-45",
+      "file": "stack-two-blocks/ep_0045.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 45,
+      "recordedAt": "2026-10-01 15:45",
+      "durationS": 20,
+      "sizeMB": 53,
+      "outcome": "fail",
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1200
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1200
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 600
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 600
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 4.4
+        },
+        {
+          "name": "grasp",
+          "startS": 4.4,
+          "endS": 8
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1200 / 1200",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "600 / 600",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "2 / 4",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "stack-two-blocks-46",
+      "file": "stack-two-blocks/ep_0046.mcap",
+      "source": "capture",
+      "taskId": "stack-two-blocks",
+      "rigId": "so101-kit",
+      "episode": 46,
+      "recordedAt": "2026-10-01 16:52",
+      "durationS": 27.5,
+      "sizeMB": 68.3,
+      "outcome": "success",
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1650
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1650
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 825
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 825
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 6
+        },
+        {
+          "name": "grasp",
+          "startS": 6,
+          "endS": 11
+        },
+        {
+          "name": "lift",
+          "startS": 11,
+          "endS": 17.9
+        },
+        {
+          "name": "place",
+          "startS": 17.9,
+          "endS": 27.5
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1650 / 1650",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "825 / 825",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "pick-red-cube-13",
+      "file": "pick-red-cube/ep_0013.mcap",
+      "source": "capture",
+      "taskId": "pick-red-cube",
+      "rigId": "so101-kit",
+      "episode": 13,
+      "recordedAt": "2026-09-30 14:35",
+      "durationS": 18.2,
+      "sizeMB": 39.6,
+      "outcome": "success",
+      "review": "accepted",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1092
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1092
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 546
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 546
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 4
+        },
+        {
+          "name": "grasp",
+          "startS": 4,
+          "endS": 7.3
+        },
+        {
+          "name": "lift",
+          "startS": 7.3,
+          "endS": 11.8
+        },
+        {
+          "name": "place",
+          "startS": 11.8,
+          "endS": 18.2
+        }
+      ],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1092 / 1092",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "546 / 546",
+          "ok": true
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 34 ms",
+          "ok": true
+        },
+        {
+          "label": "Subtasks",
+          "value": "4 / 4",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "pick-red-cube-14",
+      "file": "pick-red-cube/ep_0014.mcap",
+      "source": "capture",
+      "taskId": "pick-red-cube",
+      "rigId": "so101-kit",
+      "episode": 14,
+      "recordedAt": "2026-09-30 15:42",
+      "durationS": 19,
+      "sizeMB": 42.1,
+      "outcome": "fail",
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/so101_leader/action",
+          "schema": "vla.robot.JointCommand",
+          "kind": "action",
+          "rateHz": 60,
+          "messages": 1140
+        },
+        {
+          "name": "/so101_follower/state",
+          "schema": "vla.robot.JointState",
+          "kind": "state",
+          "rateHz": 60,
+          "messages": 1140
+        },
+        {
+          "name": "/cam_top/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 570
+        },
+        {
+          "name": "/cam_wrist/image",
+          "schema": "foxglove.CompressedVideo",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 556
+        },
+        {
+          "name": "/labels/subtask",
+          "schema": "vla.session.SubtaskEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 4
+        },
+        {
+          "name": "/labels/outcome",
+          "schema": "vla.session.OutcomeEvent",
+          "kind": "label",
+          "rateHz": null,
+          "messages": 1
+        }
+      ],
+      "subtasks": [
+        {
+          "name": "reach",
+          "startS": 0,
+          "endS": 4.2
+        },
+        {
+          "name": "grasp",
+          "startS": 4.2,
+          "endS": 7.6
+        }
+      ],
+      "drops": [
+        11.8,
+        12.2
+      ],
+      "checks": [
+        {
+          "label": "Action samples",
+          "value": "1140 / 1140",
+          "ok": true
+        },
+        {
+          "label": "Video frames",
+          "value": "556 / 570",
+          "ok": false
+        },
+        {
+          "label": "Timestamp gap",
+          "value": "max 71 ms",
+          "ok": false
+        },
+        {
+          "label": "Subtasks",
+          "value": "2 / 4",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "ext-glove-0001",
+      "file": "imports/glove_session_0001.mcap",
+      "source": "external",
+      "recordedAt": "2026-09-29 15:10",
+      "durationS": 41.3,
+      "sizeMB": 12.4,
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/glove_r/imu",
+          "schema": "sensor_msgs/Imu",
+          "kind": "glove",
+          "rateHz": 200,
+          "messages": 8260
+        },
+        {
+          "name": "/glove_r/flex",
+          "schema": "std_msgs/Float32MultiArray",
+          "kind": "glove",
+          "rateHz": 100,
+          "messages": 4130
+        },
+        {
+          "name": "/glove_r/tactile",
+          "schema": "std_msgs/Float32MultiArray",
+          "kind": "glove",
+          "rateHz": 100,
+          "messages": 4130
+        },
+        {
+          "name": "/camera/color/image_raw",
+          "schema": "sensor_msgs/CompressedImage",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 1239
+        }
+      ],
+      "subtasks": [],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Metadata",
+          "value": "missing task / rig",
+          "ok": false
+        },
+        {
+          "label": "Video frames",
+          "value": "1,239 / 1,239",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "ext-ros2-0003",
+      "file": "imports/ros2_bag_0003.mcap",
+      "source": "external",
+      "recordedAt": "2026-09-28 11:42",
+      "durationS": 33,
+      "sizeMB": 58.7,
+      "review": "pending",
+      "topics": [
+        {
+          "name": "/joint_states",
+          "schema": "sensor_msgs/JointState",
+          "kind": "state",
+          "rateHz": 50,
+          "messages": 1650
+        },
+        {
+          "name": "/arm_controller/command",
+          "schema": "trajectory_msgs/JointTrajectory",
+          "kind": "action",
+          "rateHz": 50,
+          "messages": 1650
+        },
+        {
+          "name": "/camera/image_raw/compressed",
+          "schema": "sensor_msgs/CompressedImage",
+          "kind": "video",
+          "rateHz": 30,
+          "messages": 990
+        },
+        {
+          "name": "/tf",
+          "schema": "tf2_msgs/TFMessage",
+          "kind": "other",
+          "rateHz": 100,
+          "messages": 3300
+        }
+      ],
+      "subtasks": [],
+      "drops": [],
+      "checks": [
+        {
+          "label": "Metadata",
+          "value": "missing task / rig",
+          "ok": false
+        },
+        {
+          "label": "Action samples",
+          "value": "1,650 / 1,650",
+          "ok": true
+        }
+      ]
+    }
+  ]
+}
