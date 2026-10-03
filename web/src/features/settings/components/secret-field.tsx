@@ -9,7 +9,6 @@ import type { Secret, SecretName } from "@/domain/settings"
 const ENV_VAR: Record<SecretName, string> = {
   hf_token: "HF_TOKEN",
   runpod_api_key: "RUNPOD_API_KEY",
-  wandb_api_key: "WANDB_API_KEY",
   slack_webhook: "SLACK_WEBHOOK_URL",
 }
 

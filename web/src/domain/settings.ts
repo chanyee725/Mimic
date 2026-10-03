@@ -16,7 +16,6 @@ export type Settings = {
       spentThisMonth: number
       state: ConnState
     }
-    wandb: { apiKey: Secret; project: string; enableByDefault: boolean; state: ConnState }
   }
   storage: {
     rawPath: string
@@ -45,9 +44,9 @@ type DeepPartial<T> = T extends unknown[] ? T : T extends object ? { [K in keyof
 /** Body of PATCH /settings/{section}: changed fields of that section plus the document version (nested objects merge) */
 export type SettingsPatch<S extends SettingsSection = SettingsSection> = { version: number } & DeepPartial<Settings[S]>
 
-export type SecretName = "hf_token" | "runpod_api_key" | "wandb_api_key" | "slack_webhook"
+export type SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"
 
-export type TestTarget = "hf" | "runpod" | "wandb" | "api" | "grpc" | "webrtc" | "slack"
+export type TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "slack"
 
 export type ConnTestResult = { state: ConnState; latencyMs?: number; detail?: string }
 

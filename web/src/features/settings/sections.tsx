@@ -16,7 +16,7 @@ export const SECTIONS: Section[] = [
     id: "integrations",
     label: "Integrations",
     icon: LuPlug,
-    description: "Hugging Face, RunPod, Weights & Biases 계정을 연결합니다.",
+    description: "Hugging Face, RunPod 계정을 연결합니다.",
     render: () => <IntegrationsSection />,
   },
   {

@@ -16,7 +16,7 @@ export function IntegrationsSection() {
   const { query, server, draft, set, saveBar } = useSettingsDraft("integrations")
   const runpodConfig = useTrainingConfig().data?.runpod
   if (!draft || !server) return <SectionPending query={query} />
-  const { hf, runpod, wandb } = draft
+  const { hf, runpod } = draft
   // Keep the saved value selectable while the RunPod catalogue loads
   const regions = runpodConfig?.regions ?? [runpod.region]
   const volumes = runpodConfig?.volumes ?? [{ id: runpod.volume, label: runpod.volume }]
@@ -94,31 +94,6 @@ export function IntegrationsSection() {
             onChange={(e) => set("runpod", { ...runpod, idleAlertMin: Number(e.target.value) || 0 })}
           />
           <span className="text-xs text-muted-foreground">min</span>
-        </SettingRow>
-      </SettingsSection>
-
-      <SettingsSection title="Weights & Biases">
-        <SettingRow label="Status">
-          <ConnStatus target="wandb" state={server.wandb.state} canTest={server.wandb.apiKey.set} />
-        </SettingRow>
-        <SettingRow label="API key" hint={<SecretHint name="wandb_api_key" />} htmlFor="wb-key">
-          <SecretField id="wb-key" name="wandb_api_key" secret={server.wandb.apiKey} placeholder="40-character key" />
-        </SettingRow>
-        <SettingRow label="Project" htmlFor="wb-project">
-          <Input
-            id="wb-project"
-            className="h-8 text-[13px]"
-            value={wandb.project}
-            onChange={(e) => set("wandb", { ...wandb, project: e.target.value })}
-          />
-        </SettingRow>
-        <SettingRow label="Log new trainings by default" htmlFor="wb-default">
-          <Switch
-            id="wb-default"
-            checked={wandb.enableByDefault}
-            disabled={!server.wandb.apiKey.set}
-            onCheckedChange={(v) => set("wandb", { ...wandb, enableByDefault: v })}
-          />
         </SettingRow>
       </SettingsSection>
       <SaveBar {...saveBar} />
