@@ -3,14 +3,15 @@ import { LuClock, LuCpu, LuHourglass, LuLayers } from "react-icons/lu"
 
 import { ProgressBar } from "@/components/common/progress-bar"
 import { jobPct, type TrainJob } from "@/domain/training"
+import { formatDuration } from "@/lib/format"
 
 export function PodRow({ job }: { job: TrainJob }) {
   const pct = jobPct(job)
   const meta = [
     { icon: LuCpu, label: "GPU", value: job.gpu },
     { icon: LuLayers, label: "Epoch", value: job.epochs ? `${job.epoch}/${job.epochs}` : "—" },
-    { icon: LuClock, label: "Elapsed", value: job.elapsed ?? "—" },
-    { icon: LuHourglass, label: "ETA", value: job.eta ?? "—" },
+    { icon: LuClock, label: "Elapsed", value: job.elapsedS == null ? "—" : formatDuration(job.elapsedS) },
+    { icon: LuHourglass, label: "ETA", value: job.etaS == null ? "—" : formatDuration(job.etaS) },
   ]
 
   return (

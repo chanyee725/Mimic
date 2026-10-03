@@ -1,11 +1,12 @@
 import { useState } from "react"
 import { LuSearch } from "react-icons/lu"
 
-import { SearchInput } from "@/components/common/search-input"
-import { ProgressRing } from "@/components/common/progress-ring"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { listTasks } from "@/api/tasks"
+import { ProgressRing } from "@/components/common/progress-ring"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+import { SearchInput } from "@/components/common/search-input"
+import { useTasks } from "@/api/tasks"
 import { TASK_RING_TONE, type Task } from "@/domain/task"
 import { cn } from "@/lib/utils"
 
@@ -14,7 +15,8 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
-  const results = listTasks().filter(
+  const tasks = useTasks()
+  const results = (tasks.data ?? []).filter(
     (t) => !q || t.id.includes(q) || t.name.toLowerCase().includes(q) || t.instruction.toLowerCase().includes(q),
   )
 
@@ -64,7 +66,7 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
           <ul className="-mx-2 grid max-h-80 content-start gap-0.5 overflow-y-auto">
             {results.map((t) => {
               const selected = t.id === task.id
-              const pct = Math.min(100, Math.round((t.collected / t.targetEpisodes) * 100))
+              const pct = t.targetEpisodes ? Math.min(100, Math.round((t.collected / t.targetEpisodes) * 100)) : 0
               return (
                 <li key={t.id}>
                   <button
@@ -87,7 +89,19 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
                 </li>
               )
             })}
-            {results.length === 0 && <li className="py-6 text-center text-[13px] text-muted-foreground">검색 결과가 없습니다.</li>}
+            {tasks.isPending && (
+              <li className="px-2 py-6 text-center">
+                <LoadingNote />
+              </li>
+            )}
+            {tasks.isError && (
+              <li className="px-2 py-6">
+                <ErrorNote error={tasks.error} onRetry={() => void tasks.refetch()} className="justify-center" />
+              </li>
+            )}
+            {tasks.data && results.length === 0 && (
+              <li className="py-6 text-center text-[13px] text-muted-foreground">검색 결과가 없습니다.</li>
+            )}
           </ul>
         </DialogContent>
       </Dialog>
