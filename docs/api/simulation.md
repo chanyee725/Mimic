@@ -4,6 +4,9 @@ Isaac Sim runs on the station's local RTX 4090, for **evaluation only**. The use
 folder under the environments folder (`VLA_SIM_ENVS_DIR` in `.env` or the environment, default `sim/envs` in this repo). A saved model is loaded into
 any compatible environment and rolled out many times. Web: `api/simulation.ts`, Simulation pages.
 
+**The Isaac Sim runner is not connected yet**: environments are scanned for real, but there are no jobs (lists are `[]`,
+job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message": "Isaac Sim runner is not connected" } }`.
+
 ## Environment folder
 
 ```
@@ -87,10 +90,10 @@ web: usable models for the environment's task, other usable ones, then blocked o
 | GET | `/sim/envs/{id}` | | `SimEnv` | `getSimEnv(id)` |
 | POST | `/sim/envs/rescan` | | `{ dir: string; scannedAt: string; envs: SimEnv[] }` | Rescan |
 | GET | `/sim/envs/{id}/compat` | | `ModelCompat[]` for every saved model | Environment → Models |
-| GET | `/sim/config` | | `{ envsDir: string; gpu: { id, name, vram, busyBy?: string } }` | `getSimEnvsDir()`, `SIM_GPU`, GPU row |
+| GET | `/sim/config` | | `{ envsDir: string; gpu: { id, name, vram, busyBy?: string } \| null }` — first GPU from nvidia-smi, `null` when none is detected | `getSimEnvsDir()`, GPU row |
 | GET | `/sim/jobs?status=` | | `SimJob[]` newest first | `listSimJobs()` |
 | GET | `/sim/jobs/{id}` | | `SimJob` | `getSimJob(id)` |
-| POST | `/sim/jobs` | `{ modelId, envId, episodes, seedStart, maxSeconds, randomization }` | `202 SimJob` (running, or queued when the GPU is busy); 422 if the model is not compatible | Start / Queue evaluation |
+| POST | `/sim/jobs` | `{ modelId, envId, episodes, seedStart, maxSeconds, randomization }` | `503` (runner not connected; later `202 SimJob`); 422 if the model / env is unknown or not compatible | Start / Queue evaluation |
 | POST | `/sim/jobs/{id}/stop` | | `SimJob` (stopped); 409 if not active | Stop evaluation / Cancel |
 | GET | `/sim/jobs/{id}/episodes?result=success\|fail&limit=&cursor=` | | `Page<SimEpisode>` by index | Episodes table |
 | GET | `/sim/jobs/{id}/episodes/{index}/video/{camera}` | | `video/mp4` | Rollout replay |
@@ -99,7 +102,7 @@ Notes:
 
 - `POST /sim/jobs`: an unknown `modelId` / `envId` or an incompatible pair is `422 validation_error`; for an incompatible pair
   `details.issues` is the `CompatIssue[]`. Warnings alone don't block. Body defaults: `episodes` 50 (1–10000), `seedStart` 1000,
-  `maxSeconds` 40, `randomization` `"low"`. New ids are `sim_<n+1>` (zero-padded to 3).
+  `maxSeconds` 40, `randomization` `"low"`. A valid request then gets 503 until the runner exists.
 - One job holds the GPU at a time (`/sim/config` `gpu.busyBy`). When the running job ends (done, failed, stopped), the oldest
   queued job starts.
 - Episode video is `501 not_implemented` until Isaac Sim is connected; unknown job / episode index / camera is 404.
@@ -108,4 +111,5 @@ Live: `sim.updated` (status, counts, eta) and `sim.episode` (each finished episo
 
 ## Changes from the web mocks
 
-`results` (all episodes inline) → counts on the job plus the paged `/episodes`; `elapsed` / `eta` → seconds.
+`results` (all episodes inline) → counts on the job plus the paged `/episodes`; `elapsed` / `eta` → seconds. No seed jobs;
+`gpu` is detected (nullable) instead of the `SIM_GPU` constant.

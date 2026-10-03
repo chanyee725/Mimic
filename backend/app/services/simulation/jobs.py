@@ -1,23 +1,20 @@
-"""Simulation evaluation jobs (in memory); advance() finishes episodes until Isaac Sim is wired in."""
-
-import random
+"""Simulation evaluation jobs (in memory, no mocks). The Isaac Sim runner is not connected yet,
+so a valid request is refused with 503 and the job list stays empty.
+"""
 
 from app.configs.config import config
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.models.simulation import SimConfig, SimEpisode, SimJob
+from app.models.simulation import SimConfig, SimEpisode, SimGpu, SimJob
 from app.schemas.common import Page, paginate
-from app.schemas.simulation import SimEpisodeEvent, SimJobCreate
-from app.seeds.simulation import counts, seed_gpu, seed_jobs
+from app.schemas.simulation import SimJobCreate
 from app.services.models import get_model
 from app.services.simulation.envs import find_env, get_env, lock, model_compat
+from app.utils import gpu
 from app.utils.ids import seq_num
-from app.utils.time import now_iso
 
 ACTIVE = ("running", "queued")
-# Mock rollout outcomes used by advance() until Isaac Sim is wired in
-_SUCCESS_P = {"none": 0.85, "low": 0.75, "high": 0.6}
-_REASONS = ["Timed out", "Dropped object", "Wrong placement", "Grasp slipped"]
+NOT_CONNECTED = "Isaac Sim runner is not connected"
 
 _jobs: dict[str, SimJob] = {}
 _episodes: dict[str, list[SimEpisode]] = {}
@@ -27,16 +24,17 @@ def reset() -> None:
     with lock:
         _jobs.clear()
         _episodes.clear()
-        jobs, episodes = seed_jobs()
-        _jobs.update({j.id: j for j in jobs})
-        _episodes.update(episodes)
 
 
 def sim_config() -> SimConfig:
-    gpu = seed_gpu()
-    running = next((j for j in _jobs.values() if j.status == "running"), None)
-    gpu.busy_by = running.id if running else None
-    return SimConfig(envs_dir=str(config.sim_envs_dir), gpu=gpu)
+    """Environments folder and the first local GPU (null when nvidia-smi finds none)."""
+    found = gpu.detect()
+    sim_gpu = None
+    if found:
+        g = found[0]
+        running = next((j for j in _jobs.values() if j.status == "running"), None)
+        sim_gpu = SimGpu(id=g.id, name=g.name, vram=g.vram, busy_by=running.id if running else None)
+    return SimConfig(envs_dir=str(config.sim_envs_dir), gpu=sim_gpu)
 
 
 # Jobs
@@ -55,6 +53,7 @@ def get_job(job_id: str) -> SimJob:
 
 
 def create_job(body: SimJobCreate) -> SimJob:
+    """Validates the model and environment; refused with 503 until the runner is connected."""
     with lock:
         model = get_model(body.model_id)
         if model is None:
@@ -69,18 +68,7 @@ def create_job(body: SimJobCreate) -> SimJob:
                 f"Model '{model.id}' cannot be loaded into '{env.id}'",
                 {"issues": [i.model_dump(mode="json") for i in issues]},
             )
-        busy = any(j.status == "running" for j in _jobs.values())
-        job = SimJob(
-            id=f"sim_{max((seq_num(i) for i in _jobs), default=0) + 1:03d}",
-            **body.model_dump(),
-            status="queued" if busy else "running",
-        )
-        if not busy:
-            _start(job)
-        _jobs[job.id] = job
-        _episodes[job.id] = []
-    bus.publish("sim.updated", job)
-    return job
+    raise ApiError(503, NOT_CONNECTED, {"envId": env.id, "modelId": model.id})
 
 
 def stop_job(job_id: str) -> SimJob:
@@ -90,10 +78,7 @@ def stop_job(job_id: str) -> SimJob:
             raise conflict(f"Simulation job '{job_id}' is {job.status}", status=job.status)
         job.status = "stopped"
         job.eta_s = None
-        promoted = _promote()
     bus.publish("sim.updated", job)
-    if promoted:
-        bus.publish("sim.updated", promoted)
     return job
 
 
@@ -124,61 +109,3 @@ def episode_video(job_id: str, index: int, camera: str) -> bytes:
     if camera not in get_env(get_job(job_id).env_id).cameras:
         raise ApiError(404, f"Camera '{camera}' is not rendered by this environment")
     raise ApiError(501, "Rollout video is not available until Isaac Sim is connected")
-
-
-def advance(job_id: str, n: int = 1) -> SimJob:
-    """Finish up to n more episodes of a running job with deterministic mock outcomes."""
-    with lock:
-        job = get_job(job_id)
-        if job.status != "running":
-            raise conflict(f"Simulation job '{job_id}' is {job.status}", status=job.status)
-        eps = _episodes.setdefault(job.id, [])
-        new = [_rollout(job, len(eps) + i) for i in range(min(n, job.episodes - len(eps)))]
-        eps.extend(new)
-        job.elapsed_s = (job.elapsed_s or 0) + sum(e.seconds for e in new)
-        for k, v in counts(eps).items():
-            setattr(job, k, v)
-        promoted = None
-        if job.done >= job.episodes:
-            job.status, job.eta_s = "done", None
-            promoted = _promote()
-        elif job.done:
-            job.eta_s = round(job.elapsed_s / job.done * (job.episodes - job.done))
-    for e in new:
-        bus.publish("sim.episode", SimEpisodeEvent(job_id=job.id, episode=e))
-    bus.publish("sim.updated", job)
-    if promoted:
-        bus.publish("sim.updated", promoted)
-    return job
-
-
-def _rollout(job: SimJob, index: int) -> SimEpisode:
-    seed = job.seed_start + index
-    rng = random.Random(seed)
-    if rng.random() < _SUCCESS_P[job.randomization]:
-        return SimEpisode(index=index, seed=seed, success=True, seconds=_secs(rng, job))
-    reason = rng.choice(_REASONS)
-    seconds = job.max_seconds if reason == "Timed out" else _secs(rng, job)
-    return SimEpisode(index=index, seed=seed, success=False, seconds=seconds, reason=reason)
-
-
-def _secs(rng: random.Random, job: SimJob) -> float:
-    return round(rng.uniform(0.4, 0.9) * job.max_seconds, 1)
-
-
-def _start(job: SimJob) -> None:
-    job.status = "running"
-    job.started_at = now_iso()
-    job.elapsed_s = 0
-
-
-def _promote() -> SimJob | None:
-    """Start the oldest queued job once the GPU is free."""
-    if any(j.status == "running" for j in _jobs.values()):
-        return None
-    queued = [j for j in _jobs.values() if j.status == "queued"]
-    if not queued:
-        return None
-    job = min(queued, key=lambda j: seq_num(j.id))
-    _start(job)
-    return job

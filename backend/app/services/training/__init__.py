@@ -1,12 +1,10 @@
-"""Training: jobs, config, request validation, parameters and mock metrics.
+"""Training: config, request validation, parameters and jobs (none until a trainer is connected).
 
-Callers use `from app.services import training` and the functions below. Note that
-`training.metrics` is the metrics() function; the module is `app.services.training.metrics`.
+Callers use `from app.services import training` and the functions below.
 """
 
 from app.services.training.jobs import (
     ACTIVE,
-    CHECKPOINT_MB,
     create_job,
     download_checkpoint,
     get_checkpoint,
@@ -15,7 +13,6 @@ from app.services.training.jobs import (
     job_command,
     list_jobs,
     local_gpus,
-    loss_at,
     metrics,
     preview,
     push_checkpoint,
@@ -27,7 +24,6 @@ from app.services.training.jobs import (
 
 __all__ = [
     "ACTIVE",
-    "CHECKPOINT_MB",
     "create_job",
     "download_checkpoint",
     "get_checkpoint",
@@ -36,7 +32,6 @@ __all__ = [
     "job_command",
     "list_jobs",
     "local_gpus",
-    "loss_at",
     "metrics",
     "preview",
     "push_checkpoint",

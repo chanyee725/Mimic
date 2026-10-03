@@ -44,7 +44,7 @@ class SimGpu(CamelModel):
 
 class SimConfig(CamelModel):
     envs_dir: str
-    gpu: SimGpu
+    gpu: SimGpu | None  # null when nvidia-smi finds no GPU
 
 
 class SimEpisode(CamelModel):

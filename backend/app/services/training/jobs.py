@@ -1,6 +1,8 @@
-"""Training jobs (in memory, seeded from the web mocks). Jobs do not advance on their own yet."""
+"""Training jobs (in memory, no mocks). No trainer is connected yet, so no job can start.
 
-import math
+Config, parameter checks and the command preview are real; jobs, metrics and checkpoints
+stay empty until a trainer (local lerobot-train or RunPod) reports them.
+"""
 
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
@@ -18,48 +20,34 @@ from app.schemas.training import (
     RunPodConfig,
     TrainingConfig,
 )
-from app.seeds.training import jobs as seed_jobs
-from app.services import datasets
 from app.services import models
 from app.services.training import config as cfg
 from app.services.training import params
-from app.services.training.metrics import SERIES, Run, bucket
 from app.services.training.plan import Plan
-from app.utils.ids import next_seq_id, slugify
+from app.utils import gpu
 from app.utils.time import now_iso
 
-CHECKPOINT_MB = 1850
 ACTIVE = ("running", "queued")
+SERIES = ("loss_raw", "loss", "grad_norm", "lr", "update_s", "data_s", "gpu_util", "gpu_mem")
+NOT_CONNECTED = "Trainer is not connected yet"
 
 _jobs: dict[str, TrainJob] = {}
-_runs: dict[str, Run] = {}
-
-
-def _derive(job: TrainJob) -> None:
-    """stepsPerS from the remaining steps and eta; costUsd so far for RunPod jobs."""
-    if job.status == "running" and job.eta_s:
-        job.steps_per_s = round((job.total - job.step) / job.eta_s, 3)
-    if job.compute == "runpod" and job.price_per_hr is not None and job.elapsed_s is not None:
-        job.cost_usd = round(job.price_per_hr * job.elapsed_s / 3600, 2)
 
 
 def reset() -> None:
     _jobs.clear()
-    _runs.clear()
-    for job in seed_jobs():
-        _derive(job)
-        _jobs[job.id] = job
 
 
 # Config
 
 
 def local_gpus() -> list[LocalGpu]:
-    gpus = [LocalGpu.model_validate(g) for g in cfg.raw("LOCAL_GPUS")]
-    for g in gpus:
+    """GPUs reported by nvidia-smi; [] when none is detected."""
+    out = []
+    for g in gpu.detect():
         busy = _local_busy(g.name)
-        g.busy_by = busy.id if busy else None
-    return gpus
+        out.append(LocalGpu(id=g.id, name=g.name, vram=g.vram, busy_by=busy.id if busy else None))
+    return out
 
 
 def _local_busy(gpu_name: str) -> TrainJob | None:
@@ -108,7 +96,6 @@ def get_job(job_id: str) -> TrainJob:
 
 def job_command(job_id: str) -> CommandOut:
     job = get_job(job_id)
-    # Seed jobs carry steps / batch as fields only
     overrides = {"steps": job.total, "batch_size": job.batch, **job.overrides}
     return CommandOut(command=cfg.build_command(job.dataset, overrides))
 
@@ -125,93 +112,23 @@ def preview(body: JobCreate) -> CommandPreview:
     return out
 
 
-def _secret_set(name: str) -> bool:
-    return models.secret_set(name)
-
-
-def _epochs(dataset: str, steps: int, batch: int) -> int:
-    frames = sum(e.frames for e in datasets.dataset_episodes(dataset))
-    return max(1, math.ceil(steps * batch / frames)) if frames else 1
-
-
 def create_job(body: JobCreate) -> TrainJob:
-    plan = Plan(body, local_gpus())
-    if body.compute == "runpod" and not _secret_set("runpod_api_key"):
-        raise ApiError(424, "RunPod API key is not set")
-    total = int(body.overrides.get("steps", params.DEFAULTS["steps"]))
-    batch = int(body.overrides.get("batch_size", params.DEFAULTS["batch_size"]))
-    queued = body.compute == "local" and _local_busy(plan.gpu_name) is not None
-    job_id = next_seq_id("job", _jobs)
-    job = TrainJob(
-        id=job_id,
-        policy=cfg.policy(),
-        dataset=body.dataset,
-        task_id=datasets.get_dataset(body.dataset).task_id,
-        compute=body.compute,
-        gpu=plan.gpu_name,
-        status="queued" if queued else "running",
-        step=0,
-        total=total,
-        batch=batch,
-        epoch=0,
-        epochs=_epochs(body.dataset, total, batch),
-        overrides=dict(body.overrides),
-    )
-    if not queued:
-        _start(job)
-    if plan.options is not None:
-        job.price_per_hr = round(plan.rate, 4)
-        job.pod = _pod_name(plan.gpu_name, job_id)
-        job.pod_state = PodState(
-            state="running", auto_terminate=plan.options.terminate_on_finish, since=now_iso()
-        )
-        _derive(job)
-    _jobs[job.id] = job
-    bus.publish("training.updated", job)
-    return job
-
-
-def _pod_name(gpu_name: str, job_id: str) -> str:
-    """ "RTX 4090", "job_001" → "pod-4090-001"."""
-    slug = slugify(gpu_name.split()[-1], sep="")
-    return f"pod-{slug}-{job_id.split('_')[1]}"
-
-
-def _start(job: TrainJob) -> None:
-    job.status, job.started_at, job.elapsed_s = "running", now_iso(), 0
+    """Refused until a trainer is connected (no simulated progress)."""
+    raise ApiError(503, NOT_CONNECTED, {"compute": body.compute})
 
 
 def stop_job(job_id: str) -> TrainJob:
     job = get_job(job_id)
     if job.status not in ACTIVE:
         raise conflict(f"Job '{job_id}' is not active", status=job.status)
-    was_running = job.status == "running"
     job.status, job.eta_s, job.steps_per_s = "stopped", None, None
-    if was_running and job.step > 0 and all(c.step != job.step for c in job.checkpoints):
-        job.checkpoints.append(Checkpoint(step=job.step, saved_at=now_iso(), size_mb=CHECKPOINT_MB))
     if job.pod_state and job.pod_state.state == "running":
         state = "terminated" if job.pod_state.auto_terminate else "idle"
         job.pod_state = PodState(
             state=state, auto_terminate=job.pod_state.auto_terminate, since=now_iso()
         )
     bus.publish("training.updated", job)
-    if was_running and job.compute == "local":
-        _start_next_local(job.gpu)
     return job
-
-
-def _start_next_local(gpu_name: str) -> None:
-    waiting = sorted(
-        (
-            j
-            for j in _jobs.values()
-            if j.compute == "local" and j.gpu == gpu_name and j.status == "queued"
-        ),
-        key=lambda j: j.id,
-    )
-    if waiting:
-        _start(waiting[0])
-        bus.publish("training.updated", waiting[0])
 
 
 def terminate_pod(job_id: str) -> TrainJob:
@@ -232,28 +149,10 @@ def terminate_pod(job_id: str) -> TrainJob:
 # Metrics
 
 
-def _run(job: TrainJob) -> Run:
-    run = _runs.get(job.id)
-    if run is None or run.total != job.total:
-        run = _runs[job.id] = Run(job.id, job.gpu, job.total)
-    run.advance_to(job.step)
-    return run
-
-
 def metrics(job_id: str, from_step: int, max_points: int) -> Metrics:
-    job = get_job(job_id)
-    run = _run(job)
-    start = min(from_step, run.count)
-    n = run.count - start
-    every = max(1, math.ceil(n / max_points))
-    series = {k: bucket(run.data[k][start:], every) for k in SERIES}
-    return Metrics(from_step=start, to_step=run.count, every=every, series=series)
-
-
-def loss_at(job: TrainJob, step: int) -> float:
-    run = _run(job)
-    run.advance_to(step)
-    return round(run.data["loss"][max(0, min(step, run.count) - 1)], 4) if run.count else 0.0
+    """Logged training metrics; empty until the trainer reports step logs."""
+    get_job(job_id)
+    return Metrics(from_step=from_step, to_step=from_step, every=1, series={k: [] for k in SERIES})
 
 
 # Checkpoints
@@ -274,7 +173,7 @@ def download_checkpoint(job_id: str, step: int):
 
 def push_checkpoint(job_id: str, step: int, body: CheckpointPush | None = None) -> CheckpointPushed:
     job, _ = get_checkpoint(job_id, step)
-    if not _secret_set("hf_token"):
+    if not models.secret_set("hf_token"):
         raise ApiError(424, "Hugging Face token is not set")
     # Upload is not wired yet; report the target repo
     repo = body.repo if body else None
@@ -282,20 +181,6 @@ def push_checkpoint(job_id: str, step: int, body: CheckpointPush | None = None) 
 
 
 def save_checkpoint(job_id: str, step: int, body: CheckpointSave) -> Model:
-    job, ckpt = get_checkpoint(job_id, step)
-    model_id = f"m-{job.id}-{step:06d}"
-    if models.get_model(model_id) is not None:
-        raise conflict(f"Checkpoint {step} of '{job_id}' is already saved", modelId=model_id)
-    model = Model(
-        id=model_id,
-        name=body.name.strip(),
-        task_id=job.task_id,
-        dataset=job.dataset,
-        job_id=job.id,
-        step=step,
-        loss=loss_at(job, step),
-        size_mb=ckpt.size_mb,
-        saved_at=now_iso(),
-        local_path=f"~/vla/models/{job.task_id}/{job.id}-{step:06d}",
-    )
-    return models.add_model(model)
+    """Copies a checkpoint into the models folder; needs the trainer's files."""
+    get_checkpoint(job_id, step)
+    raise ApiError(503, NOT_CONNECTED)

@@ -1,6 +1,18 @@
 import shutil
 from pathlib import Path
 
+import pytest
+
+from tests.support import write_model
+
+
+@pytest.fixture
+def saved_models():
+    """Two stack models and one open-drawer model on disk."""
+    write_model("m-stack-20k", saved_at="2026-10-02T12:00:00+09:00")
+    write_model("m-stack-10k", saved_at="2026-10-01T12:00:00+09:00")
+    write_model("m-drawer", task_id="open-drawer", saved_at="2026-10-03T12:00:00+09:00")
+
 
 def test_list_envs(client, envs_dir: Path):
     envs = client.get("/sim/envs").json()
@@ -51,32 +63,31 @@ def test_rescan_picks_up_changes(client, envs_dir: Path, events):
     assert len(msgs) == 1 and [e["id"] for e in msgs[0]["data"]["envs"]] == ids
 
 
-def test_compat_ready_env(client):
+def test_compat_without_models(client):
+    assert client.get("/sim/envs/stack-two-blocks/compat").json() == []
+
+
+def test_compat_ready_env(client, saved_models):
     rows = client.get("/sim/envs/stack-two-blocks/compat").json()
-    assert {r["modelId"] for r in rows} == {
-        "m-stack-20k",
-        "m-stack-10k",
-        "m-open-drawer-20k",
-        "m-open-drawer-15k",
-    }
+    assert {r["modelId"] for r in rows} == {"m-stack-20k", "m-stack-10k", "m-drawer"}
     assert all(r["usable"] and r["issues"] == [] for r in rows)
     # Models for the environment's task come first
     assert {rows[0]["modelId"], rows[1]["modelId"]} == {"m-stack-20k", "m-stack-10k"}
 
 
-def test_compat_missing_camera(client):
+def test_compat_missing_camera(client, saved_models):
     rows = client.get("/sim/envs/top-only-demo/compat").json()
     assert all(not r["usable"] for r in rows)
     assert rows[0]["issues"] == [{"level": "error", "text": "Missing camera wrist"}]
 
 
-def test_compat_uncalibrated_is_warning(client):
+def test_compat_uncalibrated_is_warning(client, saved_models):
     rows = client.get("/sim/envs/sort-by-color/compat").json()
     assert all(r["usable"] for r in rows)
     assert rows[0]["issues"] == [{"level": "warn", "text": "Not matched to the real rig"}]
 
 
-def test_compat_invalid_env_and_action_size(client, envs_dir: Path):
+def test_compat_invalid_env_and_action_size(client, envs_dir: Path, saved_models):
     rows = client.get("/sim/envs/pour-into-cup/compat").json()
     assert rows[0]["issues"][0] == {
         "level": "error",
@@ -96,9 +107,5 @@ def test_compat_unknown_env(client):
 def test_config(client, envs_dir: Path):
     cfg = client.get("/sim/config").json()
     assert cfg["envsDir"] == str(envs_dir)
-    assert cfg["gpu"] == {"id": "cuda:0", "name": "RTX 4090", "vram": "24 GB", "busyBy": "sim_012"}
-    client.post("/sim/jobs/sim_012/stop")
-    # The queued job takes the GPU
-    assert client.get("/sim/config").json()["gpu"]["busyBy"] == "sim_013"
-    client.post("/sim/jobs/sim_013/stop")
-    assert client.get("/sim/config").json()["gpu"]["busyBy"] is None
+    # gpu comes from nvidia-smi (see test_jobs_api); null on machines without one
+    assert cfg["gpu"] is None or cfg["gpu"]["id"] == "cuda:0"
