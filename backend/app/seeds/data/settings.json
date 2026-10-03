@@ -41,7 +41,7 @@
       }
     },
     "storage": {
-      "rawPath": "~/vla/raw",
+      "rawPath": "data/recordings",
       "datasetsPath": "~/vla/datasets",
       "modelsPath": "~/vla/models",
       "warnAtPct": 85,

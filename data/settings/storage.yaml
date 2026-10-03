@@ -1,4 +1,4 @@
-raw_path: ~/vla/raw
+raw_path: data/recordings
 datasets_path: ~/vla/datasets
 models_path: ~/vla/models
 warn_at_pct: 85
