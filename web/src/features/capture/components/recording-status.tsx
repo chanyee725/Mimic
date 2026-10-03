@@ -1,25 +1,26 @@
 import { ProgressBar } from "@/components/common/progress-bar"
+import type { CapturePhase } from "@/domain/capture"
 import type { Outcome, Task } from "@/domain/task"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { PHASE, type Phase } from "../lib"
+import { PHASE } from "../lib"
 
 /** Phase badge, elapsed bar, episode number and time */
 export function RecordingStatus({
   task,
   phase,
   episode,
-  elapsedMs,
+  elapsedS,
   lastOutcome,
 }: {
   task: Task
-  phase: Phase
+  phase: CapturePhase
   episode: number
-  elapsedMs: number
+  elapsedS: number
   lastOutcome: Outcome | null
 }) {
-  const pct = Math.min(100, (elapsedMs / (task.durationS * 1000)) * 100)
+  const pct = Math.min(100, (elapsedS / task.durationS) * 100)
   return (
     <div className="grid gap-2">
       <span
@@ -45,7 +46,7 @@ export function RecordingStatus({
           {lastOutcome ? ` · ${lastOutcome}` : ""}
         </span>
         <span>
-          {formatClock(elapsedMs / 1000)} / {formatClock(task.durationS)}
+          {formatClock(elapsedS)} / {formatClock(task.durationS)}
         </span>
       </div>
     </div>
