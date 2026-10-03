@@ -1,4 +1,2 @@
-api_key:
-  set: false
 project: vla-smolvla
 enable_by_default: false
