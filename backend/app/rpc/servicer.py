@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 
 import grpc
 
-from app.services import mock_robot
+from app.services.realtime import mock_robot
 from app.rpc.gen import robot_pb2, robot_pb2_grpc
 from app.models.rigs import Rig
 from app.services.rigs import get_rig

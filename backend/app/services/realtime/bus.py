@@ -11,7 +11,7 @@ from typing import Any
 from app.core.errors import ApiError, not_found
 from app.core.events import Message, bus
 from app.schemas.realtime import WebRtcAnswer, WebRtcOffer
-from app.services.realtime_topics import parse_topics, topic_of
+from app.services.realtime.topics import parse_topics, topic_of
 from app.services.rigs import get_rig
 
 # Session id → answer sent for it (stays empty until the camera pipeline exists)

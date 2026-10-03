@@ -1,17 +1,17 @@
 """Station settings (in memory, seeded from the web mocks). Secrets never leave this module."""
 
-from pathlib import Path
 from typing import Any
 
 from pydantic import ValidationError
 from pydantic.alias_generators import to_snake
 
-from app.configs.config import REPO_ROOT, config
+from app.configs.config import config
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.seeds import load
 from app.models.settings import SECTIONS, Secret, SecretName, Settings
 from app.schemas.settings import ConnTestResult, Disk, ShortcutGroup, VersionRow
+from app.utils.paths import display_path, resolve_user_path
 
 _doc: dict[str, Settings] = {}
 # Raw secret values, memory only
@@ -40,7 +40,7 @@ LATENCY_MS = {"hf": 180, "runpod": 240, "wandb": 150, "slack": 210, "api": 4, "g
 
 def reset() -> None:
     raw = load("settings", "SETTINGS")
-    raw["training"]["simEnvsPath"] = _display_path(config.sim_envs_dir)
+    raw["training"]["simEnvsPath"] = display_path(config.sim_envs_dir)
     _doc["current"] = Settings.model_validate({"version": 1, **raw})
     _secrets.clear()
 
@@ -126,20 +126,11 @@ def patch_section(section: str, body: dict[str, Any]) -> Settings:
     return saved
 
 
-def _display_path(path: Path) -> str:
-    """Repo-relative when inside the repo (e.g. "sim/envs"), else absolute."""
-    try:
-        return str(path.resolve().relative_to(REPO_ROOT))
-    except ValueError:
-        return str(path)
-
-
 def _apply_sim_envs_path(value: str | None) -> None:
     """Point the simulation scanner at the new folder and rescan."""
     if not value:
         return
-    path = Path(value).expanduser()
-    config.sim_envs_dir = path if path.is_absolute() else REPO_ROOT / path
+    config.sim_envs_dir = resolve_user_path(value)
     from app.services import simulation  # late import: simulation reads models/tasks
 
     simulation.rescan()

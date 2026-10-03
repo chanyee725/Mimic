@@ -2,11 +2,11 @@
 
 import yaml
 
-from app.utils.time import now
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.seeds import load
 from app.models.rigs import Calibration, Device, Rig
+from app.utils.time import today
 
 _rigs: dict[str, Rig] = {}
 _devices: dict[str, Device] = {}
@@ -113,7 +113,7 @@ def finish_calibration(device_id: str) -> None:
     if device is None or device.calibration.note != CALIBRATING:
         return
     what = "Intrinsics registered" if device.type == "camera" else "Calibrated"
-    note = f"{what} · {now().date().isoformat()}"
+    note = f"{what} · {today().isoformat()}"
     device = device.model_copy(update={"calibration": Calibration(done=True, note=note)})
     _devices[device_id] = device
     bus.publish("device.updated", device)

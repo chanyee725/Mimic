@@ -2,12 +2,12 @@
 
 from typing import Literal
 
-from app.utils.time import iso, now_iso
 from app.core.errors import ApiError, not_found
 from app.seeds import load
 from app.models.models import Model, ModelEval
 from app.schemas.models import ModelFile, ModelPush
 from app.services import settings
+from app.utils.time import iso, now_iso
 
 _models: dict[str, Model] = {}
 

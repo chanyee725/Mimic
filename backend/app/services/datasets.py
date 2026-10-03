@@ -6,7 +6,6 @@ Conversion is simulated: step() advances progress; drive() calls it on a timer i
 import asyncio
 import re
 
-from app.utils.time import iso, now_iso
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
@@ -18,7 +17,9 @@ from app.services.recordings import list_recordings
 from app.services.rigs import get_rig
 from app.services import settings
 from app.models.tasks import Task
-from app.services.tasks import get_task
+from app.services.tasks import require_task
+from app.utils.ids import split_csv
+from app.utils.time import iso, now_iso
 
 _datasets: dict[str, Dataset] = {}
 _episodes: dict[str, list[DatasetEpisode]] = {}
@@ -80,13 +81,6 @@ def page_episodes(repo_id: str, limit: int, cursor: str | None) -> Page[DatasetE
 # --- conversion ---
 
 
-def _require_task(task_id: str) -> Task:
-    task = get_task(task_id)
-    if task is None:
-        raise not_found("Task", task_id)
-    return task
-
-
 def _sources(task_id: str, exclude: list[str]) -> list[Recording]:
     """Accepted recordings of the task minus exclude, oldest episode first."""
     skip = set(exclude)
@@ -145,17 +139,13 @@ def _preview(task: Task, recs: list[Recording]) -> ConvertPreview:
     )
 
 
-def _ids(csv: str | None) -> list[str]:
-    return [s.strip() for s in (csv or "").split(",") if s.strip()]
-
-
 def preview(task_id: str, exclude_csv: str | None) -> ConvertPreview:
-    task = _require_task(task_id)
-    return _preview(task, _sources(task_id, _ids(exclude_csv)))
+    task = require_task(task_id)
+    return _preview(task, _sources(task_id, split_csv(exclude_csv)))
 
 
 def start_conversion(task_id: str, repo_id: str, exclude: list[str]) -> Dataset:
-    task = _require_task(task_id)
+    task = require_task(task_id)
     if repo_id in _datasets:
         raise conflict(f"Dataset '{repo_id}' already exists", repoId=repo_id)
     recs = _sources(task_id, exclude)
