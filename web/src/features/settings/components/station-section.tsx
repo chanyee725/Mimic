@@ -1,22 +1,21 @@
-import { useState } from "react"
 import { LuPlus, LuTrash2 } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getSettings } from "@/api/settings"
-import { pad } from "@/lib/format"
 
-import { useDraft } from "../hooks/use-draft"
+import { useSettingsDraft } from "../hooks/use-draft"
+import { nextOperatorId } from "../lib"
 import { ChoiceSelect } from "./choice-select"
+import { SectionPending } from "./query-state"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
 
 const TIMEZONES = ["Asia/Seoul", "UTC", "America/Los_Angeles", "Europe/Berlin"]
 
 export function StationSection() {
-  const { draft, set, dirty, save, reset } = useDraft(getSettings().station)
-  const [nextNo, setNextNo] = useState(draft.operators.length + 1)
+  const { query, draft, set, saveBar } = useSettingsDraft("station")
+  if (!draft) return <SectionPending query={query} />
 
   return (
     <SettingsGroup className="@container">
@@ -79,17 +78,16 @@ export function StationSection() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              set("operators", [...draft.operators, { id: `OP-${pad(nextNo)}`, role: "operator" }])
-              setNextNo((n) => n + 1)
-            }}
+            onClick={() =>
+              set("operators", [...draft.operators, { id: nextOperatorId(draft.operators.map((o) => o.id)), role: "operator" }])
+            }
           >
             <LuPlus />
             Add operator
           </Button>
         </div>
       </SettingsSection>
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} />
+      <SaveBar {...saveBar} />
     </SettingsGroup>
   )
 }

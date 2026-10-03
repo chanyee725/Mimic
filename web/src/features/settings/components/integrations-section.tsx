@@ -1,28 +1,34 @@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getSettings } from "@/api/settings"
-import { RUNPOD_REGIONS, RUNPOD_VOLUMES } from "@/api/training"
+import { useTrainingConfig } from "@/api/training"
+import { formatUsd } from "@/lib/format"
 
-import { useDraft } from "../hooks/use-draft"
+import { useSettingsDraft } from "../hooks/use-draft"
 import { ChoiceSelect } from "./choice-select"
 import { ConnStatus } from "./conn-status"
+import { SectionPending } from "./query-state"
 import { SaveBar } from "./save-bar"
 import { SecretField } from "./secret-field"
 import { SettingRow } from "./setting-row"
 
 export function IntegrationsSection() {
-  const { draft, set, dirty, save, reset } = useDraft(getSettings().integrations)
+  const { query, server, draft, set, saveBar } = useSettingsDraft("integrations")
+  const runpodConfig = useTrainingConfig().data?.runpod
+  if (!draft || !server) return <SectionPending query={query} />
   const { hf, runpod, wandb } = draft
+  // Keep the saved value selectable while the RunPod catalogue loads
+  const regions = runpodConfig?.regions ?? [runpod.region]
+  const volumes = runpodConfig?.volumes ?? [{ id: runpod.volume, label: runpod.volume }]
 
   return (
     <SettingsGroup className="@container">
       <SettingsSection title="Hugging Face">
         <SettingRow label="Status">
-          <ConnStatus state={hf.token.set ? hf.state : "unknown"} detail={`as ${hf.namespace}`} canTest={hf.token.set} />
+          <ConnStatus target="hf" state={server.hf.state} detail={`as ${server.hf.namespace}`} canTest={server.hf.token.set} />
         </SettingRow>
         <SettingRow label="Access token" hint="데이터셋 · 모델을 올리려면 write 권한이 필요합니다" htmlFor="hf-token">
-          <SecretField id="hf-token" secret={hf.token} placeholder="hf_…" onChange={(token) => set("hf", { ...hf, token })} />
+          <SecretField id="hf-token" name="hf_token" secret={server.hf.token} placeholder="hf_…" />
         </SettingRow>
         <SettingRow label="Namespace" hint="저장소를 만들 org 또는 계정" htmlFor="hf-ns">
           <Input
@@ -40,19 +46,20 @@ export function IntegrationsSection() {
       <SettingsSection title="RunPod">
         <SettingRow label="Status">
           <ConnStatus
-            state={runpod.apiKey.set ? runpod.state : "unknown"}
-            detail={`$${runpod.spentThisMonth.toFixed(2)} this month`}
-            canTest={runpod.apiKey.set}
+            target="runpod"
+            state={server.runpod.state}
+            detail={`${formatUsd(server.runpod.spentThisMonth)} this month`}
+            canTest={server.runpod.apiKey.set}
           />
         </SettingRow>
         <SettingRow label="API key" htmlFor="rp-key">
-          <SecretField id="rp-key" secret={runpod.apiKey} placeholder="rpa_…" onChange={(apiKey) => set("runpod", { ...runpod, apiKey })} />
+          <SecretField id="rp-key" name="runpod_api_key" secret={server.runpod.apiKey} placeholder="rpa_…" />
         </SettingRow>
         <SettingRow label="Default region" htmlFor="rp-region">
           <ChoiceSelect
             id="rp-region"
             value={runpod.region}
-            options={RUNPOD_REGIONS.map((r) => ({ value: r, label: r === "any" ? "Any available" : r }))}
+            options={regions.map((r) => ({ value: r, label: r === "any" ? "Any available" : r }))}
             onChange={(region) => set("runpod", { ...runpod, region })}
           />
         </SettingRow>
@@ -60,7 +67,7 @@ export function IntegrationsSection() {
           <ChoiceSelect
             id="rp-vol"
             value={runpod.volume}
-            options={RUNPOD_VOLUMES.map((v) => ({ value: v.id, label: v.label }))}
+            options={volumes.map((v) => ({ value: v.id, label: v.label }))}
             onChange={(volume) => set("runpod", { ...runpod, volume })}
           />
         </SettingRow>
@@ -88,15 +95,10 @@ export function IntegrationsSection() {
 
       <SettingsSection title="Weights & Biases">
         <SettingRow label="Status">
-          <ConnStatus state={wandb.apiKey.set ? wandb.state : "unknown"} canTest={wandb.apiKey.set} />
+          <ConnStatus target="wandb" state={server.wandb.state} canTest={server.wandb.apiKey.set} />
         </SettingRow>
         <SettingRow label="API key" htmlFor="wb-key">
-          <SecretField
-            id="wb-key"
-            secret={wandb.apiKey}
-            placeholder="40-character key"
-            onChange={(apiKey) => set("wandb", { ...wandb, apiKey })}
-          />
+          <SecretField id="wb-key" name="wandb_api_key" secret={server.wandb.apiKey} placeholder="40-character key" />
         </SettingRow>
         <SettingRow label="Project" htmlFor="wb-project">
           <Input
@@ -110,12 +112,12 @@ export function IntegrationsSection() {
           <Switch
             id="wb-default"
             checked={wandb.enableByDefault}
-            disabled={!wandb.apiKey.set}
+            disabled={!server.wandb.apiKey.set}
             onCheckedChange={(v) => set("wandb", { ...wandb, enableByDefault: v })}
           />
         </SettingRow>
       </SettingsSection>
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} />
+      <SaveBar {...saveBar} />
     </SettingsGroup>
   )
 }

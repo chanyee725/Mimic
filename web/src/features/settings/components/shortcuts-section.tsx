@@ -1,11 +1,16 @@
 import { Kbd } from "@/components/ui/kbd"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import { getShortcuts } from "@/api/settings"
+import { useShortcuts } from "@/api/settings"
+
+import { SectionPending } from "./query-state"
 
 export function ShortcutsSection() {
+  const query = useShortcuts()
+  if (!query.data) return <SectionPending query={query} />
+
   return (
     <SettingsGroup>
-      {getShortcuts().map((g) => (
+      {query.data.map((g) => (
         <SettingsSection key={g.page} title={g.page}>
           <dl className="divide-y">
             {g.keys.map((k) => (
