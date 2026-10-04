@@ -1,11 +1,15 @@
 """Device access for the Rigs page: connection tests and arm calibration through LeRobot.
 
 LeRobot is imported lazily (it pulls in torch), so the station runs without it; every call then
-answers 503. Tests run with VLA_DEVICE_DRIVER=none or install a fake with use().
+answers 503. Calibration files live in data/calibration (LeRobot's layout). Tests run with
+VLA_DEVICE_DRIVER=none or install a fake with use().
 """
 
 import importlib
+import logging
+import os
 import pkgutil
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +18,8 @@ from typing import Any, Literal, Protocol
 
 from app.configs.config import config
 from app.core.errors import ApiError
+
+log = logging.getLogger(__name__)
 
 Kind = Literal["robot", "teleop", "camera"]
 
@@ -113,6 +119,14 @@ class NoDriver:
 # --- LeRobot -------------------------------------------------------------------
 
 
+def _use_data_calibration() -> None:
+    """Point LeRobot at data/calibration. LeRobot reads HF_LEROBOT_CALIBRATION once, when it is
+    first imported, so this runs before any import of it (the driver is the only importer)."""
+    os.environ["HF_LEROBOT_CALIBRATION"] = str(config.calibration_dir)
+    if "lerobot.utils.constants" in sys.modules:
+        log.warning("LeRobot was imported before the driver: calibration files may not be in data/")
+
+
 def _choice(base: Any, package: str, name: str) -> Any:
     """Config class registered under `name`; LeRobot registers a type when its package is imported."""
     known = getattr(base, "_choice_registry", {})
@@ -158,6 +172,9 @@ def _port_error(port: str, e: Exception) -> ApiError:
 
 
 class LeRobotDriver:
+    def __init__(self) -> None:
+        _use_data_calibration()
+
     def unavailable(self) -> str | None:
         try:
             importlib.import_module("lerobot")

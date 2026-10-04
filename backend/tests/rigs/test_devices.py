@@ -1,3 +1,4 @@
+import os
 import time
 
 import pytest
@@ -280,3 +281,11 @@ def test_rig_test_checks_every_device(client, fake):
 
 def test_rig_test_without_driver(client):
     assert client.post("/rigs/so101-kit/test").status_code == 503
+
+
+def test_lerobot_calibration_lives_in_the_data_folder(monkeypatch):
+    from app.configs.config import config
+
+    monkeypatch.delenv("HF_LEROBOT_CALIBRATION", raising=False)
+    driver.LeRobotDriver()
+    assert os.environ["HF_LEROBOT_CALIBRATION"] == str(config.data_dir / "calibration")
