@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Response
 
-from app.models.rigs import Device, Rig, TeleopState
+from app.models.rigs import Device, Rig, TeleopSamples, TeleopState
 from app.services import rigs as service
 
 router = APIRouter()
@@ -43,7 +43,13 @@ def start_teleop(rig_id: str):
     return service.start_teleop(rig_id)
 
 
-@router.get("/rigs/{rig_id}/teleop", response_model=TeleopState)
+@router.get("/rigs/{rig_id}/teleop/samples", response_model=TeleopSamples)
+def teleop_samples(rig_id: str, after: int = -1):
+    return service.teleop_samples(rig_id, after)
+
+
+# 200 null when there is no session: the web polls this while teleop is off
+@router.get("/rigs/{rig_id}/teleop", response_model=TeleopState | None)
 def teleop_state(rig_id: str):
     return service.teleop_state(rig_id)
 

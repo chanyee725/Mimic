@@ -5,7 +5,7 @@ import pytest
 from app.core import storage
 from app.services import rigs as service
 from app.services.rigs import driver, ports
-from tests.support import FakeDriver
+from tests.support import JOINTS, FakeDriver
 
 
 @pytest.fixture
@@ -39,13 +39,14 @@ def test_teleop_start_state_stop(client, fake):
 
     s = _wait(client, lambda r: r.json()["pairs"][0]["joints"][0]["follower"] is not None)
     joint = s["pairs"][0]["joints"][0]
-    assert joint == {"name": "shoulder_pan", "leader": 10.0, "follower": 10.0}
+    assert joint == {"name": "shoulder_pan", "leader": 10.0, "follower": 9.5}
     assert fake.teleop.steps > 0
 
     assert client.post("/rigs/so101-kit/teleop").status_code == 409
     assert client.delete("/rigs/so101-kit/teleop").status_code == 204
     assert fake.teleop.closed is True
-    assert client.get("/rigs/so101-kit/teleop").status_code == 404
+    r = client.get("/rigs/so101-kit/teleop")
+    assert r.status_code == 200 and r.json() is None  # no session
     assert client.delete("/rigs/so101-kit/teleop").status_code == 404
 
 
@@ -110,3 +111,56 @@ def test_teleop_refused(client, fake, monkeypatch):
 def test_teleop_without_driver(client, monkeypatch):
     monkeypatch.setattr(ports, "exists", lambda p: True)
     assert client.post("/rigs/so101-kit/teleop").status_code == 503
+
+
+# --- live samples -----------------------------------------------------------
+
+
+def _paused(rig_id: str = "so101-kit"):
+    """The running session with its loop stopped, so a test controls the buffer."""
+    from app.services.rigs import teleop
+
+    s = teleop._sessions[rig_id]
+    s.stop.set()
+    s.thread.join(timeout=2)
+    s.samples.clear()
+    return s
+
+
+def test_samples_follow_the_loop(client, fake):
+    client.post("/rigs/so101-kit/teleop")
+    deadline = time.monotonic() + 2
+    while True:
+        body = client.get("/rigs/so101-kit/teleop/samples").json()
+        if len(body["t"]) >= 3 or time.monotonic() > deadline:
+            break
+        time.sleep(0.02)
+    assert body["joints"] == JOINTS
+    assert body["action"][0] == [10.0] * 6 and body["state"][0] == [9.5] * 6
+    assert body["seq"] >= 2 and len(body["t"]) == len(body["action"]) == len(body["state"])
+    # Only newer samples after a seq
+    later = client.get("/rigs/so101-kit/teleop/samples", params={"after": body["seq"]}).json()
+    assert later["seq"] >= body["seq"] and len(later["t"]) <= len(body["t"]) + 120
+
+
+def test_samples_after_and_window(client, fake):
+    from app.services.rigs.teleop import _Sample
+
+    client.post("/rigs/so101-kit/teleop")
+    s = _paused()
+    # 30 s at 10 Hz: only the last 10 s come back
+    for k in range(300):
+        s.samples.append(
+            _Sample(seq=k, wall=1000 + k / 10, t=k / 10, action=[1.0] * 6, state=[2.0] * 6)
+        )
+    body = client.get("/rigs/so101-kit/teleop/samples").json()
+    assert body["seq"] == 299 and body["t"][0] == 19.9 and len(body["t"]) == 101
+    body = client.get("/rigs/so101-kit/teleop/samples", params={"after": 297}).json()
+    assert body["seq"] == 299 and body["t"] == [29.8, 29.9]
+    body = client.get("/rigs/so101-kit/teleop/samples", params={"after": 299}).json()
+    assert body == {"joints": JOINTS, "seq": 299, "t": [], "action": [], "state": []}
+
+
+def test_samples_without_session(client):
+    assert client.get("/rigs/so101-kit/teleop/samples").status_code == 404
+    assert client.get("/rigs/missing/teleop/samples").status_code == 404

@@ -202,3 +202,17 @@ def test_discard_returns_to_idle(client, clock):
     st = client.post("/capture/discard").json()
     assert st["phase"] == "idle" and st["nextEpisode"] == 1
     assert client.get("/recordings", params={"taskId": "stack-two-blocks"}).json()["total"] == 0
+
+
+def test_start_409_once_the_target_is_reached(client, monkeypatch):
+    from app.services import tasks
+
+    connect_devices()
+    task = tasks.require_task("stack-two-blocks")
+    monkeypatch.setattr(task, "collected", task.target_episodes)
+    monkeypatch.setattr(service.session, "get_task", lambda _id: task)
+    r = client.post("/capture/start", json=START)
+    assert r.status_code == 409
+    details = r.json()["error"]["details"]
+    assert details == {"collected": task.target_episodes, "target": task.target_episodes}
+    assert client.get("/capture/state").json()["phase"] == "idle"

@@ -1,16 +1,21 @@
+import { CameraPreview } from "@/components/robot/camera-preview"
 import { VideoTile } from "@/components/robot/video-tile"
 import type { Device } from "@/domain/device"
 
-/** Two-column camera tiles that fill the remaining height. `empty` replaces the no-camera note (loading, errors, no task) */
+/**
+ * Two-column camera tiles that fill the remaining height, each with the camera's live preview when its port is found.
+ * `empty` replaces the no-camera note (loading, errors, no task)
+ */
 export function CameraGrid({
   cameras,
+  livePorts,
   empty,
-  recording,
   timecode,
 }: {
   cameras: Device[]
+  /** Scanned video ports (path and node); a camera on another port shows "No signal" */
+  livePorts: Set<string>
   empty?: React.ReactNode
-  recording: boolean
   timecode?: string
 }) {
   return (
@@ -18,14 +23,17 @@ export function CameraGrid({
       {cameras.map((c) => (
         <VideoTile
           className="aspect-auto h-full min-h-48"
-          recording={recording}
           timecode={timecode}
           key={c.id}
           label={c.name.replace(/ camera$/, "")}
           resolution={c.stats.find((s) => s.label === "Resolution")?.value ?? ""}
           measuredFps={c.streams[0]?.measuredHz ?? null}
           targetFps={c.streams[0]?.targetHz ?? null}
-        />
+        >
+          {livePorts.has(c.port) ? (
+            <CameraPreview path={c.port} className="absolute inset-0 aspect-auto size-full rounded-none border-0" />
+          ) : undefined}
+        </VideoTile>
       ))}
       {cameras.length === 0 && (
         <div className="grid place-items-center rounded-lg border bg-stage px-4 text-center md:col-span-2">

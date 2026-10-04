@@ -1,12 +1,16 @@
+import { Link } from "react-router-dom"
+
 import { Panel } from "@/components/layout/page-layout"
 import { TaskPicker } from "@/components/pickers/task-picker"
 import type { Task } from "@/domain/task"
 
 import type { CaptureControls } from "../hooks/use-capture"
+import { targetReached } from "../lib"
 import { EpisodeControls } from "./episode-controls"
 import { ErrorNote } from "@/components/common/query-state"
 import { RecordingStatus } from "./recording-status"
 import { TaskProgress } from "./task-progress"
+import { TeleopRow } from "./teleop-row"
 
 /** Right panel: progress, task info, recording status and controls */
 export function ControlPanel({
@@ -39,12 +43,14 @@ export function ControlPanel({
         </div>
       </div>
 
+      <TeleopRow rigId={task.rigId} locked={ep.phase !== "idle"} />
+
       <RecordingStatus task={task} phase={ep.phase} episode={ep.episode} elapsedS={ep.elapsedS} lastOutcome={ep.lastOutcome} />
 
       <EpisodeControls
         phase={ep.phase}
         busy={ep.busy}
-        blocked={ep.phase === "idle" && offline.length > 0 ? offline : null}
+        blocked={ep.phase === "idle" ? startBlockedNote(task, offline) : null}
         error={ep.error}
         onToggle={ep.toggle}
         onSave={ep.save}
@@ -53,4 +59,26 @@ export function ControlPanel({
       />
     </Panel>
   )
+}
+
+/** Why a new episode can't start: the task's target is reached, or rig devices are offline */
+function startBlockedNote(task: Task, offline: string[]): React.ReactNode | null {
+  if (targetReached(task))
+    return (
+      <>
+        목표 에피소드 수({task.targetEpisodes}개)를 모두 채웠습니다. 더 녹화하려면{" "}
+        <Link to="/tasks" className="text-foreground underline underline-offset-2">
+          Tasks
+        </Link>
+        에서 목표 수를 늘리세요.
+      </>
+    )
+  if (offline.length > 0)
+    return (
+      <>
+        연결되지 않은 장치가 있어 녹화를 시작할 수 없습니다: <span className="text-foreground">{offline.join(", ")}</span>. Rigs 에서 장치를
+        연결하세요.
+      </>
+    )
+  return null
 }

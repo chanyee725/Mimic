@@ -82,7 +82,6 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
                 resolution={c.resolution}
                 measuredFps={null}
                 targetFps={c.fps}
-                recording={run.recording}
                 timecode={running ? formatClock(run.elapsed / 1000) : undefined}
               />
             ))}

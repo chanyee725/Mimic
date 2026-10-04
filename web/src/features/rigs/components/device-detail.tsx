@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { DetailList } from "@/components/common/detail-list"
 import { StatusDot } from "@/components/common/status-dot"
+import { CameraPreview } from "@/components/robot/camera-preview"
 import { usePorts, useTestDevice } from "@/api/devices"
 import type { Device } from "@/domain/device"
 import { isArm } from "@/domain/device"
@@ -13,7 +14,6 @@ import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rateClass, rateText, TYPE_LABEL } from "../lib"
 import { CalibrationDialog } from "./calibration-dialog"
-import { CameraPreview } from "./camera-preview"
 import { PortDialog } from "./port-dialog"
 
 /** Selected device: port, connection test, calibration and streams */
