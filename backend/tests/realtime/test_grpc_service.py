@@ -8,7 +8,7 @@ from app.services.realtime import mock_robot
 from app.rpc.gen import robot_pb2
 from app.rpc.server import serve
 from app.rpc.servicer import RobotStreamService
-from conftest import connect_devices
+from tests.conftest import connect_devices
 
 
 @pytest.fixture(autouse=True)

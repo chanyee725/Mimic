@@ -2,7 +2,7 @@
 
 import pytest
 
-from conftest import add_tasks
+from tests.conftest import add_tasks
 
 
 def test_no_recordings_no_sessions(client, task):
