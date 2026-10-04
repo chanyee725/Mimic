@@ -1,7 +1,7 @@
 [project]
-name = "vla-backend"
+name = "apprentice-backend"
 version = "0.1.0"
-description = "Station backend for the VLA Data Pipeline"
+description = "Apprentice station backend: teleoperation capture, review, LeRobot datasets, training and evaluation"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "fastapi>=0.115",
