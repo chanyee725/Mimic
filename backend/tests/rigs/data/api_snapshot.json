@@ -174,7 +174,7 @@
       "port": "/dev/cam_top",
       "health": "off",
       "calibration": {
-        "done": false,
+        "done": true,
         "note": "Not required"
       },
       "streams": [
@@ -196,7 +196,7 @@
       "port": "/dev/cam_wrist",
       "health": "off",
       "calibration": {
-        "done": false,
+        "done": true,
         "note": "Not required"
       },
       "streams": [
@@ -306,7 +306,7 @@
       "port": "/dev/bi_cam_top",
       "health": "off",
       "calibration": {
-        "done": false,
+        "done": true,
         "note": "Not required"
       },
       "streams": [
@@ -328,7 +328,7 @@
       "port": "/dev/bi_cam_wrist_l",
       "health": "off",
       "calibration": {
-        "done": false,
+        "done": true,
         "note": "Not required"
       },
       "streams": [
@@ -350,7 +350,7 @@
       "port": "/dev/bi_cam_wrist_r",
       "health": "off",
       "calibration": {
-        "done": false,
+        "done": true,
         "note": "Not required"
       },
       "streams": [

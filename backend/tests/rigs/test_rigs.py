@@ -52,7 +52,8 @@ def test_devices_are_not_connected(client):
     assert len(rows) == 11
     for d in rows:
         assert d["health"] == "off" and d["stats"] == []
-        assert d["check"] is None and d["calibration"]["done"] is False
+        assert d["check"] is None
+        assert d["calibration"]["done"] is (d["type"] == "camera")  # cameras need none
         assert all(s["measuredHz"] is None and s["targetHz"] for s in d["streams"])
     d = client.get("/devices/top").json()
     assert d["streams"][0] == {

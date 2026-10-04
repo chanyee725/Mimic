@@ -99,7 +99,7 @@ def test_camera_only_in_file_gets_default_device(client):
     }
     d = client.get("/devices/side").json()
     assert d["type"] == "camera" and d["health"] == "off" and d["port"] == "/dev/cam_side"
-    assert d["calibration"]["done"] is False and d["stats"] == []
+    assert d["calibration"] == {"done": True, "note": "Not required"} and d["stats"] == []
     assert d["streams"] == [
         {
             "key": "images.side",

@@ -253,7 +253,7 @@ def _tested(device_id: str, ok: bool, message: str, health: str, stats: list[Sta
 def _file_calibration(hw: Hardware) -> Calibration:
     """Arms: calibrated when LeRobot has a calibration file for the device's calibration id."""
     if hw.kind == "camera":
-        return Calibration(done=False, note="Not required")
+        return Calibration(done=True, note="Not required")
     path = driver.get().calibration_file(hw)
     if path is None:
         return Calibration(done=False, note="Required")
