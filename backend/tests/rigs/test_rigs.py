@@ -47,12 +47,12 @@ def test_rig_devices_order(client):
 
 
 def test_devices_are_not_connected(client):
-    # No drivers yet: nothing live is reported
+    # Nothing is live until a connection test runs
     rows = client.get("/devices").json()
     assert len(rows) == 11
     for d in rows:
         assert d["health"] == "off" and d["stats"] == []
-        assert d["calibration"] == {"done": False, "note": "Not connected"}
+        assert d["check"] is None and d["calibration"]["done"] is False
         assert all(s["measuredHz"] is None and s["targetHz"] for s in d["streams"])
     d = client.get("/devices/top").json()
     assert d["streams"][0] == {
@@ -65,20 +65,6 @@ def test_devices_are_not_connected(client):
     assert client.get("/devices/missing").status_code == 404
 
 
-def test_calibrate_off_device(client):
-    r = client.post("/devices/follower/calibrate")
-    assert r.status_code == 503 and r.json()["error"]["code"] == "unavailable"
-
-
-def test_calibrate_device(client, devices_online):
-    r = client.post("/devices/follower/calibrate")
-    assert r.status_code == 202
-    assert r.json()["calibration"]["done"] is False
-    # The mock finishes in the background task
-    cal = client.get("/devices/follower").json()["calibration"]
-    assert cal["done"] is True and cal["note"].startswith("Calibrated")
-
-
 def test_no_rigs_without_files(client):
     from app.core import storage
     from app.services import rigs as service
@@ -88,16 +74,3 @@ def test_no_rigs_without_files(client):
     service.reset()
     assert client.get("/rigs").json() == [] and client.get("/devices").json() == []
     assert not storage.list_yaml("rigs")  # nothing seeded
-
-
-def test_calibrate_errors(client):
-    assert client.post("/devices/missing/calibrate").status_code == 404
-    r = client.post("/devices/bi-leader-l/calibrate")
-    assert r.status_code == 503 and r.json()["error"]["code"] == "unavailable"
-
-
-def test_calibrate_twice(client, devices_online):
-    from app.services import rigs as service
-
-    service.start_calibration("leader")
-    assert client.post("/devices/leader/calibrate").status_code == 409

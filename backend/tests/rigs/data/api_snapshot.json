@@ -131,7 +131,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Required"
       },
       "streams": [
         {
@@ -142,7 +142,8 @@
           "unit": "Hz"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "follower",
@@ -152,7 +153,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Required"
       },
       "streams": [
         {
@@ -163,7 +164,8 @@
           "unit": "Hz"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "top",
@@ -173,7 +175,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Not required"
       },
       "streams": [
         {
@@ -184,7 +186,8 @@
           "unit": "fps"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "wrist",
@@ -194,7 +197,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Not required"
       },
       "streams": [
         {
@@ -205,7 +208,8 @@
           "unit": "fps"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "bi-leader-l",
@@ -215,7 +219,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Required"
       },
       "streams": [
         {
@@ -226,7 +230,8 @@
           "unit": "Hz"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "bi-leader-r",
@@ -236,7 +241,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Required"
       },
       "streams": [
         {
@@ -247,7 +252,8 @@
           "unit": "Hz"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "bi-follower-l",
@@ -257,7 +263,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Required"
       },
       "streams": [
         {
@@ -268,7 +274,8 @@
           "unit": "Hz"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "bi-follower-r",
@@ -278,7 +285,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Required"
       },
       "streams": [
         {
@@ -289,7 +296,8 @@
           "unit": "Hz"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "bi-cam-top",
@@ -299,7 +307,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Not required"
       },
       "streams": [
         {
@@ -310,7 +318,8 @@
           "unit": "fps"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "bi-cam-wrist-l",
@@ -320,7 +329,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Not required"
       },
       "streams": [
         {
@@ -331,7 +340,8 @@
           "unit": "fps"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     },
     {
       "id": "bi-cam-wrist-r",
@@ -341,7 +351,7 @@
       "health": "off",
       "calibration": {
         "done": false,
-        "note": "Not connected"
+        "note": "Not required"
       },
       "streams": [
         {
@@ -352,7 +362,8 @@
           "unit": "fps"
         }
       ],
-      "stats": []
+      "stats": [],
+      "check": null
     }
   ]
 }
