@@ -133,3 +133,13 @@ class TeleopState(CamelModel):
     error: str | None
     started_at: str
     pairs: list[TeleopPair]
+
+
+class TeleopSamples(CamelModel):
+    """Recent teleoperation samples for live plots (rig joint order)."""
+
+    joints: list[str]
+    seq: int  # last returned sample, or `after` when none
+    t: list[float]  # seconds since the session started
+    action: list[list[float]]  # leader
+    state: list[list[float]]  # follower

@@ -42,10 +42,40 @@ def _spans(s: Session, duration: float) -> list[SubtaskSpan]:
     ]
 
 
-def build_episode(s: Session, duration: float, outcome: Outcome) -> tuple[Recording, Episode]:
+Samples = tuple[list[float], list[list[float]], list[list[float]]]
+
+
+def _checks(task: Task, duration: float, samples: Samples | None) -> list[RecordingCheck]:
+    period_ms = 1000 / task.action_hz
+    if samples is None:
+        n = round(duration * task.action_hz)
+        return [
+            RecordingCheck(label="Action samples", value=f"{n} / {n}", ok=True),
+            RecordingCheck(label="State samples", value=f"{n} / {n}", ok=True),
+            RecordingCheck(label="Timestamp gap", value=f"max {round(period_ms)} ms", ok=True),
+        ]
+    t = samples[0]
+    expected = round(duration * task.action_hz)
+    enough = len(t) >= 0.95 * expected
+    gaps = [b - a for a, b in zip(t, t[1:])]
+    # The window edges count too: a recording that starts late or stops early has a gap
+    edges = [t[0], duration - t[-1]] if t else [duration]
+    gap_ms = round(max([*gaps, *edges]) * 1000)
+    return [
+        RecordingCheck(label="Action samples", value=f"{len(t)} / {expected}", ok=enough),
+        RecordingCheck(label="State samples", value=f"{len(samples[2])} / {expected}", ok=enough),
+        RecordingCheck(label="Timestamp gap", value=f"max {gap_ms} ms", ok=gap_ms <= 3 * period_ms),
+    ]
+
+
+def build_episode(
+    s: Session, duration: float, outcome: Outcome, samples: Samples | None = None
+) -> tuple[Recording, Episode]:
     """The Recording (sidecar) and the MCAP content of a saved episode.
 
-    No camera frames yet (cameras are mock): the file holds action, state and subtask labels.
+    `samples` are the teleoperation samples of the recording window (leader action, follower
+    state); without them (no device access) the file holds a mock trajectory. No camera frames
+    yet: the file holds action, state and subtask labels.
     """
     task, rig = s.task, s.rig
     rec_id = f"{task.id}-{s.episode}"
@@ -57,7 +87,9 @@ def build_episode(s: Session, duration: float, outcome: Outcome) -> tuple[Record
         joints=list(rig.joints),
         seed=unit_seed(rec_id),
         subtasks=spans,
+        samples=samples,
         metadata={
+            "source": "teleop" if samples is not None else "mock",
             "recording_id": rec_id,
             "task_id": task.id,
             "rig_id": rig.id,
@@ -66,14 +98,7 @@ def build_episode(s: Session, duration: float, outcome: Outcome) -> tuple[Record
             "outcome": outcome,
         },
     )
-    n = ep.n_samples
-    checks = [
-        RecordingCheck(label="Action samples", value=f"{n} / {n}", ok=True),
-        RecordingCheck(label="State samples", value=f"{n} / {n}", ok=True),
-        RecordingCheck(
-            label="Timestamp gap", value=f"max {round(1000 / task.action_hz)} ms", ok=True
-        ),
-    ]
+    checks = _checks(task, duration, samples)
     if task.subtasks:
         done = len({sp.name for sp in spans})
         checks.append(

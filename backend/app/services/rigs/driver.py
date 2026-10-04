@@ -73,7 +73,7 @@ class TeleopLink(Protocol):
 
     def step(self, read_follower: bool) -> list[tuple[dict[str, float], dict[str, float] | None]]:
         """One control step: read every leader and command its follower; per pair (leader,
-        follower positions when read_follower)."""
+        follower positions when read_follower — the teleop service asks every step)."""
         ...
 
     def close(self) -> None: ...

@@ -159,6 +159,9 @@ class FakeDriver:
         return self.teleop
 
 
+FOLLOWER_LAG = 0.5
+
+
 class FakeTeleop:
     """Leader positions follow `pos`; set `fail` to make the next step raise."""
 
@@ -174,7 +177,9 @@ class FakeTeleop:
         if self.fail:
             raise RuntimeError(self.fail)
         self.steps += 1
-        return [(dict(self.pos), dict(self.pos) if read_follower else None) for _ in self.pairs]
+        # The follower trails the leader by FOLLOWER_LAG so the two series differ
+        follower = {m: v - FOLLOWER_LAG for m, v in self.pos.items()}
+        return [(dict(self.pos), dict(follower) if read_follower else None) for _ in self.pairs]
 
     def close(self) -> None:
         self.closed = True

@@ -26,6 +26,7 @@ from app.models.rigs import (
     Port,
     Rig,
     Stat,
+    TeleopSamples,
     TeleopState,
 )
 from app.services.rigs import calibration, driver, ports, preview, teleop
@@ -370,12 +371,37 @@ def start_teleop(rig_id: str) -> TeleopState:
         if not ports.exists(_hardware[i].port):
             raise ApiError(503, f"Port not found: {_hardware[i].port}")
     pairs = [(_hardware[r], _hardware[t]) for r, t in zip(rig.robots, rig.devices)]
-    return teleop.start(rig_id, pairs, rig.target_hz.action, ids)
+    return teleop.start(rig_id, pairs, rig.target_hz.action, ids, rig.joints)
 
 
-def teleop_state(rig_id: str) -> TeleopState:
+def teleop_state(rig_id: str) -> TeleopState | None:
+    """The rig's teleoperation session, or None when there is none."""
     require_rig(rig_id)
-    return teleop.state(rig_id)
+    return teleop.state(rig_id) if teleop.exists(rig_id) else None
+
+
+def teleop_samples(rig_id: str, after: int = -1) -> TeleopSamples:
+    require_rig(rig_id)
+    return teleop.samples(rig_id, after)
+
+
+def teleop_running(rig_id: str) -> bool:
+    return teleop.running(rig_id)
+
+
+def ensure_teleop(rig_id: str) -> bool:
+    """Start the rig's teleoperation unless it runs; False when there is no device access
+    (tests, a station without LeRobot) and nothing was started."""
+    if driver.get().unavailable() is not None:
+        return False
+    if not teleop.running(rig_id):
+        start_teleop(rig_id)
+    return True
+
+
+def teleop_samples_between(rig_id: str, start_wall: float, end_wall: float):
+    """(t from start_wall, action, state) recorded by the rig's teleoperation in that window."""
+    return teleop.samples_between(rig_id, start_wall, end_wall)
 
 
 def stop_teleop(rig_id: str) -> None:

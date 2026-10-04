@@ -83,6 +83,7 @@ def test_save_writes_mcap_and_sidecar(client, clock, raw):
         assert counts == {"/action": 600, "/observation/state": 600, "/subtask": 2}  # 10 s × 60 Hz
         meta = {m.name: m.metadata for m in reader.iter_metadata()}
     assert meta["episode"] == {
+        "source": "mock",  # no device access in tests
         "recording_id": REC_ID,
         "task_id": "stack-two-blocks",
         "rig_id": "so101-kit",

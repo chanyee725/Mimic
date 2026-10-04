@@ -53,7 +53,7 @@ class McapReadError(Exception):
 
 @dataclass
 class Episode:
-    """Everything needed to synthesise one episode file (mock signal until real hardware)."""
+    """Everything needed to write one episode file: recorded samples, or a mock signal."""
 
     start_ns: int
     duration_s: float
@@ -62,9 +62,13 @@ class Episode:
     seed: float  # mock trajectory per recording
     subtasks: list[SubtaskSpan] = field(default_factory=list)
     metadata: dict[str, str] = field(default_factory=dict)
+    # Recorded (t from start, action, state); None writes the mock trajectory
+    samples: tuple[list[float], list[list[float]], list[list[float]]] | None = None
 
     @property
     def n_samples(self) -> int:
+        if self.samples is not None:
+            return len(self.samples[0])
         return round(self.duration_s * self.hz)
 
 
@@ -97,6 +101,22 @@ def _json(data: object) -> bytes:
     return json.dumps(data, separators=(",", ":")).encode()
 
 
+def _rows(ep: Episode, n_joints: int):
+    """(t, action, state) per sample: the recorded ones, else the mock trajectory."""
+    if ep.samples is not None:
+        for t, action, state in zip(*ep.samples):
+            yield t, [round(v, 3) for v in action], [round(v, 3) for v in state]
+        return
+    for k in range(ep.n_samples):
+        t = k / ep.hz
+        state_t = max(0.0, t - mock_robot.STATE_LAG_S)
+        yield (
+            t,
+            [round(mock_robot.sample(i, t, ep.seed), 3) for i in range(n_joints)],
+            [round(mock_robot.sample(i, state_t, ep.seed), 3) for i in range(n_joints)],
+        )
+
+
 def encode(ep: Episode) -> bytes:
     """The episode as MCAP bytes (messages in log-time order)."""
     buf = io.BytesIO()
@@ -117,12 +137,8 @@ def encode(ep: Episode) -> bytes:
     # (log time, channel, payload); sorted so readers see time order
     out: list[tuple[int, str, bytes]] = []
     n_joints = len(ep.joints)
-    for k in range(ep.n_samples):
-        t = k / ep.hz
+    for t, action, state in _rows(ep, n_joints):
         ns = ep.start_ns + round(t * 1e9)
-        state_t = max(0.0, t - mock_robot.STATE_LAG_S)
-        action = [round(mock_robot.sample(i, t, ep.seed), 3) for i in range(n_joints)]
-        state = [round(mock_robot.sample(i, state_t, ep.seed), 3) for i in range(n_joints)]
         out.append((ns, ACTION_TOPIC, _json({"position": action})))
         out.append((ns, STATE_TOPIC, _json({"position": state})))
     for sp in ep.subtasks:

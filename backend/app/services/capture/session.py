@@ -13,7 +13,7 @@ from app.models.rigs import Rig
 from app.models.tasks import Outcome, Task
 from app.services import recordings
 from app.services.capture.recording import Session, build_episode
-from app.services.rigs import get_device, get_rig
+from app.services.rigs import ensure_teleop, get_device, get_rig, teleop_samples_between
 from app.services.tasks import get_task
 from app.utils.time import now, seconds_since, to_iso
 
@@ -135,7 +135,17 @@ def start(task_id: str, operator: str) -> CaptureState:
     rig = get_rig(task.rig_id)
     if rig is None:
         raise not_found("Rig", task.rig_id)
+    if task.collected >= task.target_episodes:
+        # Raise the task's target (Tasks) to record more
+        raise conflict(
+            f"Task '{task.id}' already has its {task.target_episodes} episodes",
+            collected=task.collected,
+            target=task.target_episodes,
+        )
     _check_devices(task, rig)
+    # The leader drives the follower while recording; it keeps running between episodes so the
+    # follower never drops (Stop it from the Rigs page)
+    ensure_teleop(rig.id)
     _arm(task, rig, operator, _next_episode(task))
     return _publish()
 
@@ -181,7 +191,10 @@ def save(outcome: Outcome) -> Recording:
     s = _session
     assert s is not None
     duration = max(0.1, round(s.stopped_s if s.stopped_s is not None else st.elapsed_s, 1))
-    rec = recordings.save_episode(*build_episode(s, duration, outcome))
+    start = s.recording_at.timestamp()
+    t, action, state_ = teleop_samples_between(s.rig.id, start, start + duration)
+    samples = (t, action, state_) if t else None
+    rec = recordings.save_episode(*build_episode(s, duration, outcome, samples))
     _issued[s.task.id] = s.episode
     _session, _last_task_id = None, s.task.id
     _publish()
