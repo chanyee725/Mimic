@@ -2,7 +2,7 @@
 
 A rig is a fixed set of hardware (follower robot, leader arm, cameras) that a task records with. Web: `api/rigs.ts`, `api/devices.ts`.
 Real devices are reached through LeRobot (`backend/app/services/rigs/driver.py`, the `hardware` dependency group): port
-scan, connection test and arm calibration.
+scan, camera preview, connection test, arm calibration and a teleoperation test.
 
 ## Types
 
@@ -32,6 +32,11 @@ CalibrationStep = "center" | "range" | "done" | "failed"
 MotorRange = { name: string; pos: number | null; min: number | null; max: number | null; fullTurn: boolean }
 CalibrationSession = { deviceId: string; step: CalibrationStep; message: string; motors: MotorRange[];
                        file: string | null; startedAt: string }
+
+TeleopJoint = { name: string; leader: number | null; follower: number | null }   // LeRobot units (degrees, gripper 0–100)
+TeleopPair  = { robot: string; teleop: string; joints: TeleopJoint[] }           // follower id, leader id
+TeleopState = { rigId: string; running: boolean; hz: number | null; targetHz: number; error: string | null;
+                startedAt: string; pairs: TeleopPair[] }
 ```
 
 ## Endpoints
@@ -40,14 +45,18 @@ CalibrationSession = { deviceId: string; step: CalibrationStep; message: string;
 | --- | --- | --- | --- |
 | GET | `/rigs` | `Rig[]` | `listRigs()` |
 | GET | `/rigs/{id}` | `Rig`; **404** if unknown (the web mock falls back to the first rig — the client keeps that fallback) | `getRig(id)` |
-| GET | `/rigs/{id}/yaml` | `text/yaml` | Rigs Config tab |
+| GET | `/rigs/{id}/yaml` | `text/yaml`: the rig file as it is on disk (comments and written ports included) | Rigs Config tab |
+| POST | `/rigs/{id}/teleop` | `201 TeleopState`: connects every leader / follower pair and starts the loop. 400 unless the rig has one leader per follower; 409 if already running or a rig arm is calibrating, or an arm has no calibration file (`Calibrate '<id>' first`); 503 if a port is missing or fails to open | Test teleoperation |
+| GET | `/rigs/{id}/teleop` | `TeleopState` (polled while it runs); 404 when there is none | Teleoperation dialog |
+| DELETE | `/rigs/{id}/teleop` | 204; disconnects the arms (followers drop torque). 404 when there is none | Stop |
 | GET | `/rigs/{id}/devices` | `Device[]` in Robot → Device → Camera order (`robots`, then `devices`, then camera ids) | `devicesOf(rigId)` |
 | GET | `/devices` | `Device[]` | `listDevices()` |
 | GET | `/devices/{id}` | `Device` | Rigs detail |
-| GET | `/devices/ports` | `Port[]`: USB serial ports (`/dev/ttyACM*`, `/dev/ttyUSB*`), then video capture nodes (index 0 only). `path` is the `/dev/serial/by-id` / `/dev/v4l/by-id` link when there is one, else the node; `usedBy` = devices whose port is the path or the node | Rigs port picker, Rescan ports |
-| PUT | `/devices/{id}/port` | Body `{ port }` (absolute path, else 400) → `Device`. Saved in `data/ports.local.yaml`; resets health, stats and `check`. 409 while calibrating | Rigs port picker |
-| POST | `/devices/{id}/test` | `Device` after one connection test (about 1 s). 409 while calibrating; 503 if LeRobot is unavailable. A failed test is **200** with `check.ok: false` and `health: "off"` | Rigs Test connection |
-| POST | `/devices/{id}/calibrate` | `201 CalibrationSession` in step `center` (arm opened, torque off). 400 for a camera or a non-Feetech arm; 409 if already calibrating; 503 if the port is missing or does not open | Rigs Calibrate |
+| GET | `/devices/ports` | `Port[]`: USB serial ports (`/dev/ttyACM*`, `/dev/ttyUSB*`), then video capture nodes (index 0 only). `path` is the `/dev/serial/by-id` link for serial ports (unique adapter serial) and the `/dev/v4l/by-path` link (USB position; identical cameras often share a serial) for video, else the node; `usedBy` = devices whose port is the path or the node | Rigs port picker, Rescan ports |
+| GET | `/devices/ports/preview?path=` | `multipart/x-mixed-replace; boundary=frame`: live JPEG frames (MJPG 640×480, about 12 fps) for an `<img>`. Only a scanned video port's `path` or `device` (else 400); 503 if it does not open or gives no frame. The camera is released when the client disconnects | Port dialog previews |
+| PUT | `/devices/{id}/port` | Body `{ port }` (absolute path, else 400) → `Device`. Written into the rig file that declares the device, in place (only the `port` value changes; comments and layout stay); resets health, stats and `check`. 409 while calibrating or in a teleoperation test | Port dialog |
+| POST | `/devices/{id}/test` | `Device` after one connection test (about 1 s). 409 while calibrating or in a teleoperation test; 503 if LeRobot is unavailable. A failed test is **200** with `check.ok: false` and `health: "off"` | Rigs Test connection |
+| POST | `/devices/{id}/calibrate` | `201 CalibrationSession` in step `center` (arm opened, torque off). 400 for a camera or a non-Feetech arm; 409 if already calibrating or in a teleoperation test; 503 if the port is missing or does not open | Rigs Calibrate |
 | GET | `/devices/{id}/calibration` | `CalibrationSession` with live joint positions (the web polls it every 100 ms while it runs); 404 when there is none | Calibration dialog |
 | POST | `/devices/{id}/calibration/next` | `center` → `range` (writes half-turn homing offsets) → `done` (writes the calibration to the motors and saves the LeRobot file). 409 when not running, or in `range` while some joints have not moved (`details.motors`) | Next / Finish |
 | DELETE | `/devices/{id}/calibration` | 204; closes the port. 404 when there is none | Cancel |
@@ -82,9 +91,21 @@ While a session runs the device reports `calibration: { done: false, note: "Cali
 `{ done: true, note: "Calibrated · <file date>" }` when the LeRobot file exists, `{ done: false, note: "Required" }` when it
 does not, and `{ done: true, note: "Not required" }` for cameras.
 
+### Teleoperation test
+
+- Pairs `robots[i]` (follower) with `devices[i]` (leader); both need a LeRobot calibration file. Leaders connect first,
+  then followers (torque on). Motors that hold another calibration get the file's written to them (what pressing ENTER at
+  LeRobot's calibrate prompt does), so `connect()` never prompts.
+- A background loop runs at the rig's `action_hz`: each step reads the leader and sends it to its follower; followers are
+  read every 6th step for display. Follower moves are capped at 3 per step (degrees; % for the gripper) through LeRobot's
+  `max_relative_target`, so a far-off leader pose is approached gradually. `hz` is the measured loop rate (per second).
+- The first failing step stops the loop, disconnects and keeps `error` (`running: false`) until Stop or the next Start.
+- Stop disconnects every arm; followers drop torque (LeRobot default), so **support the follower before stopping**.
+- While it runs the rig's arms refuse connection tests, calibration and port changes (409).
+
 ### Rig YAML
 
-The rig in its file format (see [Storage](#storage)), as the backend writes it (no comments). Read-only in v1 (rigs are not edited through the API).
+The rig file as it is on disk (see [Storage](#storage)). The API edits only device `port` values (in place).
 
 ## Storage
 
@@ -101,7 +122,7 @@ robot:
   id: follower
   type: so101_follower          # LeRobot robot / teleoperator type (not in the API)
   name: SO-101 Follower
-  port: /dev/so101_follower     # default port; the one picked on the Rigs page wins (data/ports.local.yaml)
+  port: /dev/so101_follower     # set from the Rigs page (written in place)
   calibration_id: so101_follower  # LeRobot id = calibration file name; defaults to the device id
   joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
 
@@ -132,4 +153,4 @@ rates:
 - Multi-arm rigs use maps keyed by id instead: `robots: { bi-follower-l: {type, name, port, joints}, bi-follower-r: {…} }` and `devices: { … }`. Either form loads; the backend writes the singular form when there is exactly one. Every robot has the same number of joints, and joint names are unique across robots.
 - Mapping to `Rig`: `slave` / `master` = the robot / device names (one name as is; `X (L)` + `X (R)` → `X ×2`; otherwise joined with ` + `); `robots` / `devices` = their ids; `joints` = the robots' joints in order; camera `id` = `id` or the key, `feature` = `observation.images.<key>`, `resolution` as `640×480`; `targetHz` = `rates.action_hz` / `rates.video_fps`.
 - Devices are the ones declared in the rig files (id, name, port; type robot → `robot`, device → `teleop`, camera → `camera`); the first rig declaring an id wins. Every device starts not connected (see above): streams are derived from the file (`observation.state` / `action` shape `[n_joints]` with `targetHz` = `action_hz`, `images.<key>` shape `HxWx3` at the camera fps, `measuredHz: null`), no stats. Test results stay in memory.
-- Station-local ports: `data/ports.local.yaml` (git-ignored via `*.local.yaml`) maps device id → port and overrides the rig file's `port`. Calibration files are LeRobot's own (see [Calibration](#calibration)); nothing about calibration is written under `data/`.
+- Ports picked on the Rigs page are written into the rig file in place (`PUT /devices/{id}/port`): only the scalar after `port:` changes, so comments, key order and inline comments stay. Paths are written plain (quoted when they contain spaces or other YAML-special characters). Calibration files are LeRobot's own (see [Calibration](#calibration)); nothing about calibration is written under `data/`.
