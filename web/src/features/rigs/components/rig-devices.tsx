@@ -1,5 +1,7 @@
 import type { UseQueryResult } from "@tanstack/react-query"
+import { LuPlugZap } from "react-icons/lu"
 
+import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Panel } from "@/components/layout/page-layout"
 import { useRigYaml } from "@/api/rigs"
@@ -11,6 +13,9 @@ import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 type Props = {
   rig: Rig
+  testing: boolean
+  testError: Error | null
+  onTestAll: () => void
   groups: ReturnType<typeof rigGroups>
   group: string
   groupDevices: Device[]
@@ -21,7 +26,19 @@ type Props = {
 }
 
 /** Device list and config file for the selected rig */
-export function RigDevices({ rig, groups, group, groupDevices, devicesQuery, selectedId, onGroupChange, onSelectDevice }: Props) {
+export function RigDevices({
+  rig,
+  testing,
+  testError,
+  onTestAll,
+  groups,
+  group,
+  groupDevices,
+  devicesQuery,
+  selectedId,
+  onGroupChange,
+  onSelectDevice,
+}: Props) {
   const yaml = useRigYaml(group === "config" ? rig.id : undefined)
 
   return (
@@ -29,11 +46,20 @@ export function RigDevices({ rig, groups, group, groupDevices, devicesQuery, sel
       className="@container"
       title={rig.name}
       action={
-        <span className="text-[13px] text-muted-foreground tabular-nums">
-          {rig.joints.length} DoF · {rig.targetHz.action} Hz · {rig.targetHz.video} fps
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[13px] text-muted-foreground tabular-nums">
+            {rig.joints.length} DoF · {rig.targetHz.action} Hz · {rig.targetHz.video} fps
+          </span>
+          {/* Runs once when the rig is first shown; this reruns it */}
+          <Button variant="outline" size="xs" disabled={testing} onClick={onTestAll}>
+            <LuPlugZap />
+            {testing ? "Testing…" : "Test all"}
+          </Button>
+        </div>
       }
     >
+      {testing && <p className="text-xs text-muted-foreground">Rig 의 모든 장치 연결을 확인하는 중입니다…</p>}
+      <ErrorNote error={testError} />
       {/* Split the rig's devices into Robot / Device / Camera tabs */}
       <Tabs value={group} onValueChange={(v) => onGroupChange(String(v))} className="min-h-0 flex-1">
         <TabsList>

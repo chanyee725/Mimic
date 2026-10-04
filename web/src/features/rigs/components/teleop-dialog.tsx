@@ -24,6 +24,7 @@ export function TeleopDialog({ rig, open, onOpenChange }: { rig: Rig; open: bool
     // Leaving while it runs stops the followers
     if (running) stop.mutate(rig.id)
     start.reset()
+    stop.reset()
     onOpenChange(false)
   }
 
@@ -55,7 +56,7 @@ export function TeleopDialog({ rig, open, onOpenChange }: { rig: Rig; open: bool
           </div>
         )}
         {state?.error && <p className="text-[13px] text-bad">{state.error}</p>}
-        <ErrorNote error={start.error ?? stop.error} />
+        <ErrorNote error={start.error ?? stop.error ?? teleopQuery.error} />
 
         <DialogFooter>
           <Button variant="outline" onClick={close} disabled={stop.isPending}>
