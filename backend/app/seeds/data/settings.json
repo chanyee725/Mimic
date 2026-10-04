@@ -1,0 +1,171 @@
+{
+  "SETTINGS": {
+    "integrations": {
+      "hf": {
+        "namespace": "vla-lab",
+        "privateByDefault": true,
+        "state": "unknown"
+      },
+      "runpod": {
+        "region": "any",
+        "volume": "vla-datasets",
+        "monthlyBudget": 300,
+        "idleAlertMin": 15,
+        "state": "unknown"
+      }
+    },
+    "connection": {
+      "api": {
+        "url": "http://localhost:8000",
+        "state": "unknown"
+      },
+      "grpc": {
+        "url": "localhost:50051",
+        "state": "unknown"
+      },
+      "webrtc": {
+        "stun": "stun:stun.l.google.com:19302",
+        "turn": "",
+        "state": "unknown"
+      }
+    },
+    "notifications": {
+      "events": [
+        {
+          "key": "train_done",
+          "label": "Training finished",
+          "on": true
+        },
+        {
+          "key": "train_failed",
+          "label": "Training failed",
+          "on": true
+        },
+        {
+          "key": "pod_idle",
+          "label": "RunPod pod still running after training",
+          "on": true
+        },
+        {
+          "key": "budget",
+          "label": "RunPod monthly budget reached 80%",
+          "on": true
+        },
+        {
+          "key": "disk",
+          "label": "Disk almost full",
+          "on": true
+        },
+        {
+          "key": "sim_done",
+          "label": "Simulation evaluation finished",
+          "on": false
+        }
+      ]
+    }
+  },
+  "SHORTCUTS": [
+    {
+      "page": "Capture",
+      "keys": [
+        {
+          "keys": [
+            "Space"
+          ],
+          "action": "Start or stop recording"
+        },
+        {
+          "keys": [
+            "→"
+          ],
+          "action": "Save as success"
+        },
+        {
+          "keys": [
+            "F"
+          ],
+          "action": "Save as fail"
+        },
+        {
+          "keys": [
+            "P"
+          ],
+          "action": "Save as partial"
+        },
+        {
+          "keys": [
+            "←"
+          ],
+          "action": "Re-record"
+        },
+        {
+          "keys": [
+            "Esc"
+          ],
+          "action": "Discard"
+        },
+        {
+          "keys": [
+            "1",
+            "4"
+          ],
+          "action": "Mark subtask while recording"
+        }
+      ]
+    },
+    {
+      "page": "Review",
+      "keys": [
+        {
+          "keys": [
+            "Space"
+          ],
+          "action": "Play or pause"
+        },
+        {
+          "keys": [
+            "←",
+            "→"
+          ],
+          "action": "Seek 1 s (Shift: 5 s)"
+        },
+        {
+          "keys": [
+            "Home",
+            "End"
+          ],
+          "action": "Jump to start or end"
+        }
+      ]
+    },
+    {
+      "page": "Evaluate",
+      "keys": [
+        {
+          "keys": [
+            "Space"
+          ],
+          "action": "Run policy"
+        },
+        {
+          "keys": [
+            "Esc"
+          ],
+          "action": "Stop"
+        },
+        {
+          "keys": [
+            "S"
+          ],
+          "action": "Mark success"
+        },
+        {
+          "keys": [
+            "F"
+          ],
+          "action": "Mark fail"
+        }
+      ]
+    }
+  ]
+}

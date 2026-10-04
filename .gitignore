@@ -1,0 +1,89 @@
+# ── Secrets (never commit HF tokens, RunPod / W&B keys, Slack webhooks, …) ──
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+/secrets/
+credentials*.json
+.huggingface/
+.netrc
+
+# ── Recordings and training outputs (large, and they contain operator data) ──
+# Folder names are anchored to the repo root so source folders like web/src/features/models stay tracked
+*.mcap
+*.bag
+*.db3
+# data/: what the web produces (tasks, recordings, datasets, models) — station data, never committed.
+# Station setup (rigs, settings, calibration) lives in config/ and is committed.
+/data/
+/raw/
+/datasets/
+/outputs/
+/checkpoints/
+/models/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.parquet
+*.mp4
+*.avi
+wandb/
+/runs/
+# Small example / test files go in fixtures/ and are committed
+!**/fixtures/**
+
+# ── Calibration and device-local settings (differ per station) ──
+/calibration/
+*.local.yaml
+*.local.json
+
+# ── Node / frontend ──
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Python / backend ──
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ── Isaac Sim / Omniverse caches ──
+.cache/
+kit/logs/
+*.usd.bak
+
+# ── Claude Code (commit only shared settings.json, commands and agents; not personal settings or worktrees) ──
+.claude/*
+!.claude/settings.json
+!.claude/commands/
+!.claude/agents/
+CLAUDE.local.md
+
+# ── Editors / OS ──
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.sw?
+*.log
+logs/

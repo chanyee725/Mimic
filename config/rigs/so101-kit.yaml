@@ -1,0 +1,41 @@
+id: so101-kit
+name: SO-101 Kit
+
+# Follower arm: executes actions, publishes observation.state
+robot:
+  id: follower
+  type: so101_follower
+  name: SO-101 Follower
+  port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14032242-if00        # set from the Rigs page (written in place)
+  calibration_id: so101_follower   # LeRobot id: config/calibration/robots/so_follower/<id>.json
+  joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
+
+# Teleop leader arm: the operator moves it, it publishes action
+device:
+  id: leader
+  type: so101_leader
+  name: SO-101 Leader
+  port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14029549-if00
+  calibration_id: so101_leader
+
+# Cameras by key (device id = key, feature = observation.images.<key>)
+cameras:
+  top:
+    name: Top camera
+    port: /dev/v4l/by-path/pci-0000:65:00.3-usb-0:2.4.1:1.0-video-index0
+    resolution: 640x480
+    fps: 30
+    default_on: true
+  wrist:
+    name: Wrist camera
+    port: /dev/v4l/by-path/pci-0000:65:00.3-usb-0:2.4.2:1.0-video-index0
+    resolution: 640x480
+    fps: 30
+    default_on: true
+
+# Recording rates: action (leader → follower) in Hz, cameras in fps
+rates:
+  action_hz: 60
+  video_fps: 30
+  action_hz_options: [30, 60]
+  video_fps_options: [15, 30]

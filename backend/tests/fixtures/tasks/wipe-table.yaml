@@ -1,0 +1,40 @@
+task_id: wipe-table
+name: Wipe table
+label: wipe the spill with the sponge
+variants: []
+tags:
+- contact-rich
+rig: so101-kit
+cameras:
+- top
+- wrist
+rates:
+  action_hz: 60
+  video_fps: 30
+episode:
+  target: 30
+  duration_s: 40.0
+  reset_s: 10.0
+  countdown_s: 3.0
+outcomes:
+  success: →
+  fail: F
+  partial: P
+subtasks:
+- key: '1'
+  name: grasp
+  description: 스펀지 파지
+- key: '2'
+  name: wipe
+  description: 얼룩 닦기
+success_criteria: 얼룩이 남아 있지 않을 것
+status: draft
+output:
+  repo_id: local/wipe_table
+  format: lerobot_v3
+  fps: 30
+  push_to_hub: private
+meta:
+  version: 1
+  updated_at: '2026-10-02T00:00:00+09:00'
+  updated_by: OP-01

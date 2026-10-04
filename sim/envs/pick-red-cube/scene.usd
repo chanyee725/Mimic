@@ -1,0 +1,9 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+)
+
+# Placeholder stage for pick-red-cube; replace with the exported Isaac Sim scene.
+def Xform "World"
+{
+}

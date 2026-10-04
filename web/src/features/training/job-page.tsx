@@ -1,0 +1,145 @@
+import { Navigate, useParams } from "react-router-dom"
+import { LuArrowLeft, LuClock, LuDollarSign, LuFootprints, LuHourglass, LuSquare } from "react-icons/lu"
+
+import { Button } from "@/components/ui/button"
+import { LinkButton } from "@/components/common/link-button"
+import { Page, Panel } from "@/components/layout/page-layout"
+import { StatStrip } from "@/components/common/stat-strip"
+import { StatusDot } from "@/components/common/status-dot"
+import { ApiError } from "@/api/client"
+import { useJob, useStopJob } from "@/api/training"
+import { isActive, jobPct, type TrainJob } from "@/domain/training"
+import { formatDuration, formatRate, formatUsd } from "@/lib/format"
+
+import { CheckpointsPanel } from "./components/checkpoints-panel"
+import { JobConfig } from "./components/job-config"
+import { MetricPlots } from "./components/metric-plots"
+import { PodBar } from "./components/pod-bar"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+import { useJobRun } from "./hooks/use-job-run"
+import { JOB_STATUS, METRICS, computeText } from "./lib"
+
+export function JobPage() {
+  const { jobId = "" } = useParams()
+  const job = useJob(jobId)
+  if (job.error instanceof ApiError && job.error.status === 404) return <Navigate to="/training" replace />
+  if (job.isPending || job.isError)
+    return (
+      <Page fit title={<BackTitle>{jobId}</BackTitle>}>
+        <Panel className="flex-1">{job.isPending ? <LoadingNote /> : <ErrorNote error={job.error} onRetry={() => job.refetch()} />}</Panel>
+      </Page>
+    )
+  return <JobView key={job.data.id} job={job.data} />
+}
+
+function BackTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="flex min-w-0 items-center gap-3">
+      <LinkButton to="/training" variant="ghost" size="icon-sm" className="-ml-1.5" aria-label="Back to training" title="Back to training">
+        <LuArrowLeft />
+      </LinkButton>
+      {children}
+    </span>
+  )
+}
+
+function JobView({ job }: { job: TrainJob }) {
+  const { run, step, live, metrics } = useJobRun(job)
+  const stop = useStopJob()
+  const status = JOB_STATUS[job.status]
+  const pct = jobPct(job, step)
+
+  return (
+    <Page
+      fit
+      title={
+        <BackTitle>
+          <span className="truncate">{job.taskId}</span>
+          <StatusDot tone={status.tone} className="text-sm font-normal text-muted-foreground">
+            {status.label}
+          </StatusDot>
+        </BackTitle>
+      }
+      description={`${job.id}, ${job.dataset}, ${computeText(job)}`}
+      actions={
+        isActive(job) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-bad hover:text-bad"
+            disabled={stop.isPending}
+            onClick={() => stop.mutate(job.id)}
+          >
+            <LuSquare />
+            {stop.isPending ? "Stopping…" : job.status === "running" ? "Stop training" : "Cancel"}
+          </Button>
+        )
+      }
+    >
+      {job.compute === "runpod" && <PodBar job={job} />}
+      {job.error && <div className="rounded-md bg-bad-muted px-3 py-2.5 text-[13px] text-bad">{job.error}</div>}
+      <ErrorNote error={stop.error} />
+
+      <StatStrip
+        items={[
+          {
+            label: "Progress",
+            value: `${pct}%`,
+            sub: `${step.toLocaleString()} / ${job.total.toLocaleString()} steps`,
+            icon: LuFootprints,
+          },
+          { label: "Elapsed", value: job.elapsedS ? formatDuration(job.elapsedS) : "—", icon: LuClock },
+          {
+            label: "ETA",
+            value: live && job.etaS != null ? formatDuration(job.etaS) : "—",
+            sub: live && job.stepsPerS ? `${job.stepsPerS.toFixed(2)} steps/s` : undefined,
+            icon: LuHourglass,
+          },
+          job.compute === "runpod"
+            ? {
+                label: live ? "Cost so far" : "Cost",
+                value: formatUsd(job.costUsd ?? 0),
+                sub: formatRate(job.pricePerHr ?? 0),
+                icon: LuDollarSign,
+              }
+            : { label: "Cost", value: "Local", sub: "no rental fee", icon: LuDollarSign },
+        ]}
+      />
+
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <Panel
+          title="Metrics"
+          className="min-h-0"
+          action={
+            <span className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+              {live && (
+                <StatusDot tone="info" className="text-xs">
+                  Live
+                </StatusDot>
+              )}
+              {metrics.data && metrics.data.every > 1 ? `Averaged every ${metrics.data.every} steps` : "Logged every step"}, step{" "}
+              {step.toLocaleString()}
+            </span>
+          }
+        >
+          {metrics.isPending ? (
+            <LoadingNote />
+          ) : metrics.isError ? (
+            <ErrorNote error={metrics.error} onRetry={() => metrics.refetch()} />
+          ) : run.steps.length > 1 ? (
+            <MetricPlots run={run} metrics={METRICS} live={live} className="flex-1" />
+          ) : (
+            <p className="grid flex-1 place-items-center py-10 text-[13px] text-muted-foreground">아직 학습이 시작되지 않았습니다.</p>
+          )}
+        </Panel>
+
+        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
+          <CheckpointsPanel job={job} run={run} />
+          <Panel title="Config" className="shrink-0">
+            <JobConfig job={job} />
+          </Panel>
+        </div>
+      </div>
+    </Page>
+  )
+}

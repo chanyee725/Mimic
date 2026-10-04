@@ -1,0 +1,19 @@
+events:
+- key: train_done
+  label: Training finished
+  'on': true
+- key: train_failed
+  label: Training failed
+  'on': true
+- key: pod_idle
+  label: RunPod pod still running after training
+  'on': true
+- key: budget
+  label: RunPod monthly budget reached 80%
+  'on': true
+- key: disk
+  label: Disk almost full
+  'on': true
+- key: sim_done
+  label: Simulation evaluation finished
+  'on': false

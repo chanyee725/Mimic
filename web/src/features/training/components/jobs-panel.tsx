@@ -1,0 +1,56 @@
+import { useState } from "react"
+
+import { Panel } from "@/components/layout/page-layout"
+import { Segmented } from "@/components/common/segmented"
+import { useJobs } from "@/api/training"
+import { isActive } from "@/domain/training"
+
+import { JobRow } from "./job-row"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+
+type Tab = "all" | "active" | "finished"
+
+/** Job list, filtered by all, running or finished */
+export function JobsPanel() {
+  const [tab, setTab] = useState<Tab>("all")
+  const query = useJobs()
+  const jobs = query.data ?? []
+  const active = jobs.filter(isActive)
+  const finished = jobs.filter((j) => !isActive(j))
+  const shown = tab === "all" ? jobs : tab === "active" ? active : finished
+
+  return (
+    <Panel
+      className="min-h-0 flex-1"
+      title="Jobs"
+      action={
+        <Segmented
+          label="Jobs"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "all", label: "All", count: jobs.length },
+            { value: "active", label: "Running", count: active.length },
+            { value: "finished", label: "Finished", count: finished.length },
+          ]}
+        />
+      }
+    >
+      {query.isPending ? (
+        <LoadingNote />
+      ) : query.isError ? (
+        <ErrorNote error={query.error} onRetry={() => query.refetch()} />
+      ) : shown.length === 0 ? (
+        <p className="grid flex-1 place-items-center py-10 text-[13px] text-muted-foreground">
+          {tab !== "finished" ? "돌고 있는 학습이 없습니다. 오른쪽에서 학습을 시작하세요." : "끝난 학습이 없습니다."}
+        </p>
+      ) : (
+        <ul className="-mx-3 grid min-h-0 content-start gap-1 overflow-y-auto">
+          {shown.map((j) => (
+            <JobRow key={j.id} job={j} />
+          ))}
+        </ul>
+      )}
+    </Panel>
+  )
+}

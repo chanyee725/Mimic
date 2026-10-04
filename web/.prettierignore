@@ -1,0 +1,5 @@
+dist
+node_modules
+package-lock.json
+# Files generated and updated by the shadcn CLI keep their original formatting
+src/components/ui
