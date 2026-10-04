@@ -209,6 +209,20 @@ def has_camera(rec: Recording, camera: str) -> bool:
     return any(t.kind == "video" and t.name == f"/cam_{camera}/image" for t in rec.topics)
 
 
+def cameras(rec: Recording) -> list[str]:
+    """Camera keys with recorded frames, in topic order."""
+    return [
+        t.name.removeprefix("/cam_").removesuffix("/image")
+        for t in rec.topics
+        if t.kind == "video" and t.messages and t.name.startswith("/cam_")
+    ]
+
+
+def read_frames(rec: Recording, camera: str) -> list[tuple[float, bytes]]:
+    """JPEG frames of one camera (t in seconds from the episode start), for dataset conversion."""
+    return recordings_mcap.read_frames(disk.mcap_path(_sync(), rec), camera)
+
+
 def file_path(recording_id: str) -> Path:
     """MCAP of a recording (download)."""
     rec = require(recording_id)

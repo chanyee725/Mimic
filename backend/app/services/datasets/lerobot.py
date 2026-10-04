@@ -6,17 +6,24 @@ Layout (lerobot CODEBASE_VERSION "v3.0"):
   meta/tasks.parquet                              task (pandas index) → task_index
   meta/subtasks.parquet                           subtask (pandas index) → subtask_index (station extra)
   meta/episodes/chunk-000/file-000.parquet        one row per episode (lengths, file refs, stats/*)
-  data/chunk-XXX/file-YYY.parquet                 one row per frame
-No videos are written, so features hold only non-video columns and video_path is null.
+  data/chunk-XXX/file-YYY.parquet                 one row per frame (no video columns)
+  videos/<key>/chunk-XXX/file-YYY.mp4             H.264, episodes back to back at fps; an episode's
+                                                  span is videos/<key>/from_timestamp…to_timestamp
+                                                  in meta/episodes (lerobot DatasetWriter layout)
+Video features ("dtype": "video") get per-channel image stats (shape [3, 1, 1], 0–1) computed on
+sampled frames like lerobot compute_stats.
 """
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+
+from app.utils.video import H264Writer
 
 CODEBASE_VERSION = "v3.0"
 CHUNKS_SIZE = 1000
@@ -57,6 +64,25 @@ def feature(dtype: str, shape: list[int], names: list[str] | None = None) -> dic
     return {"dtype": dtype, "shape": shape, "names": names}
 
 
+def video_feature(height: int, width: int, fps: int) -> dict[str, Any]:
+    """A camera stream stored as H.264 MP4 (the `info` lerobot's get_video_info writes)."""
+    return {
+        "dtype": "video",
+        "shape": [height, width, 3],
+        "names": ["height", "width", "channels"],
+        "info": {
+            "video.height": height,
+            "video.width": width,
+            "video.codec": "h264",
+            "video.pix_fmt": "yuv420p",
+            "video.fps": fps,
+            "video.channels": 3,
+            "has_audio": False,
+            "is_depth_map": False,
+        },
+    }
+
+
 def default_features() -> dict[str, dict[str, Any]]:
     """lerobot DEFAULT_FEATURES."""
     return {
@@ -80,8 +106,13 @@ def is_video(ft: dict[str, Any]) -> bool:
     return ft.get("dtype") in ("video", "image")
 
 
+def video_keys(features: dict[str, dict[str, Any]]) -> list[str]:
+    return [k for k, ft in features.items() if is_video(ft)]
+
+
 def schema(features: dict[str, dict[str, Any]]) -> pa.Schema:
-    return pa.schema([(k, arrow_type(ft)) for k, ft in features.items()])
+    """Data file columns: every non-video feature."""
+    return pa.schema([(k, arrow_type(ft)) for k, ft in features.items() if not is_video(ft)])
 
 
 def column(values: np.ndarray, ft: dict[str, Any]) -> pa.Array:
@@ -129,8 +160,9 @@ def aggregate_stats(items: list[dict[str, np.ndarray]]) -> dict[str, np.ndarray]
     """Count-weighted merge of episode stats (pooled variance; quantiles weighted, like lerobot)."""
     counts = np.array([s["count"][0] for s in items], dtype=np.float64)
     total = counts.sum()
-    w = counts[:, None] / total
     means = np.stack([s["mean"] for s in items])
+    # (n,) weights broadcast over (d,) vectors and (3, 1, 1) image stats alike
+    w = (counts / total).reshape(-1, *([1] * (means.ndim - 1)))
     mean = (means * w).sum(axis=0)
     var = ((np.stack([s["std"] for s in items]) ** 2 + (means - mean) ** 2) * w).sum(axis=0)
     out = {
@@ -142,6 +174,37 @@ def aggregate_stats(items: list[dict[str, np.ndarray]]) -> dict[str, np.ndarray]
     }
     for q in QUANTILES:
         out[_q(q)] = (np.stack([s[_q(q)] for s in items]) * w).sum(axis=0)
+    return out
+
+
+# lerobot compute_stats: up to 100 frames for short episodes, more for long ones
+def sample_indices(n: int) -> list[int]:
+    num = max(min(100, n), min(int(n**0.75), 10_000))
+    return np.round(np.linspace(0, n - 1, num)).astype(int).tolist()
+
+
+def downsample(img: np.ndarray, target: int = 150, threshold: int = 300) -> np.ndarray:
+    """CHW image strided down like lerobot auto_downsample_height_width."""
+    _, h, w = img.shape
+    if max(w, h) < threshold:
+        return img
+    f = int(w / target) if w > h else int(h / target)
+    return img[:, ::f, ::f]
+
+
+def image_stats(samples: np.ndarray) -> dict[str, np.ndarray]:
+    """Per-channel stats of sampled uint8 CHW frames (n, 3, h, w), scaled to 0–1, shape (3, 1, 1)."""
+    x = samples.transpose(0, 2, 3, 1).reshape(-1, samples.shape[1]).astype(np.float64) / 255.0
+    out = {
+        "min": x.min(axis=0),
+        "max": x.max(axis=0),
+        "mean": x.mean(axis=0),
+        "std": x.std(axis=0),
+    }
+    for q in QUANTILES:
+        out[_q(q)] = np.quantile(x, q, axis=0)
+    out = {k: v.reshape(-1, 1, 1) for k, v in out.items()}
+    out["count"] = np.array([len(samples)])
     return out
 
 
@@ -252,17 +315,69 @@ def _arrow(values: Any) -> pa.Array | pa.ChunkedArray:
     return values if isinstance(values, (pa.Array, pa.ChunkedArray)) else pa.array(values)
 
 
+def _next_file(chunk: int, file: int) -> tuple[int, int]:
+    return (chunk + 1, 0) if file == CHUNKS_SIZE - 1 else (chunk, file + 1)
+
+
+class _VideoTrack:
+    """The open MP4 of one video key; episodes are appended back to back."""
+
+    def __init__(self, root: Path, key: str, ft: dict[str, Any], fps: int) -> None:
+        self.root, self.key, self.fps = root, key, fps
+        self.height, self.width = ft["shape"][0], ft["shape"][1]
+        self.chunk = self.file = 0
+        self.out: H264Writer | None = None
+
+    def add(self, frames: Iterable[Any], n: int) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
+        """Writes exactly n frames (the last one repeats if the source runs short); returns the
+        episode's video columns and image stats."""
+        if self.out is not None and self.out.size() >= VIDEO_FILES_SIZE_MB * 1024 * 1024:
+            self.close()
+            self.chunk, self.file = _next_file(self.chunk, self.file)
+        if self.out is None:
+            path = self.root / VIDEO_PATH.format(
+                video_key=self.key, chunk_index=self.chunk, file_index=self.file
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            self.out = H264Writer(path, self.width, self.height, self.fps, faststart=False)
+        start = self.out.frames
+        picks = set(sample_indices(n))
+        samples: list[np.ndarray] = []
+        last = None
+        it = iter(frames)
+        for k in range(n):
+            last = next(it, last)
+            if last is None:
+                raise FormatError(f"{self.key}: no frames for the episode")
+            self.out.write(last)
+            if k in picks:
+                rgb = last.to_ndarray(format="rgb24", width=self.width, height=self.height)
+                samples.append(downsample(np.ascontiguousarray(rgb.transpose(2, 0, 1))))
+        cols = {
+            f"videos/{self.key}/chunk_index": self.chunk,
+            f"videos/{self.key}/file_index": self.file,
+            f"videos/{self.key}/from_timestamp": start / self.fps,
+            f"videos/{self.key}/to_timestamp": (start + n) / self.fps,
+        }
+        return cols, image_stats(np.stack(samples))
+
+    def close(self) -> None:
+        if self.out is not None:
+            self.out.close()
+            self.out = None
+
+
 class Writer:
     """Writes one dataset episode by episode; finish() writes the meta files."""
 
     def __init__(
         self, root: Path, fps: int, features: dict[str, dict[str, Any]], robot_type: str | None
     ) -> None:
-        if any(is_video(ft) for ft in features.values()):
-            raise FormatError("Video features cannot be written yet")
         self.root, self.fps, self.robot_type = root, fps, robot_type
         self.features = features
         self.schema = schema(features)
+        self.video_keys = video_keys(features)
+        self._videos = {k: _VideoTrack(root, k, features[k], fps) for k in self.video_keys}
         self.tasks: dict[str, int] = {}
         self.subtasks: dict[str, int] = {}
         self.frames = 0
@@ -282,8 +397,14 @@ class Writer:
     def subtask_index(self, name: str) -> int:
         return self.subtasks.setdefault(name, len(self.subtasks))
 
-    def add_episode(self, columns: dict[str, pa.Array], task_index: np.ndarray) -> int:
-        """columns: every feature except episode_index / index / task_index; returns its index."""
+    def add_episode(
+        self,
+        columns: dict[str, pa.Array],
+        task_index: np.ndarray,
+        videos: dict[str, Iterable[Any]] | None = None,
+    ) -> int:
+        """columns: every non-video feature except episode_index / index / task_index; videos:
+        decoded frames (PyAV) per video key, one per data frame. Returns the episode index."""
         n = len(task_index)
         if n == 0:
             raise FormatError("Episode has no frames")
@@ -292,11 +413,13 @@ class Writer:
         cols["episode_index"] = pa.array(np.full(n, ep, dtype=np.int64))
         cols["index"] = pa.array(np.arange(self.frames, self.frames + n, dtype=np.int64))
         cols["task_index"] = pa.array(np.asarray(task_index, dtype=np.int64))
-        missing = [k for k in self.features if k not in cols]
+        videos = videos or {}
+        missing = [k for k in self.schema.names if k not in cols]
+        missing += [k for k in self.video_keys if k not in videos]
         if missing:
             raise FormatError(f"Episode is missing features {missing}")
         table = pa.table(
-            [_arrow(cols[k]).cast(self.schema.field(k).type) for k in self.features],
+            [_arrow(cols[k]).cast(self.schema.field(k).type) for k in self.schema.names],
             schema=self.schema,
         )
         self._rotate(table.nbytes)
@@ -307,7 +430,12 @@ class Writer:
         self._pq.write_table(table)
         self._file_bytes += table.nbytes
 
-        stats = {k: feature_stats(to_numpy(table.column(k))) for k in self.features}
+        stats = {k: feature_stats(to_numpy(table.column(k))) for k in self.schema.names}
+        video_cols: dict[str, Any] = {}
+        for k in self.video_keys:
+            vcols, stats[k] = self._videos[k].add(videos[k], n)
+            video_cols.update(vcols)
+        stats = {k: stats[k] for k in self.features}
         names = {v: k for k, v in self.tasks.items()}
         row: dict[str, Any] = {
             "episode_index": ep,
@@ -319,6 +447,7 @@ class Writer:
             "dataset_to_index": self.frames + n,
             "meta/episodes/chunk_index": 0,
             "meta/episodes/file_index": 0,
+            **video_cols,
         }
         for k, st in stats.items():
             for s, v in st.items():
@@ -336,15 +465,14 @@ class Writer:
             return
         self._pq.close()
         self._pq, self._file_bytes = None, 0
-        if self._file == CHUNKS_SIZE - 1:
-            self._chunk, self._file = self._chunk + 1, 0
-        else:
-            self._file += 1
+        self._chunk, self._file = _next_file(self._chunk, self._file)
 
     def close(self) -> None:
         if self._pq is not None:
             self._pq.close()
             self._pq = None
+        for track in self._videos.values():
+            track.close()
 
     def finish(self) -> dict[str, Any]:
         """Writes meta/* and returns info.json."""
@@ -371,7 +499,7 @@ class Writer:
             "data_files_size_in_mb": DATA_FILES_SIZE_MB,
             "video_files_size_in_mb": VIDEO_FILES_SIZE_MB,
             "data_path": DATA_PATH,
-            "video_path": None,
+            "video_path": VIDEO_PATH if self.video_keys else None,
             "robot_type": self.robot_type,
             "splits": {"train": f"0:{len(self._episodes)}"},
         }
@@ -390,8 +518,20 @@ class Writer:
             ("meta/episodes/chunk_index", pa.int64()),
             ("meta/episodes/file_index", pa.int64()),
         ]
+        for k in self.video_keys:
+            fields += [
+                (f"videos/{k}/chunk_index", pa.int64()),
+                (f"videos/{k}/file_index", pa.int64()),
+                (f"videos/{k}/from_timestamp", pa.float64()),
+                (f"videos/{k}/to_timestamp", pa.float64()),
+            ]
         for k in self.features:
             for s in self._stats[0][k]:
-                t = pa.int64() if s == "count" else pa.float64()
-                fields.append((f"stats/{k}/{s}", pa.list_(t)))
+                if s == "count":
+                    t: pa.DataType = pa.list_(pa.int64())
+                elif k in self._videos:
+                    t = pa.list_(pa.list_(pa.list_(pa.float64())))  # (3, 1, 1)
+                else:
+                    t = pa.list_(pa.float64())
+                fields.append((f"stats/{k}/{s}", t))
         return pa.schema(fields)

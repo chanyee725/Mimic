@@ -3,6 +3,10 @@
 Each frame is sampled at dataset fps (= task video fps) from /action and /observation/state,
 holding the latest message at or before the frame time (action is downsampled from the action
 rate). /subtask spans become subtask_index (-1 outside every span).
+
+Cameras become video features `observation.images.<key>`: frame k shows the latest camera frame
+at or before k / fps, encoded to H.264. A camera is kept only if every converted recording has
+frames for it; the others are left out (listed in the sidecar as `skipped_cameras`).
 """
 
 import math
@@ -23,6 +27,7 @@ from app.services.rigs import get_rig
 from app.services.tasks import require_task
 from app.utils.ids import split_csv
 from app.utils.time import now_iso
+from app.utils.video import JpegDecoder, even, held
 
 EST_OUTPUT_RATIO = 0.6  # LeRobot output vs. MCAP input size (preview estimate only)
 _EPS = 1e-9
@@ -39,15 +44,47 @@ def sources(task_id: str, exclude: list[str]) -> list[Recording]:
     return sorted(recs, key=lambda r: (r.episode or 0, r.recorded_at))
 
 
-def lerobot_features(joints: list[str]) -> dict[str, dict[str, Any]]:
-    """info.json features of a converted dataset (joint names as lerobot "<joint>.pos")."""
+VIDEO_PREFIX = "observation.images."
+
+
+def lerobot_features(
+    joints: list[str], cameras: dict[str, tuple[int, int]] | None = None, fps: int = 30
+) -> dict[str, dict[str, Any]]:
+    """info.json features of a converted dataset (joint names as lerobot "<joint>.pos");
+    cameras: key → (height, width)."""
     names = [f"{j}.pos" for j in joints]
     return {
         "action": lr.feature("float32", [len(joints)], names),
         "observation.state": lr.feature("float32", [len(joints)], list(names)),
+        **{
+            VIDEO_PREFIX + key: lr.video_feature(h, w, fps)
+            for key, (h, w) in (cameras or {}).items()
+        },
         **lr.default_features(),
         lr.SUBTASK_KEY: lr.feature("int64", [1]),
     }
+
+
+def camera_keys(recs: list[Recording]) -> tuple[list[str], list[str]]:
+    """Cameras every recording has frames for (first recording's order), and the skipped ones."""
+    if not recs:
+        return [], []
+    per = [recordings.cameras(r) for r in recs]
+    common = set(per[0]).intersection(*per[1:])
+    keep = [k for k in per[0] if k in common]
+    skipped = sorted({k for keys in per for k in keys} - common)
+    return keep, skipped
+
+
+def _rig_sizes(task: Task, keys: list[str]) -> dict[str, tuple[int, int]]:
+    """(height, width) per camera from the rig file (preview only; conversion uses the frames)."""
+    rig = get_rig(task.rig_id)
+    out: dict[str, tuple[int, int]] = {}
+    for key in keys:
+        cam = next((c for c in rig.cameras if c.key == key), None) if rig else None
+        w, _, h = (cam.resolution if cam else "640×480").partition("×")
+        out[key] = (even(int(h)), even(int(w)))
+    return out
 
 
 def notes(task: Task) -> dict[str, str]:
@@ -69,7 +106,11 @@ def _joints(task: Task, recs: list[Recording]) -> list[str]:
 
 
 def features_for(task: Task, recs: list[Recording] | None = None) -> list[DatasetFeature]:
-    return store.api_features(lerobot_features(_joints(task, recs or [])), notes(task))
+    recs = recs or []
+    sizes = _rig_sizes(task, camera_keys(recs)[0])
+    return store.api_features(
+        lerobot_features(_joints(task, recs), sizes, task.video_fps), notes(task)
+    )
 
 
 def preview(task_id: str, exclude_csv: str | None) -> ConvertPreview:
@@ -122,8 +163,28 @@ def episode_columns(
     }, n
 
 
+def _frames(rec: Recording, keys: list[str]) -> dict[str, list[tuple[float, bytes]]]:
+    out: dict[str, list[tuple[float, bytes]]] = {}
+    for key in keys:
+        try:
+            out[key] = recordings.read_frames(rec, key)
+        except recordings.McapReadError as e:
+            raise ValueError(f"{rec.file}: {e}") from e
+    return out
+
+
+def _sizes(frames: dict[str, list[tuple[float, bytes]]]) -> dict[str, tuple[int, int]]:
+    """(height, width) per camera from its first frame, made even for yuv420p."""
+    out: dict[str, tuple[int, int]] = {}
+    for key, fr in frames.items():
+        first = JpegDecoder().decode(fr[0][1])
+        out[key] = (even(first.height), even(first.width))
+    return out
+
+
 def _build(task: Task, recs: list[Recording]) -> store.Build:
     fps = task.video_fps
+    keys, skipped = camera_keys(recs)
 
     def build(root: Path, progress) -> dict[str, Any]:
         w: lr.Writer | None = None
@@ -133,16 +194,20 @@ def _build(task: Task, recs: list[Recording]) -> store.Build:
                 ep = recordings.read_episode(rec)
             except recordings.McapReadError as e:
                 raise ValueError(f"{rec.file}: {e}") from e
+            frames = _frames(rec, keys)
             if w is None:
                 joints = ep.joints
-                w = lr.Writer(root, fps, lerobot_features(joints), robot_type=task.rig_id)
+                features = lerobot_features(joints, _sizes(frames), fps)
+                w = lr.Writer(root, fps, features, robot_type=task.rig_id)
                 task_idx = w.task_index(task.instruction)
                 for s in task.subtasks:
                     w.subtask_index(s.name)
             elif ep.joints != joints:
                 raise ValueError(f"{rec.file} has joints {ep.joints}, expected {joints}")
             cols, n = episode_columns(ep, fps, w)
-            w.add_episode(cols, np.full(n, task_idx, dtype=np.int64))
+            times = [k / fps for k in range(n)]
+            videos = {VIDEO_PREFIX + k: held(fr, times) for k, fr in frames.items()}
+            w.add_episode(cols, np.full(n, task_idx, dtype=np.int64), videos)
             progress(min(99, (i + 1) * 100 // len(recs)))
         assert w is not None
         w.finish()
@@ -153,6 +218,7 @@ def _build(task: Task, recs: list[Recording]) -> store.Build:
             "hub": {"pushed": False, "private": True},
             "notes": notes(task),
             "episode_sources": [r.file for r in recs],
+            "skipped_cameras": skipped,
         }
 
     return build
