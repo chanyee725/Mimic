@@ -2,7 +2,7 @@ import copy
 
 import pytest
 
-from conftest import add_tasks
+from tests.conftest import add_tasks
 
 TASK = "stack-two-blocks"
 

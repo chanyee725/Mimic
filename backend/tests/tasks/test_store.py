@@ -8,7 +8,7 @@ import yaml
 from app.core import storage
 from app.services import tasks as service
 from app.services.tasks import store
-from conftest import add_tasks
+from tests.conftest import add_tasks
 
 TASK = "stack-two-blocks"
 

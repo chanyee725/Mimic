@@ -7,6 +7,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, field_validator, model_validator
 
 from app.models.rigs import Calibration, Device, DeviceStream, Rig, RigCamera, TargetHz
+from app.services.rigs.driver import Hardware
 
 _RESOLUTION = re.compile(r"^\s*(\d+)\s*[x×]\s*(\d+)\s*$")
 _SUFFIX = re.compile(r"\s*\([^)]*\)$")
@@ -26,6 +27,7 @@ class RobotSpec(_Spec):
     name: str
     port: str
     joints: list[str] = Field(min_length=1)
+    calibration_id: str | None = None  # LeRobot id (calibration file name); defaults to id
 
 
 class DeviceSpec(_Spec):
@@ -33,6 +35,7 @@ class DeviceSpec(_Spec):
     type: str
     name: str
     port: str
+    calibration_id: str | None = None
 
 
 class CameraSpec(_Spec):
@@ -292,6 +295,40 @@ def declared_devices(spec: RigFile) -> list[Device]:
     return out
 
 
+def hardware(spec: RigFile) -> list[Hardware]:
+    """Driver view of every device: LeRobot type, port, calibration id, camera mode."""
+    out = [
+        Hardware(
+            id=r.id, kind="robot", type=r.type, port=r.port, calibration_id=r.calibration_id or r.id
+        )
+        for r in spec.robots
+    ]
+    out += [
+        Hardware(
+            id=d.id,
+            kind="teleop",
+            type=d.type,
+            port=d.port,
+            calibration_id=d.calibration_id or d.id,
+        )
+        for d in spec.devices
+    ]
+    for c in spec.cameras:
+        w, h = c.size
+        out.append(
+            Hardware(
+                id=c.device_id,
+                kind="camera",
+                type="opencv",
+                port=c.port,
+                width=w,
+                height=h,
+                fps=c.fps or 0,
+            )
+        )
+    return out
+
+
 def _stream(key: str, shape: str, hz: float, unit: str) -> DeviceStream:
     return DeviceStream(key=key, shape=shape, target_hz=hz, measured_hz=None, unit=unit)
 
@@ -303,10 +340,16 @@ def to_doc(spec: RigFile) -> dict[str, Any]:
     """Singular robot / device when there is exactly one, else maps keyed by id."""
     doc: dict[str, Any] = {"id": spec.id, "name": spec.name}
     robots = [
-        {"id": r.id, "type": r.type, "name": r.name, "port": r.port, "joints": r.joints}
+        {"id": r.id, "type": r.type, "name": r.name, "port": r.port}
+        | ({"calibration_id": r.calibration_id} if r.calibration_id else {})
+        | {"joints": r.joints}
         for r in spec.robots
     ]
-    teleops = [{"id": d.id, "type": d.type, "name": d.name, "port": d.port} for d in spec.devices]
+    teleops = [
+        {"id": d.id, "type": d.type, "name": d.name, "port": d.port}
+        | ({"calibration_id": d.calibration_id} if d.calibration_id else {})
+        for d in spec.devices
+    ]
     for one, many, items in (("robot", "robots", robots), ("device", "devices", teleops)):
         if len(items) == 1:
             doc[one] = items[0]

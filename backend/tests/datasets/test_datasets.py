@@ -12,7 +12,7 @@ from app.configs.config import config
 from app.core.events import bus
 from app.services import datasets as service
 from app.services.recordings import disk
-from conftest import add_tasks
+from tests.conftest import add_tasks
 from tests.support import write_recording
 
 TASK = "stack-two-blocks"

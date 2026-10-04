@@ -6,7 +6,8 @@ robot:
   id: follower
   type: so101_follower
   name: SO-101 Follower
-  port: /dev/so101_follower
+  port: /dev/so101_follower        # example; pick the real port on the Rigs page
+  calibration_id: so101_follower   # LeRobot id: ~/.cache/huggingface/lerobot/calibration/robots/so_follower/<id>.json
   joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
 
 # Teleop leader arm: the operator moves it, it publishes action
@@ -15,6 +16,7 @@ device:
   type: so101_leader
   name: SO-101 Leader
   port: /dev/so101_leader
+  calibration_id: so101_leader
 
 # Cameras by key (device id = key, feature = observation.images.<key>)
 cameras:

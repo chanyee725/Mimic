@@ -22,6 +22,8 @@ class Config(BaseSettings):
     sim_envs_dir: Path = REPO_ROOT / "sim" / "envs"
     # Station data: settings/, rigs/, tasks/ (YAML) and recordings/, datasets/, models/
     data_dir: Path = REPO_ROOT / "data"
+    # Real devices (Rigs connection test / calibration): "lerobot", or "none" to never touch hardware
+    device_driver: str = "lerobot"
     # .env holding the secrets (HF_TOKEN, RUNPOD_API_KEY, …); settings edits it
     env_file_path: Path = ENV_FILE
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import add_tasks
+from tests.conftest import add_tasks
 from tests.support import write_model
 
 

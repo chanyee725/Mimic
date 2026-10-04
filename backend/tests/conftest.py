@@ -17,6 +17,8 @@ os.environ.setdefault("VLA_DATA_DIR", tempfile.mkdtemp(prefix="vla-data-"))
 os.environ["VLA_ENV_FILE_PATH"] = os.path.join(tempfile.mkdtemp(prefix="vla-env-"), ".env")
 for _var in SECRET_VARS:
     os.environ.pop(_var, None)
+# Never open real serial ports / cameras or read LeRobot calibration files (tests/support.py has a fake)
+os.environ["VLA_DEVICE_DRIVER"] = "none"
 
 from app.configs.config import config  # noqa: E402
 from app.main import create_app  # noqa: E402

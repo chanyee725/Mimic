@@ -7,7 +7,7 @@ from app.services import capture as service
 from app.core.events import bus
 from app.services import recordings as recordings
 from app.utils import time
-from conftest import add_tasks, connect_devices
+from tests.conftest import add_tasks, connect_devices
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
 START = {"taskId": "stack-two-blocks", "operator": "OP-01"}

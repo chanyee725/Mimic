@@ -81,3 +81,61 @@ def write_model(
     (d / "model.yaml").write_text(yaml.safe_dump(meta))
     models.reset()
     return d
+
+
+class FakeArm:
+    """An SO-101 arm for calibration tests; positions are set by the test."""
+
+    full_turn = ["wrist_roll"]
+
+    def __init__(self):
+        self.motors = list(JOINTS)
+        self.pos = {m: 2047 for m in JOINTS}
+        self.saved: tuple | None = None
+        self.closed = False
+
+    def prepare(self) -> None:
+        pass
+
+    def set_homings(self) -> dict[str, int]:
+        return {m: 100 + i for i, m in enumerate(self.motors)}
+
+    def positions(self) -> dict[str, int]:
+        return dict(self.pos)
+
+    def save(self, homings, mins, maxes) -> str:
+        self.saved = (homings, dict(mins), dict(maxes))
+        return "/calibration/so_follower/follower.json"
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class FakeDriver:
+    """Stands in for LeRobot: every motor answers, cameras deliver `camera_fps`."""
+
+    def __init__(self, calibration_dir: Path):
+        from app.services.rigs.driver import ArmReport, CameraReport
+
+        self._arm_report, self._camera_report = ArmReport, CameraReport
+        self.calibration_dir = calibration_dir
+        self.missing: list[str] = []
+        self.camera_fps = 30.0
+        self.arm = FakeArm()
+
+    def unavailable(self):
+        return None
+
+    def calibration_file(self, hw):
+        p = self.calibration_dir / f"{hw.calibration_id}.json"
+        return p if p.is_file() else None
+
+    def test_arm(self, hw):
+        motors = {m: m not in self.missing for m in JOINTS}
+        return self._arm_report(motors=motors, voltage=12.1, temperature=31, matches_file=None)
+
+    def test_camera(self, hw):
+        return self._camera_report(width=hw.width, height=hw.height, fps=self.camera_fps)
+
+    def open_arm(self, hw):
+        return self.arm

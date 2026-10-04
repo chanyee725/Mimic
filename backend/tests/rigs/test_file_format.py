@@ -99,7 +99,7 @@ def test_camera_only_in_file_gets_default_device(client):
     }
     d = client.get("/devices/side").json()
     assert d["type"] == "camera" and d["health"] == "off" and d["port"] == "/dev/cam_side"
-    assert d["calibration"]["done"] is False and d["stats"] == []
+    assert d["calibration"] == {"done": True, "note": "Not required"} and d["stats"] == []
     assert d["streams"] == [
         {
             "key": "images.side",
@@ -110,7 +110,7 @@ def test_camera_only_in_file_gets_default_device(client):
         }
     ]
     assert [x["id"] for x in client.get("/rigs/so101-kit/devices").json()][-1] == "side"
-    assert client.post("/devices/side/calibrate").status_code == 503
+    assert client.post("/devices/side/calibrate").status_code == 400  # cameras are not calibrated
 
 
 def test_file_overrides_device_identity(client):

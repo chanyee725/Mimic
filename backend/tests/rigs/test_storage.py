@@ -37,12 +37,6 @@ def test_new_rig_file_is_loaded(client):
     assert [r["id"] for r in client.get("/rigs").json()][0] == "lab-kit"  # lab.yaml
 
 
-def test_calibration_is_not_written(client, devices_online):
-    assert client.post("/devices/follower/calibrate").status_code == 202
-    assert service.require_device("follower").calibration.done is True
-    assert not storage.exists("devices")
-
-
 def test_broken_files_are_skipped(caplog):
     storage.write_text("rigs/broken.yaml", "id: [unclosed\n")
     storage.write("rigs/invalid.yaml", {"id": "invalid", "name": "No fields"})

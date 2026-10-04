@@ -3,16 +3,18 @@ import { LuBot, LuBoxes, LuCable, LuCamera, LuPlus, LuRefreshCw } from "react-ic
 import { Button } from "@/components/ui/button"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
+import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { StatStrip } from "@/components/common/stat-strip"
+import { usePorts } from "@/api/devices"
 
 import { DeviceDetail } from "./components/device-detail"
-import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RigDevices } from "./components/rig-devices"
 import { RigList } from "./components/rig-list"
 import { useRigSelection } from "./hooks/use-rig-selection"
 
 export function RigsPage() {
   const { rigsQuery, devicesQuery, rig, groups, group, groupDevices, selected, selectRig, selectGroup, selectDevice } = useRigSelection()
+  const portsQuery = usePorts()
 
   const rigs = rigsQuery.data ?? []
   const count = (n: number) => (rigsQuery.data ? n : "—")
@@ -32,13 +34,13 @@ export function RigsPage() {
       description="Rig 별로 Robot · Device · Camera 구성을 등록하고 관리합니다."
       actions={
         <>
-          {/* No port scan endpoint yet: reload rigs and devices (live health arrives as device.updated events) */}
+          {/* Scans serial / video ports again (the port pickers list them) and reloads devices */}
           <Button
             variant="outline"
             size="lg"
-            disabled={rigsQuery.isFetching || devicesQuery.isFetching}
+            disabled={portsQuery.isFetching || devicesQuery.isFetching}
             onClick={() => {
-              void rigsQuery.refetch()
+              void portsQuery.refetch()
               void devicesQuery.refetch()
             }}
           >

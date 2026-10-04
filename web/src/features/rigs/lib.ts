@@ -34,3 +34,6 @@ export function rigHealth(devices: Device[]): Health {
 
 /** Every device id registered in a rig (robots, input devices, cameras) */
 export const rigDeviceIds = (rig: Rig) => [...rig.robots, ...rig.devices, ...rig.cameras.map((c) => c.id)]
+
+/** Feetech STS3215 encoder span (12 bit) */
+export const ENCODER_MAX = 4095
