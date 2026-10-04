@@ -21,7 +21,11 @@ const setState = (s: CaptureState) => queryClient.setQueryData(stateKey, s)
 export function useCaptureActions() {
   const start = useMutation({
     mutationFn: (body: { taskId: string; operator: string }) => api.post<CaptureState>("/capture/start", body),
-    onSuccess: setState,
+    // Start also starts the rig's teleop when it is off
+    onSuccess: (st: CaptureState) => {
+      setState(st)
+      return queryClient.invalidateQueries({ queryKey: [...qk.rigs, "teleop-status"] })
+    },
   })
   const subtask = useMutation({
     mutationFn: (index: number) => api.post<CaptureState>("/capture/subtask", { index }),

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
@@ -6,8 +6,8 @@ import { QueryNote } from "@/components/common/query-state"
 import { LinkButton } from "@/components/common/link-button"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { useCaptureState } from "@/api/capture"
-import { useRigDevices } from "@/api/devices"
-import { useRig } from "@/api/rigs"
+import { usePorts, useRigDevices } from "@/api/devices"
+import { useRig, useTeleopStatus, useTestRig } from "@/api/rigs"
 import { useCurrentTask, useSetCurrentTask } from "@/api/station"
 import { useTasks } from "@/api/tasks"
 import { useHotkeys } from "@/hooks/use-hotkeys"
@@ -16,7 +16,8 @@ import { formatTimecode } from "@/lib/format"
 import { CameraGrid } from "./components/camera-grid"
 import { ControlPanel } from "./components/control-panel"
 import { useCapture } from "./hooks/use-capture"
-import { offlineDevices } from "./lib"
+import { useTeleopSamples } from "./hooks/use-teleop-samples"
+import { offlineDevices, targetReached } from "./lib"
 
 export function CapturePage() {
   const tasks = useTasks()
@@ -35,7 +36,22 @@ export function CapturePage() {
   const devices = useRigDevices(rig.data?.id)
   const cameras = (devices.data ?? []).filter((d) => d.type === "camera")
   const offline = offlineDevices(devices.data ?? [])
-  const ep = useCapture(task, { startBlocked: offline.length > 0 })
+  const ep = useCapture(task, { startBlocked: offline.length > 0 || (!!task && targetReached(task)) })
+
+  // Devices start "off" after a backend restart: test the rig once when Capture opens with some of them off
+  const { mutate: testRig, isPending: testing } = useTestRig()
+  const tested = useRef(new Set<string>())
+  const rigId = rig.data?.id
+  const needsTest = offline.length > 0
+  useEffect(() => {
+    if (!rigId || !needsTest || tested.current.has(rigId)) return
+    tested.current.add(rigId)
+    testRig(rigId)
+  }, [rigId, needsTest, testRig])
+  const ports = usePorts()
+  const livePorts = new Set((ports.data ?? []).filter((p) => p.kind === "video").flatMap((p) => [p.path, p.device]))
+  const teleop = useTeleopStatus(rig.data?.id)
+  const samples = useTeleopSamples(rig.data?.id, !!teleop.data?.running)
 
   const selectTask = (id: string) => {
     setPicked(id)
@@ -78,6 +94,8 @@ export function CapturePage() {
           {/* Cameras fill the remaining height; plots have a fixed height */}
           <CameraGrid
             cameras={cameras}
+            // The test opens each camera: start previews after it so they don't fight over the device
+            livePorts={testing ? new Set<string>() : livePorts}
             empty={
               !task ? (
                 tasks.data ? (
@@ -91,13 +109,20 @@ export function CapturePage() {
                 <QueryNote query={devices} />
               )
             }
-            recording={recording}
             timecode={recording && task ? formatTimecode(ep.elapsedS * 1000, task.videoFps) : undefined}
           />
 
           {/* Per-joint plots like Rerun time series. No outer panel, only plot cells are bordered */}
           {r && task ? (
-            <JointPlots joints={r.joints} hz={task.actionHz} actionSource={r.master} stateSource={r.slave} className="h-64 shrink-0" />
+            <JointPlots
+              joints={r.joints}
+              hz={task.actionHz}
+              actionSource={r.master}
+              stateSource={r.slave}
+              data={samples}
+              hint="teleop 이 켜지면 leader / follower 관절값이 표시됩니다."
+              className="h-64 shrink-0"
+            />
           ) : (
             <div className="grid h-64 shrink-0 place-items-center rounded-lg border">
               {!task && tasks.data ? (

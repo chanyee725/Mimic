@@ -12,3 +12,12 @@ export type TeleopState = {
   startedAt: string
   pairs: TeleopPair[]
 }
+
+/** Live joint samples of a running teleop session (GET /rigs/{id}/teleop/samples?after=seq) */
+export type TeleopSamples = {
+  joints: string[]
+  seq: number // last returned sample (or `after` when none are new)
+  t: number[] // seconds since the teleop session started
+  action: number[][] // leader, per sample
+  state: number[][] // follower, per sample
+}

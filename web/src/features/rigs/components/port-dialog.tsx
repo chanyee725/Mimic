@@ -5,12 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/common/empty-state"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+import { CameraPreview } from "@/components/robot/camera-preview"
 import { usePorts, useSetDevicePort } from "@/api/devices"
 import type { Device, Port } from "@/domain/device"
 import { portKind } from "@/domain/device"
 import { cn } from "@/lib/utils"
-
-import { CameraPreview } from "./camera-preview"
 
 /** Picks a device's port from the scanned ports: one list, with a live thumbnail per camera */
 export function PortDialog({ device, open, onOpenChange }: { device: Device; open: boolean; onOpenChange: (open: boolean) => void }) {

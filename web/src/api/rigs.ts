@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { Device } from "@/domain/device"
 import type { Rig } from "@/domain/rig"
-import type { TeleopState } from "@/domain/teleop"
+import type { TeleopSamples, TeleopState } from "@/domain/teleop"
 
 import { ApiError, api } from "./client"
 import { qk, queryClient } from "./query"
@@ -58,11 +58,32 @@ const notFoundAsNull = (e: unknown) => {
   throw e
 }
 
+const teleopStatusKey = (rigId: string) => [...qk.rigs, "teleop-status", rigId] as const
+
+/** Whether the rig's teleop runs (null: no session), checked every second (Capture). Capture start may start it */
+export const useTeleopStatus = (rigId: string | undefined) =>
+  useQuery({
+    queryKey: teleopStatusKey(rigId ?? ""),
+    queryFn: () => api.get<TeleopState>(`/rigs/${rigId}/teleop`).catch(notFoundAsNull),
+    enabled: !!rigId,
+    retry: false,
+    refetchInterval: 1000,
+  })
+
+/** Teleop samples newer than `after`; null when there is no session */
+export const getTeleopSamples = (rigId: string, after: number) =>
+  api.get<TeleopSamples>(`/rigs/${rigId}/teleop/samples`, { after }).catch(notFoundAsNull)
+
+export const invalidateTeleopStatus = () => queryClient.invalidateQueries({ queryKey: [...qk.rigs, "teleop-status"] })
+
 /** Connects every leader → follower pair (follower torque on). 409: busy or not calibrated, 503: port missing */
 export const useStartTeleop = () =>
   useMutation({
     mutationFn: (rigId: string) => api.post<TeleopState>(`/rigs/${rigId}/teleop`),
-    onSuccess: (s) => queryClient.setQueryData(teleopKey(s.rigId), s),
+    onSuccess: (s) => {
+      queryClient.setQueryData(teleopKey(s.rigId), s)
+      return invalidateTeleopStatus()
+    },
   })
 
 /** Stops the loop and disconnects (follower torque off). A session that is already gone (404) counts as stopped */
@@ -71,6 +92,7 @@ export const useStopTeleop = () =>
     mutationFn: (rigId: string) => api.delete(`/rigs/${rigId}/teleop`).catch(notFoundAsNull),
     onSuccess: (_, rigId) => {
       queryClient.setQueryData<TeleopState | null>(teleopKey(rigId), (s) => (s ? { ...s, running: false } : s))
+      void invalidateTeleopStatus()
       return queryClient.invalidateQueries({ queryKey: qk.devices })
     },
   })

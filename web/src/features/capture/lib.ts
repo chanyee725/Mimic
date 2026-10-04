@@ -1,5 +1,6 @@
 import type { CapturePhase } from "@/domain/capture"
 import type { Device, DeviceType } from "@/domain/device"
+import type { Task } from "@/domain/task"
 
 /** Badge per phase of the station's episode state machine */
 export const PHASE: Record<CapturePhase, { label: string; className: string }> = {
@@ -16,3 +17,6 @@ export const STATION_OPERATOR = "OP-01"
 const REQUIRED: DeviceType[] = ["robot", "teleop", "camera"]
 
 export const offlineDevices = (devices: Device[]) => devices.filter((d) => REQUIRED.includes(d.type) && d.health === "off")
+
+/** The task has all its target episodes: Start stays off until the target is raised */
+export const targetReached = (t: Task) => t.collected >= t.targetEpisodes
