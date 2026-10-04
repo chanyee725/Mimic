@@ -29,7 +29,7 @@ from app.models.rigs import (
     TeleopSamples,
     TeleopState,
 )
-from app.services.rigs import calibration, driver, ports, preview, teleop
+from app.services.rigs import calibration, cameras, driver, ports, teleop
 from app.services.rigs import file_format as rigs_file
 from app.services.rigs.driver import Hardware
 from app.services.rigs.file_format import RigFile
@@ -54,7 +54,7 @@ def reset() -> None:
     """Rigs from data/rigs (sorted by file name); their devices start not connected."""
     calibration.reset()
     teleop.reset()
-    preview.reset()
+    cameras.reset()
     _files.clear()
     _specs.clear()
     _specs.update(_load_folder(RIGS_DIR))
@@ -186,13 +186,47 @@ def _require_idle(device_id: str) -> None:
         raise conflict(f"Device '{device_id}' is in a teleoperation test")
 
 
-def open_preview(path: str) -> preview.Preview:
+def _camera_on(port: str) -> Hardware | None:
+    """The rig camera using this port (by kernel node), if any."""
+    key = cameras.node(port)
+    return next(
+        (hw for hw in _hardware.values() if hw.kind == "camera" and cameras.node(hw.port) == key),
+        None,
+    )
+
+
+def open_preview(path: str) -> cameras.Preview:
     """Live JPEG frames of a scanned video port (any other path is refused); replaces a preview
-    already holding that camera."""
+    already holding that camera. A rig camera opens at its rig resolution and fps."""
     video = {p for port in ports.scan() if port.kind == "video" for p in (port.path, port.device)}
     if path not in video:
         raise ApiError(400, f"'{path}' is not a video port on this station")
-    return preview.open_preview(path)
+    hw = _camera_on(path)
+    if hw is None:
+        return cameras.open_preview(path)
+    return cameras.open_preview(path, hw.width, hw.height, hw.fps)
+
+
+def record_cameras(rig_id: str, keys: list[str], max_s: float) -> dict[str, cameras.Recorder]:
+    """A recorder per rig camera key (every frame, kept up to `max_s`); {} without device access.
+    Any camera that fails to open releases the others and answers 503."""
+    rig = require_rig(rig_id)
+    if driver.get().unavailable():
+        return {}
+    out: dict[str, cameras.Recorder] = {}
+    try:
+        for c in rig.cameras:
+            if c.key not in keys:
+                continue
+            hw = _hardware[c.id]
+            out[c.key] = cameras.open_recorder(
+                hw.port, hw.width, hw.height, hw.fps, max_frames=int(max_s * hw.fps)
+            )
+    except BaseException:
+        for r in out.values():
+            r.close()
+        raise
+    return out
 
 
 def set_port(device_id: str, port: str) -> Device:
@@ -246,12 +280,18 @@ _camera_test = threading.Lock()
 
 def test_rig(rig_id: str) -> list[Device]:
     """Connection test of every device in the rig: arms in parallel, cameras one after another.
-    Devices that are calibrating or in a teleoperation test are returned as they are."""
+    Devices that are calibrating, in a teleoperation test or recording are returned as they are."""
     require_rig(rig_id)
     if reason := driver.get().unavailable():
         raise ApiError(503, reason)
     devices = rig_devices(rig_id)
-    idle = [d.id for d in devices if not calibration.active(d.id) and not teleop.uses(d.id)]
+    idle = [
+        d.id
+        for d in devices
+        if not calibration.active(d.id)
+        and not teleop.uses(d.id)
+        and not (d.type == "camera" and cameras.recording(_hardware[d.id].port))
+    ]
     with ThreadPoolExecutor(max_workers=max(1, len(idle))) as pool:
         list(pool.map(test_device, idle))
     return rig_devices(rig_id)
@@ -280,7 +320,7 @@ def _tested_arm(device_id: str, hw: Hardware) -> Device:
 
 
 def _tested_camera(device_id: str, hw: Hardware) -> Device:
-    preview.release(hw.port)  # an open preview would hold the camera
+    cameras.release(hw.port)  # previews would hold the camera; 409 while it records
     r = driver.get().test_camera(hw)
     stats = [
         Stat(label="Resolution", value=f"{r.width}×{r.height}"),

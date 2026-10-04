@@ -85,7 +85,11 @@ class Driver(Protocol):
     def test_arm(self, hw: Hardware) -> ArmReport: ...
     def test_camera(self, hw: Hardware) -> CameraReport: ...
     def open_arm(self, hw: Hardware) -> Arm: ...
-    def camera_frames(self, port: str) -> Iterator[bytes]: ...
+    def camera_frames(self, port: str, width: int, height: int, fps: int) -> Iterator[bytes]:
+        """JPEG frames as the camera delivers them; opening errors raise here, the device is
+        released when the iterator is closed."""
+        ...
+
     def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink: ...
 
 
@@ -109,7 +113,7 @@ class NoDriver:
     def open_arm(self, hw: Hardware) -> Arm:
         raise ApiError(503, self.reason)
 
-    def camera_frames(self, port: str) -> Iterator[bytes]:
+    def camera_frames(self, port: str, width: int, height: int, fps: int) -> Iterator[bytes]:
         raise ApiError(503, self.reason)
 
     def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink:
@@ -246,8 +250,8 @@ class LeRobotDriver:
         self._require()
         return _LeRobotArm(_lerobot_device(hw), hw.port)
 
-    def camera_frames(self, port: str) -> Iterator[bytes]:
-        """JPEG frames from a video port at a preview rate (MJPG 640×480); stops when closed."""
+    def camera_frames(self, port: str, width: int, height: int, fps: int) -> Iterator[bytes]:
+        """JPEG frames from a video port (MJPG at the given mode); stops when closed."""
         self._require()
         import cv2
 
@@ -256,8 +260,9 @@ class LeRobotDriver:
             cap.release()
             raise ApiError(503, f"Cannot open {port}")
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        cap.set(cv2.CAP_PROP_FPS, fps)
         return _jpegs(cap)
 
     def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink:
@@ -322,6 +327,10 @@ class _LeRobotArm:
             self.bus.disconnect(disable_torque=False)
 
 
+# Frames are recorded as they are encoded here (previews show the same frames)
+JPEG_QUALITY = 85
+
+
 def _jpegs(cap: Any) -> Iterator[bytes]:
     import cv2
 
@@ -330,7 +339,7 @@ def _jpegs(cap: Any) -> Iterator[bytes]:
             ok, frame = cap.read()
             if not ok:
                 return
-            ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
             if ok:
                 yield buf.tobytes()
     finally:

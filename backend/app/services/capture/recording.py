@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any
 
 from app.models.recordings import Recording, RecordingCheck, SubtaskSpan
 from app.models.rigs import Rig
@@ -20,6 +21,8 @@ class Session:
     armed_at: datetime  # Start pressed; recording begins after the countdown
     marks: list[tuple[int, float]] = field(default_factory=list)  # (subtask index, seconds)
     stopped_s: float | None = None  # set once in review
+    # Camera key → recorder (app.services.rigs.cameras.Recorder) holding every frame since armed
+    cameras: dict[str, Any] = field(default_factory=dict)
 
     @property
     def recording_at(self) -> datetime:
@@ -68,15 +71,45 @@ def _checks(task: Task, duration: float, samples: Samples | None) -> list[Record
     ]
 
 
+Frames = list[tuple[float, bytes]]
+
+
+def _video_checks(task: Task, duration: float, videos: dict[str, Frames]) -> list[RecordingCheck]:
+    expected = round(duration * task.video_fps)
+    return [
+        RecordingCheck(
+            label=f"Video {key}", value=f"{len(f)} / {expected}", ok=len(f) >= 0.95 * expected
+        )
+        for key, f in videos.items()
+    ]
+
+
+def _drops(task: Task, videos: dict[str, Frames]) -> list[float]:
+    """Seconds (from the start) where a camera's next frame came over 1.5 periods late."""
+    limit = 1.5 / task.video_fps
+    out = {
+        round(a, 2)
+        for frames in videos.values()
+        for (a, _), (b, _) in zip(frames, frames[1:])
+        if b - a > limit
+    }
+    return sorted(out)
+
+
 def build_episode(
-    s: Session, duration: float, outcome: Outcome, samples: Samples | None = None
+    s: Session,
+    duration: float,
+    outcome: Outcome,
+    samples: Samples | None = None,
+    videos: dict[str, Frames] | None = None,
 ) -> tuple[Recording, Episode]:
     """The Recording (sidecar) and the MCAP content of a saved episode.
 
     `samples` are the teleoperation samples of the recording window (leader action, follower
-    state); without them (no device access) the file holds a mock trajectory. No camera frames
-    yet: the file holds action, state and subtask labels.
+    state); without them (no device access) the file holds a mock trajectory. `videos` are the
+    JPEG frames of each recorded camera in the window (t from the recording start).
     """
+    videos = videos or {}
     task, rig = s.task, s.rig
     rec_id = f"{task.id}-{s.episode}"
     spans = _spans(s, duration)
@@ -88,6 +121,7 @@ def build_episode(
         seed=unit_seed(rec_id),
         subtasks=spans,
         samples=samples,
+        videos=videos,
         metadata={
             "source": "teleop" if samples is not None else "mock",
             "recording_id": rec_id,
@@ -98,7 +132,7 @@ def build_episode(
             "outcome": outcome,
         },
     )
-    checks = _checks(task, duration, samples)
+    checks = _checks(task, duration, samples) + _video_checks(task, duration, videos)
     if task.subtasks:
         done = len({sp.name for sp in spans})
         checks.append(
@@ -118,7 +152,7 @@ def build_episode(
         review="pending",
         topics=topics(ep),
         subtasks=spans,
-        drops=[],
+        drops=_drops(task, videos),
         checks=checks,
     )
     return rec, ep

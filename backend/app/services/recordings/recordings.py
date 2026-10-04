@@ -5,6 +5,7 @@ in-memory index is rebuilt from the sidecars whenever the raw folder changes.
 """
 
 import math
+import threading
 import re
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from app.models.recordings import Recording, RecordingCheck, RecordingReview, Re
 from app.schemas.recordings import Samples
 from app.services.recordings import disk
 from app.services.recordings import mcap_io as recordings_mcap
+from app.services.recordings.video import build_mp4
 from app.utils.ids import slugify, split_csv
 from app.utils.time import now_iso
 
@@ -216,11 +218,34 @@ def file_path(recording_id: str) -> Path:
     return path
 
 
-def video(recording_id: str, camera: str) -> None:
-    """One camera stream of a recording; extraction is not wired up yet."""
-    if not has_camera(require(recording_id), camera):
+_video_lock = threading.Lock()
+
+
+def video(recording_id: str, camera: str) -> Path:
+    """MP4 of one camera, built from the MCAP frames on first use and kept next to it."""
+    rec = require(recording_id)
+    topic = next(
+        (
+            t
+            for t in rec.topics
+            if t.kind == "video" and t.name == recordings_mcap.camera_topic(camera)
+        ),
+        None,
+    )
+    if topic is None:
         raise not_found("Camera", camera)
-    raise ApiError(501, "Video extraction is not available yet")
+    root = _sync()
+    out = disk.video_path(root, rec, camera)
+    # One build at a time (a player asks for several ranges at once)
+    with _video_lock:
+        if not out.is_file():
+            try:
+                frames = recordings_mcap.read_frames(disk.mcap_path(root, rec), camera)
+            except recordings_mcap.McapReadError as e:
+                raise ApiError(422, str(e)) from e
+            fps = topic.rate_hz or len(frames) / max(rec.duration_s, 0.1)
+            build_mp4(frames, rec.duration_s, fps, out)
+    return out
 
 
 reset()

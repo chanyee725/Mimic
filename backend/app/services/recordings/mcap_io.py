@@ -1,9 +1,10 @@
-"""Episode MCAP files: JSON channels for action, state and subtask labels (no camera frames yet).
+"""Episode MCAP files: JSON channels for action, state and subtask labels, and camera frames.
 
 Channels: /action and /observation/state ({"position": [deg per joint]}) at the task's action
-rate, /subtask ({"name", "start_s", "end_s"}) at each span start. Log times are nanoseconds
-since the epoch, starting at the recording start. One metadata record ("episode") holds
-the task id, episode, operator and outcome.
+rate, /subtask ({"name", "start_s", "end_s"}) at each span start, and /cam_<key>/image per
+recorded camera (protobuf foxglove.CompressedImage, JPEG, as the camera delivered it). Log
+times are nanoseconds since the epoch, starting at the recording start. One metadata record
+("episode") holds the task id, episode, operator and outcome.
 """
 
 import bisect
@@ -13,6 +14,9 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from foxglove_schemas_protobuf.CompressedImage_pb2 import CompressedImage
+from google.protobuf import descriptor_pb2
+from google.protobuf.descriptor import FileDescriptor
 from mcap.exceptions import McapError
 from mcap.reader import make_reader
 from mcap.writer import Writer
@@ -39,6 +43,13 @@ _SUBTASK_SCHEMA = {
         "end_s": {"type": "number"},
     },
 }
+IMAGE_SCHEMA = "foxglove.CompressedImage"
+
+
+def camera_topic(key: str) -> str:
+    return f"/cam_{key}/image"
+
+
 # Channel → (schema name, kind)
 _SCHEMAS = {
     ACTION_TOPIC: ("vla.robot.JointCommand", "action"),
@@ -64,6 +75,8 @@ class Episode:
     metadata: dict[str, str] = field(default_factory=dict)
     # Recorded (t from start, action, state); None writes the mock trajectory
     samples: tuple[list[float], list[list[float]], list[list[float]]] | None = None
+    # Camera key → JPEG frames (t from start, bytes)
+    videos: dict[str, list[tuple[float, bytes]]] = field(default_factory=dict)
 
     @property
     def n_samples(self) -> int:
@@ -94,7 +107,34 @@ def topics(ep: Episode) -> list[McapTopic]:
                 messages=len(ep.subtasks),
             )
         )
+    for key, frames in ep.videos.items():
+        rows.append(
+            McapTopic(
+                name=camera_topic(key),
+                schema_=IMAGE_SCHEMA,
+                kind="video",
+                rate_hz=round(len(frames) / ep.duration_s, 1) if ep.duration_s > 0 else None,
+                messages=len(frames),
+            )
+        )
     return rows
+
+
+def _descriptor_set(fd: FileDescriptor) -> bytes:
+    """The FileDescriptorSet of a protobuf message's file and its imports (MCAP schema data)."""
+    out = descriptor_pb2.FileDescriptorSet()
+    seen: set[str] = set()
+
+    def add(f: FileDescriptor) -> None:
+        if f.name in seen:
+            return
+        seen.add(f.name)
+        for dep in f.dependencies:
+            add(dep)
+        f.CopyToProto(out.file.add())
+
+    add(fd)
+    return out.SerializeToString()
 
 
 def _json(data: object) -> bytes:
@@ -134,6 +174,20 @@ def encode(ep: Episode) -> bytes:
             topic=name, message_encoding="json", schema_id=schema_id, metadata=meta
         )
 
+    if ep.videos:
+        image_schema = w.register_schema(
+            name=IMAGE_SCHEMA,
+            encoding="protobuf",
+            data=_descriptor_set(CompressedImage.DESCRIPTOR.file),
+        )
+        for key in ep.videos:
+            channels[camera_topic(key)] = w.register_channel(
+                topic=camera_topic(key),
+                message_encoding="protobuf",
+                schema_id=image_schema,
+                metadata={"camera": key},
+            )
+
     # (log time, channel, payload); sorted so readers see time order
     out: list[tuple[int, str, bytes]] = []
     n_joints = len(ep.joints)
@@ -144,6 +198,12 @@ def encode(ep: Episode) -> bytes:
     for sp in ep.subtasks:
         ns = ep.start_ns + round(sp.start_s * 1e9)
         out.append((ns, SUBTASK_TOPIC, _json(sp.model_dump(mode="json"))))
+    for key, frames in ep.videos.items():
+        for t, jpeg in frames:
+            ns = ep.start_ns + round(t * 1e9)
+            img = CompressedImage(frame_id=key, format="jpeg", data=jpeg)
+            img.timestamp.FromNanoseconds(ns)
+            out.append((ns, camera_topic(key), img.SerializeToString()))
     out.sort(key=lambda m: m[0])
 
     seq: dict[str, int] = {}
@@ -244,3 +304,21 @@ def read_episode(path: Path) -> EpisodeData:
         state=data.series[STATE_TOPIC],
         subtasks=spans,
     )
+
+
+def read_frames(path: Path, key: str) -> list[tuple[float, bytes]]:
+    """JPEG frames of one camera, t in seconds from the episode's first message."""
+    try:
+        with path.open("rb") as f:
+            reader = make_reader(f)
+            summary = reader.get_summary()
+            stats = summary.statistics if summary else None
+            frames: list[tuple[int, bytes]] = []
+            for _, _, msg in reader.iter_messages(topics=[camera_topic(key)], log_time_order=True):
+                frames.append((msg.log_time, CompressedImage.FromString(msg.data).data))
+    except (OSError, McapError, struct.error, ValueError) as e:
+        raise McapReadError(f"MCAP could not be read: {e}") from e
+    if not frames:
+        raise McapReadError(f"MCAP has no frames on {camera_topic(key)}")
+    t0 = stats.message_start_time if stats and stats.message_start_time else frames[0][0]
+    return [((t - t0) / 1e9, data) for t, data in frames]
