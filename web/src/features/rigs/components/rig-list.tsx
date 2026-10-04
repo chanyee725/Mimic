@@ -45,7 +45,7 @@ export function RigList({ selectedId, onSelect }: { selectedId: string | undefin
           </li>
         )}
         {rigsQuery.data?.length === 0 && (
-          <li className="px-2 py-8 text-center text-[13px] text-muted-foreground">data/rigs 에 rig 파일을 추가하세요.</li>
+          <li className="px-2 py-8 text-center text-[13px] text-muted-foreground">config/rigs 에 rig 파일을 추가하세요.</li>
         )}
         {rigs.map((r) => {
           const ids = rigDeviceIds(r)

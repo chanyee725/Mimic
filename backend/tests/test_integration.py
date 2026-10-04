@@ -32,9 +32,12 @@ def test_sim_envs_dir_comes_from_config(client, tmp_path, monkeypatch):
 def test_config_paths_start_at_repo_root(monkeypatch):
     monkeypatch.setenv("VLA_SIM_ENVS_DIR", "sim/envs")
     monkeypatch.setenv("VLA_DATA_DIR", "~/vla-data")
+    monkeypatch.setenv("VLA_CONFIG_DIR", "station/config")
     c = Config()
     assert c.sim_envs_dir == REPO_ROOT / "sim" / "envs"
     assert c.data_dir == Path("~/vla-data").expanduser()
+    assert c.config_dir == REPO_ROOT / "station" / "config"
+    assert c.calibration_dir == c.config_dir / "calibration"
 
 
 def test_size_fields_use_spec_casing(client, task):

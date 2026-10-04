@@ -1,4 +1,4 @@
-"""Rig file format (data/rigs/<id>.yaml): robot / device / cameras / rates, mapped to Rig."""
+"""Rig file format (config/rigs/<id>.yaml): robot / device / cameras / rates, mapped to Rig."""
 
 import json
 import re

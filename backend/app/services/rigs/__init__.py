@@ -1,4 +1,4 @@
-"""Rigs from data/rigs/<id>.yaml (file_format.py), their devices, connection tests and calibration."""
+"""Rigs from config/rigs/<id>.yaml (file_format.py), their devices, connection tests and calibration."""
 
 from app.services.rigs.rigs import (
     CALIBRATING,

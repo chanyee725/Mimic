@@ -11,8 +11,9 @@ from fastapi.testclient import TestClient
 # Secret env vars (also the names in .env); tests never see the developer's values
 SECRET_VARS = ("HF_TOKEN", "RUNPOD_API_KEY", "SLACK_WEBHOOK_URL")
 
-# Services read their files at import time; keep them out of the repo's data/
+# Services read their files at import time; keep them out of the repo's data/ and config/
 os.environ.setdefault("VLA_DATA_DIR", tempfile.mkdtemp(prefix="vla-data-"))
+os.environ.setdefault("VLA_CONFIG_DIR", tempfile.mkdtemp(prefix="vla-config-"))
 # Never read or write the repo-root .env (config and settings load it at import time)
 os.environ["VLA_ENV_FILE_PATH"] = os.path.join(tempfile.mkdtemp(prefix="vla-env-"), ".env")
 for _var in SECRET_VARS:
@@ -42,9 +43,9 @@ _AREAS = [
 ]
 
 
-def copy_rigs(data_dir: Path) -> None:
-    """Rig files are station config (committed under data/rigs): every test starts with them."""
-    shutil.copytree(FIXTURES / "rigs", data_dir / "rigs", dirs_exist_ok=True)
+def copy_rigs(config_dir: Path) -> None:
+    """Rig files are station config (committed under config/rigs): every test starts with them."""
+    shutil.copytree(FIXTURES / "rigs", config_dir / "rigs", dirs_exist_ok=True)
 
 
 def add_tasks(*task_ids: str) -> None:
@@ -69,9 +70,10 @@ def connect_devices(health: str = "ok") -> None:
 
 @pytest.fixture(autouse=True)
 def _reset_services(tmp_path_factory, monkeypatch):
-    # Fresh data folder (rig files only) and .env per test: every service reloads
+    # Fresh data and config folders (rig files only) and .env per test: every service reloads
     config.data_dir = tmp_path_factory.mktemp("data")
-    copy_rigs(config.data_dir)
+    config.config_dir = tmp_path_factory.mktemp("config")
+    copy_rigs(config.config_dir)
     monkeypatch.setattr(config, "env_file_path", tmp_path_factory.mktemp("env") / ".env")
     for var in SECRET_VARS:
         monkeypatch.delenv(var, raising=False)

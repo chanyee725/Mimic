@@ -38,7 +38,7 @@ def test_station_robot_follows_current_task(client, task):
 
 
 def test_station_without_rigs(client):
-    for p in (config.data_dir / "rigs").glob("*.yaml"):
+    for p in (config.config_dir / "rigs").glob("*.yaml"):
         p.unlink()
     from app.services import rigs
 

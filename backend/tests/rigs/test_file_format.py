@@ -36,7 +36,7 @@ def test_fixture_api_matches_snapshot(client):
 
 
 def test_committed_file_matches_snapshot(client):
-    shutil.copy(REPO_ROOT / "data" / "rigs" / "so101-kit.yaml", storage.path("rigs"))
+    shutil.copy(REPO_ROOT / "config" / "rigs" / "so101-kit.yaml", storage.path("rigs"))
     storage.delete("rigs/so101-bimanual-kit.yaml")
     service.reset()
     assert client.get("/rigs").json() == [_rig("so101-kit")]

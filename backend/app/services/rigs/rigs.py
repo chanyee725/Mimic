@@ -1,4 +1,4 @@
-"""Rig store in data/rigs/<id>.yaml (format: file_format.py); devices are declared there.
+"""Rig store in config/rigs/<id>.yaml (format: file_format.py); devices are declared there.
 
 No seeds: a missing folder means no rigs. Devices start not connected; a connection test
 (driver.py, LeRobot) reports health and stats, arms calibrate through calibration.py and a rig's
@@ -51,7 +51,9 @@ RIGS_DIR = "rigs"
 
 
 def reset() -> None:
-    """Rigs from data/rigs (sorted by file name); their devices start not connected."""
+    """Rigs from config/rigs (sorted by file name); their devices start not connected."""
+    for area in ("rigs", "calibration"):
+        storage.adopt_legacy(area)
     calibration.reset()
     teleop.reset()
     cameras.reset()

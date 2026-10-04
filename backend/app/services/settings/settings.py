@@ -1,4 +1,4 @@
-"""Station settings, kept as data/settings/<part>.yaml; raw secrets in the repo-root .env.
+"""Station settings, kept as config/settings/<part>.yaml; raw secrets in the repo-root .env.
 
 Part files hold only editable values: no document version (memory only, 1 on load), no
 live fields (state, latency, spend) and no secrets, so connection tests and key changes never
@@ -81,6 +81,7 @@ def reset() -> None:
     _secrets.clear()
     _secrets.update(settings_secrets.read())
     _disk.clear()
+    storage.adopt_legacy(SETTINGS_DIR)
     _migrate_legacy()
     for part in OBSOLETE_PARTS:
         storage.delete(_part_file(part))

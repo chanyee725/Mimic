@@ -35,7 +35,7 @@ const updated = (device: Device) => {
   return queryClient.invalidateQueries({ queryKey: qk.devices })
 }
 
-/** Port the device uses on this station (saved in data/ports.local.yaml); clears the last test */
+/** Port the device uses on this station (written into its rig file); clears the last test */
 export const useSetDevicePort = () =>
   useMutation({
     mutationFn: ({ id, port }: { id: string; port: string }) => api.put<Device>(`/devices/${id}/port`, { port }),

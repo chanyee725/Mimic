@@ -22,7 +22,7 @@ Every function in `web/src/api` maps to an endpoint here; actions that are no-op
 
 - FastAPI, Python 3.12, Pydantic v2, formatted with black. Code lives in [`backend/`](../../backend).
 - Layered: `backend/app/api/v1/<feature>/<sub-resource>.py`, `schemas/<area>.py`, `models/<area>.py`, `services/<area>.py`, `seeds/`, `configs/`.
-- No dummy data: services index files under the data folder (tasks, rigs, recordings, datasets, models, settings). Hardware, trainer and runners don't exist yet; their start endpoints answer 503.
+- No dummy data: services index files under the config folder (rigs, settings, calibration) and the data folder (tasks, recordings, datasets, models). Hardware, trainer and runners don't exist yet; their start endpoints answer 503.
 
 ## Frontend mapping
 

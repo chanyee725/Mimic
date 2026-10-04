@@ -1,6 +1,6 @@
-"""A fresh data folder (rig files only) shows no made-up data anywhere in the core areas."""
+"""A fresh station (rig files only) shows no made-up data anywhere in the core areas."""
 
-from app.core import storage
+from app.configs.config import config
 
 
 def test_empty_start(client):
@@ -19,5 +19,6 @@ def test_empty_start(client):
         assert all(s["measuredHz"] is None for s in d["streams"])
     r = client.post("/capture/start", json={"taskId": "stack-two-blocks", "operator": "OP-01"})
     assert r.status_code == 404  # no such task
-    # Loading wrote nothing but the settings part files
-    assert sorted(p.name for p in storage.path().iterdir()) == ["rigs", "settings"]
+    # Loading wrote nothing but the settings part files (config folder); the data folder stays empty
+    assert sorted(p.name for p in config.config_dir.iterdir()) == ["rigs", "settings"]
+    assert list(config.data_dir.iterdir()) == []

@@ -89,8 +89,8 @@ Arms only; mirrors LeRobot `SOFollower.calibrate()` / `SOLeader.calibrate()` wit
 2. `range` — half-turn homing offsets are written; the operator sweeps every joint except full-turn ones (`wrist_roll`,
    range 0–4095) while the backend records min / max (reads every 20 ms).
 3. `done` — the calibration is written to the motors and saved as LeRobot's calibration file
-   in the data folder: `data/calibration/{robots|teleoperators}/<class>/<calibration_id>.json` (the backend sets
-   `HF_LEROBOT_CALIBRATION` to `data/calibration` before it imports LeRobot; run LeRobot CLIs with the same variable to
+   in the config folder: `config/calibration/{robots|teleoperators}/<class>/<calibration_id>.json` (the backend sets
+   `HF_LEROBOT_CALIBRATION` to `config/calibration` before it imports LeRobot; run LeRobot CLIs with the same variable to
    share the files).
 
 While a session runs the device reports `calibration: { done: false, note: "Calibrating…" }`. `calibration` is otherwise
@@ -118,8 +118,8 @@ The rig file as it is on disk (see [Storage](#storage)). The API edits only devi
 
 ## Storage
 
-- Rigs: one hand-editable file per rig in `data/rigs/<rig-id>.yaml` (under `VLA_DATA_DIR`); the id is read from the file content. The folder is committed to git (the station ships with `so101-kit`).
-- On startup the folder is loaded, sorted by file name. There are no seeds: a missing or empty folder means no rigs (copy `data/rigs/*.yaml` when pointing `VLA_DATA_DIR` at a new folder). Add a rig by dropping a file in (restart to pick it up). Invalid files (missing robot, rate not in its options, camera without a `WxH` resolution, duplicate device ids, …) are logged and skipped; unknown keys are logged and ignored.
+- Rigs: one hand-editable file per rig in `config/rigs/<rig-id>.yaml` (config folder: `VLA_CONFIG_DIR`, default `config/`); the id is read from the file content. The folder is committed to git (the station ships with `so101-kit`). Rig files, settings and calibration used to live under the data folder; on startup `data/rigs/`, `data/settings/` and `data/calibration/` are moved into the config folder when it has none.
+- On startup the folder is loaded, sorted by file name. There are no seeds: a missing or empty folder means no rigs (copy `config/rigs/*.yaml` when pointing `VLA_CONFIG_DIR` at a new folder). Add a rig by dropping a file in (restart to pick it up). Invalid files (missing robot, rate not in its options, camera without a `WxH` resolution, duplicate device ids, …) are logged and skipped; unknown keys are logged and ignored.
 - Old-format files (a raw `Rig` dump with `master` / `slave`) are converted on load and rewritten in this format (names come from `master` / `slave`; ports start empty).
 
 ```yaml
@@ -162,4 +162,4 @@ rates:
 - Multi-arm rigs use maps keyed by id instead: `robots: { bi-follower-l: {type, name, port, joints}, bi-follower-r: {…} }` and `devices: { … }`. Either form loads; the backend writes the singular form when there is exactly one. Every robot has the same number of joints, and joint names are unique across robots.
 - Mapping to `Rig`: `slave` / `master` = the robot / device names (one name as is; `X (L)` + `X (R)` → `X ×2`; otherwise joined with ` + `); `robots` / `devices` = their ids; `joints` = the robots' joints in order; camera `id` = `id` or the key, `feature` = `observation.images.<key>`, `resolution` as `640×480`; `targetHz` = `rates.action_hz` / `rates.video_fps`.
 - Devices are the ones declared in the rig files (id, name, port; type robot → `robot`, device → `teleop`, camera → `camera`); the first rig declaring an id wins. Every device starts not connected (see above): streams are derived from the file (`observation.state` / `action` shape `[n_joints]` with `targetHz` = `action_hz`, `images.<key>` shape `HxWx3` at the camera fps, `measuredHz: null`), no stats. Test results stay in memory.
-- Ports picked on the Rigs page are written into the rig file in place (`PUT /devices/{id}/port`): only the scalar after `port:` changes, so comments, key order and inline comments stay. Paths are written plain (quoted when they contain spaces or other YAML-special characters). Calibration files are LeRobot's format, kept in `data/calibration/` and committed with the rig files (see [Calibration](#calibration)).
+- Ports picked on the Rigs page are written into the rig file in place (`PUT /devices/{id}/port`): only the scalar after `port:` changes, so comments, key order and inline comments stay. Paths are written plain (quoted when they contain spaces or other YAML-special characters). Calibration files are LeRobot's format, kept in `config/calibration/` and committed with the rig files (see [Calibration](#calibration)).

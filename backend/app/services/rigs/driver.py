@@ -1,7 +1,7 @@
 """Device access for the Rigs page: connection tests and arm calibration through LeRobot.
 
 LeRobot is imported lazily (it pulls in torch), so the station runs without it; every call then
-answers 503. Calibration files live in data/calibration (LeRobot's layout). Tests run with
+answers 503. Calibration files live in config/calibration (LeRobot's layout). Tests run with
 VLA_DEVICE_DRIVER=none or install a fake with use().
 """
 
@@ -124,7 +124,7 @@ class NoDriver:
 
 
 def _use_data_calibration() -> None:
-    """Point LeRobot at data/calibration. LeRobot reads HF_LEROBOT_CALIBRATION once, when it is
+    """Point LeRobot at config/calibration. LeRobot reads HF_LEROBOT_CALIBRATION once, when it is
     first imported, so this runs before any import of it (the driver is the only importer)."""
     os.environ["HF_LEROBOT_CALIBRATION"] = str(config.calibration_dir)
     if "lerobot.utils.constants" in sys.modules:
