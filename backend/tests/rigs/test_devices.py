@@ -265,3 +265,18 @@ def test_calibration_without_driver(client, monkeypatch):
     monkeypatch.setattr(ports, "exists", lambda p: True)
     r = client.post("/devices/follower/calibrate")
     assert r.status_code == 503
+
+
+def test_rig_test_checks_every_device(client, fake):
+    rows = client.post("/rigs/so101-kit/test").json()
+    assert [d["id"] for d in rows] == ["follower", "leader", "top", "wrist"]
+    assert all(d["check"]["ok"] and d["health"] == "ok" for d in rows)
+    # A device in use is returned untested
+    client.post("/devices/leader/calibrate")
+    rows = {d["id"]: d for d in client.post("/rigs/so101-kit/test").json()}
+    assert rows["leader"]["calibration"]["note"] == "Calibrating…"
+    assert client.post("/rigs/missing/test").status_code == 404
+
+
+def test_rig_test_without_driver(client):
+    assert client.post("/rigs/so101-kit/test").status_code == 503

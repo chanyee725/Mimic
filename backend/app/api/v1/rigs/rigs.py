@@ -32,6 +32,12 @@ def rig_devices(rig_id: str):
     return service.rig_devices(rig_id)
 
 
+# Sync: runs in the thread pool (a few seconds with cameras)
+@router.post("/rigs/{rig_id}/test", response_model=list[Device])
+def test_rig(rig_id: str):
+    return service.test_rig(rig_id)
+
+
 @router.post("/rigs/{rig_id}/teleop", response_model=TeleopState, status_code=201)
 def start_teleop(rig_id: str):
     return service.start_teleop(rig_id)
