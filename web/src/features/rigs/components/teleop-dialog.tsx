@@ -34,8 +34,8 @@ export function TeleopDialog({ rig, open, onOpenChange }: { rig: Rig; open: bool
         <DialogHeader>
           <DialogTitle>Test teleoperation · {rig.name}</DialogTitle>
           <DialogDescription>
-            leader 를 움직이면 follower 가 따라 움직입니다. 시작하면 follower 토크가 켜지고, 멀리 떨어진 자세는 천천히 따라갑니다. Stop 하면
-            follower 토크가 꺼지니 팔을 받치세요.
+            leader 를 움직이면 follower 가 따라 움직입니다. 시작하면 follower 토크가 켜지고, 처음 1.5초 동안 leader 자세로 천천히 맞춘 뒤
+            그대로 따라갑니다. Stop 하면 follower 토크가 꺼지니 팔을 받치세요.
           </DialogDescription>
         </DialogHeader>
 

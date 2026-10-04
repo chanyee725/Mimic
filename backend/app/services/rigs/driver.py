@@ -337,18 +337,21 @@ def _jpegs(cap: Any) -> Iterator[bytes]:
         cap.release()
 
 
-# Follower steps are capped (degrees, or % for the gripper) so a far-off leader pose is
-# approached gradually instead of in one jump
-MAX_STEP = 3.0
+# On start the follower is eased from its own pose to the leader's over this long (by time, not
+# capped per step against the present position, which made it crawl); afterwards it gets the
+# leader's action as is, like lerobot-teleoperate
+RAMP_S = 1.5
 
 
 class _LeRobotTeleop:
     def __init__(self, pairs: list[tuple[Hardware, Hardware]]):
         self.pairs: list[tuple[Any, Any]] = []
+        self.starts: list[dict[str, float]] = []  # follower pose at connect, per pair
+        self.t0: float | None = None
         try:
             for robot_hw, leader_hw in pairs:
                 leader = _lerobot_device(leader_hw)
-                robot = _lerobot_device(robot_hw, max_relative_target=MAX_STEP)
+                robot = _lerobot_device(robot_hw)
                 for hw, dev in ((leader_hw, leader), (robot_hw, robot)):
                     if not dev.calibration:
                         raise ApiError(409, f"Calibrate '{hw.id}' first")
@@ -356,16 +359,25 @@ class _LeRobotTeleop:
                 # Leader first: the follower gets torque on connect
                 _connect_calibrated(leader, leader_hw.port)
                 _connect_calibrated(robot, robot_hw.port)
+                pose = robot.bus.sync_read("Present_Position", num_retry=2)
+                self.starts.append({f"{m}.pos": float(v) for m, v in pose.items()})
         except BaseException:
             self.close()
             raise
         self.joints = [[k.removesuffix(".pos") for k in r.action_features] for _, r in self.pairs]
 
     def step(self, read_follower: bool) -> list[tuple[dict[str, float], dict[str, float] | None]]:
+        now = time.perf_counter()
+        if self.t0 is None:
+            self.t0 = now
+        ramp = min(1.0, (now - self.t0) / RAMP_S)
         out = []
-        for leader, robot in self.pairs:
+        for (leader, robot), start in zip(self.pairs, self.starts):
             action = leader.get_action()
-            robot.send_action(action)
+            if ramp < 1.0:
+                robot.send_action({k: start[k] + (v - start[k]) * ramp for k, v in action.items()})
+            else:
+                robot.send_action(action)
             follower = None
             if read_follower:
                 obs = robot.bus.sync_read("Present_Position", num_retry=2)
