@@ -4,7 +4,7 @@ import pytest
 
 from app.core import storage
 from app.services import rigs as service
-from app.services.rigs import driver, ports
+from app.services.rigs import driver, ports, preview
 from tests.support import FakeDriver
 
 
@@ -128,6 +128,22 @@ def test_preview_only_scanned_video_ports(client, fake, video_port):
         r = client.get("/devices/ports/preview", params={"path": path})
         assert r.status_code == 400
     assert fake.opened_cameras == []
+
+
+def test_preview_is_released_when_the_camera_is_opened_again(fake, video_port, monkeypatch):
+    # A client that never hangs up (browsers may keep MJPEG requests open) must not hold the camera
+    monkeypatch.setattr(preview, "node", lambda port: "/dev/video6")
+    first = service.open_preview("/dev/video6")
+    assert first.next() is not None
+    second = service.open_preview("/dev/v4l/by-id/cam")  # same camera, other path
+    assert second.next() is not None  # the route always reads the first frame
+    assert first.closed and first.next() is None and fake.released_cameras == 1
+    assert not second.closed
+    # A connection test of the device on that camera closes the preview too
+    monkeypatch.setattr(ports, "exists", lambda p: True)
+    service.set_port("top", "/dev/video6")
+    assert service.test_device("top").check.ok is True
+    assert second.closed and fake.released_cameras == 2
 
 
 def test_preview_without_driver(client, video_port):

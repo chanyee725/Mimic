@@ -40,8 +40,14 @@ def test_committed_file_matches_snapshot(client):
     storage.delete("rigs/so101-bimanual-kit.yaml")
     service.reset()
     assert client.get("/rigs").json() == [_rig("so101-kit")]
+
     # Only devices declared by a rig file exist
-    assert client.get("/devices").json() == _devices("follower", "leader", "top", "wrist")
+    # Ports are written from the Rigs page and differ per station
+    def portless(rows: list[dict]) -> list[dict]:
+        return [{k: v for k, v in d.items() if k != "port"} for d in rows]
+
+    devices = client.get("/devices").json()
+    assert portless(devices) == portless(_devices("follower", "leader", "top", "wrist"))
     # Hand-written comments are kept (the file is not rewritten)
     assert storage.read_text("rigs/so101-kit.yaml").startswith(
         "id: so101-kit\nname: SO-101 Kit\n\n#"
