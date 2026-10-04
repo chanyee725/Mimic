@@ -48,7 +48,7 @@ MergePreview = {
 | GET | `/datasets?kind=&q=` | | `Dataset[]` newest first | `listDatasets()` |
 | GET | `/datasets/{repoId}` | | `Dataset` (`repoId` is URL-encoded, e.g. `local%2Fstack_two_blocks`) | Datasets detail |
 | GET | `/datasets/{repoId}/episodes?limit=&cursor=` | | `Page<DatasetEpisode>` (empty while converting) | Datasets episodes |
-| GET | `/datasets/{repoId}/thumbnail` | | `501` (datasets have no video yet) | Dataset thumbnail |
+| GET | `/datasets/{repoId}/thumbnail` | | `image/jpeg`: first frame of the first episode of the first video feature (made once, cached as `meta/thumbnail.jpg`); 404 when the dataset has no video feature; 409 while it is not ready | Dataset thumbnail |
 | POST | `/datasets/{repoId}/push` | `{ private: boolean }` | `202 Dataset`; 409 unless status ready; 424 if HF token missing | Push to HF Hub |
 | DELETE | `/datasets/{repoId}` | | `204` (removes the folder; cancels a running conversion / merge) | Delete |
 
@@ -61,8 +61,11 @@ Progress: `dataset.updated` events (`progress`, `status`, `error`). Deleting emi
   `/datasets/merge…` routes are matched before `/datasets/{repoId}`, so `merge` cannot be a namespace with a `preview` name.
 - Preview features are what convert writes: `action` and `observation.state` float32 `[joints]` (joint count from the task's
   rig; action notes `"<actionHz> Hz → <fps> Hz"` when they differ), `timestamp` float32 `[1]`, `frame_index`,
-  `episode_index`, `index`, `task_index`, `subtask_index` int64 `[1]`. No video features (recordings hold no camera frames
-  yet). `frames` = Σ floor(duration × fps), `estOutputMB` = 0.6 × `mcapMB` (estimate only).
+  `episode_index`, `index`, `task_index`, `subtask_index` int64 `[1]`, plus one video feature
+  `observation.images.<key>` (`video` `[height, width, 3]`) per camera that **every** converted recording has frames for
+  (shape from the rig camera resolution in the preview, from the frames themselves on convert). A camera missing in any
+  recording is left out of the dataset and listed in `station.yaml` as `skipped_cameras`. `frames` = Σ floor(duration ×
+  fps), `estOutputMB` = 0.6 × `mcapMB` (estimate only).
 - Convert runs in a background thread: it starts `converting` at progress 0 and publishes progress per episode (capped at
   99); on success it becomes `ready` (`progress` null) with the real `episodeCount` / `sizeGB`; on any error it becomes
   `failed` with `error` (e.g. `"stack-two-blocks/ep_0002.mcap: MCAP could not be read: …"`) and nothing is left on disk.
@@ -75,7 +78,8 @@ Progress: `dataset.updated` events (`progress`, `status`, `error`). Deleting emi
   `Dataset 'a/b' is not ready (converting)`, `Dataset 'a/b' is listed more than once`,
   `Frame rates differ: a/b 30 fps, c/d 15 fps`, `Robots differ: a/b so101-kit, c/d so101-bimanual-kit`,
   `Features differ: c/d has …` / `… lacks …`, `Feature 'action' differs: a/b float32 [6], c/d float32 [5]`,
-  `Feature 'action' has different names in c/d`.
+  `Feature 'action' has different names in c/d`. Video features follow the same rules (so different cameras or
+  resolutions are rejected); their episodes are decoded from the sources' video files and re-encoded.
 - The merged dataset copies episodes in source order: `episode_index` 0…n-1, `index` 0…frames-1, tasks and subtasks
   unioned (first-seen order) with `task_index` / `subtask_index` remapped. `taskId` = the common task, or `"mixed"` when the
   sources come from different tasks. Episode `source` keeps the original recording file.
@@ -89,16 +93,25 @@ committed). The folder is a LeRobot v3.0 dataset (lerobot `CODEBASE_VERSION = "v
 ```
 meta/info.json                               codebase_version, fps, features, total_episodes / frames / tasks,
                                              chunks_size 1000, data_files_size_in_mb 100, video_files_size_in_mb 200,
-                                             data_path, video_path (null), robot_type (= rig id), splits {"train": "0:N"}
+                                             data_path, video_path (null without video features), robot_type (= rig id),
+                                             splits {"train": "0:N"}
 meta/stats.json                              per feature: min, max, mean, std, count, q01, q10, q50, q90, q99
+                                             (video features: per channel, shape [3, 1, 1], 0–1, on sampled frames
+                                             like lerobot compute_stats)
 meta/tasks.parquet                           task (pandas index) → task_index
 meta/subtasks.parquet                        subtask (pandas index) → subtask_index (station extra)
 meta/episodes/chunk-000/file-000.parquet     episode_index, tasks, length, data/chunk_index, data/file_index,
                                              dataset_from_index, dataset_to_index, meta/episodes/chunk_index,
-                                             meta/episodes/file_index, stats/<feature>/<stat>
-data/chunk-XXX/file-YYY.parquet              one row per frame (new file every ~100 MB, 1000 files per chunk)
+                                             meta/episodes/file_index, stats/<feature>/<stat>, and per video key
+                                             videos/<key>/chunk_index, file_index, from_timestamp, to_timestamp
+data/chunk-XXX/file-YYY.parquet              one row per frame, no video columns (new file every ~100 MB,
+                                             1000 files per chunk)
+videos/<key>/chunk-XXX/file-YYY.mp4          H.264 (libx264, yuv420p) at fps; episodes back to back (frame k of an
+                                             episode at from_timestamp + k / fps, the latest camera frame at or
+                                             before k / fps); new file once one passes ~200 MB
+meta/thumbnail.jpg                           made on the first thumbnail request
 station.yaml                                 station metadata: task_id, rig_id, created_at, hub, notes, sources,
-                                             episode_sources (recording file per episode)
+                                             episode_sources (recording file per episode), skipped_cameras
 ```
 
 Example `meta/info.json` of a converted dataset:
