@@ -2,7 +2,7 @@
 
 import asyncio
 import threading
-from collections.abc import Iterator
+import time
 
 from fastapi import APIRouter, Response
 from fastapi.responses import StreamingResponse
@@ -28,6 +28,9 @@ def scan_ports():
 
 
 PREVIEW_PERIOD_S = 1 / 12
+# A stream ends after this long (the web reopens it before): a client that never hangs up then
+# neither holds the camera nor blocks a server reload
+PREVIEW_MAX_S = 30
 BOUNDARY = "frame"
 
 
@@ -36,25 +39,11 @@ def _part(jpeg: bytes) -> bytes:
     return head.encode() + jpeg + b"\r\n"
 
 
-class _Frames:
-    """Frame iterator safe to close from another thread: close() waits for a read in flight."""
-
-    def __init__(self, it: Iterator[bytes]):
-        self._it, self._lock = it, threading.Lock()
-
-    def next(self) -> bytes | None:
-        with self._lock:
-            return next(self._it, None)
-
-    def close(self) -> None:
-        with self._lock:
-            self._it.close()
-
-
 @router.get("/devices/ports/preview", response_class=StreamingResponse)
 async def preview_port(path: str):
-    """Live MJPEG preview of a video port; the camera is released when the client goes away."""
-    frames = _Frames(await run_in_threadpool(service.preview_frames, path))
+    """Live MJPEG preview of a video port. The camera is released when the client goes away or
+    when something else opens it (a new preview, a connection test)."""
+    frames = await run_in_threadpool(service.open_preview, path)
     # Pull the first frame now so an unreadable camera is an error, not an empty stream
     first = await run_in_threadpool(frames.next)
     if first is None:
@@ -63,8 +52,8 @@ async def preview_port(path: str):
 
     async def stream():
         try:
-            frame = first
-            while frame is not None:
+            frame, deadline = first, time.monotonic() + PREVIEW_MAX_S
+            while frame is not None and time.monotonic() < deadline:
                 yield _part(frame)
                 await asyncio.sleep(PREVIEW_PERIOD_S)
                 frame = await run_in_threadpool(frames.next)

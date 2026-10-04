@@ -8,7 +8,6 @@ file in place (comments kept).
 
 import logging
 from datetime import datetime
-from collections.abc import Iterator
 from typing import Any
 
 import yaml
@@ -27,7 +26,7 @@ from app.models.rigs import (
     Stat,
     TeleopState,
 )
-from app.services.rigs import calibration, driver, ports, teleop
+from app.services.rigs import calibration, driver, ports, preview, teleop
 from app.services.rigs import file_format as rigs_file
 from app.services.rigs.driver import Hardware
 from app.services.rigs.file_format import RigFile
@@ -52,6 +51,7 @@ def reset() -> None:
     """Rigs from data/rigs (sorted by file name); their devices start not connected."""
     calibration.reset()
     teleop.reset()
+    preview.reset()
     _files.clear()
     _specs.clear()
     _specs.update(_load_folder(RIGS_DIR))
@@ -183,12 +183,13 @@ def _require_idle(device_id: str) -> None:
         raise conflict(f"Device '{device_id}' is in a teleoperation test")
 
 
-def preview_frames(path: str) -> Iterator[bytes]:
-    """JPEG frames of a scanned video port (any other path is refused)."""
+def open_preview(path: str) -> preview.Preview:
+    """Live JPEG frames of a scanned video port (any other path is refused); replaces a preview
+    already holding that camera."""
     video = {p for port in ports.scan() if port.kind == "video" for p in (port.path, port.device)}
     if path not in video:
         raise ApiError(400, f"'{path}' is not a video port on this station")
-    return driver.get().camera_frames(path)
+    return preview.open_preview(path)
 
 
 def set_port(device_id: str, port: str) -> Device:
@@ -258,6 +259,7 @@ def _tested_arm(device_id: str, hw: Hardware) -> Device:
 
 
 def _tested_camera(device_id: str, hw: Hardware) -> Device:
+    preview.release(hw.port)  # an open preview would hold the camera
     r = driver.get().test_camera(hw)
     stats = [
         Stat(label="Resolution", value=f"{r.width}×{r.height}"),
