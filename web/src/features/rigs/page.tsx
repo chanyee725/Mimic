@@ -85,7 +85,7 @@ export function RigsPage() {
             {rigsQuery.isError ? (
               <ErrorNote error={rigsQuery.error} onRetry={() => void rigsQuery.refetch()} />
             ) : rigsQuery.data ? (
-              <EmptyState>등록된 Rig 가 없습니다. data/rigs 에 rig 파일을 추가하세요.</EmptyState>
+              <EmptyState>등록된 Rig 가 없습니다. config/rigs 에 rig 파일을 추가하세요.</EmptyState>
             ) : (
               <LoadingNote />
             )}

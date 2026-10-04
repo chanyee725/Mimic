@@ -31,7 +31,7 @@ export function TasksPage() {
             ) : (
               <EmptyState>
                 {noRigs
-                  ? "등록된 Rig 가 없습니다. data/rigs 에 rig 파일을 추가한 뒤 Task 를 만드세요."
+                  ? "등록된 Rig 가 없습니다. config/rigs 에 rig 파일을 추가한 뒤 Task 를 만드세요."
                   : "Task 가 없습니다. 왼쪽 + 버튼으로 Task 를 만들어 시작하세요."}
               </EmptyState>
             )}
