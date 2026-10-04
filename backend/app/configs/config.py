@@ -44,6 +44,11 @@ class Config(BaseSettings):
         return self.data_dir / "datasets"
 
     @property
+    def calibration_dir(self) -> Path:
+        """LeRobot calibration files: {robots|teleoperators}/<class>/<calibration id>.json."""
+        return self.data_dir / "calibration"
+
+    @property
     def models_dir(self) -> Path:
         return self.data_dir / "models"
 
