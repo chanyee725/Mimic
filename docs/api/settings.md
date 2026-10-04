@@ -23,7 +23,7 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 
 ## Storage
 
-- `data/settings/<part>.yaml`, one file per part, snake_case keys, hand-editable and committed:
+- `config/settings/<part>.yaml`, one file per part, snake_case keys, hand-editable and committed:
   `huggingface` (integrations.hf), `runpod`, `connection`, `notifications`.
   Files hold only editable values: no `version` (kept in memory, 1 after each start), no live fields
   (`state`, `latency_ms`, `spent_this_month`) and no secrets, so connection tests and key changes never touch them.
@@ -32,9 +32,11 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
   `null` and `spentThisMonth` is `null` (RunPod spend is not tracked yet). A missing file is written from the seeds; an invalid one is left untouched and that part uses the seeds
   (a warning is logged) until it is fixed or that part is saved.
 - A save rewrites only the files whose content changed.
-- There is no storage section: everything the station produces lives under the data folder (`VLA_DATA_DIR`, default `data`):
-  `recordings/` (MCAP + sidecars), `datasets/`, `models/`, plus `tasks/`, `rigs/` and `settings/`. The backend config exposes
-  them as `config.recordings_dir`, `config.datasets_dir` and `config.models_dir`.
+- There is no storage section. Two folders, both relative to the repo root unless absolute:
+  - config folder (`VLA_CONFIG_DIR`, default `config`, committed): `rigs/`, `settings/`, `calibration/` — the station's setup.
+  - data folder (`VLA_DATA_DIR`, default `data`, git-ignored): what the web produces — `tasks/`, `recordings/` (MCAP +
+    sidecars), `datasets/`, `models/`. The backend config exposes them as `config.recordings_dir`, `config.datasets_dir`
+    and `config.models_dir`.
 - Secrets live in the repo-root `.env` (`config.env_file_path`; git-ignored, mode 0600) under the names other tools read:
 
   | Secret name | `.env` / environment key |
@@ -46,7 +48,7 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
   On load each value comes from the process environment first, then `.env`; the `{set, last4}` in `Settings` is computed from it.
   PUT / DELETE edit only that key's line in `.env` (the file is created if missing; comments and `VLA_*` lines stay) and the
   in-memory value. A value set in the environment still wins after the next restart. Raw values never leave the backend.
-- Migration: an old `data/settings.yaml` is split into the part files when `data/settings/` does not exist yet, then deleted.
+- Migration: an old `data/settings.yaml` is split into the part files when `config/settings/` does not exist yet, then deleted.
   An old `data/secrets.yaml` is copied into `.env` (keys not already set) and deleted. The dropped `station.yaml`,
   `training.yaml` and `storage.yaml` part files are deleted, and stale secret entries in part files are removed on load.
 - The simulation environments folder comes from `VLA_SIM_ENVS_DIR` (default `sim/envs`), not from settings.
