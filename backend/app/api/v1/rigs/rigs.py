@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Response
 
-from app.models.rigs import Device, Rig
+from app.models.rigs import Device, Rig, TeleopState
 from app.services import rigs as service
 
 router = APIRouter()
@@ -30,3 +30,19 @@ def rig_yaml(rig_id: str):
 @router.get("/rigs/{rig_id}/devices", response_model=list[Device])
 def rig_devices(rig_id: str):
     return service.rig_devices(rig_id)
+
+
+@router.post("/rigs/{rig_id}/teleop", response_model=TeleopState, status_code=201)
+def start_teleop(rig_id: str):
+    return service.start_teleop(rig_id)
+
+
+@router.get("/rigs/{rig_id}/teleop", response_model=TeleopState)
+def teleop_state(rig_id: str):
+    return service.teleop_state(rig_id)
+
+
+@router.delete("/rigs/{rig_id}/teleop", status_code=204)
+def stop_teleop(rig_id: str):
+    service.stop_teleop(rig_id)
+    return Response(status_code=204)

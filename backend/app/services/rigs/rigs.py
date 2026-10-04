@@ -1,21 +1,33 @@
 """Rig store in data/rigs/<id>.yaml (format: file_format.py); devices are declared there.
 
 No seeds: a missing folder means no rigs. Devices start not connected; a connection test
-(driver.py, LeRobot) reports health and stats, and arms calibrate through calibration.py. The
-port each device uses on this station is kept in data/ports.local.yaml (ports.py).
+(driver.py, LeRobot) reports health and stats, arms calibrate through calibration.py and a rig's
+leader drives its follower in teleop.py. A port picked on the Rigs page is written into the rig
+file in place (comments kept).
 """
 
 import logging
 from datetime import datetime
+from collections.abc import Iterator
 from typing import Any
 
+import yaml
 from pydantic import ValidationError
 
 from app.core import storage
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.models.rigs import Calibration, CalibrationSession, Device, DeviceCheck, Port, Rig, Stat
-from app.services.rigs import calibration, driver, ports
+from app.models.rigs import (
+    Calibration,
+    CalibrationSession,
+    Device,
+    DeviceCheck,
+    Port,
+    Rig,
+    Stat,
+    TeleopState,
+)
+from app.services.rigs import calibration, driver, ports, teleop
 from app.services.rigs import file_format as rigs_file
 from app.services.rigs.driver import Hardware
 from app.services.rigs.file_format import RigFile
@@ -27,6 +39,8 @@ _specs: dict[str, RigFile] = {}
 _rigs: dict[str, Rig] = {}
 _devices: dict[str, Device] = {}
 _hardware: dict[str, Hardware] = {}
+_files: dict[str, str] = {}  # rig id → data-relative file
+_owner: dict[str, str] = {}  # device id → rig id whose file declares it
 
 CALIBRATING = "Calibrating…"
 
@@ -37,22 +51,22 @@ RIGS_DIR = "rigs"
 def reset() -> None:
     """Rigs from data/rigs (sorted by file name); their devices start not connected."""
     calibration.reset()
+    teleop.reset()
+    _files.clear()
     _specs.clear()
     _specs.update(_load_folder(RIGS_DIR))
     _rigs.clear()
     _rigs.update({k: rigs_file.to_rig(s) for k, s in _specs.items()})
     _devices.clear()
     _hardware.clear()
-    local = ports.load_overrides()
+    _owner.clear()
     for spec in _specs.values():
         for d, hw in zip(rigs_file.declared_devices(spec), rigs_file.hardware(spec)):
             if d.id in _devices:
                 continue  # the first rig declaring an id wins
-            hw.port = local.get(d.id, hw.port)
             _hardware[d.id] = hw
-            _devices[d.id] = d.model_copy(
-                update={"port": hw.port, "calibration": _file_calibration(hw)}
-            )
+            _owner[d.id] = spec.id
+            _devices[d.id] = d.model_copy(update={"calibration": _file_calibration(hw)})
 
 
 def _load_folder(folder: str) -> dict[str, RigFile]:
@@ -69,6 +83,7 @@ def _load_folder(folder: str) -> dict[str, RigFile]:
             log.warning("Skipping %s: duplicate id '%s'", rel, item.id)
             continue
         items[item.id] = item
+        _files[item.id] = rel
     return items
 
 
@@ -130,9 +145,9 @@ def rig_devices(rig_id: str) -> list[Device]:
 
 
 def rig_yaml(rig_id: str) -> str:
-    """The rig in its file format (as written to data/rigs, without comments)."""
+    """The rig file as it is on disk (comments and ports written from the Rigs page)."""
     require_rig(rig_id)
-    return rigs_file.dumps(_specs[rig_id])
+    return storage.read_text(_files[rig_id]) or rigs_file.dumps(_specs[rig_id])
 
 
 def set_device_state(device_id: str, **live: Any) -> Device:
@@ -161,17 +176,33 @@ def scan_ports() -> list[Port]:
     return found
 
 
+def _require_idle(device_id: str) -> None:
+    if calibration.active(device_id):
+        raise conflict(f"Device '{device_id}' is calibrating")
+    if teleop.uses(device_id):
+        raise conflict(f"Device '{device_id}' is in a teleoperation test")
+
+
+def preview_frames(path: str) -> Iterator[bytes]:
+    """JPEG frames of a scanned video port (any other path is refused)."""
+    video = {p for port in ports.scan() if port.kind == "video" for p in (port.path, port.device)}
+    if path not in video:
+        raise ApiError(400, f"'{path}' is not a video port on this station")
+    return driver.get().camera_frames(path)
+
+
 def set_port(device_id: str, port: str) -> Device:
-    """Use `port` for the device on this station (data/ports.local.yaml); resets its test."""
+    """Write `port` into the rig file that declares the device (in place); resets its test."""
     require_device(device_id)
     port = port.strip()
     if not port.startswith("/"):
         raise ApiError(400, "A port is an absolute path (/dev/…)")
-    if calibration.active(device_id):
-        raise conflict(f"Device '{device_id}' is calibrating")
-    local = ports.load_overrides()
-    local[device_id] = port
-    ports.save_overrides(local)
+    _require_idle(device_id)
+    rig_id = _owner[device_id]
+    rel = _files[rig_id]
+    text = rigs_file.set_port_text(storage.read_text(rel) or "", device_id, port)
+    storage.write_text(rel, text)
+    _specs[rig_id] = RigFile.model_validate(yaml.safe_load(text))
     hw = _hardware[device_id]
     hw.port = port
     return _update(
@@ -188,8 +219,7 @@ def set_port(device_id: str, port: str) -> Device:
 def test_device(device_id: str) -> Device:
     """Open the device once (LeRobot) and report what answered; a failed test is not an error."""
     require_device(device_id)
-    if calibration.active(device_id):
-        raise conflict(f"Device '{device_id}' is calibrating")
+    _require_idle(device_id)
     hw = _hardware[device_id]
     if reason := driver.get().unavailable():
         raise ApiError(503, reason)
@@ -274,6 +304,8 @@ def start_calibration(device_id: str) -> CalibrationSession:
     hw = _arm(device_id)
     if calibration.active(device_id):
         raise conflict(f"Device '{device_id}' is already calibrating")
+    if teleop.uses(device_id):
+        raise conflict(f"Device '{device_id}' is in a teleoperation test")
     if not ports.exists(hw.port):
         raise ApiError(503, f"Port not found: {hw.port}")
     session = calibration.start(device_id, driver.get().open_arm(hw))
@@ -298,6 +330,35 @@ def cancel_calibration(device_id: str) -> None:
     _arm(device_id)
     calibration.cancel(device_id)
     bus.publish("device.updated", require_device(device_id))
+
+
+# --- teleoperation test ------------------------------------------------------
+
+
+def start_teleop(rig_id: str) -> TeleopState:
+    """Each leader (devices[i]) drives its follower (robots[i]) at the rig's action rate."""
+    rig = require_rig(rig_id)
+    if not rig.robots or len(rig.robots) != len(rig.devices):
+        raise ApiError(400, "Teleoperation needs one leader per follower")
+    ids = [*rig.robots, *rig.devices]
+    for i in ids:
+        if calibration.active(i):
+            raise conflict(f"Device '{i}' is calibrating")
+    for i in ids:
+        if not ports.exists(_hardware[i].port):
+            raise ApiError(503, f"Port not found: {_hardware[i].port}")
+    pairs = [(_hardware[r], _hardware[t]) for r, t in zip(rig.robots, rig.devices)]
+    return teleop.start(rig_id, pairs, rig.target_hz.action, ids)
+
+
+def teleop_state(rig_id: str) -> TeleopState:
+    require_rig(rig_id)
+    return teleop.state(rig_id)
+
+
+def stop_teleop(rig_id: str) -> None:
+    require_rig(rig_id)
+    teleop.stop(rig_id)
 
 
 reset()

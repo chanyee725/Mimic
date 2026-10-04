@@ -9,6 +9,7 @@ import pkgutil
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Iterator
 from typing import Any, Literal, Protocol
 
 from app.configs.config import config
@@ -59,12 +60,27 @@ class Arm(Protocol):
     def close(self) -> None: ...
 
 
+class TeleopLink(Protocol):
+    """Leader → follower pairs, connected with torque on the followers."""
+
+    joints: list[list[str]]  # per pair, in action order
+
+    def step(self, read_follower: bool) -> list[tuple[dict[str, float], dict[str, float] | None]]:
+        """One control step: read every leader and command its follower; per pair (leader,
+        follower positions when read_follower)."""
+        ...
+
+    def close(self) -> None: ...
+
+
 class Driver(Protocol):
     def unavailable(self) -> str | None: ...
     def calibration_file(self, hw: Hardware) -> Path | None: ...
     def test_arm(self, hw: Hardware) -> ArmReport: ...
     def test_camera(self, hw: Hardware) -> CameraReport: ...
     def open_arm(self, hw: Hardware) -> Arm: ...
+    def camera_frames(self, port: str) -> Iterator[bytes]: ...
+    def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink: ...
 
 
 class NoDriver:
@@ -85,6 +101,12 @@ class NoDriver:
         raise ApiError(503, self.reason)
 
     def open_arm(self, hw: Hardware) -> Arm:
+        raise ApiError(503, self.reason)
+
+    def camera_frames(self, port: str) -> Iterator[bytes]:
+        raise ApiError(503, self.reason)
+
+    def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink:
         raise ApiError(503, self.reason)
 
 
@@ -110,13 +132,13 @@ def _choice(base: Any, package: str, name: str) -> Any:
     raise ApiError(400, f"LeRobot has no type '{name}'")
 
 
-def _lerobot_device(hw: Hardware) -> Any:
+def _lerobot_device(hw: Hardware, **options: Any) -> Any:
     """LeRobot robot / teleoperator for an arm (nothing is opened)."""
     if hw.kind == "robot":
         from lerobot.robots import RobotConfig, make_robot_from_config
 
         cfg = _choice(RobotConfig, "lerobot.robots", hw.type)
-        return make_robot_from_config(cfg(port=hw.port, id=hw.calibration_id))
+        return make_robot_from_config(cfg(port=hw.port, id=hw.calibration_id, **options))
     from lerobot.teleoperators import TeleoperatorConfig, make_teleoperator_from_config
 
     cfg = _choice(TeleoperatorConfig, "lerobot.teleoperators", hw.type)
@@ -207,6 +229,24 @@ class LeRobotDriver:
         self._require()
         return _LeRobotArm(_lerobot_device(hw), hw.port)
 
+    def camera_frames(self, port: str) -> Iterator[bytes]:
+        """JPEG frames from a video port at a preview rate (MJPG 640×480); stops when closed."""
+        self._require()
+        import cv2
+
+        cap = cv2.VideoCapture(port, cv2.CAP_V4L2)
+        if not cap.isOpened():
+            cap.release()
+            raise ApiError(503, f"Cannot open {port}")
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        return _jpegs(cap)
+
+    def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink:
+        self._require()
+        return _LeRobotTeleop(pairs)
+
 
 @dataclass
 class _LeRobotArm:
@@ -263,6 +303,80 @@ class _LeRobotArm:
     def close(self) -> None:
         if self.bus.is_connected:
             self.bus.disconnect(disable_torque=False)
+
+
+def _jpegs(cap: Any) -> Iterator[bytes]:
+    import cv2
+
+    try:
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                return
+            ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            if ok:
+                yield buf.tobytes()
+    finally:
+        cap.release()
+
+
+# Follower steps are capped (degrees, or % for the gripper) so a far-off leader pose is
+# approached gradually instead of in one jump
+MAX_STEP = 3.0
+
+
+class _LeRobotTeleop:
+    def __init__(self, pairs: list[tuple[Hardware, Hardware]]):
+        self.pairs: list[tuple[Any, Any]] = []
+        try:
+            for robot_hw, leader_hw in pairs:
+                leader = _lerobot_device(leader_hw)
+                robot = _lerobot_device(robot_hw, max_relative_target=MAX_STEP)
+                for hw, dev in ((leader_hw, leader), (robot_hw, robot)):
+                    if not dev.calibration:
+                        raise ApiError(409, f"Calibrate '{hw.id}' first")
+                self.pairs.append((leader, robot))
+                # Leader first: the follower gets torque on connect
+                _connect_calibrated(leader, leader_hw.port)
+                _connect_calibrated(robot, robot_hw.port)
+        except BaseException:
+            self.close()
+            raise
+        self.joints = [[k.removesuffix(".pos") for k in r.action_features] for _, r in self.pairs]
+
+    def step(self, read_follower: bool) -> list[tuple[dict[str, float], dict[str, float] | None]]:
+        out = []
+        for leader, robot in self.pairs:
+            action = leader.get_action()
+            robot.send_action(action)
+            follower = None
+            if read_follower:
+                obs = robot.bus.sync_read("Present_Position", num_retry=2)
+                follower = {m: float(v) for m, v in obs.items()}
+            out.append(({k.removesuffix(".pos"): float(v) for k, v in action.items()}, follower))
+        return out
+
+    def close(self) -> None:
+        for pair in self.pairs:
+            for dev in pair:
+                if dev.is_connected:
+                    try:
+                        dev.disconnect()  # followers drop torque (LeRobot default)
+                    except Exception:
+                        pass
+        self.pairs = []
+
+
+def _connect_calibrated(device: Any, port: str) -> None:
+    """connect() without LeRobot's interactive calibrate(): the file is written to the motors
+    when they hold something else (what pressing ENTER at its prompt does)."""
+    try:
+        device.bus.connect()
+    except Exception as e:
+        raise _port_error(port, e) from e
+    if not device.bus.is_calibrated:
+        device.bus.write_calibration(device.calibration)
+    device.configure()
 
 
 _driver: Driver | None = None

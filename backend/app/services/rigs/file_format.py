@@ -1,5 +1,6 @@
 """Rig file format (data/rigs/<id>.yaml): robot / device / cameras / rates, mapped to Rig."""
 
+import json
 import re
 from typing import Any, Iterator
 
@@ -387,3 +388,52 @@ _Dumper.add_representer(list, _list)
 
 def dumps(spec: RigFile) -> str:
     return yaml.dump(to_doc(spec), Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=1000)
+
+
+# --- in-place edits -----------------------------------------------------------
+
+_PLAIN = re.compile(r"^[\w/.+@-][\w/.:+@-]*$")
+
+
+def _scalar(value: str) -> str:
+    # Device paths stay plain; anything else is double-quoted (JSON strings are valid YAML)
+    return value if _PLAIN.match(value) else json.dumps(value)
+
+
+def _child(node: yaml.Node | None, key: str) -> yaml.Node | None:
+    if not isinstance(node, yaml.MappingNode):
+        return None
+    return next((v for k, v in node.value if k.value == key), None)
+
+
+def set_port_text(text: str, device_id: str, port: str) -> str:
+    """The rig file with one device's `port` value replaced; comments and layout are kept."""
+    root = yaml.compose(text)
+    candidates = [
+        ("robot", None),
+        ("device", None),
+        ("robots", device_id),
+        ("devices", device_id),
+        ("cameras", None),
+    ]
+    target: yaml.Node | None = None
+    for section, key in candidates:
+        node = _child(root, section)
+        if node is None:
+            continue
+        if section == "cameras":
+            # Keyed by camera key; the device id is `id` or the key
+            for k, body in node.value if isinstance(node, yaml.MappingNode) else []:
+                own = _child(body, "id")
+                if (own.value if own is not None else k.value) == device_id:
+                    target = _child(body, "port")
+        elif key is not None:
+            target = _child(_child(node, key), "port")
+        elif (own := _child(node, "id")) is not None and own.value == device_id:
+            target = _child(node, "port")
+        if target is not None:
+            break
+    if not isinstance(target, yaml.ScalarNode):
+        raise ValueError(f"no port for device '{device_id}' in the rig file")
+    start, end = target.start_mark.index, target.end_mark.index
+    return text[:start] + _scalar(port) + text[end:]
