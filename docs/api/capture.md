@@ -24,7 +24,7 @@ CaptureState = {
 | Method | Path | Body | Returns | UI |
 | --- | --- | --- | --- | --- |
 | GET | `/capture/state` | | `CaptureState` | Capture load |
-| POST | `/capture/start` | `{ taskId, operator }` | `CaptureState` (countdown → recording); 404 unknown task; 409 if not idle; 503 if a rig device is off (`details.devices` = their ids) — always today, since no device drivers exist yet | Space |
+| POST | `/capture/start` | `{ taskId, operator }` | `CaptureState` (countdown → recording); 404 unknown task; 409 if not idle; 503 if a rig device is off (`details.devices` = their ids); starts the rig's teleoperation when it is not running (its 409 / 503 apply, see [rigs.md](rigs.md)) | Space |
 | POST | `/capture/subtask` | `{ index }` | `CaptureState` (writes a `/labels/subtask` event at the current time); 409 unless recording; 422 index out of range | 1–4 |
 | POST | `/capture/stop` | | `CaptureState` (phase review); 409 unless recording | Space |
 | POST | `/capture/save` | `{ outcome: Outcome }` | `201 Recording` (review "pending"); phase idle; 409 unless recording / review | → / F / P |
@@ -35,6 +35,9 @@ Phase changes are pushed as `capture.state` events. Saving also emits `recording
 
 ## Behaviour
 
+- Start makes sure the rig's teleoperation runs (leader drives follower, [rigs.md](rigs.md)); it keeps running after
+  save / discard so the follower never drops between episodes (stop it from the Rigs page). Without device access
+  (LeRobot missing, tests) nothing is started.
 - Start runs the task's `countdownS` countdown, then records. Recording stops by itself at the task's `durationS` (phase review).
 - Saving while still recording stops implicitly. The episode number is
   `max(task.collected, highest recorded episode, last issued) + 1`, so numbers are never reused after a delete.
@@ -43,3 +46,9 @@ Phase changes are pushed as `capture.state` events. Saving also emits `recording
   one ends at the episode end.
 - The saved recording's topics follow the rig (one action topic per leader device, one state topic per follower, one
   `/cam_<key>/image` per task camera, `/labels/subtask` when the task has subtasks, `/labels/outcome`).
+- Saving writes the teleoperation samples whose wall time falls in the recording window
+  `[recording start, recording start + duration]` (leader action → `/action`, follower state → `/observation/state`,
+  times from the recording start). Episode metadata `source` is `teleop`; without samples (no device access) the file
+  holds the mock trajectory and `source` is `mock`. No camera frames yet.
+- Checks from the samples: `Action samples` / `State samples` = `n / duration × actionHz` (ok at ≥ 95%), `Timestamp gap`
+  = the largest gap between samples or at either end of the window (ok at ≤ 3 sample periods).

@@ -37,6 +37,8 @@ TeleopJoint = { name: string; leader: number | null; follower: number | null }  
 TeleopPair  = { robot: string; teleop: string; joints: TeleopJoint[] }           // follower id, leader id
 TeleopState = { rigId: string; running: boolean; hz: number | null; targetHz: number; error: string | null;
                 startedAt: string; pairs: TeleopPair[] }
+TeleopSamples = { joints: string[]; seq: number; t: number[]; action: number[][]; state: number[][] }
+                // rig joint order (pairs concatenated); t = seconds since the session started; 3 decimals
 ```
 
 ## Endpoints
@@ -47,7 +49,8 @@ TeleopState = { rigId: string; running: boolean; hz: number | null; targetHz: nu
 | GET | `/rigs/{id}` | `Rig`; **404** if unknown (the web mock falls back to the first rig — the client keeps that fallback) | `getRig(id)` |
 | GET | `/rigs/{id}/yaml` | `text/yaml`: the rig file as it is on disk (comments and written ports included) | Rigs Config tab |
 | POST | `/rigs/{id}/teleop` | `201 TeleopState`: connects every leader / follower pair and starts the loop. 400 unless the rig has one leader per follower; 409 if already running or a rig arm is calibrating, or an arm has no calibration file (`Calibrate '<id>' first`); 503 if a port is missing or fails to open | Test teleoperation |
-| GET | `/rigs/{id}/teleop` | `TeleopState` (polled while it runs); 404 when there is none | Teleoperation dialog |
+| GET | `/rigs/{id}/teleop` | `TeleopState`, or `null` (200) when there is no session — polled every second on Capture and while the dialog runs | Teleoperation dialog |
+| GET | `/rigs/{id}/teleop/samples?after=` | `TeleopSamples`: samples with `seq > after` (default -1), at most the last 10 s; `seq` = the last returned sample, or `after` when none. 404 when there is no session | Capture live plots (poll with the last `seq`) |
 | DELETE | `/rigs/{id}/teleop` | 204; disconnects the arms (followers drop torque). 404 when there is none | Stop |
 | GET | `/rigs/{id}/devices` | `Device[]` in Robot → Device → Camera order (`robots`, then `devices`, then camera ids) | `devicesOf(rigId)` |
 | POST | `/rigs/{id}/test` | `Device[]` (same order as `/rigs/{id}/devices`) after a connection test of every device: arms in parallel, cameras one at a time (shared USB bandwidth). Devices that are calibrating or in a teleoperation test are returned untested. 503 if LeRobot is unavailable | Rigs: run when a rig is first shown, and by Test all |
@@ -99,8 +102,9 @@ does not, and `{ done: true, note: "Not required" }` for cameras.
 - Pairs `robots[i]` (follower) with `devices[i]` (leader); both need a LeRobot calibration file. Leaders connect first,
   then followers (torque on). Motors that hold another calibration get the file's written to them (what pressing ENTER at
   LeRobot's calibrate prompt does), so `connect()` never prompts.
-- A background loop runs at the rig's `action_hz`: each step reads the leader and sends it to its follower; followers are
-  read every 6th step for display. For the first 1.5 s the follower goal is eased by time from the follower's pose at
+- A background loop runs at the rig's `action_hz`: each step reads the leader, sends it to its follower and reads the
+  follower back. Every step is kept as a sample (leader action / follower state in rig joint order, wall time) for the
+  last 10 minutes: the live plots read them and Capture records from them. For the first 1.5 s the follower goal is eased by time from the follower's pose at
   connect to the leader's, so a far-off pose is not reached in one jump; after that the leader action is sent as is (like
   `lerobot-teleoperate`; no `max_relative_target`, which capped moves against the present position and made the
   follower crawl under load). `hz` is the measured loop rate (per second).
