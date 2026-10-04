@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { useRigDevices } from "@/api/devices"
-import { useRigs } from "@/api/rigs"
+import { useRigs, useTestRig } from "@/api/rigs"
 import { rigGroups } from "@/domain/rig"
 
 /** Selected rig, device group (tab) and device. Changing the rig or group selects its first device */
@@ -17,6 +17,17 @@ export function useRigSelection() {
   const groupIds = groups.find((g) => g.key === group)?.ids ?? []
   const groupDevices = devices.filter((d) => groupIds.includes(d.id))
   const [selectedId, setSelectedId] = useState<string | undefined>()
+
+  // The rig files hold every port: test each rig's devices the first time it is shown
+  const testRig = useTestRig()
+  const tested = useRef(new Set<string>())
+  const { mutate } = testRig
+  const shownId = rig?.id
+  useEffect(() => {
+    if (!shownId || tested.current.has(shownId)) return
+    tested.current.add(shownId)
+    mutate(shownId)
+  }, [shownId, mutate])
   const selected = devices.find((d) => d.id === selectedId) ?? groupDevices[0] ?? devices[0]
 
   const selectRig = (id: string) => {
@@ -34,6 +45,7 @@ export function useRigSelection() {
     rigsQuery,
     devicesQuery,
     rig,
+    testRig,
     groups,
     group,
     groupDevices,

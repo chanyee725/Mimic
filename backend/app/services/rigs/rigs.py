@@ -7,6 +7,8 @@ file in place (comments kept).
 """
 
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any
 
@@ -228,12 +230,30 @@ def test_device(device_id: str) -> Device:
         return _tested(device_id, False, f"Port not found: {hw.port}", "off", [])
     try:
         if hw.kind == "camera":
-            return _tested_camera(device_id, hw)
+            with _camera_test:
+                return _tested_camera(device_id, hw)
         return _tested_arm(device_id, hw)
     except ApiError as e:
         if e.status != 503:
             raise
         return _tested(device_id, False, e.message, "off", [])
+
+
+# Cameras share USB bandwidth (often one hub): test them one at a time
+_camera_test = threading.Lock()
+
+
+def test_rig(rig_id: str) -> list[Device]:
+    """Connection test of every device in the rig: arms in parallel, cameras one after another.
+    Devices that are calibrating or in a teleoperation test are returned as they are."""
+    require_rig(rig_id)
+    if reason := driver.get().unavailable():
+        raise ApiError(503, reason)
+    devices = rig_devices(rig_id)
+    idle = [d.id for d in devices if not calibration.active(d.id) and not teleop.uses(d.id)]
+    with ThreadPoolExecutor(max_workers=max(1, len(idle))) as pool:
+        list(pool.map(test_device, idle))
+    return rig_devices(rig_id)
 
 
 def _tested_arm(device_id: str, hw: Hardware) -> Device:

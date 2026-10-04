@@ -15,7 +15,8 @@ import { TeleopDialog } from "./components/teleop-dialog"
 import { useRigSelection } from "./hooks/use-rig-selection"
 
 export function RigsPage() {
-  const { rigsQuery, devicesQuery, rig, groups, group, groupDevices, selected, selectRig, selectGroup, selectDevice } = useRigSelection()
+  const { rigsQuery, devicesQuery, rig, testRig, groups, group, groupDevices, selected, selectRig, selectGroup, selectDevice } =
+    useRigSelection()
   const portsQuery = usePorts()
   const [teleop, setTeleop] = useState(false)
 
@@ -68,6 +69,9 @@ export function RigsPage() {
         {rig ? (
           <RigDevices
             rig={rig}
+            testing={testRig.isPending && testRig.variables === rig.id}
+            testError={testRig.variables === rig.id ? testRig.error : null}
+            onTestAll={() => testRig.mutate(rig.id)}
             groups={groups}
             group={group}
             groupDevices={groupDevices}

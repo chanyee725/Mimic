@@ -50,6 +50,7 @@ TeleopState = { rigId: string; running: boolean; hz: number | null; targetHz: nu
 | GET | `/rigs/{id}/teleop` | `TeleopState` (polled while it runs); 404 when there is none | Teleoperation dialog |
 | DELETE | `/rigs/{id}/teleop` | 204; disconnects the arms (followers drop torque). 404 when there is none | Stop |
 | GET | `/rigs/{id}/devices` | `Device[]` in Robot → Device → Camera order (`robots`, then `devices`, then camera ids) | `devicesOf(rigId)` |
+| POST | `/rigs/{id}/test` | `Device[]` (same order as `/rigs/{id}/devices`) after a connection test of every device: arms in parallel, cameras one at a time (shared USB bandwidth). Devices that are calibrating or in a teleoperation test are returned untested. 503 if LeRobot is unavailable | Rigs: run when a rig is first shown, and by Test all |
 | GET | `/devices` | `Device[]` | `listDevices()` |
 | GET | `/devices/{id}` | `Device` | Rigs detail |
 | GET | `/devices/ports` | `Port[]`: USB serial ports (`/dev/ttyACM*`, `/dev/ttyUSB*`), then video capture nodes (index 0 only). `path` is the `/dev/serial/by-id` link for serial ports (unique adapter serial) and the `/dev/v4l/by-path` link (USB position; identical cameras often share a serial) for video, else the node; `usedBy` = devices whose port is the path or the node | Rigs port picker, Rescan ports |

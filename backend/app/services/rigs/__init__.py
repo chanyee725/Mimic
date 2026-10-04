@@ -24,6 +24,7 @@ from app.services.rigs.rigs import (
     stop_teleop,
     teleop_state,
     test_device,
+    test_rig,
 )
 
 __all__ = [
@@ -50,4 +51,5 @@ __all__ = [
     "stop_teleop",
     "teleop_state",
     "test_device",
+    "test_rig",
 ]
