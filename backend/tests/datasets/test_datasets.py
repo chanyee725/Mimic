@@ -227,10 +227,10 @@ def test_get_and_episodes_paging(client, recs):
     assert client.get("/datasets/local/nope/episodes").status_code == 404
 
 
-def test_thumbnail_not_implemented(client, recs):
+def test_thumbnail_needs_video(client, recs):
     convert(client, "local/stack")
     r = client.get("/datasets/local/stack/thumbnail")
-    assert r.status_code == 501 and r.json()["error"]["code"] == "not_implemented"
+    assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"
 
 
 def test_push(client, recs, monkeypatch, events):

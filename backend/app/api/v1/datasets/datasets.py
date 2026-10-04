@@ -4,6 +4,7 @@ repoId contains a slash, so routes use the path converter; the suffixed routes c
 """
 
 from fastapi import APIRouter, Response
+from fastapi.responses import FileResponse
 
 from app.api.deps import Pagination
 from app.models.datasets import Dataset, DatasetEpisode, DatasetKind
@@ -24,9 +25,14 @@ def list_episodes(repo_id: str, page: Pagination):
     return service.page_episodes(repo_id, page.limit, page.cursor)
 
 
-@router.get("/datasets/{repo_id:path}/thumbnail")
+@router.get(
+    "/datasets/{repo_id:path}/thumbnail",
+    response_class=FileResponse,
+    responses={200: {"content": {"image/jpeg": {}}}},
+)
 def thumbnail(repo_id: str):
-    return service.thumbnail(repo_id)
+    # 404 when the dataset has no video feature
+    return FileResponse(service.thumbnail(repo_id), media_type="image/jpeg")
 
 
 @router.post("/datasets/{repo_id:path}/push", status_code=202, response_model=Dataset)

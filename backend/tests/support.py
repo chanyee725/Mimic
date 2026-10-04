@@ -23,8 +23,11 @@ def write_recording(
     joints: list[str] | None = None,
     hz: float = 60,
     subtasks: list[SubtaskSpan] | None = None,
+    cameras: list[str] | None = None,
+    camera_fps: float = 30,
 ) -> Recording:
-    """An episode MCAP + sidecar under <raw>/<task>/ep_NNNN, like Capture writes them."""
+    """An episode MCAP + sidecar under <raw>/<task>/ep_NNNN, like Capture writes them; `cameras`
+    adds JPEG frames (grey shade changing per frame) for each key."""
     joints = joints or JOINTS
     if subtasks is None:
         half = round(duration_s / 2, 3)
@@ -40,6 +43,13 @@ def write_recording(
         seed=episode / 100,
         subtasks=subtasks,
         metadata={"task_id": task_id, "episode": str(episode)},
+        videos={
+            key: [
+                (k / camera_fps, jpeg(shade=(40 + 12 * k + 30 * c) % 256))
+                for k in range(round(duration_s * camera_fps))
+            ]
+            for c, key in enumerate(cameras or [])
+        },
     )
     rec = Recording(
         id=f"{task_id}-{episode}",

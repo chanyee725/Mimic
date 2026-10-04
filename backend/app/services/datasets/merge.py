@@ -2,9 +2,11 @@
 
 Sources must share fps, features (keys, dtypes, shapes, names) and rig. Episodes are copied in
 source order and re-numbered, the global index restarts at 0, and task / subtask tables are
-unioned with their indices remapped.
+unioned with their indices remapped. Video features are re-encoded episode by episode from the
+sources' video files (same layout as Convert).
 """
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -78,8 +80,6 @@ def check(repo_ids: list[str]) -> tuple[list[Dataset], dict[str, dict[str, Any]]
                 )
             elif a.get("names") != b.get("names"):
                 problems.append(f"Feature '{k}' has different names in {d.repo_id}")
-    if any(lr.is_video(ft) for ft in base.values()):
-        problems.append("Datasets with video features cannot be merged yet")
     return found, infos, problems
 
 
@@ -128,6 +128,51 @@ def _episodes(table: pa.Table) -> list[pa.Table]:
     return [table.slice(a, b - a) for a, b in zip(cuts, cuts[1:]) if b > a]
 
 
+class _SourceVideo:
+    """Frames of one source video key, read forward through its files episode by episode."""
+
+    def __init__(self, root: Path, key: str, fps: int) -> None:
+        self.root, self.key, self.half = root, key, 0.5 / fps
+        self._path: Path | None = None
+        self._container: Any = None
+        self._frames: Iterator[Any] | None = None
+        self._pending: Any = None
+
+    def episode(self, row: dict[str, Any]) -> Iterator[Any]:
+        """Decoded frames of the episode's span (videos/<key>/from_timestamp…to_timestamp)."""
+        import av
+
+        k = self.key
+        path = self.root / lr.VIDEO_PATH.format(
+            video_key=k,
+            chunk_index=row[f"videos/{k}/chunk_index"],
+            file_index=row[f"videos/{k}/file_index"],
+        )
+        start, end = row[f"videos/{k}/from_timestamp"], row[f"videos/{k}/to_timestamp"]
+        if path != self._path or (self._pending is not None and self._pending.time > start):
+            self.close()
+            self._container = av.open(str(path))
+            self._frames = self._container.decode(video=0)
+            self._path = path
+        while True:
+            frame = self._pending if self._pending is not None else next(self._frames, None)
+            self._pending = None
+            if frame is None:
+                return
+            t = frame.time or 0.0
+            if t < start - self.half:
+                continue
+            if t >= end - self.half:
+                self._pending = frame  # first frame of a later episode
+                return
+            yield frame
+
+    def close(self) -> None:
+        if self._container is not None:
+            self._container.close()
+        self._container = self._frames = self._pending = self._path = None
+
+
 def _build(found: list[Dataset], infos: dict[str, dict[str, Any]]) -> store.Build:
     first = found[0]
     features = infos[first.repo_id]["features"]
@@ -148,17 +193,28 @@ def _build(found: list[Dataset], infos: dict[str, dict[str, Any]]) -> store.Buil
             )
             srcs = store.read_sidecar(src).get("episode_sources") or []
             before = w.episodes
+            readers = {k: _SourceVideo(src, k, first.fps) for k in w.video_keys}
+            rows = (
+                {r["episode_index"]: r for r in lr.read_episodes(src).to_pylist()}
+                if readers
+                else {}
+            )
             for path in lr.data_files(src):
                 for piece in _episodes(pq.read_table(path)):
                     cols: dict[str, Any] = {
-                        k: piece.column(k) for k in features if k not in lr.WRITER_KEYS
+                        k: piece.column(k)
+                        for k in features
+                        if k not in lr.WRITER_KEYS and not lr.is_video(features[k])
                     }
                     if lr.SUBTASK_KEY in cols:
                         cols[lr.SUBTASK_KEY] = _remap(lr.to_numpy(cols[lr.SUBTASK_KEY]), sub_map)
-                    w.add_episode(cols, task_map[lr.to_numpy(piece.column("task_index"))])
                     old = int(piece.column("episode_index")[0].as_py())
+                    videos = {k: r.episode(rows[old]) for k, r in readers.items()}
+                    w.add_episode(cols, task_map[lr.to_numpy(piece.column("task_index"))], videos)
                     episode_sources.append(srcs[old] if old < len(srcs) else f"{d.repo_id}#{old}")
                     progress(min(99, len(episode_sources) * 100 // total))
+            for r in readers.values():
+                r.close()
             if (copied := w.episodes - before) != d.episode_count:
                 raise ValueError(
                     f"{d.repo_id} has {copied} of {d.episode_count} episodes in its data files"

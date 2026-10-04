@@ -56,7 +56,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
     <Panel className="min-h-0 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-64 flex-1 basis-0 items-center gap-4">
-          <DatasetThumb className="w-32" />
+          <DatasetThumb dataset={dataset} className="w-32" />
           <div className="grid min-w-0 gap-1">
             <h2 className="truncate text-lg font-semibold">{dataset.repoId}</h2>
             <div className="flex items-center gap-2">

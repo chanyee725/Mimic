@@ -74,3 +74,6 @@ export const isConverting = (d: Dataset) => d.status === "converting"
 
 /** Datasets that can be merged: finished LeRobot conversions */
 export const isMergeable = (d: Dataset) => d.kind === "lerobot" && d.status === "ready"
+
+/** Has camera video (feature dtype "video"), so a thumbnail can be cut from it */
+export const hasVideo = (d: Dataset) => d.features.some((f) => f.dtype === "video")

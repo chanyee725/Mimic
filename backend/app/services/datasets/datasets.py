@@ -28,6 +28,7 @@ from app.schemas.datasets import REPO_ID
 from app.services import settings
 from app.services.datasets import lerobot as lr
 from app.utils.time import from_timestamp
+from app.utils.video import first_frame_at
 
 log = logging.getLogger(__name__)
 
@@ -276,10 +277,38 @@ def wait(repo_id: str, timeout: float = 30) -> Dataset:
 # --- hub, thumbnail and delete ---
 
 
-def thumbnail(repo_id: str) -> None:
-    """Preview frame of a dataset; datasets have no video yet."""
-    require(repo_id)
-    raise ApiError(501, "Thumbnails are not available yet")
+THUMBNAIL = "meta/thumbnail.jpg"
+_thumb_lock = threading.Lock()
+
+
+def thumbnail(repo_id: str) -> Path:
+    """First frame of the first episode of the first video feature, as JPEG (kept in meta/)."""
+    ds = require(repo_id)
+    root = folder(repo_id)
+    out = root / THUMBNAIL
+    with _thumb_lock:
+        if out.is_file():
+            return out
+        if ds.status != "ready":
+            raise conflict(f"Dataset is {ds.status}", status=ds.status)
+        try:
+            info = lr.read_info(root)
+            key = next(iter(lr.video_keys(info["features"])), None)
+            if key is None:
+                raise not_found("Thumbnail", repo_id)
+            row = lr.read_episodes(root).slice(0, 1).to_pylist()[0]
+            video = root / lr.VIDEO_PATH.format(
+                video_key=key,
+                chunk_index=row[f"videos/{key}/chunk_index"],
+                file_index=row[f"videos/{key}/file_index"],
+            )
+            frame = first_frame_at(video, row[f"videos/{key}/from_timestamp"])
+        except (lr.FormatError, OSError, ValueError, KeyError, IndexError) as e:
+            raise ApiError(422, f"Thumbnail could not be made: {e}") from e
+        tmp = out.with_name(f".{out.name}.{uuid.uuid4().hex}")
+        frame.to_image().save(tmp, format="JPEG", quality=85)
+        os.replace(tmp, out)
+        return out
 
 
 def hf_token_set() -> bool:
