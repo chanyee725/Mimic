@@ -16,6 +16,8 @@ dependencies = [
   "mcap>=1.5.0",
   "pyarrow>=25.0.1",
   "numpy>=2.0",
+  "av>=19.0.1",
+  "foxglove-schemas-protobuf>=0.4.0",
 ]
 
 [dependency-groups]

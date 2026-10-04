@@ -4,8 +4,9 @@ import time
 import pytest
 
 from app.core import storage
+from app.core.errors import ApiError
 from app.services import rigs as service
-from app.services.rigs import driver, ports, preview
+from app.services.rigs import cameras, driver, ports
 from tests.support import FakeDriver
 
 
@@ -120,8 +121,10 @@ def test_preview_streams_jpeg(client, fake, video_port):
     r = client.get("/devices/ports/preview", params={"path": "/dev/video6"})
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("multipart/x-mixed-replace; boundary=frame")
-    assert r.content.count(b"--frame\r\nContent-Type: image/jpeg") == 3
-    assert fake.opened_cameras == ["/dev/video6"] and fake.released_cameras == 1
+    # The camera ends after 3 frames; the stream shows the newest ones it sees
+    assert 1 <= r.content.count(b"--frame\r\nContent-Type: image/jpeg") <= 3
+    assert fake.opened_cameras == ["/dev/video6"]
+    assert _until(lambda: fake.released_cameras == 1)
 
 
 def test_preview_only_scanned_video_ports(client, fake, video_port):
@@ -131,20 +134,53 @@ def test_preview_only_scanned_video_ports(client, fake, video_port):
     assert fake.opened_cameras == []
 
 
+def _until(ok, timeout: float = 2.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while not ok():
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(0.01)
+    return True
+
+
 def test_preview_is_released_when_the_camera_is_opened_again(fake, video_port, monkeypatch):
     # A client that never hangs up (browsers may keep MJPEG requests open) must not hold the camera
-    monkeypatch.setattr(preview, "node", lambda port: "/dev/video6")
+    fake.frame_count = None
+    monkeypatch.setattr(cameras, "node", lambda port: "/dev/video6")
     first = service.open_preview("/dev/video6")
     assert first.next() is not None
     second = service.open_preview("/dev/v4l/by-id/cam")  # same camera, other path
-    assert second.next() is not None  # the route always reads the first frame
-    assert first.closed and first.next() is None and fake.released_cameras == 1
-    assert not second.closed
-    # A connection test of the device on that camera closes the preview too
+    assert first.closed and first.next() is None
+    assert second.next() is not None
+    # Both previews share one reader: the camera was opened once
+    assert fake.opened_cameras == ["/dev/video6"]
+    # A connection test of the device on that camera closes the preview and the camera
     monkeypatch.setattr(ports, "exists", lambda p: True)
     service.set_port("top", "/dev/video6")
     assert service.test_device("top").check.ok is True
-    assert second.closed and fake.released_cameras == 2
+    assert second.closed and fake.released_cameras == 1
+
+
+def test_preview_and_recorder_share_one_reader(fake, video_port, monkeypatch):
+    fake.frame_count = None
+    monkeypatch.setattr(cameras, "node", lambda port: "/dev/video6")
+    view = service.open_preview("/dev/video6")
+    rec = cameras.open_recorder("/dev/video6", 640, 480, 30)
+    assert view.next() is not None
+    assert _until(lambda: len(rec.frames) >= 5)
+    assert fake.opened_cameras == ["/dev/video6"]
+    # The recorder keeps the camera when the preview leaves
+    view.close()
+    n = len(rec.frames)
+    assert _until(lambda: len(rec.frames) > n) and fake.released_cameras == 0
+    # Exclusive use is refused while it records
+    monkeypatch.setattr(ports, "exists", lambda p: True)
+    service.set_port("top", "/dev/video6")
+    with pytest.raises(ApiError) as e:
+        service.test_device("top")
+    assert e.value.status == 409
+    rec.close()
+    assert _until(lambda: fake.released_cameras == 1)
 
 
 def test_preview_without_driver(client, video_port):

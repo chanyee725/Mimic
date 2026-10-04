@@ -1,5 +1,7 @@
 """Test helpers that write real files into the per-test data folder (no capture session needed)."""
 
+import time
+from fractions import Fraction
 from pathlib import Path
 
 import yaml
@@ -111,6 +113,22 @@ class FakeArm:
         self.closed = True
 
 
+def jpeg(width: int = 64, height: int = 48, shade: int = 128) -> bytes:
+    """A real (tiny, flat grey) JPEG frame."""
+    import av
+    import numpy as np
+
+    enc = av.CodecContext.create("mjpeg", "w")
+    enc.width, enc.height, enc.pix_fmt = width, height, "yuvj420p"
+    enc.time_base = Fraction(1, 30)
+    rgb = np.full((height, width, 3), shade, np.uint8)
+    frame = av.VideoFrame.from_ndarray(rgb, format="rgb24").reformat(format="yuvj420p")
+    return bytes(enc.encode(frame)[0])
+
+
+JPEG = jpeg()
+
+
 class FakeDriver:
     """Stands in for LeRobot: every motor answers, cameras deliver `camera_fps`."""
 
@@ -124,6 +142,8 @@ class FakeDriver:
         self.arm = FakeArm()
         self.opened_cameras: list[str] = []
         self.released_cameras = 0
+        self.frame_count: int | None = 3
+        self.frame_period = 0.005
         self.teleop: FakeTeleop | None = None
 
     def unavailable(self):
@@ -143,14 +163,18 @@ class FakeDriver:
     def open_arm(self, hw):
         return self.arm
 
-    def camera_frames(self, port):
+    def camera_frames(self, port, width, height, fps):
         self.opened_cameras.append(port)
         return self._frames()
 
     def _frames(self):
+        """`frame_count` frames (None: until closed), one every `frame_period` seconds."""
         try:
-            for _ in range(3):
-                yield b"\xff\xd8fake"
+            k = 0
+            while self.frame_count is None or k < self.frame_count:
+                time.sleep(self.frame_period)
+                yield JPEG
+                k += 1
         finally:
             self.released_cameras += 1
 

@@ -13,7 +13,13 @@ from app.models.rigs import Rig
 from app.models.tasks import Outcome, Task
 from app.services import recordings
 from app.services.capture.recording import Session, build_episode
-from app.services.rigs import ensure_teleop, get_device, get_rig, teleop_samples_between
+from app.services.rigs import (
+    ensure_teleop,
+    get_device,
+    get_rig,
+    record_cameras,
+    teleop_samples_between,
+)
 from app.services.tasks import get_task
 from app.utils.time import now, seconds_since, to_iso
 
@@ -24,6 +30,7 @@ _issued: dict[str, int] = {}  # last episode number handed out per task
 
 def reset() -> None:
     global _session, _last_task_id
+    _release(_session)
     _session, _last_task_id = None, None
     _issued.clear()
 
@@ -120,9 +127,26 @@ def _check_devices(task: Task, rig: Rig) -> None:
         raise ApiError(503, "Rig devices are not connected", {"devices": off})
 
 
+# Recorders keep frames from Start (countdown included) plus this margin past the duration
+CAMERA_MARGIN_S = 30
+
+
+def _release(s: Session | None) -> None:
+    if s is None:
+        return
+    for r in s.cameras.values():
+        r.close()
+    s.cameras = {}
+
+
 def _arm(task: Task, rig: Rig, operator: str, episode: int) -> None:
+    """A new episode session; the task's cameras record from now (released by the caller)."""
     global _session
-    _session = Session(task=task, rig=rig, operator=operator, episode=episode, armed_at=now())
+    keep_s = task.countdown_s + task.duration_s + CAMERA_MARGIN_S
+    cams = record_cameras(rig.id, list(task.cameras), keep_s)
+    _session = Session(
+        task=task, rig=rig, operator=operator, episode=episode, armed_at=now(), cameras=cams
+    )
     if task.subtasks:
         _session.marks.append((0, 0.0))
 
@@ -173,6 +197,7 @@ def rerecord() -> CaptureState:
     _require_phase("countdown", "recording", "review")
     s = _session
     assert s is not None
+    _release(s)
     _arm(s.task, s.rig, s.operator, s.episode)
     return _publish()
 
@@ -180,6 +205,7 @@ def rerecord() -> CaptureState:
 def discard() -> CaptureState:
     global _session, _last_task_id
     st = _require_phase("countdown", "recording", "review")
+    _release(_session)
     _session, _last_task_id = None, st.task_id
     return _publish()
 
@@ -194,7 +220,11 @@ def save(outcome: Outcome) -> Recording:
     start = s.recording_at.timestamp()
     t, action, state_ = teleop_samples_between(s.rig.id, start, start + duration)
     samples = (t, action, state_) if t else None
-    rec = recordings.save_episode(*build_episode(s, duration, outcome, samples))
+    videos = {key: r.between(start, start + duration) for key, r in s.cameras.items()}
+    try:
+        rec = recordings.save_episode(*build_episode(s, duration, outcome, samples, videos))
+    finally:
+        _release(s)
     _issued[s.task.id] = s.episode
     _session, _last_task_id = None, s.task.id
     _publish()

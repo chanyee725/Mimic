@@ -46,8 +46,17 @@ def write_mcap(root: Path, rec: Recording, data: bytes) -> None:
     storage.write_file(mcap_path(root, rec), data)
 
 
+def video_path(root: Path, rec: Recording, camera: str) -> Path:
+    """Playback MP4 of one camera, built from the MCAP (a cache: removed with the recording)."""
+    p = mcap_path(root, rec)
+    return p.with_name(f"{p.stem}.{camera}.mp4")
+
+
 def remove(root: Path, rec: Recording) -> None:
-    mcap_path(root, rec).unlink(missing_ok=True)
+    p = mcap_path(root, rec)
+    for video in p.parent.glob(f"{p.stem}.*.mp4"):
+        video.unlink(missing_ok=True)
+    p.unlink(missing_ok=True)
     sidecar_path(root, rec).unlink(missing_ok=True)
 
 

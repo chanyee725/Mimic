@@ -49,6 +49,11 @@ Phase changes are pushed as `capture.state` events. Saving also emits `recording
 - Saving writes the teleoperation samples whose wall time falls in the recording window
   `[recording start, recording start + duration]` (leader action → `/action`, follower state → `/observation/state`,
   times from the recording start). Episode metadata `source` is `teleop`; without samples (no device access) the file
-  holds the mock trajectory and `source` is `mock`. No camera frames yet.
+  holds the mock trajectory and `source` is `mock`.
+- Cameras: Start (and Re-record) opens a recorder for each task camera (`task.cameras` keys → the rig cameras' ports) on the
+  camera hub ([rigs.md](rigs.md)); it keeps every frame from Start. Saving writes the frames in the recording window to
+  `/cam_<key>/image` (JPEG, [recordings.md](recordings.md)); save, Discard and Re-record release the cameras. Without device
+  access no camera is recorded. A camera that fails to open makes Start answer 503.
+- Video checks: `Video <key>` = `frames / duration × videoFps` (ok at ≥ 95%); late frames are listed in `drops`.
 - Checks from the samples: `Action samples` / `State samples` = `n / duration × actionHz` (ok at ≥ 95%), `Timestamp gap`
   = the largest gap between samples or at either end of the window (ok at ≤ 3 sample periods).

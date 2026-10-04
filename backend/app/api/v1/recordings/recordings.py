@@ -60,6 +60,7 @@ def get_samples(
     return service.samples(recording_id, topics, from_s, to_s, hz)
 
 
-@router.get("/{recording_id}/video/{camera}")
+# Sync: the first request builds the MP4 (a few seconds); FileResponse serves Range requests
+@router.get("/{recording_id}/video/{camera}", response_class=FileResponse)
 def get_video(recording_id: str, camera: str):
-    return service.video(recording_id, camera)
+    return FileResponse(service.video(recording_id, camera), media_type="video/mp4")

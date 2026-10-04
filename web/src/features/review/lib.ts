@@ -49,6 +49,9 @@ export function samplesHz(actionHz: number, durationS: number) {
 }
 
 /** `/cam_top/image` → `Top`; any other topic name is returned as is */
+/** Camera key of a "/cam_<key>/image" topic (the video endpoint takes it) */
+export const cameraKey = (topic: string) => topic.match(/^\/cam_([^/]+)/)?.[1] ?? topic
+
 export function cameraLabel(topic: string) {
   const cam = topic.match(/^\/cam_([^/]+)/)?.[1]
   return cam ? cam.charAt(0).toUpperCase() + cam.slice(1) : topic

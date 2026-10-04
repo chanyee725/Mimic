@@ -85,6 +85,6 @@ export function useImportRecording() {
 /** MCAP download (501 until storage exists) */
 export const recordingFileUrl = (id: string) => `${API_BASE}/recordings/${encodeURIComponent(id)}/file`
 
-/** Camera video, mp4 with Range support (501 until storage exists) */
+/** Camera video (H.264 mp4, Range support); the first request builds it from the episode frames */
 export const recordingVideoUrl = (id: string, camera: string) =>
   `${API_BASE}/recordings/${encodeURIComponent(id)}/video/${encodeURIComponent(camera)}`

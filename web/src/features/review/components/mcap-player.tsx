@@ -4,21 +4,22 @@ import { LuPause, LuPlay } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { VideoTile } from "@/components/robot/video-tile"
-import { useRecordingSamples } from "@/api/recordings"
+import { recordingVideoUrl, useRecordingSamples } from "@/api/recordings"
 import { useRig } from "@/api/rigs"
 import type { Recording, SampleTopic } from "@/domain/recording"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { usePlayback } from "../hooks/use-playback"
-import { cameraLabel, samplesHz } from "../lib"
+import { cameraKey, cameraLabel, samplesHz } from "../lib"
 import { Scrubber } from "./scrubber"
+import { SyncedVideo } from "./synced-video"
 import { SpeedToggle } from "./speed-toggle"
 import { StreamList } from "./stream-list"
 
 /**
- * Plays back a saved MCAP episode. Video (501 until storage exists) shows "No signal" and the joint plots
- * replay the series from the samples endpoint.
+ * Plays back a saved MCAP episode: each camera's video (built as mp4 from the episode frames) and the joint
+ * plots follow one playback clock; the joint series come from the samples endpoint.
  * Callers key it by recording id so playback restarts when the file changes.
  */
 export function McapPlayer({ recording, className }: { recording: Recording; className?: string }) {
@@ -58,12 +59,19 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
             resolution="640×480"
             measuredFps={v.rateHz}
             targetFps={v.rateHz}
-            hint="이 녹화에는 아직 영상 프레임이 없습니다."
-          />
+          >
+            <SyncedVideo
+              src={recordingVideoUrl(recording.id, cameraKey(v.name))}
+              playing={playing}
+              speed={speed}
+              time={time}
+              playhead={playhead}
+            />
+          </VideoTile>
         ))}
         {videos.length === 0 && (
           <div className="flex items-center justify-center rounded-lg border bg-stage text-xs text-muted-foreground">
-            이 파일에는 영상 토픽이 없습니다.
+            이 녹화에는 영상 프레임이 없습니다.
           </div>
         )}
       </div>
