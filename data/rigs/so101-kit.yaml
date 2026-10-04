@@ -6,7 +6,7 @@ robot:
   id: follower
   type: so101_follower
   name: SO-101 Follower
-  port: /dev/so101_follower        # set from the Rigs page (written in place)
+  port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14032242-if00        # set from the Rigs page (written in place)
   calibration_id: so101_follower   # LeRobot id: ~/.cache/huggingface/lerobot/calibration/robots/so_follower/<id>.json
   joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
 
