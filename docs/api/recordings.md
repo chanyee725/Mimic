@@ -35,7 +35,7 @@ Recording = {
 | DELETE | `/recordings/{id}` | | `204` (deletes the MCAP and its sidecar) | `deleteRecording()` |
 | GET | `/recordings/{id}/file` | | `application/octet-stream` MCAP download (`404` when the file is gone) | — |
 | GET | `/recordings/{id}/samples?topics=action,state&fromS=0&toS=30&hz=60` | | `{ joints: string[], t: number[], series: { [topic]: number[][] } }` (resampled for plots) | Review JointPlots |
-| GET | `/recordings/{id}/video/{camera}` | | `video/mp4` with Range support (`501` until storage exists; 404 unknown camera) | Review VideoTile |
+| GET | `/recordings/{id}/video/{camera}` | | `video/mp4` (H.264, Range requests → 206) of one camera (`camera` = the key in `/cam_<key>/image`); 404 for an unknown recording or a camera the recording has no `video` topic for; 422 if the MCAP frames cannot be read | Review VideoTile |
 | POST | `/recordings/import` | multipart `file` (.mcap) | `201 Recording` (source external) | — |
 
 Changes are pushed as `recording.created` / `recording.updated` / `recording.deleted`.
@@ -51,7 +51,10 @@ Changes are pushed as `recording.created` / `recording.updated` / `recording.del
   (suffixed `-2`, `-3`… on collision); the file is stored as `imports/<name>` (`<stem>-2.mcap`… when the name is taken).
   Until indexing exists `topics` is empty and `checks` report missing metadata (`Metadata: missing task / rig`,
   `Topics: not indexed yet`, both not ok).
-- Video stays `501` (no camera frames are recorded yet). Capture recordings list no `video` topics, so they return `404`.
+- Video: the first request builds an H.264 MP4 (libx264, yuv420p, faststart, PyAV) from the camera's MCAP frames and
+  caches it next to the episode as `ep_<NNNN>.<key>.mp4`; later requests serve the file. The video runs at the topic's
+  `rateHz` (rounded) for the recording's `durationS`, each output frame showing the last camera frame at or before its time
+  (frames are held or skipped to stay in sync with the joints). A missing cache file is rebuilt.
 
 ## Storage
 
@@ -61,16 +64,21 @@ committed). Each one is an MCAP plus a YAML sidecar next to it — the sidecar i
 ```
 <raw>/<task-id>/ep_<NNNN>.mcap    Capture save
 <raw>/<task-id>/ep_<NNNN>.yaml    Recording fields in snake_case (`file` follows the sidecar location)
+<raw>/<task-id>/ep_<NNNN>.<key>.mp4  playback cache per camera (GET …/video/{camera}), rebuilt when missing
 <raw>/imports/<name>.mcap|.yaml   POST /recordings/import
 ```
 
 - Capture MCAP: JSON channels `/action` and `/observation/state` (`{"position": [deg per joint]}`, channel metadata
   `joints`) at the task's action rate, `/subtask` (`{"name", "start_s", "end_s"}`) at each span start, and one metadata
-  record `episode` (`recording_id`, `task_id`, `rig_id`, `episode`, `operator`, `outcome`). No camera frames yet: `topics`
-  lists exactly the channels in the file and `sizeMB` is the file size. Values are the mock signal (state trails action).
+  record `episode` (`source`, `recording_id`, `task_id`, `rig_id`, `episode`, `operator`, `outcome`). Each recorded camera
+  adds `/cam_<key>/image` (protobuf `foxglove.CompressedImage`: `timestamp`, `frame_id` = key, `format` "jpeg", `data`;
+  channel metadata `camera`), the camera's JPEG frames as captured. `topics` lists exactly the channels in the file (video
+  rows: `kind` "video", `rateHz` = frames / duration, `messages` = frames) and `sizeMB` is the file size. `drops` are the
+  seconds (from the start, 2 decimals) where a camera's next frame came more than 1.5 periods of the task's `videoFps`
+  late.
 - On start, and whenever `rawPath` changes, the backend loads every `<raw>/*/*.yaml`; a broken sidecar is logged and
   skipped. Two sidecars with the same id: the first by path wins. There are no seed recordings.
-- PATCH rewrites the sidecar; DELETE removes the MCAP and the sidecar. Episode numbers count the disk recordings, so a
+- PATCH rewrites the sidecar; DELETE removes the MCAP, the sidecar and the cached MP4s. Episode numbers count the disk recordings, so a
   restart never reuses a number that is still on disk.
 
 ## Changes from the web mocks
