@@ -12,11 +12,11 @@ import { cn } from "@/lib/utils"
 
 import { CameraPreview } from "./camera-preview"
 
-/** Picks a device's port from the scanned ports: a list for serial ports, live previews for cameras */
+/** Picks a device's port from the scanned ports: one list, with a live thumbnail per camera */
 export function PortDialog({ device, open, onOpenChange }: { device: Device; open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={portKind(device) === "video" ? "sm:max-w-3xl" : "sm:max-w-xl"}>
+      <DialogContent className={portKind(device) === "video" ? "sm:max-w-2xl" : "sm:max-w-xl"}>
         {/* Mounted only while open: previews hold their cameras */}
         {open && <PortPicker device={device} onDone={() => onOpenChange(false)} />}
       </DialogContent>
@@ -66,25 +66,6 @@ function PortPicker({ device, onDone }: { device: Device; onDone: () => void }) 
           <ErrorNote error={portsQuery.error} onRetry={() => void portsQuery.refetch()} />
         ) : ports.length === 0 ? (
           <EmptyState>연결된 {kind === "video" ? "카메라" : "시리얼 장치"}가 없습니다. USB 를 연결하고 Rescan 을 누르세요.</EmptyState>
-        ) : kind === "video" ? (
-          <ul className="grid grid-cols-2 gap-3">
-            {ports.map((p) => (
-              <li key={p.path}>
-                <button
-                  type="button"
-                  aria-pressed={selected === p.path}
-                  onClick={() => setPicked(p.path)}
-                  className={cn(
-                    "grid w-full gap-2 rounded-lg border p-2 text-left transition-colors hover:bg-accent/60",
-                    selected === p.path && "border-foreground bg-accent hover:bg-accent",
-                  )}
-                >
-                  <CameraPreview path={p.path} />
-                  <PortText port={p} deviceId={device.id} />
-                </button>
-              </li>
-            ))}
-          </ul>
         ) : (
           <ul className="divide-y rounded-md border">
             {ports.map((p) => (
@@ -95,6 +76,7 @@ function PortPicker({ device, onDone }: { device: Device; onDone: () => void }) 
                   onClick={() => setPicked(p.path)}
                   className={cn(
                     "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/60",
+                    kind === "video" && "py-2",
                     selected === p.path && "bg-accent hover:bg-accent",
                   )}
                 >
@@ -102,6 +84,7 @@ function PortPicker({ device, onDone }: { device: Device; onDone: () => void }) 
                     aria-hidden
                     className={cn("size-3.5 shrink-0 rounded-full border", selected === p.path && "border-4 border-foreground")}
                   />
+                  {kind === "video" && <CameraPreview path={p.path} compact className="w-36 shrink-0" />}
                   <PortText port={p} deviceId={device.id} />
                 </button>
               </li>
