@@ -1,4 +1,4 @@
-# VLA Data Pipeline — web
+# Apprentice — web
 
 SO-101 텔레오퍼레이션 데이터 수집 → 검수 → LeRobot 변환 → 학습 · 평가를 다루는 프론트엔드.
 데이터는 모두 백엔드(`backend/`, FastAPI)에서 React Query 로 받아 온다. 개발할 때는 백엔드를 `:8000` 에 띄우고 `npm run dev` 를 실행한다 (다른 주소면 `VITE_API_TARGET`).

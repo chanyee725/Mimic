@@ -24,7 +24,7 @@ async def lifespan(_: FastAPI):
 def create_app() -> FastAPI:
     p = config.api_prefix
     app = FastAPI(
-        title="VLA Data Pipeline",
+        title="Apprentice",
         version="0.1.0",
         openapi_url=f"{p}/openapi.json",
         docs_url=f"{p}/docs",

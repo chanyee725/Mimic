@@ -15,7 +15,7 @@ import {
   LuSlidersHorizontal,
 } from "react-icons/lu"
 
-export const APP_NAME = "VLA Data Pipeline"
+export const APP_NAME = "Apprentice"
 
 export type NavItem = {
   to: string

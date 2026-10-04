@@ -16,6 +16,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { AppLogo } from "@/components/common/app-logo"
 import { APP_NAME, NAV, type NavItem } from "@/app/nav"
 import { useCaptureState } from "@/api/capture"
 import { useServerEvents } from "@/api/events"
@@ -67,6 +68,7 @@ function AppSidebar() {
           <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<NavLink to="/" />}>
+                <AppLogo className="size-8!" />
                 <div className="grid text-left leading-tight">
                   <span className="truncate font-medium tracking-tight">{APP_NAME}</span>
                   <span className="truncate text-xs text-muted-foreground">

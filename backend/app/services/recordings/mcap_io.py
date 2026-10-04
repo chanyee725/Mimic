@@ -161,7 +161,7 @@ def encode(ep: Episode) -> bytes:
     """The episode as MCAP bytes (messages in log-time order)."""
     buf = io.BytesIO()
     w = Writer(buf)
-    w.start(profile="", library="vla-station")
+    w.start(profile="", library="apprentice-station")
     channels: dict[str, int] = {}
     for name in (ACTION_TOPIC, STATE_TOPIC, SUBTASK_TOPIC):
         if name == SUBTASK_TOPIC and not ep.subtasks:
