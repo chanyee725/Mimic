@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 
 // The backend ends a preview stream after 30 s; reopen it before that (the new stream takes the camera over)
 const REOPEN_MS = 25_000
+// A camera can be busy for a moment (a connection test holds it): retry instead of staying on "No signal"
+const RETRY_MS = 2_000
 
 /** Live MJPEG preview of a video port; the camera is held only while this is mounted */
 export function CameraPreview({ path, compact = false, className }: { path: string; compact?: boolean; className?: string }) {
@@ -16,6 +18,14 @@ export function CameraPreview({ path, compact = false, className }: { path: stri
     const t = setInterval(() => setRound((r) => r + 1), REOPEN_MS)
     return () => clearInterval(t)
   }, [])
+  useEffect(() => {
+    if (!failed) return
+    const t = setTimeout(() => {
+      setFailed(false)
+      setRound((r) => r + 1)
+    }, RETRY_MS)
+    return () => clearTimeout(t)
+  }, [failed])
   // Removing an <img> does not always end its MJPEG request (Firefox): clear src to hang up
   useEffect(() => {
     const el = img.current
@@ -29,7 +39,7 @@ export function CameraPreview({ path, compact = false, className }: { path: stri
         <div className="flex flex-col items-center gap-1 px-4 text-center text-xs text-muted-foreground">
           <LuVideoOff className="size-5" />
           <span className="font-medium text-foreground">No signal</span>
-          {!compact && "카메라를 열 수 없습니다. 다른 곳에서 사용 중인지 확인하세요."}
+          {!compact && "카메라를 여는 중입니다. 계속 안 나오면 다른 곳에서 사용 중인지 확인하세요."}
         </div>
       ) : (
         <img
