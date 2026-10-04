@@ -86,7 +86,9 @@ Arms only; mirrors LeRobot `SOFollower.calibrate()` / `SOLeader.calibrate()` wit
 2. `range` — half-turn homing offsets are written; the operator sweeps every joint except full-turn ones (`wrist_roll`,
    range 0–4095) while the backend records min / max (reads every 20 ms).
 3. `done` — the calibration is written to the motors and saved as LeRobot's calibration file
-   (`$HF_LEROBOT_CALIBRATION`, default `~/.cache/huggingface/lerobot/calibration/{robots|teleoperators}/<class>/<calibration_id>.json`).
+   in the data folder: `data/calibration/{robots|teleoperators}/<class>/<calibration_id>.json` (the backend sets
+   `HF_LEROBOT_CALIBRATION` to `data/calibration` before it imports LeRobot; run LeRobot CLIs with the same variable to
+   share the files).
 
 While a session runs the device reports `calibration: { done: false, note: "Calibrating…" }`. `calibration` is otherwise
 `{ done: true, note: "Calibrated · <file date>" }` when the LeRobot file exists, `{ done: false, note: "Required" }` when it
@@ -98,8 +100,10 @@ does not, and `{ done: true, note: "Not required" }` for cameras.
   then followers (torque on). Motors that hold another calibration get the file's written to them (what pressing ENTER at
   LeRobot's calibrate prompt does), so `connect()` never prompts.
 - A background loop runs at the rig's `action_hz`: each step reads the leader and sends it to its follower; followers are
-  read every 6th step for display. Follower moves are capped at 3 per step (degrees; % for the gripper) through LeRobot's
-  `max_relative_target`, so a far-off leader pose is approached gradually. `hz` is the measured loop rate (per second).
+  read every 6th step for display. For the first 1.5 s the follower goal is eased by time from the follower's pose at
+  connect to the leader's, so a far-off pose is not reached in one jump; after that the leader action is sent as is (like
+  `lerobot-teleoperate`; no `max_relative_target`, which capped moves against the present position and made the
+  follower crawl under load). `hz` is the measured loop rate (per second).
 - The first failing step stops the loop, disconnects and keeps `error` (`running: false`) until Stop or the next Start.
 - Stop disconnects every arm; followers drop torque (LeRobot default), so **support the follower before stopping**.
 - While it runs the rig's arms refuse connection tests, calibration and port changes (409).
@@ -154,4 +158,4 @@ rates:
 - Multi-arm rigs use maps keyed by id instead: `robots: { bi-follower-l: {type, name, port, joints}, bi-follower-r: {…} }` and `devices: { … }`. Either form loads; the backend writes the singular form when there is exactly one. Every robot has the same number of joints, and joint names are unique across robots.
 - Mapping to `Rig`: `slave` / `master` = the robot / device names (one name as is; `X (L)` + `X (R)` → `X ×2`; otherwise joined with ` + `); `robots` / `devices` = their ids; `joints` = the robots' joints in order; camera `id` = `id` or the key, `feature` = `observation.images.<key>`, `resolution` as `640×480`; `targetHz` = `rates.action_hz` / `rates.video_fps`.
 - Devices are the ones declared in the rig files (id, name, port; type robot → `robot`, device → `teleop`, camera → `camera`); the first rig declaring an id wins. Every device starts not connected (see above): streams are derived from the file (`observation.state` / `action` shape `[n_joints]` with `targetHz` = `action_hz`, `images.<key>` shape `HxWx3` at the camera fps, `measuredHz: null`), no stats. Test results stay in memory.
-- Ports picked on the Rigs page are written into the rig file in place (`PUT /devices/{id}/port`): only the scalar after `port:` changes, so comments, key order and inline comments stay. Paths are written plain (quoted when they contain spaces or other YAML-special characters). Calibration files are LeRobot's own (see [Calibration](#calibration)); nothing about calibration is written under `data/`.
+- Ports picked on the Rigs page are written into the rig file in place (`PUT /devices/{id}/port`): only the scalar after `port:` changes, so comments, key order and inline comments stay. Paths are written plain (quoted when they contain spaces or other YAML-special characters). Calibration files are LeRobot's format, kept in `data/calibration/` and committed with the rig files (see [Calibration](#calibration)).
