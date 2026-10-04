@@ -1,6 +1,13 @@
-"""YAML files under config.data_dir (rigs/, settings/, …); atomic writes to any path."""
+"""YAML files of the station; atomic writes to any path.
 
+Relative paths starting with a config area (rigs/, settings/, calibration/) live in the config
+folder (config.config_dir: hand-set station setup, committed); everything else in the data folder
+(config.data_dir: what the web produces — tasks, recordings, datasets, models).
+"""
+
+import logging
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -14,8 +21,24 @@ class StorageError(Exception):
     """A file exists but is not valid YAML."""
 
 
+log = logging.getLogger(__name__)
+
+CONFIG_AREAS = ("rigs", "settings", "calibration")
+
+
 def path(*parts: str) -> Path:
-    return config.data_dir.joinpath(*parts)
+    first = Path(*parts).parts[0] if parts else ""
+    root = config.config_dir if first in CONFIG_AREAS else config.data_dir
+    return root.joinpath(*parts)
+
+
+def adopt_legacy(area: str) -> None:
+    """Move <data>/<area> (where config areas used to live) into the config folder once."""
+    old, new = config.data_dir / area, config.config_dir / area
+    if old.is_dir() and not new.exists():
+        new.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(old, new)
+        log.info("Moved %s to %s", old, new)
 
 
 def dumps(data: Any) -> str:

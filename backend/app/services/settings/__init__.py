@@ -1,4 +1,4 @@
-"""Station settings: data/settings/<part>.yaml; secrets in the repo-root .env (secrets.py)."""
+"""Station settings: config/settings/<part>.yaml; secrets in the repo-root .env (secrets.py)."""
 
 from app.services.settings.settings import (
     delete_secret,

@@ -1,4 +1,4 @@
-"""data/settings/<part>.yaml persistence (secrets: test_settings_secrets.py)."""
+"""config/settings/<part>.yaml persistence (secrets: test_settings_secrets.py)."""
 
 import os
 
