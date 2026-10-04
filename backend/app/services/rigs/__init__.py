@@ -10,6 +10,7 @@ from app.services.rigs.rigs import (
     list_devices,
     list_rigs,
     next_calibration_step,
+    preview_frames,
     require_device,
     require_rig,
     reset,
@@ -19,6 +20,9 @@ from app.services.rigs.rigs import (
     set_device_state,
     set_port,
     start_calibration,
+    start_teleop,
+    stop_teleop,
+    teleop_state,
     test_device,
 )
 
@@ -32,6 +36,7 @@ __all__ = [
     "list_devices",
     "list_rigs",
     "next_calibration_step",
+    "preview_frames",
     "require_device",
     "require_rig",
     "reset",
@@ -41,5 +46,8 @@ __all__ = [
     "set_device_state",
     "set_port",
     "start_calibration",
+    "start_teleop",
+    "stop_teleop",
+    "teleop_state",
     "test_device",
 ]

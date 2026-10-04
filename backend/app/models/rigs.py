@@ -109,3 +109,27 @@ class CalibrationSession(CamelModel):
     motors: list[MotorRange]
     file: str | None  # LeRobot calibration file, once saved
     started_at: str
+
+
+class TeleopJoint(CamelModel):
+    name: str
+    leader: float | None
+    follower: float | None
+
+
+class TeleopPair(CamelModel):
+    robot: str  # follower device id
+    teleop: str  # leader device id
+    joints: list[TeleopJoint]
+
+
+class TeleopState(CamelModel):
+    """Teleoperation test of a rig: every leader drives its follower."""
+
+    rig_id: str
+    running: bool
+    hz: float | None  # measured loop rate
+    target_hz: int
+    error: str | None
+    started_at: str
+    pairs: list[TeleopPair]

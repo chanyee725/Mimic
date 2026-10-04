@@ -1,11 +1,11 @@
 import { useState } from "react"
-import { LuPlugZap, LuSlidersHorizontal } from "react-icons/lu"
+import { LuPlugZap, LuSlidersHorizontal, LuVideo } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { DetailList } from "@/components/common/detail-list"
 import { StatusDot } from "@/components/common/status-dot"
-import { useTestDevice } from "@/api/devices"
+import { usePorts, useTestDevice } from "@/api/devices"
 import type { Device } from "@/domain/device"
 import { isArm } from "@/domain/device"
 import { formatDateTime } from "@/lib/format"
@@ -13,12 +13,19 @@ import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rateClass, rateText, TYPE_LABEL } from "../lib"
 import { CalibrationDialog } from "./calibration-dialog"
-import { PortSelect } from "./port-select"
+import { CameraPreview } from "./camera-preview"
+import { PortDialog } from "./port-dialog"
 
 /** Selected device: port, connection test, calibration and streams */
 export function DeviceDetail({ device }: { device: Device }) {
   const test = useTestDevice()
+  const portsQuery = usePorts()
   const [calibrating, setCalibrating] = useState(false)
+  const [picking, setPicking] = useState(false)
+  // Device id whose live preview is shown (resets when another device is selected)
+  const [previewId, setPreviewId] = useState<string | null>(null)
+  const preview = previewId === device.id
+  const port = portsQuery.data?.find((p) => p.path === device.port || p.device === device.port)
   const testing = test.isPending && test.variables === device.id
   const busy = device.calibration.note === "Calibrating…"
   const info = [
@@ -42,16 +49,46 @@ export function DeviceDetail({ device }: { device: Device }) {
       <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto">
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Port</span>
-          <PortSelect key={device.id} device={device} />
+          <div className="flex items-center justify-between gap-3">
+            <div className="grid min-w-0 gap-0.5 text-[13px]">
+              {port ? (
+                <span className="truncate">
+                  {port.device} · {port.label || "USB device"}
+                </span>
+              ) : (
+                <span className="truncate text-warn">{portsQuery.isPending ? device.port : `${device.port} (not found)`}</span>
+              )}
+              {port && (
+                <span className="truncate text-xs text-muted-foreground" title={port.path}>
+                  {port.path}
+                </span>
+              )}
+            </div>
+            <Button variant="outline" size="sm" disabled={busy || preview} onClick={() => setPicking(true)}>
+              Change…
+            </Button>
+          </div>
         </div>
 
         {/* The test opens the port once (LeRobot); health and stats come from its result */}
         <div className="grid gap-2">
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={testing || busy} onClick={() => test.mutate(device.id)}>
+            <Button variant="outline" size="sm" disabled={testing || busy || preview} onClick={() => test.mutate(device.id)}>
               <LuPlugZap />
               {testing ? "Testing…" : "Test connection"}
             </Button>
+            {device.type === "camera" && (
+              <Button
+                variant="outline"
+                size="sm"
+                aria-pressed={preview}
+                disabled={testing || !port}
+                onClick={() => setPreviewId(preview ? null : device.id)}
+              >
+                <LuVideo />
+                {preview ? "Hide preview" : "Preview"}
+              </Button>
+            )}
             {isArm(device) && (
               <Button variant="outline" size="sm" disabled={testing} onClick={() => setCalibrating(true)}>
                 <LuSlidersHorizontal />
@@ -70,6 +107,13 @@ export function DeviceDetail({ device }: { device: Device }) {
             <span className="text-xs text-muted-foreground">포트를 고른 뒤 Test connection 으로 연결 상태를 확인하세요.</span>
           )}
           {test.isError && test.variables === device.id && <span className="text-[13px] text-bad">{test.error.message}</span>}
+          {/* A camera has one reader: the preview holds it, so testing waits until it is hidden */}
+          {preview && port && (
+            <>
+              <CameraPreview path={port.path} />
+              <span className="text-xs text-muted-foreground">미리보기가 카메라를 사용 중입니다. 테스트하려면 미리보기를 닫으세요.</span>
+            </>
+          )}
         </div>
 
         <DetailList rows={info} />
@@ -88,6 +132,7 @@ export function DeviceDetail({ device }: { device: Device }) {
           </dl>
         </div>
       </div>
+      <PortDialog key={`port-${device.id}`} device={device} open={picking} onOpenChange={setPicking} />
       {isArm(device) && (
         <CalibrationDialog key={device.id} device={device} active={busy} open={calibrating} onOpenChange={setCalibrating} />
       )}

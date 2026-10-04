@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import type { CalibrationSession, Device, Port } from "@/domain/device"
 import { isCalibrating } from "@/domain/device"
 
-import { api } from "./client"
+import { API_BASE, api } from "./client"
 import { qk, queryClient } from "./query"
 
 const deviceKey = (id: string) => [...qk.devices, "detail", id] as const
@@ -26,6 +26,9 @@ export const useDevice = (id: string | undefined) =>
 /** Serial and video ports found on the station now (scanned on every fetch) */
 export const usePorts = () =>
   useQuery({ queryKey: [...qk.devices, "ports"], queryFn: () => api.get<Port[]>("/devices/ports"), staleTime: 0 })
+
+/** Live MJPEG preview of a scanned video port, for an <img src>. One reader per camera: unmount the image to release it */
+export const portPreviewUrl = (path: string) => `${API_BASE}/devices/ports/preview?path=${encodeURIComponent(path)}`
 
 const updated = (device: Device) => {
   queryClient.setQueryData(deviceKey(device.id), device)

@@ -1,15 +1,8 @@
-"""Serial / video ports found on the station, and the port each device uses here.
-
-Rig files hold example ports; the port picked on the Rigs page is station-local and kept in
-data/ports.local.yaml (git-ignored), keyed by device id.
-"""
+"""Serial / video ports found on the station (the Rigs page picks device ports from them)."""
 
 from pathlib import Path
 
-from app.core import storage
 from app.models.rigs import Port
-
-PORTS_FILE = "ports.local.yaml"
 
 # Roots tests can move
 DEV = Path("/dev")
@@ -24,11 +17,14 @@ def _read(p: Path) -> str:
         return ""
 
 
-def _by_id(folder: Path) -> dict[str, Path]:
-    """Kernel node → stable /dev/…/by-id link."""
+def _links(folder: Path) -> dict[str, Path]:
+    """Kernel node → stable link in a /dev/…/by-id or by-path folder (first one by name)."""
     if not folder.is_dir():
         return {}
-    return {str(link.resolve()): link for link in sorted(folder.iterdir())}
+    out: dict[str, Path] = {}
+    for link in sorted(folder.iterdir()):
+        out.setdefault(str(link.resolve()), link)
+    return out
 
 
 def _usb_name(sys_dev: Path) -> str:
@@ -50,14 +46,16 @@ def _video_name(name: str) -> str:
 def scan() -> list[Port]:
     """USB serial ports (ttyACM / ttyUSB), then video capture nodes."""
     out: list[Port] = []
-    links = _by_id(DEV / "serial" / "by-id")
+    # Serial adapters carry a unique serial number: by-id follows the arm to any USB port
+    links = _links(DEV / "serial" / "by-id")
     for node in sorted([*DEV.glob("ttyACM*"), *DEV.glob("ttyUSB*")]):
         link = links.get(str(node.resolve()))
         label = _usb_name(SYS_TTY / node.name) or (link.name if link else "")
         out.append(
             Port(path=str(link or node), device=str(node), kind="serial", label=label, used_by=[])
         )
-    links = _by_id(DEV / "v4l" / "by-id")
+    # Identical cameras often share a serial (one by-id link for both): use the USB port position
+    links = _links(DEV / "v4l" / "by-path")
     for node in sorted(DEV.glob("video*"), key=lambda p: (len(p.name), p.name)):
         sys_dev = SYS_VIDEO / node.name
         # One capture node per camera: metadata nodes have a non-zero index
@@ -73,12 +71,3 @@ def scan() -> list[Port]:
 
 def exists(port: str) -> bool:
     return bool(port) and Path(port).exists()
-
-
-def load_overrides() -> dict[str, str]:
-    doc = storage.read(PORTS_FILE)
-    return {str(k): str(v) for k, v in doc.items()} if isinstance(doc, dict) else {}
-
-
-def save_overrides(ports: dict[str, str]) -> None:
-    storage.write(PORTS_FILE, dict(sorted(ports.items())))

@@ -44,6 +44,10 @@ def test_scan_ports(client, tmp_path, monkeypatch):
         (sys_video / name).mkdir(parents=True)
         (sys_video / name / "index").write_text(index)
         (sys_video / name / "name").write_text("Cam X: Cam X\n")
+    # Video ports use the USB position; the usb- link sorts before its usbv2- twin
+    (dev / "v4l" / "by-path").mkdir(parents=True)
+    for name in ("pci-0-usb-0:2.4:1.0-video-index0", "pci-0-usbv2-0:2.4:1.0-video-index0"):
+        (dev / "v4l" / "by-path" / name).symlink_to(dev / "video0")
     monkeypatch.setattr(ports, "DEV", dev)
     monkeypatch.setattr(ports, "SYS_VIDEO", sys_video)
     monkeypatch.setattr(ports, "SYS_TTY", tmp_path / "tty")
@@ -52,7 +56,12 @@ def test_scan_ports(client, tmp_path, monkeypatch):
     rows = client.get("/devices/ports").json()
     assert [(r["kind"], r["path"], r["device"]) for r in rows] == [
         ("serial", link, str(dev / "ttyACM0")),
-        ("video", str(dev / "video0"), str(dev / "video0")),  # video1 is a metadata node
+        # video1 is a metadata node
+        (
+            "video",
+            str(dev / "v4l" / "by-path" / "pci-0-usb-0:2.4:1.0-video-index0"),
+            str(dev / "video0"),
+        ),
     ]
     assert rows[0]["label"] == "usb-1a86_Serial_ABC-if00" and rows[1]["label"] == "Cam X"
     assert rows[0]["usedBy"] == []
@@ -60,16 +69,70 @@ def test_scan_ports(client, tmp_path, monkeypatch):
     assert client.get("/devices/ports").json()[0]["usedBy"] == ["leader"]
 
 
-def test_set_port_is_station_local(client):
+def test_set_port_writes_rig_file(client):
+    before = storage.read_text("rigs/so101-kit.yaml")
     r = client.put("/devices/leader/port", json={"port": "/dev/serial/by-id/usb-arm"})
     assert r.status_code == 200 and r.json()["port"] == "/dev/serial/by-id/usb-arm"
-    assert storage.read("ports.local.yaml") == {"leader": "/dev/serial/by-id/usb-arm"}
-    # The rig file keeps its example port; the override survives a reload
-    assert storage.read("rigs/so101-kit.yaml")["device"]["port"] == "/dev/so101_leader"
+    after = storage.read_text("rigs/so101-kit.yaml")
+    # Only the port value changes; comments and layout stay
+    assert after == before.replace("port: /dev/so101_leader", "port: /dev/serial/by-id/usb-arm")
+    assert not storage.exists("ports.local.yaml")
+    client.put("/devices/top/port", json={"port": "/dev/v4l/by-id/cam top"})
+    assert storage.read("rigs/so101-kit.yaml")["cameras"]["top"]["port"] == "/dev/v4l/by-id/cam top"
+    # Bimanual maps keyed by id
+    client.put("/devices/bi-leader-r/port", json={"port": "/dev/ttyACM3"})
+    assert (
+        storage.read("rigs/so101-bimanual-kit.yaml")["devices"]["bi-leader-r"]["port"]
+        == "/dev/ttyACM3"
+    )
     service.reset()
     assert client.get("/devices/leader").json()["port"] == "/dev/serial/by-id/usb-arm"
+    assert client.get("/devices/bi-leader-r").json()["port"] == "/dev/ttyACM3"
     assert client.put("/devices/leader/port", json={"port": "COM3"}).status_code == 400
     assert client.put("/devices/missing/port", json={"port": "/dev/x"}).status_code == 404
+
+
+def test_rig_yaml_is_the_file(client):
+    storage.write_text(
+        "rigs/so101-kit.yaml", "# hand note\n" + storage.read_text("rigs/so101-kit.yaml")
+    )
+    service.reset()
+    assert client.get("/rigs/so101-kit/yaml").text.startswith("# hand note\n")
+
+
+# --- camera preview ---------------------------------------------------------
+
+
+@pytest.fixture
+def video_port(monkeypatch):
+    from app.models.rigs import Port
+
+    port = Port(
+        path="/dev/v4l/by-id/cam", device="/dev/video6", kind="video", label="Cam", used_by=[]
+    )
+    serial = Port(path="/dev/ttyACM0", device="/dev/ttyACM0", kind="serial", label="", used_by=[])
+    monkeypatch.setattr(ports, "scan", lambda: [serial, port])
+    return port
+
+
+def test_preview_streams_jpeg(client, fake, video_port):
+    r = client.get("/devices/ports/preview", params={"path": "/dev/video6"})
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("multipart/x-mixed-replace; boundary=frame")
+    assert r.content.count(b"--frame\r\nContent-Type: image/jpeg") == 3
+    assert fake.opened_cameras == ["/dev/video6"] and fake.released_cameras == 1
+
+
+def test_preview_only_scanned_video_ports(client, fake, video_port):
+    for path in ("/etc/passwd", "/dev/ttyACM0"):
+        r = client.get("/devices/ports/preview", params={"path": path})
+        assert r.status_code == 400
+    assert fake.opened_cameras == []
+
+
+def test_preview_without_driver(client, video_port):
+    r = client.get("/devices/ports/preview", params={"path": "/dev/v4l/by-id/cam"})
+    assert r.status_code == 503
 
 
 # --- connection test --------------------------------------------------------

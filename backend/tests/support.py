@@ -122,6 +122,9 @@ class FakeDriver:
         self.missing: list[str] = []
         self.camera_fps = 30.0
         self.arm = FakeArm()
+        self.opened_cameras: list[str] = []
+        self.released_cameras = 0
+        self.teleop: FakeTeleop | None = None
 
     def unavailable(self):
         return None
@@ -139,3 +142,39 @@ class FakeDriver:
 
     def open_arm(self, hw):
         return self.arm
+
+    def camera_frames(self, port):
+        self.opened_cameras.append(port)
+        return self._frames()
+
+    def _frames(self):
+        try:
+            for _ in range(3):
+                yield b"\xff\xd8fake"
+        finally:
+            self.released_cameras += 1
+
+    def open_teleop(self, pairs):
+        self.teleop = FakeTeleop([(r.id, t.id) for r, t in pairs])
+        return self.teleop
+
+
+class FakeTeleop:
+    """Leader positions follow `pos`; set `fail` to make the next step raise."""
+
+    def __init__(self, pairs: list[tuple[str, str]]):
+        self.pairs = pairs
+        self.joints = [list(JOINTS) for _ in pairs]
+        self.pos = {m: 10.0 for m in JOINTS}
+        self.steps = 0
+        self.fail: str | None = None
+        self.closed = False
+
+    def step(self, read_follower: bool):
+        if self.fail:
+            raise RuntimeError(self.fail)
+        self.steps += 1
+        return [(dict(self.pos), dict(self.pos) if read_follower else None) for _ in self.pairs]
+
+    def close(self) -> None:
+        self.closed = True
