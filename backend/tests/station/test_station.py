@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from app.configs.config import config
+from app.services import station
 from app.services.settings import system
 from app.utils import time
 
@@ -50,8 +51,8 @@ def test_empty_totals(client):
     rows = client.get("/station/totals").json()
     assert [t["key"] for t in rows] == ["episodes", "frames", "hours", "storage", "success"]
     t = totals(client)
-    assert (t["episodes"], t["frames"], t["hours"], t["success"]) == ("0", "0", "0.0 h", "0%")
-    assert t["storage"].endswith(" GB")
+    assert (t["episodes"], t["frames"], t["hours"], t["success"]) == ("0", "0", "0.0 min", "0%")
+    assert t["storage"].endswith(" MB")
 
 
 @pytest.mark.usefixtures("task")
@@ -66,11 +67,24 @@ def test_totals_from_real_recordings(client, record):
     t = totals(client)
     assert t["episodes"] == "3"
     assert t["frames"] == f"{sum(round(r['durationS'] * 30) for r in recs):,}"
-    assert t["hours"] == f"{seconds / 3600:.1f} h"
+    assert t["hours"] == f"{seconds / 60:.1f} min"
     assert t["success"] == "50%"  # 1 success out of 2 reviewed
-    size = system.dir_size(config.data_dir) / system.GB
-    assert t["storage"] == f"{size:.1f} GB"
+    size = system.dir_size(config.data_dir) / system.MB
+    assert t["storage"] == f"{size:.1f} MB"
     assert system.dir_size(config.recordings_dir) > 0
+
+
+def test_totals_units_switch_at_an_hour_and_a_gb(client, monkeypatch):
+    monkeypatch.setattr(system, "dir_size", lambda _path: 1023 * system.MB)
+    assert totals(client)["storage"] == "1023.0 MB"
+    monkeypatch.setattr(system, "dir_size", lambda _path: system.GB - 1)
+    assert totals(client)["storage"] == "1.0 GB"
+    monkeypatch.setattr(system, "dir_size", lambda _path: 3 * system.GB // 2)
+    assert totals(client)["storage"] == "1.5 GB"
+    assert station._duration(90) == "1.5 min"
+    assert station._duration(3594) == "59.9 min"
+    assert station._duration(3599) == "1.0 h"
+    assert station._duration(5400) == "1.5 h"
 
 
 def test_activity_default(client, clock):

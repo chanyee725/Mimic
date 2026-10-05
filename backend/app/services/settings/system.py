@@ -11,6 +11,7 @@ from pathlib import Path
 from app.configs.config import config
 from app.schemas.settings import ConnTestResult, Disk, DiskPart, VersionRow
 
+MB = 1024**2
 GB = 1024**3
 NOT_INSTALLED = "not installed"
 
