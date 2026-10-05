@@ -1,21 +1,24 @@
 import { useEffect, useState } from "react"
 
 import { useCaptureActions, useCaptureState } from "@/api/capture"
-import { captureElapsedS, type CaptureState } from "@/domain/capture"
+import { captureElapsedS, countdownLeftS, type CaptureState } from "@/domain/capture"
 import type { Outcome, Task } from "@/domain/task"
 
 import { STATION_OPERATOR } from "../lib"
 
-/** Re-renders every 100 ms while recording so the elapsed time ticks between server events */
-function useLiveElapsedS(state: CaptureState | undefined, maxS: number) {
-  const recording = state?.phase === "recording"
+/** Re-renders every 100 ms during the countdown and recording so the timers tick between server events */
+function useLiveClock(state: CaptureState | undefined, maxS: number) {
+  const ticking = state?.phase === "countdown" || state?.phase === "recording"
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    if (!recording) return
+    if (!ticking) return
     const id = setInterval(() => setNow(Date.now()), 100)
     return () => clearInterval(id)
-  }, [recording])
-  return state ? Math.min(maxS, captureElapsedS(state, now)) : 0
+  }, [ticking])
+  return {
+    elapsedS: state ? Math.min(maxS, captureElapsedS(state, now)) : 0,
+    countdownLeftS: state ? countdownLeftS(state, now) : null,
+  }
 }
 
 /**
@@ -27,7 +30,7 @@ export function useCapture(task: Task | undefined, { startBlocked = false }: { s
   const actions = useCaptureActions()
   const state = query.data
   const phase = state?.phase ?? "idle"
-  const elapsedS = useLiveElapsedS(state, task?.durationS ?? Infinity)
+  const { elapsedS, countdownLeftS } = useLiveClock(state, task?.durationS ?? Infinity)
 
   // The station advances countdown → recording → review lazily, without events, so ask again from each boundary
   // until the phase changes (startedAt has whole-second precision, so the first ask can be early)
@@ -82,6 +85,8 @@ export function useCapture(task: Task | undefined, { startBlocked = false }: { s
   return {
     phase,
     elapsedS,
+    /** Seconds until recording begins, during the countdown only */
+    countdownLeftS,
     /** Episode number of the current / next recording */
     episode: state?.nextEpisode ?? 1,
     lastOutcome: actions.save.data?.outcome ?? null,
