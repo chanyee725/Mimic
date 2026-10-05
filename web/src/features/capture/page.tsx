@@ -91,7 +91,7 @@ export function CapturePage() {
       {/* Live: 7 : 3 split. Left shows both cameras large with action / observation plots below */}
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
-          {/* Cameras fill the remaining height; plots have a fixed height */}
+          {/* Cameras keep the video's shape; plots take the rest */}
           <CameraGrid
             cameras={cameras}
             // The test opens each camera: start previews after it so they don't fight over the device
@@ -121,7 +121,8 @@ export function CapturePage() {
               stateSource={r.slave}
               data={samples}
               hint="teleop 이 켜지면 leader / follower 관절값이 표시됩니다."
-              className="h-64 shrink-0"
+              // Takes the height the cameras leave
+              className="min-h-64 flex-1"
             />
           ) : (
             <div className="grid h-64 shrink-0 place-items-center rounded-lg border">

@@ -36,6 +36,9 @@ export const shortName = (file: string) =>
 
 // ── Player ───────────────────────────────────────────
 
+/** Recorded camera frames (the tiles take their shape from it) */
+export const VIDEO_RESOLUTION = "640×480"
+
 export const SPEEDS = [0.5, 1, 2] as const
 
 export type Speed = (typeof SPEEDS)[number]
