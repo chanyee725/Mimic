@@ -9,6 +9,7 @@ import { LinkButton } from "@/components/common/link-button"
 import { QueryNote } from "@/components/common/query-state"
 import { SearchInput } from "@/components/common/search-input"
 import type { Dataset } from "@/domain/dataset"
+import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { matches } from "../lib"
@@ -79,7 +80,7 @@ export function SourceList({
                     {d.hub.pushed && <HfBadge />}
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground tabular-nums">
-                    {d.taskId}, {d.fps} fps, {d.episodeCount.toLocaleString()} episodes
+                    {d.taskId}, {d.fps} fps, {plural(d.episodeCount, "episode")}
                   </span>
                 </span>
                 {on && <span className="text-xs text-muted-foreground tabular-nums">#{order + 1}</span>}

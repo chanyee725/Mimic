@@ -3,15 +3,15 @@ import { LuPause, LuPlay } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { JointPlots } from "@/components/robot/joint-plots"
-import { VideoTile } from "@/components/robot/video-tile"
+import { VideoGrid, VideoTile } from "@/components/robot/video-tile"
 import { recordingVideoUrl, useRecordingSamples } from "@/api/recordings"
 import { useRig } from "@/api/rigs"
 import type { Recording, SampleTopic } from "@/domain/recording"
-import { formatClock } from "@/lib/format"
+import { aspectOf, formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { usePlayback } from "../hooks/use-playback"
-import { cameraKey, cameraLabel, samplesHz } from "../lib"
+import { cameraKey, cameraLabel, samplesHz, VIDEO_RESOLUTION } from "../lib"
 import { Scrubber } from "./scrubber"
 import { SyncedVideo } from "./synced-video"
 import { SpeedToggle } from "./speed-toggle"
@@ -50,31 +50,33 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
       className={cn("flex min-h-0 flex-col gap-4 outline-none", className)}
     >
       {/* Uses the same camera tile and joint plot components as Capture */}
-      <div className={cn("grid min-h-48 flex-1 gap-3", videos.length > 1 ? "md:grid-cols-2" : "grid-cols-1")}>
-        {videos.map((v) => (
-          <VideoTile
-            key={v.name}
-            className="aspect-auto h-full min-h-48"
-            label={cameraLabel(v.name)}
-            resolution="640×480"
-            measuredFps={v.rateHz}
-            targetFps={v.rateHz}
-          >
-            <SyncedVideo
-              src={recordingVideoUrl(recording.id, cameraKey(v.name))}
-              playing={playing}
-              speed={speed}
-              time={time}
-              playhead={playhead}
-            />
-          </VideoTile>
-        ))}
-        {videos.length === 0 && (
-          <div className="flex items-center justify-center rounded-lg border bg-stage text-xs text-muted-foreground">
-            이 녹화에는 영상 프레임이 없습니다.
-          </div>
-        )}
-      </div>
+      {videos.length > 0 ? (
+        <VideoGrid count={videos.length} aspect={aspectOf(VIDEO_RESOLUTION)}>
+          {videos.map((v) => (
+            <VideoTile
+              key={v.name}
+              className="aspect-auto"
+              aspect={aspectOf(VIDEO_RESOLUTION)}
+              label={cameraLabel(v.name)}
+              resolution={VIDEO_RESOLUTION}
+              measuredFps={v.rateHz}
+              targetFps={v.rateHz}
+            >
+              <SyncedVideo
+                src={recordingVideoUrl(recording.id, cameraKey(v.name))}
+                playing={playing}
+                speed={speed}
+                time={time}
+                playhead={playhead}
+              />
+            </VideoTile>
+          ))}
+        </VideoGrid>
+      ) : (
+        <div className="flex min-h-48 flex-1 items-center justify-center rounded-lg border bg-stage text-xs text-muted-foreground">
+          이 녹화에는 영상 프레임이 없습니다.
+        </div>
+      )}
 
       {hasJoints ? (
         <JointPlots
@@ -88,7 +90,8 @@ export function McapPlayer({ recording, className }: { recording: Recording; cla
           hint={
             samples.isPending ? "관절 데이터를 불러오는 중입니다." : (samples.error?.message ?? "이 파일에서 관절값을 읽지 못했습니다.")
           }
-          className="h-64 shrink-0"
+          // Takes the height the videos leave
+          className="min-h-64 flex-1"
         />
       ) : (
         <div className="h-48 shrink-0">

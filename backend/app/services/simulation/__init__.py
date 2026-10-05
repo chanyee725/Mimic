@@ -1,6 +1,7 @@
-"""Simulation: scanned environments (envs), evaluation jobs (jobs) and the folder scanner."""
+"""Simulation: scanned environments (envs), evaluation jobs (jobs), the folder scanner and the
+Isaac Sim server (runner)."""
 
-from app.services.simulation import envs, jobs
+from app.services.simulation import envs, jobs, runner
 from app.services.simulation.envs import (
     compat,
     env_compat,
@@ -42,6 +43,7 @@ __all__ = [
     "page_episodes",
     "reset",
     "rescan",
+    "runner",
     "sim_config",
     "stop_job",
 ]

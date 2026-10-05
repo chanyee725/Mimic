@@ -79,6 +79,24 @@ class TeleopLink(Protocol):
     def close(self) -> None: ...
 
 
+class RobotLink(Protocol):
+    """A follower arm connected with torque on, driven by a policy (Evaluate)."""
+
+    joints: list[str]  # motors in action order
+
+    def read(self) -> dict[str, float]:
+        """Present positions (degrees, gripper 0–100) per motor."""
+        ...
+
+    def send(self, action: dict[str, float]) -> None:
+        """Goal positions per motor."""
+        ...
+
+    def close(self) -> None:
+        """Disconnects; torque drops (the arm falls if nobody holds it)."""
+        ...
+
+
 class Driver(Protocol):
     def unavailable(self) -> str | None: ...
     def calibration_file(self, hw: Hardware) -> Path | None: ...
@@ -91,6 +109,7 @@ class Driver(Protocol):
         ...
 
     def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink: ...
+    def open_robot(self, hw: Hardware) -> RobotLink: ...
 
 
 class NoDriver:
@@ -117,6 +136,9 @@ class NoDriver:
         raise ApiError(503, self.reason)
 
     def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink:
+        raise ApiError(503, self.reason)
+
+    def open_robot(self, hw: Hardware) -> RobotLink:
         raise ApiError(503, self.reason)
 
 
@@ -269,6 +291,10 @@ class LeRobotDriver:
         self._require()
         return _LeRobotTeleop(pairs)
 
+    def open_robot(self, hw: Hardware) -> RobotLink:
+        self._require()
+        return _LeRobotRobot(hw)
+
 
 @dataclass
 class _LeRobotArm:
@@ -403,6 +429,29 @@ class _LeRobotTeleop:
                     except Exception:
                         pass
         self.pairs = []
+
+
+class _LeRobotRobot:
+    def __init__(self, hw: Hardware):
+        self.robot = _lerobot_device(hw)
+        if not self.robot.calibration:
+            raise ApiError(409, f"Calibrate '{hw.id}' first")
+        _connect_calibrated(self.robot, hw.port)
+        self.joints = [k.removesuffix(".pos") for k in self.robot.action_features]
+
+    def read(self) -> dict[str, float]:
+        pose = self.robot.bus.sync_read("Present_Position", num_retry=2)
+        return {m: float(v) for m, v in pose.items()}
+
+    def send(self, action: dict[str, float]) -> None:
+        self.robot.send_action({f"{m}.pos": v for m, v in action.items()})
+
+    def close(self) -> None:
+        if self.robot.is_connected:
+            try:
+                self.robot.disconnect()
+            except Exception:
+                pass
 
 
 def _connect_calibrated(device: Any, port: str) -> None:

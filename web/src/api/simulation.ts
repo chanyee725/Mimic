@@ -12,7 +12,9 @@ import type {
   SimJob,
   SimJobCreate,
   SimJobStatus,
+  SimRunner,
 } from "@/domain/simulation"
+import type { IsaacDisplay } from "@/domain/settings"
 
 import { API_BASE, api, type Page } from "./client"
 import { qk, queryClient } from "./query"
@@ -77,3 +79,27 @@ export const useStopSimJob = () => useMutation({ mutationFn: (id: string) => api
 /** Rollout video of one episode (501 until Isaac Sim is connected) */
 export const simEpisodeVideoUrl = (jobId: string, index: number, camera: string) =>
   `${API_BASE}/sim/jobs/${encodeURIComponent(jobId)}/episodes/${index}/video/${encodeURIComponent(camera)}`
+
+// Isaac Sim server
+
+const runnerKey = [...qk.sim, "runner"] as const
+
+/** Server and app state; polled while the app starts so the page follows it */
+export const useSimRunner = () =>
+  useQuery({
+    queryKey: runnerKey,
+    queryFn: () => api.get<SimRunner>("/sim/runner"),
+    refetchInterval: (q) => (q.state.data?.app?.state === "starting" ? 2000 : 10000),
+  })
+
+const onRunner = (r: SimRunner) => queryClient.setQueryData(runnerKey, r)
+
+/** Starts the app (and, in local mode, the server); display defaults to the Connection setting */
+export const useStartSimRunner = () =>
+  useMutation({ mutationFn: (display?: IsaacDisplay) => api.post<SimRunner>("/sim/runner/start", { display }), onSuccess: onRunner })
+
+export const useStopSimRunner = () => useMutation({ mutationFn: () => api.post<SimRunner>("/sim/runner/stop"), onSuccess: onRunner })
+
+/** Sends the environment folder to the server and opens its scene (starts the app when needed); 409 if the env is invalid */
+export const useOpenSimEnv = () =>
+  useMutation({ mutationFn: (envId: string) => api.post<SimRunner>(`/sim/envs/${envId}/open`), onSuccess: onRunner })

@@ -21,10 +21,11 @@ const INVALIDATES: Record<string, readonly (readonly string[])[]> = {
 
 /** Forget cached detail queries of a deleted resource so they don't refetch into a 404 */
 function dropDeleted(roots: readonly (readonly string[])[], data: unknown) {
-  const d = (data ?? {}) as { id?: string; repoId?: string }
-  const id = d.id ?? d.repoId
-  if (!id) return
-  for (const root of roots) queryClient.removeQueries({ queryKey: root, predicate: (q) => q.queryKey.includes(id) })
+  const d = (data ?? {}) as { id?: string; repoId?: string; ids?: string[] }
+  // Bulk deletes send `ids`
+  const ids = new Set(d.ids ?? [d.id ?? d.repoId].filter((x): x is string => !!x))
+  if (!ids.size) return
+  for (const root of roots) queryClient.removeQueries({ queryKey: root, predicate: (q) => q.queryKey.some((k) => ids.has(k as string)) })
 }
 
 const listeners = new Set<(e: ServerEvent) => void>()

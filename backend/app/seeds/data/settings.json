@@ -27,6 +27,14 @@
         "stun": "stun:stun.l.google.com:19302",
         "turn": "",
         "state": "unknown"
+      },
+      "isaac": {
+        "mode": "local",
+        "display": "window",
+        "python": "sim/.venv/bin/python",
+        "port": 8211,
+        "url": "",
+        "state": "unknown"
       }
     },
     "notifications": {

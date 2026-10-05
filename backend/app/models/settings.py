@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field, model_serializer
+from pydantic import Field, model_serializer, model_validator
 
 from app.schemas.common import CamelModel
 
@@ -58,10 +58,33 @@ class WebrtcSettings(CamelModel):
     state: ConnState
 
 
+IsaacMode = Literal["local", "remote"]
+IsaacDisplay = Literal["window", "headless"]
+
+
+class IsaacSettings(CamelModel):
+    """Isaac Sim server: started here (local) or a sim server's URL (remote)."""
+
+    mode: IsaacMode
+    display: IsaacDisplay
+    python: str = Field(min_length=1)  # local: Python with isaacsim, relative to the repo root
+    port: int = Field(ge=1, le=65535)  # local: server port on 127.0.0.1
+    url: str = ""  # remote: http://host:port
+    state: ConnState
+    latency_ms: int | None = None
+
+    @model_validator(mode="after")
+    def _remote_needs_url(self):
+        if self.mode == "remote" and not self.url.strip():
+            raise ValueError("url is required for a remote Isaac Sim server")
+        return self
+
+
 class ConnectionSettings(CamelModel):
     api: Endpoint
     grpc: Endpoint
     webrtc: WebrtcSettings
+    isaac: IsaacSettings
 
 
 class NotificationEvent(CamelModel):

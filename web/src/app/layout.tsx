@@ -24,6 +24,8 @@ import { useStation } from "@/api/station"
 import { useTasks } from "@/api/tasks"
 import { isCapturing } from "@/domain/capture"
 
+import { EventToasts } from "./event-toasts"
+
 // Light sidebar: regular weight and thin icons, only the active item is emphasised
 const NAV_ITEM_CLASS =
   "text-[13px] font-normal text-sidebar-foreground/75 data-active:font-medium data-active:text-sidebar-foreground [&_svg]:size-[15px] [&_svg]:stroke-[1.75]"
@@ -120,6 +122,7 @@ export function AppLayout() {
       <SidebarInset className="min-w-0">
         <Outlet />
       </SidebarInset>
+      <EventToasts />
     </SidebarProvider>
   )
 }

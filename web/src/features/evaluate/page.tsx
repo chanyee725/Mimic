@@ -8,17 +8,21 @@ import { Textarea } from "@/components/ui/textarea"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
 import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
+import { CameraGrid } from "@/components/robot/camera-grid"
 import { JointPlots } from "@/components/robot/joint-plots"
-import { VideoTile } from "@/components/robot/video-tile"
+import { usePorts, useRigDevices } from "@/api/devices"
+import { getEvalSamples } from "@/api/evaluate"
 import { useModels } from "@/api/models"
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
 import { useTrainingConfig } from "@/api/training"
 import type { Model } from "@/domain/model"
+import { useLiveSamples } from "@/hooks/use-live-samples"
 import { formatClock } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 import { ModelField } from "./components/model-field"
-import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+import { ErrorNote, LoadingNote, QueryNote } from "@/components/common/query-state"
 import { RunControls } from "./components/run-controls"
 import { TrialsList } from "./components/trials-list"
 import { useEvalRun } from "./hooks/use-eval-run"
@@ -57,15 +61,23 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
   const [pickerOpen, setPickerOpen] = useState(false)
   const task = useTask(model.taskId).data
   const rig = useRig(task?.rigId).data
+  const devices = useRigDevices(rig?.id)
+  const cameras = (devices.data ?? []).filter((d) => d.type === "camera")
+  const ports = usePorts()
+  const livePorts = new Set((ports.data ?? []).filter((p) => p.kind === "video").flatMap((p) => [p.path, p.device]))
   const policy = useTrainingConfig().data?.policy ?? "SmolVLA"
-  // Instruction and time limit start from the model's task and reset when the model changes
-  const [edited, setEdited] = useState<{ modelId: string; instruction?: string; limitS?: number }>({ modelId: model.id })
+  // The instruction starts from the model's task label and resets when the model changes
+  const [edited, setEdited] = useState<{ modelId: string; instruction?: string }>({ modelId: model.id })
+  // Speed limit in % of the servos' top speed; empty = none (the policy's actions go out as they are)
+  const [speedInput, setSpeedInput] = useState("")
+  const speedPct = speedInput.trim() === "" ? null : Number(speedInput)
+  const speedValid = speedPct === null || (Number.isFinite(speedPct) && speedPct > 0 && speedPct <= 100)
   const own = edited.modelId === model.id ? edited : { modelId: model.id }
   const instruction = own.instruction ?? task?.instruction ?? ""
-  const limitInput = own.limitS ?? task?.durationS ?? 30
-  const edit = (patch: { instruction?: string; limitS?: number }) => setEdited({ ...own, ...patch })
-  const [record, setRecord] = useState(false)
-  const run = useEvalRun({ modelId: model.id, instruction, limitS: limitInput, record })
+  const edit = (patch: { instruction?: string }) => setEdited({ ...own, ...patch })
+  // No time limit: a run goes until Stop. Recording trials is not available yet (the backend refuses record: true)
+  const run = useEvalRun({ modelId: model.id, instruction, speedPct: speedValid ? speedPct : null, valid: speedValid, record: false })
+  const samples = useLiveSamples(run.run?.id, run.phase === "running" || run.phase === "judging", getEvalSamples)
   const idle = run.phase === "idle"
   const running = run.phase === "running"
 
@@ -73,32 +85,29 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
     <Page fit title="Evaluate" description={DESCRIPTION}>
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
-          <div className="grid min-h-48 flex-1 gap-3 md:grid-cols-2">
-            {rig?.cameras.map((c) => (
-              <VideoTile
-                key={c.id}
-                className="aspect-auto h-full min-h-48"
-                label={c.name.replace(/ camera$/, "")}
-                resolution={c.resolution}
-                measuredFps={null}
-                targetFps={c.fps}
-                timecode={running ? formatClock(run.elapsed / 1000) : undefined}
-              />
-            ))}
-            {!rig?.cameras.length && (
-              <div className="grid place-items-center rounded-lg border bg-stage px-4 text-center text-xs text-muted-foreground md:col-span-2">
-                모델의 Task 에 연결된 Rig 카메라가 없습니다.
-              </div>
-            )}
-          </div>
+          {/* Same camera tiles as Capture: live previews of the model's rig cameras */}
+          <CameraGrid
+            cameras={cameras}
+            livePorts={livePorts}
+            empty={
+              devices.isPending || devices.isError ? (
+                <QueryNote query={devices} />
+              ) : (
+                <span className="text-xs text-muted-foreground">모델의 Task 에 연결된 Rig 카메라가 없습니다.</span>
+              )
+            }
+            timecode={running ? formatClock(run.elapsed / 1000) : undefined}
+          />
           {/* Same plots as Capture. Action is the policy output, Observation is the follower joints */}
           <JointPlots
             joints={rig?.joints ?? []}
             hz={task?.actionHz ?? 60}
             actionSource={`${policy} ${model.jobId}`}
             stateSource={rig?.slave}
+            data={samples}
             hint="로봇이 연결되어 실행되면 관절값이 표시됩니다."
-            className="h-64 shrink-0"
+            // Takes the height the cameras leave, as on Capture
+            className="min-h-64 flex-1"
           />
         </div>
 
@@ -121,32 +130,38 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-[13px]">
-            <Label htmlFor="e-limit" className="font-normal">
-              Stop after
+            <Label htmlFor="e-speed" className="grid gap-0.5 font-normal">
+              Speed limit
+              <span className={cn("text-xs", speedValid ? "text-muted-foreground" : "text-bad")}>
+                {speedValid ? "서보 최고 속도 대비 %, 비우면 제한 없음" : "0 초과 100 이하로 넣거나 비우세요."}
+              </span>
             </Label>
             <span className="flex items-center gap-2">
               <Input
-                id="e-limit"
+                id="e-speed"
                 className="h-8 w-16 text-right text-[13px] tabular-nums"
                 inputMode="numeric"
-                value={idle ? limitInput : run.limitS}
+                placeholder="None"
+                value={idle ? speedInput : (run.run?.speedPct ?? "")}
                 disabled={!idle}
-                onChange={(e) => edit({ limitS: Number(e.target.value) || 0 })}
+                aria-invalid={!speedValid}
+                onChange={(e) => setSpeedInput(e.target.value)}
               />
-              <span className="text-xs text-muted-foreground">s</span>
+              <span className="text-xs text-muted-foreground">%</span>
             </span>
-            <Label htmlFor="e-rec" className="font-normal">
+            <Label htmlFor="e-rec" className="grid gap-0.5 font-normal">
               Record trials as MCAP
+              <span className="text-xs text-muted-foreground">아직 준비 중입니다.</span>
             </Label>
-            <Switch id="e-rec" checked={record} onCheckedChange={setRecord} disabled={!idle} />
+            <Switch id="e-rec" checked={false} disabled />
           </div>
 
           <RunControls
             phase={run.phase}
             elapsed={run.elapsed}
-            limitS={run.limitS}
             canStart={run.canStart}
             pending={run.pending}
+            error={run.runError}
             onStart={run.start}
             onStop={run.stop}
             onJudge={run.judge}

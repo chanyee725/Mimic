@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { QueryView } from "@/components/common/query-state"
 import { useEpisodeActivity } from "@/api/station"
 import type { DayCount } from "@/domain/activity"
+import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -16,6 +17,7 @@ const GAP = 3
 const STEP = CELL + GAP
 const LEFT = 26 // weekday label width
 const TOP = 14 // month label height
+const LABEL_WEEKS = 2 // week columns a month label spans
 
 function level(count: number, max: number) {
   if (count === 0) return 0
@@ -50,13 +52,17 @@ function ActivityGrid({ days }: { days: DayCount[] }) {
   const total = days.reduce((a, d) => a + d.count, 0)
   const activeDays = days.filter((d) => d.count > 0).length
 
-  // Month label only on the first week of each month
+  // Month label only on the first week of each month; skip one that would run past the grid or into the previous label
+  let lastLabel = -LABEL_WEEKS
   const monthLabels = weeks.map((w, i) => {
     const first = w.find(Boolean)
     const prev = i > 0 ? weeks[i - 1].find(Boolean) : null
     if (!first) return ""
     const m = Number(first.date.slice(5, 7)) - 1
-    return !prev || Number(prev.date.slice(5, 7)) - 1 !== m ? MONTHS[m] : ""
+    if (prev && Number(prev.date.slice(5, 7)) - 1 === m) return ""
+    if (i > weeks.length - LABEL_WEEKS || i - lastLabel < LABEL_WEEKS) return ""
+    lastLabel = i
+    return MONTHS[m]
   })
 
   const width = LEFT + weeks.length * STEP - GAP
@@ -67,7 +73,8 @@ function ActivityGrid({ days }: { days: DayCount[] }) {
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="text-sm font-semibold">Episodes collected</h2>
         <span className="text-[13px] text-muted-foreground">
-          <span className="font-mono text-foreground">{total.toLocaleString()}</span> episodes · {activeDays} active days
+          <span className="font-mono text-foreground">{total.toLocaleString()}</span> {total === 1 ? "episode" : "episodes"} ·{" "}
+          {plural(activeDays, "active day")}
         </span>
       </div>
 
@@ -75,7 +82,7 @@ function ActivityGrid({ days }: { days: DayCount[] }) {
         viewBox={`0 0 ${width} ${height}`}
         className="block h-auto w-full"
         role="img"
-        aria-label={`${total} episodes over ${days.length} days`}
+        aria-label={`${plural(total, "episode")} over ${plural(days.length, "day")}`}
       >
         {monthLabels.map((m, i) =>
           m ? (
@@ -101,7 +108,7 @@ function ActivityGrid({ days }: { days: DayCount[] }) {
                 rx={2}
                 className={LEVEL_CLASS[level(day.count, max)]}
               >
-                <title>{`${day.date} · ${day.count} episodes`}</title>
+                <title>{`${day.date} · ${plural(day.count, "episode")}`}</title>
               </rect>
             ) : null,
           ),

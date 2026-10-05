@@ -12,7 +12,13 @@ from pathlib import Path
 from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
-from app.models.recordings import Recording, RecordingCheck, RecordingReview, RecordingSource
+from app.models.recordings import (
+    Recording,
+    RecordingCheck,
+    RecordingOrder,
+    RecordingReview,
+    RecordingSource,
+)
 from app.schemas.recordings import Samples
 from app.services.recordings import disk
 from app.services.recordings import mcap_io as recordings_mcap
@@ -79,12 +85,16 @@ def page_recordings(
     source: RecordingSource | None,
     limit: int,
     cursor: str | None,
+    order: RecordingOrder = "newest",
 ) -> Page[Recording]:
     rows = [
         r
         for r in list_recordings(task_id)
         if (review is None or r.review == review) and (source is None or r.source == source)
     ]
+    if order == "episode":
+        # Lowest episode number first; imports (no number) last, oldest first
+        rows.sort(key=lambda r: (r.episode is None, r.episode or 0, r.recorded_at))
     return paginate(rows, limit, cursor)
 
 
@@ -135,6 +145,47 @@ def delete(recording_id: str) -> None:
     disk.remove(_sync(), rec)
     del _recordings[recording_id]
     bus.publish("recording.deleted", {"id": recording_id})
+
+
+def _require_all(ids: list[str]) -> list[Recording]:
+    """Every id must exist; nothing changes otherwise (404 lists the missing ids)."""
+    _sync()
+    missing = [i for i in ids if i not in _recordings]
+    if missing:
+        raise ApiError(404, f"{len(missing)} recording(s) do not exist", {"missing": missing})
+    return [_recordings[i] for i in dict.fromkeys(ids)]
+
+
+def set_review_many(ids: list[str], review: RecordingReview) -> list[Recording]:
+    """Bulk Accept / Reject: one `recording.reviewed` event for the whole set."""
+    out: list[Recording] = []
+    root = _sync()
+    try:
+        for rec in _require_all(ids):
+            rec = rec.model_copy(update={"review": review})
+            disk.write_sidecar(root, rec)
+            _recordings[rec.id] = rec
+            out.append(rec)
+    except OSError as e:
+        raise _write_failed(e) from e
+    finally:
+        if out:
+            bus.publish("recording.reviewed", {"ids": [r.id for r in out], "review": review})
+    return out
+
+
+def delete_many(ids: list[str]) -> None:
+    """Bulk delete: one `recording.deleted` event with every removed id."""
+    root = _sync()
+    done: list[str] = []
+    try:
+        for rec in _require_all(ids):
+            disk.remove(root, rec)
+            del _recordings[rec.id]
+            done.append(rec.id)
+    finally:
+        if done:
+            bus.publish("recording.deleted", {"ids": done})
 
 
 def import_mcap(filename: str, data: bytes) -> Recording:

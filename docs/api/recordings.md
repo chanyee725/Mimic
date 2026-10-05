@@ -29,20 +29,24 @@ Recording = {
 
 | Method | Path | Body | Returns | Web |
 | --- | --- | --- | --- | --- |
-| GET | `/recordings?taskId=&review=&source=&limit=&cursor=` | | `Page<Recording>` newest first | `useRecordings()` |
+| GET | `/recordings?taskId=&review=&source=&order=&limit=&cursor=` | | `Page<Recording>`: `order=newest` (default) newest first, `order=episode` lowest episode number first (imports last) | `useRecordings()` |
 | GET | `/recordings/{id}` | | `Recording` | Review detail |
 | PATCH | `/recordings/{id}` | `{ review }` | `Recording` | `setReview()` (Accept / Reject) |
 | DELETE | `/recordings/{id}` | | `204` (deletes the MCAP and its sidecar) | `deleteRecording()` |
+| POST | `/recordings/bulk-review` | `{ ids, review }` | `{ items: Recording[] }` (duplicates once, in `ids` order) | Review bulk Accept / Reject |
+| POST | `/recordings/bulk-delete` | `{ ids }` | `204` | Review bulk Delete |
 | GET | `/recordings/{id}/file` | | `application/octet-stream` MCAP download (`404` when the file is gone) | — |
 | GET | `/recordings/{id}/samples?topics=action,state&fromS=0&toS=30&hz=60` | | `{ joints: string[], t: number[], series: { [topic]: number[][] } }` (resampled for plots) | Review JointPlots |
 | GET | `/recordings/{id}/video/{camera}` | | `video/mp4` (H.264, Range requests → 206) of one camera (`camera` = the key in `/cam_<key>/image`); 404 for an unknown recording or a camera the recording has no `video` topic for; 422 if the MCAP frames cannot be read | Review VideoTile |
 | POST | `/recordings/import` | multipart `file` (.mcap) | `201 Recording` (source external) | — |
 
-Changes are pushed as `recording.created` / `recording.updated` / `recording.deleted`.
+Changes are pushed as `recording.created` / `recording.updated` / `recording.deleted`; the bulk endpoints push one
+`recording.reviewed` (`{ ids, review }`) or `recording.deleted` (`{ ids }`) for the whole set.
 
 ### Notes
 
-- `limit` 1–500 (default 50). Unknown `review` / `source` values return 422.
+- `limit` 1–500 (default 50). Unknown `review` / `source` / `order` values return 422. Review lists with `order=episode`.
+- Bulk: `ids` holds 1–100,000 ids (422 otherwise). Any unknown id returns 404 with `details.missing` and nothing changes.
 - Samples: `topics` ⊆ `action,state`; `toS` defaults to and is clamped to the duration; `series[topic][joint][sample]`, one
   sample every `1/hz` s from `fromS`. Max 100,000 samples per series, else 422. Read from the MCAP (`/action`,
   `/observation/state`; linear interpolation; joints from the channel metadata) — a file without those channels (e.g. an

@@ -13,8 +13,11 @@ const DOT: Record<Tone, string> = {
 /** Status is always a dot plus text, never a coloured pill. */
 export function StatusDot({ tone, children, className }: { tone: Tone; children?: React.ReactNode; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-sm", className)}>
-      <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", DOT[tone])} />
+    // The dot sits on the first line when the text wraps
+    <span className={cn("inline-flex items-start gap-1.5 text-sm", className)}>
+      <span aria-hidden className="flex h-lh shrink-0 items-center">
+        <span className={cn("size-1.5 rounded-full", DOT[tone])} />
+      </span>
       {children}
     </span>
   )

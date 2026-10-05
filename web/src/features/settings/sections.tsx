@@ -22,7 +22,7 @@ export const SECTIONS: Section[] = [
     id: "connection",
     label: "Connection",
     icon: LuCable,
-    description: "백엔드 API, 로봇 데이터, 카메라 영상 연결입니다.",
+    description: "백엔드 API, 로봇 데이터, 카메라 영상, Isaac Sim 연결입니다.",
     render: () => <ConnectionSection />,
   },
   {

@@ -4,19 +4,19 @@ import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
 import { QueryNote } from "@/components/common/query-state"
 import { LinkButton } from "@/components/common/link-button"
+import { CameraGrid } from "@/components/robot/camera-grid"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { useCaptureState } from "@/api/capture"
 import { usePorts, useRigDevices } from "@/api/devices"
-import { useRig, useTeleopStatus, useTestRig } from "@/api/rigs"
+import { getTeleopSamples, useRig, useTeleopStatus, useTestRig } from "@/api/rigs"
 import { useCurrentTask, useSetCurrentTask } from "@/api/station"
 import { useTasks } from "@/api/tasks"
 import { useHotkeys } from "@/hooks/use-hotkeys"
+import { useLiveSamples } from "@/hooks/use-live-samples"
 import { formatTimecode } from "@/lib/format"
 
-import { CameraGrid } from "./components/camera-grid"
 import { ControlPanel } from "./components/control-panel"
 import { useCapture } from "./hooks/use-capture"
-import { useTeleopSamples } from "./hooks/use-teleop-samples"
 import { offlineDevices, targetReached } from "./lib"
 
 export function CapturePage() {
@@ -51,7 +51,7 @@ export function CapturePage() {
   const ports = usePorts()
   const livePorts = new Set((ports.data ?? []).filter((p) => p.kind === "video").flatMap((p) => [p.path, p.device]))
   const teleop = useTeleopStatus(rig.data?.id)
-  const samples = useTeleopSamples(rig.data?.id, !!teleop.data?.running)
+  const samples = useLiveSamples(rig.data?.id, !!teleop.data?.running, getTeleopSamples)
 
   const selectTask = (id: string) => {
     setPicked(id)
@@ -91,7 +91,7 @@ export function CapturePage() {
       {/* Live: 7 : 3 split. Left shows both cameras large with action / observation plots below */}
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
-          {/* Cameras fill the remaining height; plots have a fixed height */}
+          {/* Cameras keep the video's shape; plots take the rest */}
           <CameraGrid
             cameras={cameras}
             // The test opens each camera: start previews after it so they don't fight over the device
@@ -121,7 +121,8 @@ export function CapturePage() {
               stateSource={r.slave}
               data={samples}
               hint="teleop 이 켜지면 leader / follower 관절값이 표시됩니다."
-              className="h-64 shrink-0"
+              // Takes the height the cameras leave
+              className="min-h-64 flex-1"
             />
           ) : (
             <div className="grid h-64 shrink-0 place-items-center rounded-lg border">

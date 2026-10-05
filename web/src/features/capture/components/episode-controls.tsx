@@ -47,13 +47,13 @@ export function EpisodeControls({
         {recording ? "Stop" : countdown ? "Starting…" : phase === "review" ? "Re-record" : "Start"}
         <Kbd className="ml-auto bg-transparent text-current opacity-60">Space</Kbd>
       </Button>
-      {/* Narrow column, so one button per row */}
-      <div className="grid gap-1.5">
+      {/* Save outcomes on the first row, re-record / discard on the second */}
+      <div className="grid grid-cols-2 gap-1.5">
         <Button variant="outline" className="h-9 justify-between px-3" disabled={!canSave} onClick={() => onSave("success")}>
-          Save as success <Kbd>→</Kbd>
+          Success <Kbd>→</Kbd>
         </Button>
         <Button variant="outline" className="h-9 justify-between px-3" disabled={!canSave} onClick={() => onSave("fail")}>
-          Save as fail <Kbd>F</Kbd>
+          Fail <Kbd>F</Kbd>
         </Button>
         <Button variant="outline" className="h-9 justify-between px-3" disabled={busy || idle} onClick={onRestart}>
           Re-record <Kbd>←</Kbd>

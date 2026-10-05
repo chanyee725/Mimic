@@ -3,6 +3,7 @@ import { SettingsGroup, SettingsSection } from "@/components/common/settings-sec
 
 import { useSettingsDraft } from "../hooks/use-draft"
 import { ConnStatus } from "./conn-status"
+import { IsaacSection } from "./isaac-section"
 import { SectionPending } from "./section-pending"
 import { SaveBar } from "./save-bar"
 import { SettingRow } from "./setting-row"
@@ -10,7 +11,7 @@ import { SettingRow } from "./setting-row"
 export function ConnectionSection() {
   const { query, server, draft, set, saveBar } = useSettingsDraft("connection")
   if (!draft || !server) return <SectionPending query={query} />
-  const { api, grpc, webrtc } = draft
+  const { api, grpc, webrtc, isaac } = draft
 
   return (
     <SettingsGroup className="@container">
@@ -70,6 +71,7 @@ export function ConnectionSection() {
           />
         </SettingRow>
       </SettingsSection>
+      <IsaacSection server={server.isaac} value={isaac} onChange={(v) => set("isaac", v)} />
       <SaveBar {...saveBar} />
     </SettingsGroup>
   )

@@ -14,7 +14,7 @@ export function ConvertPage() {
   return (
     <Page title="Convert" description="Task 를 골라 승인된 MCAP 에피소드를 LeRobot 데이터셋으로 변환합니다.">
       {task ? (
-        <ConvertWorkspace key={task.id} task={task} tasks={tasks.data ?? []} onSelectTask={setPicked} />
+        <ConvertWorkspace key={task.id} task={task} onSelectTask={setPicked} />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <Panel title="Task">

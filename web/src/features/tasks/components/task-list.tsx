@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { ProgressRing } from "@/components/common/progress-ring"
 import { SearchInput } from "@/components/common/search-input"
+import { useCaptureState } from "@/api/capture"
 import { useRigs } from "@/api/rigs"
 import { useSessions } from "@/api/sessions"
-import { useCurrentTask } from "@/api/station"
 import { useCreateTask, useTasks } from "@/api/tasks"
+import { capturingTaskId } from "@/domain/capture"
 import { TASK_RING_TONE } from "@/domain/task"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -25,7 +26,8 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
   const q = query.trim().toLowerCase()
   const tasksQuery = useTasks()
   const sessions = useSessions()
-  const currentTaskId = useCurrentTask().data?.taskId ?? null
+  // REC follows the capture phase, not the task picked in Capture (that stays set after recording ends)
+  const recTaskId = capturingTaskId(useCaptureState().data)
   const rig = useRigs().data?.[0]
   const create = useCreateTask()
 
@@ -78,7 +80,7 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
         )}
         {tasks.map((t) => {
           const selected = t.id === selectedId
-          const current = t.id === currentTaskId
+          const recording = t.id === recTaskId
           const pct = Math.min(100, Math.round((t.collected / t.targetEpisodes) * 100))
           const stats = success.get(t.id) ?? { sessions: 0, success: null }
           return (
@@ -95,7 +97,7 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
                 <div className="grid min-w-0 flex-1 gap-0.5">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <span className={cn("min-w-0 truncate text-[13px]", selected ? "font-medium" : "font-normal")}>{t.id}</span>
-                    {current && (
+                    {recording && (
                       <span className="shrink-0 rounded-sm bg-bad-muted px-1 text-[10px] font-medium tracking-wide text-bad">REC</span>
                     )}
                   </div>

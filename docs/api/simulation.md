@@ -1,10 +1,10 @@
 # Simulation
 
-Isaac Sim runs on the station's local RTX 4090, for **evaluation only**. The user builds environments and registers each one as a
+Isaac Sim 5.1.0 runs on the station or on a remote sim server (see **Isaac Sim server** below), for **evaluation only**. The user builds environments and registers each one as a
 folder under the environments folder (`VLA_SIM_ENVS_DIR` in `.env` or the environment, default `sim/envs` in this repo). A saved model is loaded into
 any compatible environment and rolled out many times. Web: `api/simulation.ts`, Simulation pages.
 
-**The Isaac Sim runner is not connected yet**: environments are scanned for real, but there are no jobs (lists are `[]`,
+**Evaluation is not connected yet**: environments are scanned for real and can be opened in Isaac Sim, but there are no jobs (lists are `[]`,
 job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message": "Isaac Sim runner is not connected" } }`.
 
 ## Environment folder
@@ -108,6 +108,38 @@ Notes:
 - Episode video is `501 not_implemented` until Isaac Sim is connected; unknown job / episode index / camera is 404.
 
 Live: `sim.updated` (status, counts, eta) and `sim.episode` (each finished episode) events; live Isaac Sim view over WebRTC.
+
+## Isaac Sim server
+
+`sim/runner/server.py` (stdlib only) fronts one Isaac Sim app process (`sim/runner/app.py`, run with the Python that has
+`isaacsim` — `cd sim && uv sync` installs 5.1.0 into `sim/.venv`). Settings → Connection → Isaac Sim (`connection.isaac`,
+[settings.md](settings.md)) picks where it runs:
+
+- `local`: the backend starts the server on `127.0.0.1:<port>` with `<python>` the first time it is needed. The server is
+  detached, so it outlives backend reloads and is found again by its port; `POST /sim/runner/stop` stops only the app.
+  Its log and the received environments live in `~/.cache/mimic-sim/`.
+- `remote`: the server runs on a sim server (`sim/.venv/bin/python sim/runner/server.py --host 0.0.0.0 --port 8211`) and the
+  backend calls `url`. Opening an environment sends its folder as tar.gz, so the server needs no copy of `sim/envs`.
+
+`display` (`window` | `headless`) is used when the app starts; starting with the other display restarts the app.
+
+```ts
+SimRunnerApp = { state: "stopped" | "starting" | "running" | "exited"; display: "window" | "headless" | null;
+                 pid: number | null; scene: string | null /* open env id */; error: string | null }
+SimRunner    = { mode: "local" | "remote"; display: "window" | "headless"; url: string; reachable: boolean;
+                 app: SimRunnerApp | null /* null when the server is not reachable */ }
+```
+
+| Method | Path | Body | Returns | Web |
+| --- | --- | --- | --- | --- |
+| GET | `/sim/runner` | | `SimRunner` | Environment detail status |
+| POST | `/sim/runner/start` | `{ display? }` | `SimRunner`; 503 if the local Python is missing or the server is unreachable | — |
+| POST | `/sim/runner/stop` | | `SimRunner` (app stopped) | Stop |
+| POST | `/sim/envs/{id}/open` | `{ display? }` | `SimRunner` (app `starting` until the scene is open); 409 for an invalid env, 503 as above, 502 when the server rejects it | Open in Isaac Sim |
+
+Server API (backend ↔ server, JSON): `GET /health` → `{ version, app: SimRunnerApp }`; `POST /app/start {display}`;
+`POST /app/stop`; `POST /scene?env=<id>&display=` with the tar.gz body. The app answers `GET /state` and `POST /open {path}`
+on a private port only the server uses.
 
 ## Changes from the web mocks
 

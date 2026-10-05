@@ -28,7 +28,7 @@ export function ControlPanel({
   taskError: Error | null
 }) {
   return (
-    <Panel className="gap-5 overflow-y-auto">
+    <Panel className="gap-4 overflow-y-auto">
       <TaskProgress task={task} />
 
       <div className="grid gap-3">
@@ -45,7 +45,14 @@ export function ControlPanel({
 
       <TeleopRow rigId={task.rigId} locked={ep.phase !== "idle"} />
 
-      <RecordingStatus task={task} phase={ep.phase} episode={ep.episode} elapsedS={ep.elapsedS} lastOutcome={ep.lastOutcome} />
+      <RecordingStatus
+        task={task}
+        phase={ep.phase}
+        episode={ep.episode}
+        elapsedS={ep.elapsedS}
+        countdownLeftS={ep.countdownLeftS}
+        lastOutcome={ep.lastOutcome}
+      />
 
       <EpisodeControls
         phase={ep.phase}

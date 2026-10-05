@@ -24,10 +24,11 @@ export function parseDuration(s?: string) {
   return (h * 60 + m) * 60
 }
 
-/** Seconds → "2h 08m" / "58m" (elapsed / remaining time) */
+/** Seconds → "2h 08m" / "58m" / "42s" (elapsed / remaining time; seconds only under a minute) */
 export function formatDuration(sec: number) {
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
+  if (!h && !m) return `${Math.floor(sec)}s`
   return h ? `${h}h ${pad(m)}m` : `${m}m`
 }
 
@@ -62,3 +63,9 @@ export function formatDateTime(iso?: string | null) {
 
 /** ISO timestamp → "2026-10-02" */
 export const formatDate = (iso?: string | null) => formatDateTime(iso).slice(0, 10)
+
+/** `640×480` → 4/3; 4/3 when the resolution is unknown */
+export function aspectOf(resolution: string) {
+  const m = resolution.match(/(\d+)\s*[×x]\s*(\d+)/)
+  return m && +m[2] > 0 ? +m[1] / +m[2] : 4 / 3
+}

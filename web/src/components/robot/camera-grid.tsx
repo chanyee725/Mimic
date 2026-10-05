@@ -1,9 +1,10 @@
 import { CameraPreview } from "@/components/robot/camera-preview"
-import { VideoTile } from "@/components/robot/video-tile"
+import { VideoGrid, VideoTile } from "@/components/robot/video-tile"
 import type { Device } from "@/domain/device"
+import { aspectOf } from "@/lib/format"
 
 /**
- * Two-column camera tiles that fill the remaining height, each with the camera's live preview when its port is found.
+ * Camera tiles (Capture, Evaluate) shaped like the video, each with the camera's live preview when its port is found.
  * `empty` replaces the no-camera note (loading, errors, no task)
  */
 export function CameraGrid({
@@ -18,15 +19,23 @@ export function CameraGrid({
   empty?: React.ReactNode
   timecode?: string
 }) {
+  const resolution = (c: Device) => c.stats.find((s) => s.label === "Resolution")?.value ?? ""
+  if (cameras.length === 0)
+    return (
+      <div className="grid min-h-48 flex-1 place-items-center rounded-lg border bg-stage px-4 text-center">
+        {empty ?? <span className="text-xs text-muted-foreground">이 Rig 에는 카메라가 없습니다.</span>}
+      </div>
+    )
   return (
-    <div className="grid min-h-48 flex-1 gap-3 md:grid-cols-2">
+    <VideoGrid count={cameras.length} aspect={aspectOf(resolution(cameras[0]))}>
       {cameras.map((c) => (
         <VideoTile
-          className="aspect-auto h-full min-h-48"
+          className="aspect-auto"
+          aspect={aspectOf(resolution(c))}
           timecode={timecode}
           key={c.id}
           label={c.name.replace(/ camera$/, "")}
-          resolution={c.stats.find((s) => s.label === "Resolution")?.value ?? ""}
+          resolution={resolution(c)}
           measuredFps={c.streams[0]?.measuredHz ?? null}
           targetFps={c.streams[0]?.targetHz ?? null}
         >
@@ -35,11 +44,6 @@ export function CameraGrid({
           ) : undefined}
         </VideoTile>
       ))}
-      {cameras.length === 0 && (
-        <div className="grid place-items-center rounded-lg border bg-stage px-4 text-center md:col-span-2">
-          {empty ?? <span className="text-xs text-muted-foreground">이 Rig 에는 카메라가 없습니다.</span>}
-        </div>
-      )}
-    </div>
+    </VideoGrid>
   )
 }

@@ -192,6 +192,30 @@ class FakeDriver:
         self.teleop = FakeTeleop([(r.id, t.id) for r, t in pairs])
         return self.teleop
 
+    def open_robot(self, hw):
+        self.robot = FakeRobot()
+        return self.robot
+
+
+class FakeRobot:
+    """A follower that moves straight to every goal it is sent."""
+
+    def __init__(self):
+        self.joints = list(JOINTS)
+        self.pos = {m: 0.0 for m in JOINTS}
+        self.sent: list[dict[str, float]] = []
+        self.closed = False
+
+    def read(self):
+        return dict(self.pos)
+
+    def send(self, action):
+        self.sent.append(dict(action))
+        self.pos.update(action)
+
+    def close(self):
+        self.closed = True
+
 
 FOLLOWER_LAG = 0.5
 

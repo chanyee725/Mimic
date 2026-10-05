@@ -13,7 +13,7 @@ import { useDataset, useDatasetEpisodes, useDeleteDataset, usePushDataset } from
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
 import { MIXED_TASK, type Dataset } from "@/domain/dataset"
-import { formatDateTime, formatLength } from "@/lib/format"
+import { formatDateTime, formatLength, formatSize, plural } from "@/lib/format"
 
 import { STATUS } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
@@ -53,7 +53,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <Panel className="min-h-0 gap-4">
+    <Panel className="@container min-h-0 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-64 flex-1 basis-0 items-center gap-4">
           <DatasetThumb dataset={dataset} className="w-32" />
@@ -153,12 +153,12 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
               icon: LuFilm,
             },
             { label: "Length", value: complete ? formatLength(lengthS) : "—", icon: LuClock },
-            { label: "Size", value: `${dataset.sizeGB} GB`, icon: LuHardDrive },
+            { label: "Size", value: formatSize(dataset.sizeGB * 1024), icon: LuHardDrive },
           ]}
         />
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="flex min-h-0 flex-col gap-2">
           <h3 className="text-sm font-semibold">{dataset.kind === "mcap" ? "Topics" : "Features"}</h3>
           <div className="min-h-0 overflow-auto rounded-md border">
@@ -201,7 +201,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
                   <span className="text-muted-foreground tabular-nums">#{e.index}</span>
                   <span className="truncate">{e.source.split("/").pop()}</span>
                   <span className="text-xs text-muted-foreground tabular-nums">{e.lengthS.toFixed(1)} s</span>
-                  <span className="w-20 text-right text-xs text-muted-foreground tabular-nums">{e.frames} frames</span>
+                  <span className="w-20 text-right text-xs text-muted-foreground tabular-nums">{plural(e.frames, "frame")}</span>
                 </li>
               ))}
               {episodes.hasNextPage && (

@@ -9,6 +9,7 @@ from app.services.recordings.recordings import (
     add,
     cameras,
     delete,
+    delete_many,
     file_path,
     get_recording,
     has_camera,
@@ -24,6 +25,7 @@ from app.services.recordings.recordings import (
     samples,
     save_episode,
     set_review,
+    set_review_many,
     video,
 )
 
@@ -37,6 +39,7 @@ __all__ = [
     "add",
     "cameras",
     "delete",
+    "delete_many",
     "file_path",
     "get_recording",
     "has_camera",
@@ -52,5 +55,6 @@ __all__ = [
     "samples",
     "save_episode",
     "set_review",
+    "set_review_many",
     "video",
 ]

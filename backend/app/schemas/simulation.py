@@ -35,3 +35,9 @@ class SimJobCreate(CamelModel):
 class SimEpisodeEvent(CamelModel):
     job_id: str
     episode: SimEpisode
+
+
+class RunnerStart(CamelModel):
+    """Isaac Sim display for this start; the Connection setting when omitted."""
+
+    display: Literal["window", "headless"] | None = None

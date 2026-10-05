@@ -16,7 +16,7 @@ const NO_TASK = "등록된 Task 가 없습니다. Tasks 에서 Task 를 만들�
 export function ReviewPage() {
   const tasks = useTasks()
   const [picked, setPicked] = useState<string | null>(null)
-  const task = tasks.data?.find((t) => t.id === picked) ?? tasks.data?.[0]
+  const task = tasks.data?.find((t) => t.id === picked) ?? null
 
   const importRec = useImportRecording()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -55,11 +55,18 @@ export function ReviewPage() {
       ) : (
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
           <EmptyState className="grid min-h-[28rem] place-items-center rounded-lg bg-stage py-0 text-sm">
-            Capture 에서 녹화하면 여기에 표시됩니다.
+            {tasks.data?.length ? "오른쪽에서 Task 를 고르면 에피소드가 표시됩니다." : "Capture 에서 녹화하면 여기에 표시됩니다."}
           </EmptyState>
-          <Panel>
+          <Panel className="min-h-0 gap-4">
             <QueryNote query={tasks} />
             {tasks.data?.length === 0 && <p className="text-[13px] text-muted-foreground">{NO_TASK}</p>}
+            {!!tasks.data?.length && (
+              // Same spot as ReviewWorkspace's picker so it doesn't move once a task is picked
+              <div className="grid gap-1.5">
+                <span className="text-xs text-muted-foreground">Task</span>
+                <TaskPicker task={null} onSelect={setPicked} />
+              </div>
+            )}
           </Panel>
         </div>
       )}

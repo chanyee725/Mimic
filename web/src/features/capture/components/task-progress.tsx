@@ -6,11 +6,10 @@ export function TaskProgress({ task }: { task: Task }) {
   const collected = task.collected
   const pct = Math.min(100, Math.round((collected / task.targetEpisodes) * 100))
   return (
-    <div className="flex items-center gap-4">
-      <ProgressRing pct={pct} tone={TASK_RING_TONE[task.status]} label="Task progress" className="size-16" />
-      <div className="grid gap-0.5">
-        <span className="text-xs text-muted-foreground">Progress</span>
-        <span className="text-xl font-semibold tabular-nums">
+    <div className="flex items-center gap-3">
+      <ProgressRing pct={pct} tone={TASK_RING_TONE[task.status]} label="Task progress" className="size-12" />
+      <div className="grid">
+        <span className="text-lg font-semibold tabular-nums">
           {collected}
           <span className="text-sm font-normal text-muted-foreground"> / {task.targetEpisodes}</span>
         </span>

@@ -1,4 +1,4 @@
-"""Training: config, request validation, parameters and jobs (none until a trainer is connected).
+"""Training: config, request validation, parameters and jobs (local lerobot-train runs).
 
 Callers use `from app.services import training` and the functions below.
 """
@@ -11,6 +11,7 @@ from app.services.training.jobs import (
     get_config,
     get_job,
     job_command,
+    job_log,
     list_jobs,
     local_gpus,
     metrics,
@@ -30,6 +31,7 @@ __all__ = [
     "get_config",
     "get_job",
     "job_command",
+    "job_log",
     "list_jobs",
     "local_gpus",
     "metrics",

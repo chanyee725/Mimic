@@ -47,6 +47,18 @@ def _fps(rec: Recording, task_fps: dict[str, int]) -> int:
     return rig.target_hz.video if rig else 0
 
 
+def _duration(seconds: float) -> str:
+    """Minutes under an hour, else hours; one decimal."""
+    minutes = round(seconds / 60, 1)
+    return f"{minutes:.1f} min" if minutes < 60 else f"{seconds / 3600:.1f} h"
+
+
+def _size(size: int) -> str:
+    """MB under a GB, else GB (binary units); one decimal."""
+    mb = round(size / system.MB, 1)
+    return f"{mb:.1f} MB" if mb < 1024 else f"{size / system.GB:.1f} GB"
+
+
 def totals() -> list[DataTotal]:
     recs = recordings.list_recordings()
     task_fps = {t.id: t.video_fps for t in list_tasks()}
@@ -55,12 +67,11 @@ def totals() -> list[DataTotal]:
     reviewed = [r for r in recs if r.review != "pending"]
     success = sum(r.outcome == "success" for r in reviewed)
     pct = round(100 * success / len(reviewed)) if reviewed else 0
-    size_gb = system.dir_size(config.data_dir) / system.GB
     return [
         DataTotal(key="episodes", label="Episodes", value=f"{len(recs):,}"),
         DataTotal(key="frames", label="Frames", value=f"{frames:,}"),
-        DataTotal(key="hours", label="Hours", value=f"{seconds / 3600:.1f} h"),
-        DataTotal(key="storage", label="Storage", value=f"{size_gb:.1f} GB"),
+        DataTotal(key="hours", label="Duration", value=_duration(seconds)),
+        DataTotal(key="storage", label="Storage", value=_size(system.dir_size(config.data_dir))),
         DataTotal(key="success", label="Success rate", value=f"{pct}%"),
     ]
 

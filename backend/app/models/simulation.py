@@ -47,6 +47,27 @@ class SimConfig(CamelModel):
     gpu: SimGpu | None  # null when nvidia-smi finds no GPU
 
 
+SimAppState = Literal["stopped", "starting", "running", "exited"]
+
+
+class SimRunnerApp(CamelModel):
+    """The Isaac Sim app process behind the server."""
+
+    state: SimAppState
+    display: Literal["window", "headless"] | None = None
+    pid: int | None = None
+    scene: str | None = None  # id of the open environment
+    error: str | None = None
+
+
+class SimRunner(CamelModel):
+    mode: Literal["local", "remote"]
+    display: Literal["window", "headless"]  # from settings; used when the app starts
+    url: str
+    reachable: bool
+    app: SimRunnerApp | None  # null when the server is not reachable
+
+
 class SimEpisode(CamelModel):
     index: int
     seed: int

@@ -71,6 +71,15 @@ def test_get_and_404(client, recs):
     assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"
 
 
+def test_list_episode_order(client, recs):
+    params = {"taskId": "stack-two-blocks", "order": "episode", "limit": 3}
+    body = client.get("/recordings", params=params).json()
+    assert [i["episode"] for i in body["items"]] == [1, 2, 3] and body["total"] == 7
+    nxt = client.get("/recordings", params={**params, "cursor": body["nextCursor"]}).json()
+    assert [i["episode"] for i in nxt["items"]] == [4, 5, 6]
+    assert client.get("/recordings", params={"order": "x"}).status_code == 422
+
+
 def test_patch_review(client, recs, events):
     r = client.patch("/recordings/stack-two-blocks-4", json={"review": "accepted"})
     assert r.status_code == 200 and r.json()["review"] == "accepted"
@@ -88,6 +97,39 @@ def test_delete(client, recs, events):
     assert msgs[0]["type"] == "recording.deleted"
     assert msgs[0]["data"] == {"id": "stack-two-blocks-1"}
     assert client.delete("/recordings/stack-two-blocks-1").status_code == 404
+
+
+def test_bulk_review(client, recs, events):
+    ids = ["stack-two-blocks-4", "stack-two-blocks-5", "stack-two-blocks-4"]
+    r = client.post("/recordings/bulk-review", json={"ids": ids, "review": "rejected"})
+    assert r.status_code == 200
+    assert [i["id"] for i in r.json()["items"]] == ids[:2]
+    assert all(service.get_recording(i).review == "rejected" for i in ids)
+    msgs = drain(events)
+    assert [m["type"] for m in msgs] == ["recording.reviewed"]
+    assert msgs[0]["data"] == {"ids": ids[:2], "review": "rejected"}
+
+
+def test_bulk_review_unknown_id_changes_nothing(client, recs):
+    body = {"ids": ["stack-two-blocks-4", "nope"], "review": "accepted"}
+    r = client.post("/recordings/bulk-review", json=body)
+    assert r.status_code == 404 and r.json()["error"]["details"] == {"missing": ["nope"]}
+    assert service.get_recording("stack-two-blocks-4").review == "pending"
+    assert (
+        client.post("/recordings/bulk-review", json={"ids": [], "review": "accepted"}).status_code
+        == 422
+    )
+
+
+def test_bulk_delete(client, recs, events):
+    ids = ["stack-two-blocks-1", "stack-two-blocks-2"]
+    assert client.post("/recordings/bulk-delete", json={"ids": ids}).status_code == 204
+    assert all(service.get_recording(i) is None for i in ids)
+    assert not (disk.raw_dir() / "stack-two-blocks" / "ep_0002.mcap").exists()
+    msgs = drain(events)
+    assert [m["type"] for m in msgs] == ["recording.deleted"] and msgs[0]["data"] == {"ids": ids}
+    r = client.post("/recordings/bulk-delete", json={"ids": ["stack-two-blocks-3", "nope"]})
+    assert r.status_code == 404 and service.get_recording("stack-two-blocks-3") is not None
 
 
 def test_samples_resampled_from_file(client, recs):

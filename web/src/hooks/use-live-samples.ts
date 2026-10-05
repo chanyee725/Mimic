@@ -1,19 +1,25 @@
 import { useEffect, useState } from "react"
 
-import { getTeleopSamples } from "@/api/rigs"
 import type { RecordingSamples } from "@/domain/recording"
+import type { TeleopSamples } from "@/domain/teleop"
 
 const POLL_MS = 100
 
 /**
- * Live leader (action) / follower (state) joints of the rig's running teleop, as a rolling window for JointPlots.
- * Polls only new samples (after the last seq) every 100 ms; null while teleop is off.
+ * Live action / follower state joints as a rolling window for JointPlots: Capture's teleop, Evaluate's policy run.
+ * `fetch(after)` returns the samples after a seq (null: no session); `key` names the source and restarts the poll.
+ * Polls only new samples every 100 ms; null while not running.
  */
-export function useTeleopSamples(rigId: string | undefined, running: boolean, windowSec = 5): RecordingSamples | null {
+export function useLiveSamples(
+  key: string | undefined,
+  running: boolean,
+  fetch: (key: string, after: number) => Promise<TeleopSamples | null>,
+  windowSec = 5,
+): RecordingSamples | null {
   const [data, setData] = useState<RecordingSamples | null>(null)
 
   useEffect(() => {
-    if (!rigId || !running) return
+    if (!key || !running) return
     let alive = true
     let timer: ReturnType<typeof setTimeout> | undefined
     let seq = 0
@@ -24,7 +30,7 @@ export function useTeleopSamples(rigId: string | undefined, running: boolean, wi
 
     const tick = async () => {
       try {
-        const r = await getTeleopSamples(rigId, seq)
+        const r = await fetch(key, seq)
         if (!alive || !r) return
         // A lower seq means a new session: start over
         if (r.seq < seq || r.joints.length !== joints.length) {
@@ -57,7 +63,7 @@ export function useTeleopSamples(rigId: string | undefined, running: boolean, wi
       alive = false
       clearTimeout(timer)
     }
-  }, [rigId, running, windowSec])
+  }, [key, running, fetch, windowSec])
 
   return running ? data : null
 }

@@ -7,18 +7,22 @@ import { useHotkeys } from "@/hooks/use-hotkeys"
 import { trialsOf, type RunPhase } from "../lib"
 
 /**
- * Policy run on the robot, driven by the server: start → running (polled; the server moves it to judging at the
- * time limit) → judge. Judged runs of this session make up the trials list.
+ * Policy run on the robot, driven by the server: start → loading → running (polled) → Stop → judge. Judged runs of
+ * this session make up the trials list.
  */
 export function useEvalRun({
   modelId,
   instruction,
-  limitS,
+  speedPct,
+  valid,
   record,
 }: {
   modelId: string
   instruction: string
-  limitS: number
+  /** Speed limit (% of the servos' top speed), null for none */
+  speedPct: number | null
+  /** The run settings are valid (speed limit in range) */
+  valid: boolean
   record: boolean
 }) {
   const runs = useEvalRuns(modelId)
@@ -31,7 +35,7 @@ export function useEvalRun({
   const result = useEvalResult()
   const pending = startRun.isPending || stopRun.isPending || result.isPending
   const phase: RunPhase = !run || run.state === "done" ? "idle" : run.state
-  const canStart = !!instruction.trim() && limitS > 0 && !pending && runs.isSuccess
+  const canStart = !!instruction.trim() && valid && !pending && runs.isSuccess
 
   // Tick the clock between polls: server elapsed + time since it was fetched
   const fetchedAt = run && run === detail.data ? detail.dataUpdatedAt : runs.dataUpdatedAt
@@ -41,14 +45,14 @@ export function useEvalRun({
     const id = setInterval(() => setNow(Date.now()), 100)
     return () => clearInterval(id)
   }, [phase])
-  const elapsedS = !run ? 0 : phase === "running" ? Math.min(run.limitS, run.elapsedS + Math.max(0, now - fetchedAt) / 1000) : run.elapsedS
+  const elapsedS = !run ? 0 : phase === "running" ? run.elapsedS + Math.max(0, now - fetchedAt) / 1000 : run.elapsedS
 
   // Only the last action's error is shown
   const resetErrors = () => [startRun, stopRun, result].forEach((m) => m.reset())
   const start = () => {
     if (!canStart) return
     resetErrors()
-    startRun.mutate({ modelId, instruction: instruction.trim(), limitS, record })
+    startRun.mutate({ modelId, instruction: instruction.trim(), speedPct, record })
   }
   const stop = () => {
     if (!run || pending) return
@@ -64,7 +68,7 @@ export function useEvalRun({
   // Space starts, Esc stops, S / F judges
   useHotkeys((e) => {
     if (phase === "idle" && e.code === "Space" && canStart) start()
-    else if (phase === "running" && (e.code === "Escape" || e.code === "Space")) stop()
+    else if ((phase === "running" || phase === "loading") && (e.code === "Escape" || e.code === "Space")) stop()
     else if (phase === "judging" && e.key.toLowerCase() === "s") judge("success")
     else if (phase === "judging" && e.key.toLowerCase() === "f") judge("fail")
     else return false
@@ -76,8 +80,9 @@ export function useEvalRun({
     run,
     phase,
     elapsed: elapsedS * 1000,
-    limitS: run?.limitS ?? limitS,
     recording: phase === "running" && !!run?.record,
+    /** Why the active run ended early (shown while judging) */
+    runError: run?.error ?? null,
     trials: trialsOf(runs.data ?? []),
     canStart,
     pending,

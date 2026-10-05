@@ -29,8 +29,8 @@ DayCount  = { date: string; count: number }
 - Totals (all recordings, any review state; `0` when nothing is computable):
   - `episodes` = number of recordings (`"1,212"`).
   - `frames` = Σ `durationS × fps`, fps = the recording's task `videoFps`, else its rig's `targetHz.video`, else 0 (`"799,200"`).
-  - `hours` = Σ `durationS` / 3600, one decimal (`"7.4 h"`).
-  - `storage` = size of the whole data folder, one decimal (`"84.3 GB"`, GiB).
+  - `hours` (label `Duration`) = Σ `durationS`, one decimal: minutes under an hour (`"1.2 min"`), else hours (`"7.4 h"`).
+  - `storage` = size of the whole data folder, one decimal: MB under a GB (`"48.3 MB"`, MiB), else GB (`"84.3 GB"`, GiB).
   - `success` = recordings with outcome `success` / reviewed recordings (review `accepted` or `rejected`), rounded; `"0%"`
     when none are reviewed.
 - Activity: recordings per station day (`recordedAt` in the station time zone).

@@ -23,6 +23,15 @@ export type CaptureState = {
 /** An episode is in progress (countdown, recording or awaiting review) */
 export const isCapturing = (s: CaptureState) => s.phase !== "idle"
 
+/** Task whose episode is in progress (the REC badge), null when idle */
+export const capturingTaskId = (s: CaptureState | undefined) => (s && isCapturing(s) ? s.taskId : null)
+
+/** Seconds left in the countdown (startedAt is when recording begins); null outside it */
+export function countdownLeftS(s: CaptureState, now = Date.now()) {
+  if (s.phase !== "countdown" || !s.startedAt) return null
+  return Math.max(0, (Date.parse(s.startedAt) - now) / 1000)
+}
+
 /** Live elapsed seconds: ticks from startedAt while recording, the server value otherwise */
 export function captureElapsedS(s: CaptureState, now = Date.now()) {
   if (s.phase !== "recording" || !s.startedAt) return s.elapsedS

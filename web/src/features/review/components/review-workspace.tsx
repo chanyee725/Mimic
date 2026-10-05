@@ -2,9 +2,10 @@ import { useState } from "react"
 
 import { EmptyState } from "@/components/common/empty-state"
 import { Panel } from "@/components/layout/page-layout"
-import { useDeleteRecording, useRecordings } from "@/api/recordings"
+import { useBulkDelete, useDeleteRecording, useRecordings } from "@/api/recordings"
 
 import type { ReviewFilter } from "../lib"
+import { BulkActions } from "./bulk-actions"
 import { DeleteRecordingDialog } from "./delete-recording-dialog"
 import { EpisodeList } from "./episode-list"
 import { McapPlayer } from "./mcap-player"
@@ -17,13 +18,39 @@ import { ReviewActions } from "./review-actions"
  */
 export function ReviewWorkspace({ taskId, taskPicker }: { taskId: string; taskPicker: React.ReactNode }) {
   const [filter, setFilter] = useState<ReviewFilter>("all")
-  const recordings = useRecordings({ taskId, review: filter === "all" ? undefined : filter })
+  // Checked ids for the bulk actions; cleared when the filter changes
+  const [checked, setChecked] = useState<ReadonlySet<string>>(new Set())
+  const [checkingAll, setCheckingAll] = useState(false)
+  const recordings = useRecordings({ taskId, review: filter === "all" ? undefined : filter, order: "episode" })
   const episodes = recordings.data?.pages.flatMap((p) => p.items) ?? []
   const total = recordings.data?.pages[0]?.total ?? 0
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<"one" | "checked" | null>(null)
   const del = useDeleteRecording()
+  const bulkDel = useBulkDelete()
+
+  const check = (ids: string[], on: boolean) =>
+    setChecked((prev) => {
+      const next = new Set(prev)
+      for (const id of ids)
+        if (on) next.add(id)
+        else next.delete(id)
+      return next
+    })
+  const checkAll = async () => {
+    setCheckingAll(true)
+    try {
+      // Every matching episode must be loaded before its id can be checked
+      let { data, hasNextPage } = recordings
+      while (hasNextPage) ({ data, hasNextPage } = await recordings.fetchNextPage())
+      check(data?.pages.flatMap((p) => p.items.map((r) => r.id)) ?? [], true)
+    } finally {
+      setCheckingAll(false)
+    }
+  }
+  // Rows deleted elsewhere drop out of the selection
+  const checkedIds = episodes.filter((r) => checked.has(r.id)).map((r) => r.id)
 
   // A recording that leaves the filtered list (accepted while viewing Pending) hands over to the first row
   const selected = episodes.find((r) => r.id === selectedId) ?? episodes[0] ?? null
@@ -34,10 +61,17 @@ export function ReviewWorkspace({ taskId, taskPicker }: { taskId: string; taskPi
     del.mutate(id, {
       onSuccess: () => {
         setSelectedId(next[Math.min(idx, next.length - 1)]?.id ?? null)
-        setConfirmDelete(false)
+        setConfirmDelete(null)
       },
     })
   }
+  const removeChecked = () =>
+    bulkDel.mutate(checkedIds, {
+      onSuccess: () => {
+        setChecked(new Set())
+        setConfirmDelete(null)
+      },
+    })
 
   return (
     <>
@@ -71,31 +105,50 @@ export function ReviewWorkspace({ taskId, taskPicker }: { taskId: string; taskPi
             total={total}
             query={recordings}
             filter={filter}
-            onFilterChange={setFilter}
+            onFilterChange={(f) => {
+              setFilter(f)
+              setChecked(new Set())
+            }}
             selectedId={selected?.id ?? null}
             onSelect={setSelectedId}
+            checked={new Set(checkedIds)}
+            onCheck={check}
+            onCheckAll={() => void checkAll()}
+            checkingAll={checkingAll}
             className="min-h-40 flex-1"
           />
 
-          {selected && (
-            <ReviewActions
-              recording={selected}
+          {checkedIds.length > 0 ? (
+            <BulkActions
+              ids={checkedIds}
+              onDone={() => setChecked(new Set())}
               onDelete={() => {
-                del.reset()
-                setConfirmDelete(true)
+                bulkDel.reset()
+                setConfirmDelete("checked")
               }}
             />
+          ) : (
+            selected && (
+              <ReviewActions
+                recording={selected}
+                onDelete={() => {
+                  del.reset()
+                  setConfirmDelete("one")
+                }}
+              />
+            )
           )}
         </Panel>
       </div>
 
       <DeleteRecordingDialog
-        open={confirmDelete}
-        onOpenChange={setConfirmDelete}
+        open={confirmDelete !== null}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
         file={selected?.file}
-        pending={del.isPending}
-        error={del.error}
-        onConfirm={() => selected && remove(selected.id)}
+        count={confirmDelete === "checked" ? checkedIds.length : undefined}
+        pending={del.isPending || bulkDel.isPending}
+        error={confirmDelete === "checked" ? bulkDel.error : del.error}
+        onConfirm={() => (confirmDelete === "checked" ? removeChecked() : selected && remove(selected.id))}
       />
     </>
   )
