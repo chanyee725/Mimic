@@ -8,6 +8,7 @@ reset() finds it again from the pid in job.yaml. One watcher thread reads every 
 import json
 import logging
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -118,6 +119,38 @@ def reset() -> None:
 def is_running(job_id: str) -> bool:
     with _lock:
         return job_id in _runs
+
+
+# Log
+
+
+LOG_READ_BYTES = 512 * 1024  # end of train.log read for the log view
+
+
+def read_log(job_id: str, tail: int) -> tuple[list[str], bool]:
+    """Last `tail` lines of train.log with tqdm's \r redraws collapsed to their last state.
+
+    Returns the lines and whether older output was left out.
+    """
+    p = log_path(job_id)
+    try:
+        size = p.stat().st_size
+        with p.open("rb") as f:
+            f.seek(max(0, size - LOG_READ_BYTES))
+            text = f.read().decode(errors="replace")
+    except OSError:
+        return [], False
+    rows = text.split("\n")
+    if size > LOG_READ_BYTES:
+        rows = rows[1:]  # the first row starts mid-line
+    lines = []
+    for r in rows:
+        last = r.rstrip("\r").rsplit("\r", 1)[-1]
+        # A log record printed right after a tqdm redraw shares its line: split them
+        lines += re.split(r"(?<=\])(?=(?:INFO|WARNING|ERROR) )", last)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    return lines[-tail:], size > LOG_READ_BYTES or len(lines) > tail
 
 
 # Samples

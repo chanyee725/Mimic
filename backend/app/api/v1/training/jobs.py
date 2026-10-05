@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Query
 
 from app.models.training import JobStatus, TrainJob
-from app.schemas.training import CommandOut, JobCreate, Metrics
+from app.schemas.training import CommandOut, JobCreate, JobLog, Metrics
 from app.services import training as service
 
 router = APIRouter()
@@ -41,6 +41,11 @@ def job_metrics(
     max_points: int = Query(2000, alias="maxPoints", ge=1, le=20000),
 ):
     return service.metrics(job_id, from_step, max_points)
+
+
+@router.get("/jobs/{job_id}/log", response_model=JobLog)
+def job_log(job_id: str, tail: int = Query(500, ge=1, le=5000)):
+    return service.job_log(job_id, tail)
 
 
 @router.get("/jobs/{job_id}/command", response_model=CommandOut)
