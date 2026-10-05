@@ -165,12 +165,44 @@
   .font-mono {
     font-variant-numeric: tabular-nums;
   }
+  /* Pointer on everything clickable (Tailwind v4 leaves buttons at the default cursor) */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [role="combobox"]:not([aria-disabled="true"]),
+  summary,
+  label:has(input:not(:disabled), [role="checkbox"], [role="switch"], [role="radio"]),
+  input[type="file"]:not(:disabled),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /*
  * Softer focus for form fields. Kept here (unlayered, so it wins over Tailwind utilities)
  * instead of editing the shadcn files in components/ui.
  */
+/* The shadcn checkbox always draws a check; show a dash when indeterminate (some rows checked) */
+[data-slot="checkbox"][data-indeterminate] {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+[data-slot="checkbox"][data-indeterminate] [data-slot="checkbox-indicator"] svg {
+  display: none;
+}
+[data-slot="checkbox"][data-indeterminate] [data-slot="checkbox-indicator"]::before {
+  content: "";
+  width: 8px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--primary-foreground);
+}
+
 [data-slot="input"]:focus-visible,
 [data-slot="textarea"]:focus-visible,
 [data-slot="select-trigger"]:focus-visible {
