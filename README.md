@@ -41,6 +41,13 @@ Rigs ─▶ Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) 
 ## 시작
 
 ```sh
+# 백엔드 + 웹 한 번에 (Ctrl+C 로 둘 다 종료, --install 은 uv sync · npm install 먼저 실행)
+scripts/dev.sh
+```
+
+따로 띄울 때:
+
+```sh
 # 백엔드 (http://localhost:8000/api/v1/docs) — uv sync 가 LeRobot(+ torch)까지 설치
 cd backend && uv sync && uv run uvicorn app.main:app --reload
 
