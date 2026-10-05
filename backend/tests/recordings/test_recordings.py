@@ -71,6 +71,15 @@ def test_get_and_404(client, recs):
     assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"
 
 
+def test_list_episode_order(client, recs):
+    params = {"taskId": "stack-two-blocks", "order": "episode", "limit": 3}
+    body = client.get("/recordings", params=params).json()
+    assert [i["episode"] for i in body["items"]] == [1, 2, 3] and body["total"] == 7
+    nxt = client.get("/recordings", params={**params, "cursor": body["nextCursor"]}).json()
+    assert [i["episode"] for i in nxt["items"]] == [4, 5, 6]
+    assert client.get("/recordings", params={"order": "x"}).status_code == 422
+
+
 def test_patch_review(client, recs, events):
     r = client.patch("/recordings/stack-two-blocks-4", json={"review": "accepted"})
     assert r.status_code == 200 and r.json()["review"] == "accepted"
