@@ -13,7 +13,33 @@ type Props = {
   children?: React.ReactNode
   /** Hint under "No signal" while no video track is attached */
   hint?: string
+  /** Video width / height: the tile keeps this shape inside its grid cell, so the video has no bands */
+  aspect?: number
   className?: string
+}
+
+/** `640×480` → 4/3; 4/3 when the resolution is unknown */
+export function aspectOf(resolution: string) {
+  const m = resolution.match(/(\d+)\s*[×x]\s*(\d+)/)
+  return m && +m[2] > 0 ? +m[1] / +m[2] : 4 / 3
+}
+
+/**
+ * Row of video tiles (two columns when there are several) as tall as the tiles' aspect needs at the row's width.
+ * In a flex column it shrinks when space runs out, and the tiles then fit their cells (VideoTile `aspect`).
+ */
+export function VideoGrid({ count, aspect, children }: { count: number; aspect: number; children: React.ReactNode }) {
+  const cols = count > 1 ? 2 : 1
+  return (
+    <div className="@container min-h-48 shrink">
+      <div
+        className={cn("grid max-h-full min-h-48 gap-3", cols === 2 && "grid-cols-2")}
+        style={{ height: `calc((100cqw - ${(cols - 1) * 0.75}rem) / ${cols} / ${aspect})` }}
+      >
+        {children}
+      </div>
+    </div>
+  )
 }
 
 /** Video tile: label, timecode and resolution / fps badges over a source, or an honest "No signal" state without one. */
@@ -25,13 +51,16 @@ export function VideoTile({
   timecode,
   children,
   hint = "장치가 연결되면 영상이 표시됩니다.",
+  aspect,
   className,
 }: Props) {
   const low = measuredFps !== null && targetFps !== null && measuredFps < targetFps * 0.98
 
-  return (
+  const tile = (
     <figure
       className={cn("relative m-0 flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-stage", className)}
+      // Largest box of the video's shape that fits the cell (the cell is a size container)
+      style={aspect ? { aspectRatio: aspect, width: `min(100cqw, 100cqh * ${aspect})` } : undefined}
     >
       {children ?? (
         <div className="flex flex-col items-center gap-1 px-4 text-center text-xs text-muted-foreground">
@@ -57,4 +86,6 @@ export function VideoTile({
       </span>
     </figure>
   )
+  if (!aspect) return tile
+  return <div className="flex min-h-0 min-w-0 items-center justify-center [container-type:size]">{tile}</div>
 }
