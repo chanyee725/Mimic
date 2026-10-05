@@ -18,12 +18,6 @@ type Props = {
   className?: string
 }
 
-/** `640×480` → 4/3; 4/3 when the resolution is unknown */
-export function aspectOf(resolution: string) {
-  const m = resolution.match(/(\d+)\s*[×x]\s*(\d+)/)
-  return m && +m[2] > 0 ? +m[1] / +m[2] : 4 / 3
-}
-
 /**
  * Row of video tiles (two columns when there are several) as tall as the tiles' aspect needs at the row's width.
  * In a flex column it shrinks when space runs out, and the tiles then fit their cells (VideoTile `aspect`).

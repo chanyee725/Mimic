@@ -1,6 +1,7 @@
 import { CameraPreview } from "@/components/robot/camera-preview"
-import { aspectOf, VideoGrid, VideoTile } from "@/components/robot/video-tile"
+import { VideoGrid, VideoTile } from "@/components/robot/video-tile"
 import type { Device } from "@/domain/device"
+import { aspectOf } from "@/lib/format"
 
 /**
  * Two-column camera tiles shaped like the video, each with the camera's live preview when its port is found.
