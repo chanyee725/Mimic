@@ -3,11 +3,11 @@ import { LuPause, LuPlay } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { JointPlots } from "@/components/robot/joint-plots"
-import { aspectOf, VideoGrid, VideoTile } from "@/components/robot/video-tile"
+import { VideoGrid, VideoTile } from "@/components/robot/video-tile"
 import { recordingVideoUrl, useRecordingSamples } from "@/api/recordings"
 import { useRig } from "@/api/rigs"
 import type { Recording, SampleTopic } from "@/domain/recording"
-import { formatClock } from "@/lib/format"
+import { aspectOf, formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { usePlayback } from "../hooks/use-playback"

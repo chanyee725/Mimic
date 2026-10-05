@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { LuActivity } from "react-icons/lu"
+
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 import type { RecordingSamples } from "@/domain/recording"
 import { cn } from "@/lib/utils"
@@ -50,6 +52,7 @@ function rangeOf(series: number[][][]) {
  * Each joint gets one plot with action (solid) over observation.state (dashed),
  * a shared time axis, y ticks, a current-time cursor and a latest-value legend.
  * All plots share one rAF loop that reads the playhead directly (no React state per frame).
+ * Clicking a joint name opens it large in a dialog, drawn by the same loop.
  */
 export function JointPlots({
   joints,
@@ -64,6 +67,13 @@ export function JointPlots({
   className,
 }: Props) {
   const canvases = useRef<(HTMLCanvasElement | null)[]>([])
+  // Enlarged joint: the loop reads the canvas ref each frame, so opening the dialog doesn't restart it
+  const [zoomed, setZoomed] = useState<number | null>(null)
+  const zoomCanvas = useRef<HTMLCanvasElement | null>(null)
+  const zoomedRef = useRef<number | null>(null)
+  useEffect(() => {
+    zoomedRef.current = zoomed
+  }, [zoomed])
   const names = data?.joints.length ? data.joints : joints
   const hasData = !!data && data.t.length > 0 && !!(data.series.action || data.series.state)
   const range = useMemo(() => (data ? rangeOf([data.series.action ?? [], data.series.state ?? []]) : { min: -90, max: 90 }), [data])
@@ -88,17 +98,19 @@ export function JointPlots({
     const { min, max } = range
     let raf = 0
 
-    const drawPlot = (canvas: HTMLCanvasElement, i: number, end: number) => {
-      const f = prepareCanvas(canvas, PAD_LEFT)
+    const drawPlot = (canvas: HTMLCanvasElement, i: number, end: number, large = false) => {
+      const f = prepareCanvas(canvas, large ? PAD_LEFT + 8 : PAD_LEFT)
       if (!f) return
       const { ctx, x0, x1, y0, y1 } = f
       const yOf = (v: number) => y0 + ((max - v) / (max - min)) * (y1 - y0)
       const xOf = (j: number) => x0 + (j / (count - 1)) * (x1 - x0)
-      ctx.font = `10px ${font}`
+      ctx.font = `${large ? 12 : 10}px ${font}`
 
+      // The large plot has room for a tick every 30°
+      const yTicks = large ? Array.from({ length: (max - min) / 30 + 1 }, (_, k) => min + k * 30) : [min, 0, max]
       drawYGrid(
         f,
-        [min, 0, max].map((v) => ({ y: yOf(v), label: `${v}°` })),
+        yTicks.map((v) => ({ y: yOf(v), label: `${v}°` })),
         color.grid,
         color.text,
       )
@@ -142,6 +154,8 @@ export function JointPlots({
     const draw = () => {
       const end = playhead ? playhead() : t[t.length - 1]
       canvases.current.forEach((c, i) => c && i < names.length && drawPlot(c, i, end))
+      const z = zoomedRef.current
+      if (z !== null && zoomCanvas.current) drawPlot(zoomCanvas.current, z, end, true)
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
@@ -166,7 +180,16 @@ export function JointPlots({
         <div className="grid min-h-0 flex-1 auto-rows-[minmax(7rem,1fr)] gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
           {names.map((j, i) => (
             <figure key={j} className="m-0 flex min-h-0 flex-col rounded-md border bg-card px-2 pt-1.5 pb-1">
-              <figcaption className="truncate text-[11px] font-medium">{j}</figcaption>
+              <figcaption className="flex min-w-0">
+                <button
+                  type="button"
+                  title="Enlarge"
+                  onClick={() => setZoomed(i)}
+                  className="truncate text-left text-[11px] font-medium underline-offset-2 hover:underline"
+                >
+                  {j}
+                </button>
+              </figcaption>
               <canvas
                 ref={(el) => {
                   canvases.current[i] = el
@@ -184,6 +207,18 @@ export function JointPlots({
           {hint}
         </div>
       )}
+
+      <Dialog open={hasData && zoomed !== null} onOpenChange={(open) => !open && setZoomed(null)}>
+        <DialogContent className="gap-3 sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>{zoomed !== null ? names[zoomed] : ""}</DialogTitle>
+            <DialogDescription>
+              실선은 Action{actionSource ? ` (${actionSource})` : ""}, 점선은 Observation{stateSource ? ` (${stateSource})` : ""} 입니다.
+            </DialogDescription>
+          </DialogHeader>
+          <canvas ref={zoomCanvas} className="h-[60vh] w-full" aria-label={zoomed !== null ? `${names[zoomed]} enlarged` : undefined} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
