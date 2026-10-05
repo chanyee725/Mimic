@@ -10,8 +10,8 @@ import { useTasks } from "@/api/tasks"
 import { TASK_RING_TONE, type Task } from "@/domain/task"
 import { cn } from "@/lib/utils"
 
-/** Shows the selected task; pick another one from a search dialog */
-export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect: (id: string) => void; disabled?: boolean }) {
+/** Shows the selected task (or a placeholder when none is picked); pick another one from a search dialog */
+export function TaskPicker({ task, onSelect, disabled }: { task: Task | null; onSelect: (id: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
@@ -30,7 +30,7 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
     <>
       <div className="flex items-center gap-1.5">
         <div className="flex h-9 min-w-0 flex-1 items-center rounded-md border bg-muted/40 px-3 text-[13px]">
-          <span className="truncate">{task.id}</span>
+          {task ? <span className="truncate">{task.id}</span> : <span className="truncate text-muted-foreground">Select a task</span>}
         </div>
         <Button
           variant="outline"
@@ -65,7 +65,7 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task; onSelect:
           </div>
           <ul className="-mx-2 grid max-h-80 content-start gap-0.5 overflow-y-auto">
             {results.map((t) => {
-              const selected = t.id === task.id
+              const selected = t.id === task?.id
               const pct = t.targetEpisodes ? Math.min(100, Math.round((t.collected / t.targetEpisodes) * 100)) : 0
               return (
                 <li key={t.id}>
