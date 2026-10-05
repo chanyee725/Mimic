@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from app.api.deps import Pagination, TaskIdFilter
 from app.models.recordings import Recording, RecordingReview, RecordingSource
 from app.schemas.common import Page
-from app.schemas.recordings import ReviewPatch, Samples
+from app.schemas.recordings import BulkIds, BulkReview, BulkReviewResult, ReviewPatch, Samples
 from app.services import recordings as service
 
 router = APIRouter()
@@ -25,6 +25,17 @@ def list_recordings(
 @router.post("/import", status_code=201, response_model=Recording)
 async def import_recording(file: UploadFile):
     return service.import_mcap(file.filename or "", await file.read())
+
+
+@router.post("/bulk-review", response_model=BulkReviewResult)
+def bulk_review(body: BulkReview):
+    return BulkReviewResult(items=service.set_review_many(body.ids, body.review))
+
+
+@router.post("/bulk-delete", status_code=204)
+def bulk_delete(body: BulkIds):
+    service.delete_many(body.ids)
+    return Response(status_code=204)
 
 
 @router.get("/{recording_id}", response_model=Recording)
