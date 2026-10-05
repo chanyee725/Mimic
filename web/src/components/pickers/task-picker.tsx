@@ -49,7 +49,7 @@ export function TaskPicker({ task, onSelect, disabled }: { task: Task | null; on
         <DialogContent className="gap-3 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Select task</DialogTitle>
-            <DialogDescription>녹화할 Task 를 검색해서 선택합니다.</DialogDescription>
+            <DialogDescription>Task 를 검색해서 선택합니다.</DialogDescription>
           </DialogHeader>
           <div>
             <SearchInput

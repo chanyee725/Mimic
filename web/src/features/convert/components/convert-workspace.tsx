@@ -2,8 +2,8 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { LuChevronRight } from "react-icons/lu"
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Panel } from "@/components/layout/page-layout"
+import { TaskPicker } from "@/components/pickers/task-picker"
 import { useConvert, useConvertPreview } from "@/api/datasets"
 import { useRecordings } from "@/api/recordings"
 import { useRig } from "@/api/rigs"
@@ -16,7 +16,7 @@ import { OutputPanel } from "./output-panel"
 import { QueryNote } from "@/components/common/query-state"
 
 /** Task, episodes and output for one task. The page keys it by task id, so exclusions and the name reset on change */
-export function ConvertWorkspace({ task, tasks, onSelectTask }: { task: Task; tasks: Task[]; onSelectTask: (id: string) => void }) {
+export function ConvertWorkspace({ task, onSelectTask }: { task: Task; onSelectTask: (id: string) => void }) {
   const accepted = useRecordings({ taskId: task.id, review: "accepted" })
   const pending = useRecordings({ taskId: task.id, review: "pending" })
   const rig = useRig(task.rigId).data
@@ -51,18 +51,7 @@ export function ConvertWorkspace({ task, tasks, onSelectTask }: { task: Task; ta
         {/* ── Left: what to convert (task · episodes) ── */}
         <section className="flex min-h-0 flex-col gap-4">
           <Panel title="Task" className="@container flex-1 gap-4">
-            <Select value={task.id} onValueChange={(v) => v && onSelectTask(v as string)}>
-              <SelectTrigger aria-label="Task" className="h-9 w-full text-[13px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {tasks.map((t) => (
-                  <SelectItem key={t.id} value={t.id} className="text-[13px]">
-                    {t.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <TaskPicker task={task} onSelect={onSelectTask} />
             <dl className="divide-y">
               <div className="grid gap-1 pb-3">
                 <dt className="text-xs text-muted-foreground">Label</dt>
