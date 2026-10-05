@@ -231,6 +231,30 @@ def record_cameras(rig_id: str, keys: list[str], max_s: float) -> dict[str, came
     return out
 
 
+def watch_cameras(rig_id: str) -> dict[str, cameras.Recorder]:
+    """Latest frames of every rig camera (a short recorder each, previews keep running); Evaluate
+    reads `frames[-1]`. {} without device access."""
+    rig = require_rig(rig_id)
+    return record_cameras(rig_id, [c.key for c in rig.cameras], max_s=1.0)
+
+
+def open_robot(rig_id: str) -> tuple[driver.RobotLink, str]:
+    """The rig's follower with torque on, for a policy to drive; returns it and its device id.
+    409 while the rig is teleoperated or calibrating."""
+    rig = require_rig(rig_id)
+    if len(rig.robots) != 1:
+        raise ApiError(400, "Evaluate drives rigs with one follower")
+    robot_id = rig.robots[0]
+    if teleop.running(rig_id):
+        raise conflict("Teleop is running on this rig; stop it first")
+    if calibration.active(robot_id):
+        raise conflict(f"Device '{robot_id}' is calibrating")
+    hw = _hardware[robot_id]
+    if driver.get().unavailable() is None and not ports.exists(hw.port):
+        raise ApiError(503, f"Port not found: {hw.port}")
+    return driver.get().open_robot(hw), robot_id
+
+
 def set_port(device_id: str, port: str) -> Device:
     """Write `port` into the rig file that declares the device (in place); resets its test."""
     require_device(device_id)

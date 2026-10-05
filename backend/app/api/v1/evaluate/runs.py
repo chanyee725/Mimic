@@ -1,8 +1,9 @@
-"""Real-robot evaluation runs: start, stop, judge."""
+"""Real-robot evaluation runs: start, stop, judge, live joint samples."""
 
 from fastapi import APIRouter, Query
 
 from app.models.evaluate import EvalRun
+from app.models.rigs import TeleopSamples
 from app.schemas.evaluate import EvalResult, EvalRunCreate
 from app.services import evaluate as service
 
@@ -32,3 +33,8 @@ def stop_run(run_id: str):
 @router.post("/runs/{run_id}/result", response_model=EvalRun)
 def judge_run(run_id: str, body: EvalResult):
     return service.judge(run_id, body.result)
+
+
+@router.get("/runs/{run_id}/samples", response_model=TeleopSamples)
+def run_samples(run_id: str, after: int = -1):
+    return service.samples(run_id, after)
