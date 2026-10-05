@@ -48,10 +48,10 @@ export const NAV: NavGroup[] = [
   {
     label: "Train & Evaluate",
     items: [
-      { to: "/training", label: "Training", icon: LuCpu },
       { to: "/models", label: "Models", icon: LuBrain },
-      { to: "/simulation", label: "Simulation", icon: LuBox },
+      { to: "/training", label: "Training", icon: LuCpu },
       { to: "/evaluate", label: "Evaluate", icon: LuFlaskConical },
+      { to: "/simulation", label: "Simulation", icon: LuBox },
     ],
   },
   {
