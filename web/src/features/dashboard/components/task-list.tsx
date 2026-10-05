@@ -1,8 +1,10 @@
 import { Panel, PanelLink } from "@/components/layout/page-layout"
 import { QueryView } from "@/components/common/query-state"
+import { useCaptureState } from "@/api/capture"
 import { useSessions } from "@/api/sessions"
 import { useCurrentTask } from "@/api/station"
 import { useTasks } from "@/api/tasks"
+import { capturingTaskId } from "@/domain/capture"
 import type { Session } from "@/domain/session"
 import { plural } from "@/lib/format"
 
@@ -12,12 +14,13 @@ import { TaskRow } from "./task-row"
 export function TaskList() {
   const tasksQuery = useTasks()
   const currentId = useCurrentTask().data?.taskId ?? null
+  const recTaskId = capturingTaskId(useCaptureState().data)
   // One sessions request for all rows, grouped by task
   const sessions = useSessions().data
   const byTask = new Map<string, Session[]>()
   for (const s of sessions ?? []) byTask.set(s.taskId, [...(byTask.get(s.taskId) ?? []), s])
 
-  // Task currently being captured first, the rest by status
+  // Task picked in Capture first, the rest by status
   const tasks = [...(tasksQuery.data ?? [])].sort((a, b) =>
     a.id === currentId ? -1 : b.id === currentId ? 1 : STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
   )
@@ -35,7 +38,7 @@ export function TaskList() {
             // Rows stack from the top and scroll inside the panel when they overflow
             <ul className="-mx-2 flex min-h-0 flex-1 flex-col divide-y overflow-y-auto">
               {shown.map((t) => (
-                <TaskRow key={t.id} task={t} sessions={sessions && (byTask.get(t.id) ?? [])} current={t.id === currentId} />
+                <TaskRow key={t.id} task={t} sessions={sessions && (byTask.get(t.id) ?? [])} recording={t.id === recTaskId} />
               ))}
             </ul>
           )

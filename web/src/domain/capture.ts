@@ -23,6 +23,9 @@ export type CaptureState = {
 /** An episode is in progress (countdown, recording or awaiting review) */
 export const isCapturing = (s: CaptureState) => s.phase !== "idle"
 
+/** Task whose episode is in progress (the REC badge), null when idle */
+export const capturingTaskId = (s: CaptureState | undefined) => (s && isCapturing(s) ? s.taskId : null)
+
 /** Live elapsed seconds: ticks from startedAt while recording, the server value otherwise */
 export function captureElapsedS(s: CaptureState, now = Date.now()) {
   if (s.phase !== "recording" || !s.startedAt) return s.elapsedS
