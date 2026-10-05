@@ -4,7 +4,7 @@ import type { Device } from "@/domain/device"
 import { aspectOf } from "@/lib/format"
 
 /**
- * Two-column camera tiles shaped like the video, each with the camera's live preview when its port is found.
+ * Camera tiles (Capture, Evaluate) shaped like the video, each with the camera's live preview when its port is found.
  * `empty` replaces the no-camera note (loading, errors, no task)
  */
 export function CameraGrid({
