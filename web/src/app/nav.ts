@@ -15,7 +15,7 @@ import {
   LuSlidersHorizontal,
 } from "react-icons/lu"
 
-export const APP_NAME = "Apprentice"
+export const APP_NAME = "Mimic"
 
 export type NavItem = {
   to: string
