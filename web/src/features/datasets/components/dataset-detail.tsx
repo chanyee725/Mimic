@@ -13,7 +13,7 @@ import { useDataset, useDatasetEpisodes, useDeleteDataset, usePushDataset } from
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
 import { MIXED_TASK, type Dataset } from "@/domain/dataset"
-import { formatDateTime, formatLength } from "@/lib/format"
+import { formatDateTime, formatLength, formatSize, plural } from "@/lib/format"
 
 import { STATUS } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
@@ -153,7 +153,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
               icon: LuFilm,
             },
             { label: "Length", value: complete ? formatLength(lengthS) : "—", icon: LuClock },
-            { label: "Size", value: `${dataset.sizeGB} GB`, icon: LuHardDrive },
+            { label: "Size", value: formatSize(dataset.sizeGB * 1024), icon: LuHardDrive },
           ]}
         />
       )}
@@ -201,7 +201,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
                   <span className="text-muted-foreground tabular-nums">#{e.index}</span>
                   <span className="truncate">{e.source.split("/").pop()}</span>
                   <span className="text-xs text-muted-foreground tabular-nums">{e.lengthS.toFixed(1)} s</span>
-                  <span className="w-20 text-right text-xs text-muted-foreground tabular-nums">{e.frames} frames</span>
+                  <span className="w-20 text-right text-xs text-muted-foreground tabular-nums">{plural(e.frames, "frame")}</span>
                 </li>
               ))}
               {episodes.hasNextPage && (

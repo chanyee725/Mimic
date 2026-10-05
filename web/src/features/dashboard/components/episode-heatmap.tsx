@@ -82,7 +82,7 @@ function ActivityGrid({ days }: { days: DayCount[] }) {
         viewBox={`0 0 ${width} ${height}`}
         className="block h-auto w-full"
         role="img"
-        aria-label={`${total} episodes over ${days.length} days`}
+        aria-label={`${plural(total, "episode")} over ${plural(days.length, "day")}`}
       >
         {monthLabels.map((m, i) =>
           m ? (

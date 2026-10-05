@@ -8,7 +8,7 @@ import { ApiError } from "@/api/client"
 import { useModel } from "@/api/models"
 import { useSimConfig, useSimEnv, useSimEpisodes, useSimJob } from "@/api/simulation"
 import { simSuccessRate, type SimEpisode, type SimJob } from "@/domain/simulation"
-import { formatDuration, formatPct } from "@/lib/format"
+import { formatDuration, formatPct, plural } from "@/lib/format"
 
 import { EpisodeTable } from "./components/episode-table"
 import { FailureReasons } from "./components/failure-reasons"
@@ -65,7 +65,12 @@ function SimJobView({ job }: { job: SimJob }) {
 
       <StatStrip
         items={[
-          { label: "Progress", value: `${simPct(done, job.episodes)}%`, sub: `${done} / ${job.episodes} episodes`, icon: LuFootprints },
+          {
+            label: "Progress",
+            value: `${simPct(done, job.episodes)}%`,
+            sub: `${done} / ${plural(job.episodes, "episode")}`,
+            icon: LuFootprints,
+          },
           {
             label: "Success rate",
             value: formatPct(simSuccessRate(job)),

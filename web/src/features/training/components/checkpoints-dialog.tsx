@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { Checkpoint, TrainJob } from "@/domain/training"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, formatSize } from "@/lib/format"
 
 import { useCheckpointActions } from "../hooks/use-checkpoint-actions"
 import { valueAt, type JobRun } from "../lib"
@@ -33,7 +33,7 @@ export function CheckpointsDialog({
     undefined,
   )
   const toggle = (step: number, on: boolean) => setPicked((p) => (on ? [...p, step] : p.filter((s) => s !== step)))
-  const sizeGB = rows.filter((c) => picked.includes(c.step)).reduce((a, c) => a + c.sizeMB / 1024, 0)
+  const sizeMB = rows.filter((c) => picked.includes(c.step)).reduce((a, c) => a + c.sizeMB, 0)
   const busy = !!actions.pending
 
   return (
@@ -86,7 +86,7 @@ export function CheckpointsDialog({
                   </td>
                   <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{formatDateTime(c.savedAt)}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{lossAt(c.step)?.toFixed(3) ?? "—"}</td>
-                  <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">{(c.sizeMB / 1024).toFixed(1)} GB</td>
+                  <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">{formatSize(c.sizeMB)}</td>
                   <td className="px-2 py-1 text-right whitespace-nowrap">
                     <Button
                       variant="ghost"
@@ -116,7 +116,7 @@ export function CheckpointsDialog({
 
         <DialogFooter className="items-center sm:justify-between">
           <span className="text-xs text-muted-foreground tabular-nums">
-            {picked.length ? `${picked.length} selected, ${sizeGB.toFixed(1)} GB` : "Select checkpoints to save"}
+            {picked.length ? `${picked.length} selected, ${formatSize(sizeMB)}` : "Select checkpoints to save"}
           </span>
           <div className="flex gap-2">
             <DialogClose render={<Button variant="ghost" />}>Close</DialogClose>

@@ -4,7 +4,7 @@ import { LuBox, LuDownload } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import type { TrainJob } from "@/domain/training"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, formatSize } from "@/lib/format"
 
 import { useCheckpointActions } from "../hooks/use-checkpoint-actions"
 import type { JobRun } from "../lib"
@@ -43,7 +43,7 @@ export function CheckpointsPanel({ job, run }: { job: TrainJob; run: JobRun }) {
                 <span className="grid min-w-0 flex-1 gap-0.5">
                   <span className="text-[13px] tabular-nums">Step {c.step.toLocaleString()}</span>
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {formatDateTime(c.savedAt)}, {(c.sizeMB / 1024).toFixed(1)} GB
+                    {formatDateTime(c.savedAt)}, {formatSize(c.sizeMB)}
                   </span>
                 </span>
                 <Button
