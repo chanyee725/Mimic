@@ -21,7 +21,7 @@ export function ReviewWorkspace({ taskId, taskPicker }: { taskId: string; taskPi
   // Checked ids for the bulk actions; cleared when the filter changes
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set())
   const [checkingAll, setCheckingAll] = useState(false)
-  const recordings = useRecordings({ taskId, review: filter === "all" ? undefined : filter })
+  const recordings = useRecordings({ taskId, review: filter === "all" ? undefined : filter, order: "episode" })
   const episodes = recordings.data?.pages.flatMap((p) => p.items) ?? []
   const total = recordings.data?.pages[0]?.total ?? 0
 

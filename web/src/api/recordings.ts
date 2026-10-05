@@ -6,11 +6,17 @@ import type { Recording, RecordingReview, RecordingSamples, RecordingSource, Sam
 import { API_BASE, ApiError, api, type Page } from "./client"
 import { qk, queryClient } from "./query"
 
-export type RecordingFilter = { taskId?: string; review?: RecordingReview; source?: RecordingSource }
+export type RecordingFilter = {
+  taskId?: string
+  review?: RecordingReview
+  source?: RecordingSource
+  /** newest first (default), or lowest episode number first */
+  order?: "newest" | "episode"
+}
 
 const PAGE_SIZE = 200
 
-/** Newest first, cursor-paged; flatten `data.pages` for the full list */
+/** Cursor-paged in `filter.order`; flatten `data.pages` for the full list */
 export function useRecordings(filter: RecordingFilter = {}) {
   return useInfiniteQuery({
     queryKey: [...qk.recordings, "list", filter],
