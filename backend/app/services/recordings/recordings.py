@@ -12,7 +12,13 @@ from pathlib import Path
 from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
-from app.models.recordings import Recording, RecordingCheck, RecordingReview, RecordingSource
+from app.models.recordings import (
+    Recording,
+    RecordingCheck,
+    RecordingOrder,
+    RecordingReview,
+    RecordingSource,
+)
 from app.schemas.recordings import Samples
 from app.services.recordings import disk
 from app.services.recordings import mcap_io as recordings_mcap
@@ -79,12 +85,16 @@ def page_recordings(
     source: RecordingSource | None,
     limit: int,
     cursor: str | None,
+    order: RecordingOrder = "newest",
 ) -> Page[Recording]:
     rows = [
         r
         for r in list_recordings(task_id)
         if (review is None or r.review == review) and (source is None or r.source == source)
     ]
+    if order == "episode":
+        # Lowest episode number first; imports (no number) last, oldest first
+        rows.sort(key=lambda r: (r.episode is None, r.episode or 0, r.recorded_at))
     return paginate(rows, limit, cursor)
 
 
