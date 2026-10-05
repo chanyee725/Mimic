@@ -2,7 +2,6 @@ import { LuCheck, LuPlay, LuSquare, LuX } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
-import { ProgressBar } from "@/components/common/progress-bar"
 import { StatusDot } from "@/components/common/status-dot"
 import { formatClock } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -15,7 +14,6 @@ import type { RunPhase } from "../lib"
 export function RunControls({
   phase,
   elapsed,
-  limitS,
   canStart,
   pending,
   error,
@@ -25,7 +23,6 @@ export function RunControls({
 }: {
   phase: RunPhase
   elapsed: number
-  limitS: number
   canStart: boolean
   /** A start / stop / judge request is in flight */
   pending: boolean
@@ -57,7 +54,6 @@ export function RunControls({
         </StatusDot>
         <span className="font-mono text-2xl font-medium tabular-nums">{formatClock(elapsed / 1000)}</span>
       </div>
-      {running && <ProgressBar size="xs" value={Math.min(100, (elapsed / (limitS * 1000)) * 100)} label="Run time" />}
       {loading && (
         <p className="text-xs text-muted-foreground">모델을 GPU 에 올리고 로봇에 연결하는 중입니다. 처음 한 번은 10초 정도 걸립니다.</p>
       )}
