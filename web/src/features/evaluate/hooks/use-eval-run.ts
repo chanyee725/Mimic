@@ -7,10 +7,24 @@ import { useHotkeys } from "@/hooks/use-hotkeys"
 import { trialsOf, type RunPhase } from "../lib"
 
 /**
- * Policy run on the robot, driven by the server: start → running (polled; the server moves it to judging at the
- * time limit) → judge. Judged runs of this session make up the trials list.
+ * Policy run on the robot, driven by the server: start → loading → running (polled) → Stop → judge. Judged runs of
+ * this session make up the trials list.
  */
-export function useEvalRun({ modelId, instruction, record }: { modelId: string; instruction: string; record: boolean }) {
+export function useEvalRun({
+  modelId,
+  instruction,
+  speedPct,
+  valid,
+  record,
+}: {
+  modelId: string
+  instruction: string
+  /** Speed limit (% of the servos' top speed), null for none */
+  speedPct: number | null
+  /** The run settings are valid (speed limit in range) */
+  valid: boolean
+  record: boolean
+}) {
   const runs = useEvalRuns(modelId)
   const listed = runs.data?.find(isEvalActive)
   const detail = useEvalRunQuery(listed?.id)
@@ -21,7 +35,7 @@ export function useEvalRun({ modelId, instruction, record }: { modelId: string; 
   const result = useEvalResult()
   const pending = startRun.isPending || stopRun.isPending || result.isPending
   const phase: RunPhase = !run || run.state === "done" ? "idle" : run.state
-  const canStart = !!instruction.trim() && !pending && runs.isSuccess
+  const canStart = !!instruction.trim() && valid && !pending && runs.isSuccess
 
   // Tick the clock between polls: server elapsed + time since it was fetched
   const fetchedAt = run && run === detail.data ? detail.dataUpdatedAt : runs.dataUpdatedAt
@@ -38,7 +52,7 @@ export function useEvalRun({ modelId, instruction, record }: { modelId: string; 
   const start = () => {
     if (!canStart) return
     resetErrors()
-    startRun.mutate({ modelId, instruction: instruction.trim(), record })
+    startRun.mutate({ modelId, instruction: instruction.trim(), speedPct, record })
   }
   const stop = () => {
     if (!run || pending) return
