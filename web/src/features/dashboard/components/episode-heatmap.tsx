@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { QueryView } from "@/components/common/query-state"
 import { useEpisodeActivity } from "@/api/station"
 import type { DayCount } from "@/domain/activity"
+import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -67,7 +68,8 @@ function ActivityGrid({ days }: { days: DayCount[] }) {
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="text-sm font-semibold">Episodes collected</h2>
         <span className="text-[13px] text-muted-foreground">
-          <span className="font-mono text-foreground">{total.toLocaleString()}</span> episodes · {activeDays} active days
+          <span className="font-mono text-foreground">{total.toLocaleString()}</span> {total === 1 ? "episode" : "episodes"} ·{" "}
+          {plural(activeDays, "active day")}
         </span>
       </div>
 
@@ -101,7 +103,7 @@ function ActivityGrid({ days }: { days: DayCount[] }) {
                 rx={2}
                 className={LEVEL_CLASS[level(day.count, max)]}
               >
-                <title>{`${day.date} · ${day.count} episodes`}</title>
+                <title>{`${day.date} · ${plural(day.count, "episode")}`}</title>
               </rect>
             ) : null,
           ),

@@ -12,7 +12,7 @@ export function TaskRow({ task, sessions, current }: { task: Task; sessions: Ses
   const pct = task.targetEpisodes ? Math.min(100, Math.round((task.collected / task.targetEpisodes) * 100)) : 0
 
   return (
-    <li className="flex min-h-16 flex-1">
+    <li className="flex min-h-16">
       <Link to={`/tasks/${task.id}`} className="flex w-full items-center gap-4 rounded-md px-2 py-2.5 transition-colors hover:bg-muted/50">
         <div className="grid min-w-0 flex-1 gap-0.5">
           <div className="flex min-w-0 items-center gap-2">

@@ -4,6 +4,7 @@ import { useSessions } from "@/api/sessions"
 import { useCurrentTask } from "@/api/station"
 import { useTasks } from "@/api/tasks"
 import type { Session } from "@/domain/session"
+import { plural } from "@/lib/format"
 
 import { MAX_TASKS, STATUS_ORDER } from "../lib"
 import { TaskRow } from "./task-row"
@@ -22,7 +23,7 @@ export function TaskList() {
   )
   const shown = tasks.slice(0, MAX_TASKS)
   const hidden = tasks.length - shown.length
-  const linkLabel = !tasksQuery.data ? "View all" : hidden > 0 ? `+${hidden} more` : `${tasks.length} tasks`
+  const linkLabel = !tasksQuery.data ? "View all" : hidden > 0 ? `+${hidden} more` : plural(tasks.length, "task")
 
   return (
     <Panel title="Tasks" action={<PanelLink to="/tasks">{linkLabel}</PanelLink>}>
@@ -31,7 +32,7 @@ export function TaskList() {
           shown.length === 0 ? (
             <p className="text-sm text-muted-foreground">등록된 Task 가 없습니다. Tasks 에서 Task 를 만들어 시작하세요.</p>
           ) : (
-            // Rows share the panel height and scroll inside the panel when they overflow
+            // Rows stack from the top and scroll inside the panel when they overflow
             <ul className="-mx-2 flex min-h-0 flex-1 flex-col divide-y overflow-y-auto">
               {shown.map((t) => (
                 <TaskRow key={t.id} task={t} sessions={sessions && (byTask.get(t.id) ?? [])} current={t.id === currentId} />
