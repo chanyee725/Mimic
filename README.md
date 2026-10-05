@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="web/public/favicon.svg" width="72" alt="Apprentice logo" />
+  <img src="web/public/favicon.svg" width="72" alt="Mimic logo" />
 </p>
 
-<h1 align="center">Apprentice</h1>
+<h1 align="center">Mimic</h1>
 
 <p align="center">사람이 시연하고 로봇이 배우는 SO-101 로봇 학습 스테이션</p>
 
-leader 암으로 시연한 데이터를 녹화 · 검수하고, LeRobot 데이터셋으로 만들어 SmolVLA(Vision-Language-Action) 모델을 학습 · 평가하는 데까지 한 스테이션에서 이어 주는 도구입니다. 이름은 시연을 보고 배우는 견습생(apprentice)에서 왔고, 로고는 두 마디 로봇 팔로 그린 "A" 입니다.
+leader 암으로 시연한 데이터를 녹화 · 검수하고, LeRobot 데이터셋으로 만들어 SmolVLA(Vision-Language-Action) 모델을 학습 · 평가하는 데까지 한 스테이션에서 이어 주는 도구입니다. 이름은 사람의 시연을 보고 따라 하는(mimic) 모방 학습에서 왔고, 로고는 leader 와 follower 두 팔이 마주 보는 모양으로 그린 "M" 입니다.
 
 ```
 Rigs ─▶ Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) ─▶ Training ─▶ Models ─▶ Evaluate / Simulation
@@ -39,6 +39,13 @@ Rigs ─▶ Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) 
 | [`docs/review/`](docs/review/README.md) | 실제 사용 전 검토 기록 (2026-10-03) |
 
 ## 시작
+
+```sh
+# 백엔드 + 웹 한 번에 (Ctrl+C 로 둘 다 종료, --install 은 uv sync · npm install 먼저 실행)
+scripts/dev.sh
+```
+
+따로 띄울 때:
 
 ```sh
 # 백엔드 (http://localhost:8000/api/v1/docs) — uv sync 가 LeRobot(+ torch)까지 설치

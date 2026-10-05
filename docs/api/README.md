@@ -1,4 +1,4 @@
-# Apprentice — Backend API
+# Mimic — Backend API
 
 Specification of the station backend the web app reads through `web/src/api`.
 Every function in `web/src/api` maps to an endpoint here; actions that are no-ops in the UI today (Start, Stop, Save, Push, …) are specified too.
