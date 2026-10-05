@@ -5,6 +5,7 @@ import { Panel } from "@/components/layout/page-layout"
 import { SearchInput } from "@/components/common/search-input"
 import { Segmented } from "@/components/common/segmented"
 import type { Dataset } from "@/domain/dataset"
+import { formatSize, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { FILTERS, KIND_DOT, KIND_LABEL, type Filter } from "../lib"
@@ -88,7 +89,7 @@ export function DatasetList({
                       ? `converting ${d.progress}%`
                       : d.status === "failed"
                         ? "conversion failed"
-                        : `${d.episodeCount} episodes, ${d.sizeGB} GB`}
+                        : `${plural(d.episodeCount, "episode")}, ${formatSize(d.sizeGB * 1024)}`}
                   </span>
                 </span>
               </button>

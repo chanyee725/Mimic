@@ -24,7 +24,7 @@ import { StatStrip } from "@/components/common/stat-strip"
 import { modelDownloadUrl, useDeleteModel, usePushModel, useRenameModel } from "@/api/models"
 import { useTrainingConfig } from "@/api/training"
 import { successRate, type Model } from "@/domain/model"
-import { formatDateTime, formatPct } from "@/lib/format"
+import { formatDateTime, formatPct, formatSize, plural } from "@/lib/format"
 
 import { downloadFile } from "../lib"
 import { ModelEvaluations } from "./model-evaluations"
@@ -99,10 +99,15 @@ export function ModelDetail({ model: m }: { model: Model }) {
           {
             label: "Success rate",
             value: formatPct(rate),
-            sub: m.evals.length ? `${m.evals.reduce((a, e) => a + e.trials, 0)} trials` : "not evaluated",
+            sub: m.evals.length
+              ? plural(
+                  m.evals.reduce((a, e) => a + e.trials, 0),
+                  "trial",
+                )
+              : "not evaluated",
             icon: LuTarget,
           },
-          { label: "Size", value: `${(m.sizeMB / 1024).toFixed(1)} GB`, icon: LuHardDrive },
+          { label: "Size", value: formatSize(m.sizeMB), icon: LuHardDrive },
         ]}
       />
 
