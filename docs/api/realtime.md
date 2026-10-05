@@ -20,7 +20,8 @@ Three channels besides REST:
 | --- | --- | --- |
 | `capture.state` | `CaptureState` | capture |
 | `recording.created` / `recording.updated` | `Recording` | recordings |
-| `recording.deleted` | `{ id }` | recordings |
+| `recording.reviewed` | `{ ids, review }` (bulk review) | recordings |
+| `recording.deleted` | `{ id }`, or `{ ids }` from bulk delete | recordings |
 | `dataset.updated` | `Dataset` | datasets |
 | `dataset.deleted` | `{ repoId }` | datasets |
 | `training.updated` | `TrainJob` | training |
