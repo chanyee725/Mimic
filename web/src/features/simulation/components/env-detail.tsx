@@ -1,10 +1,12 @@
-import { LuFlaskConical } from "react-icons/lu"
+import { LuBox, LuFlaskConical } from "react-icons/lu"
 
+import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
 import { DetailList } from "@/components/common/detail-list"
 import { LinkButton } from "@/components/common/link-button"
+import { ErrorNote } from "@/components/common/query-state"
 import { StatusDot } from "@/components/common/status-dot"
-import { useEnvCompat } from "@/api/simulation"
+import { useEnvCompat, useOpenSimEnv } from "@/api/simulation"
 import { useTask } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
 import { formatDateTime } from "@/lib/format"
@@ -12,12 +14,14 @@ import { formatDateTime } from "@/lib/format"
 import { ENV_STATE, evalHref } from "../envs"
 import { EnvCompatList } from "./env-compat-list"
 import { EnvFiles, EnvManifest } from "./env-manifest"
+import { IsaacStatus } from "./isaac-status"
 
 /** Right-hand environment detail: summary, compatible models, files and env.yaml */
 export function EnvDetail({ env }: { env: SimEnv }) {
   const state = ENV_STATE[env.state]
   const task = useTask(env.taskId ?? undefined).data
   const compat = useEnvCompat(env.id)
+  const open = useOpenSimEnv()
   const invalid = env.state === "invalid"
   const canEval = !invalid && !!compat.data?.some((m) => m.usable)
   const details = [
@@ -47,15 +51,32 @@ export function EnvDetail({ env }: { env: SimEnv }) {
             {env.path}
           </p>
         </div>
-        <LinkButton
-          to={evalHref(env.id)}
-          size="sm"
-          disabled={!canEval}
-          title={canEval ? undefined : invalid ? "Environment failed to load" : "No compatible model"}
-        >
-          <LuFlaskConical />
-          Evaluate a model here
-        </LinkButton>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={invalid || open.isPending}
+            title={invalid ? "Environment failed to load" : "Isaac Sim 에서 이 환경의 scene.usd 를 엽니다"}
+            onClick={() => open.mutate(env.id)}
+          >
+            <LuBox />
+            {open.isPending ? "Opening…" : "Open in Isaac Sim"}
+          </Button>
+          <LinkButton
+            to={evalHref(env.id)}
+            size="sm"
+            disabled={!canEval}
+            title={canEval ? undefined : invalid ? "Environment failed to load" : "No compatible model"}
+          >
+            <LuFlaskConical />
+            Evaluate a model here
+          </LinkButton>
+        </div>
+      </div>
+
+      <div className="grid gap-1">
+        <IsaacStatus envId={env.id} />
+        <ErrorNote error={open.error} />
       </div>
 
       {env.description && <p className="text-[13px] text-muted-foreground">{env.description}</p>}

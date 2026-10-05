@@ -1,3 +1,5 @@
+import type { IsaacDisplay, IsaacMode } from "./settings"
+
 /**
  * An Isaac Sim environment the user built and registered by dropping a folder into the
  * environments directory (`VLA_SIM_ENVS_DIR` in the repo-root .env, default sim/envs). The station scans that folder;
@@ -49,6 +51,20 @@ export type SimGpu = { id: string; name: string; vram: string; busyBy?: string }
 export type SimConfig = { envsDir: string; gpu: SimGpu }
 
 /** POST /sim/envs/rescan */
+export type SimAppState = "stopped" | "starting" | "running" | "exited"
+
+/** Isaac Sim app process behind the server; scene is the open environment's id */
+export type SimRunnerApp = {
+  state: SimAppState
+  display: IsaacDisplay | null
+  pid: number | null
+  scene: string | null
+  error: string | null
+}
+
+/** Isaac Sim server; app is null when the server is not reachable */
+export type SimRunner = { mode: IsaacMode; display: IsaacDisplay; url: string; reachable: boolean; app: SimRunnerApp | null }
+
 export type RescanResult = { dir: string; scannedAt: string; envs: SimEnv[] }
 
 /** Can this model be loaded into this environment? Errors block an evaluation, warnings don't */
