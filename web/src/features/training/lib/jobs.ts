@@ -15,6 +15,11 @@ export const JOB_STATUS: Record<JobStatus, { tone: Tone; label: string }> = {
 const COMPUTE_LABEL: Record<Compute, string> = { local: "Local GPU", runpod: "RunPod" }
 
 /** "Local GPU, RTX 4090" / "RunPod, A100 80GB, $1.89/h" */
+/** "Local GPU" / "RunPod, $1.31/hr" (without the GPU name) */
+export function computeKind(j: TrainJob) {
+  return [COMPUTE_LABEL[j.compute], j.pricePerHr && formatRate(j.pricePerHr)].filter(Boolean).join(", ")
+}
+
 export function computeText(j: TrainJob) {
   return [COMPUTE_LABEL[j.compute], j.gpu, j.pricePerHr && formatRate(j.pricePerHr)].filter(Boolean).join(", ")
 }

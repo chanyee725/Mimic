@@ -3,7 +3,7 @@ import { useTrainingConfig } from "@/api/training"
 import type { TrainJob } from "@/domain/training"
 import { formatDateTime } from "@/lib/format"
 
-import { computeText } from "../lib"
+import { computeKind } from "../lib"
 
 /** Job config summary (model, dataset, compute, steps, ...) */
 export function JobConfig({ job }: { job: TrainJob }) {
@@ -13,7 +13,9 @@ export function JobConfig({ job }: { job: TrainJob }) {
       rows={[
         { k: "Model", v: policyBase ? `${job.policy} (${policyBase})` : job.policy },
         { k: "Dataset", v: job.dataset },
-        { k: "Compute", v: computeText(job) },
+        // Compute and GPU on their own rows: a GPU name is too long to share the narrow panel
+        { k: "Compute", v: computeKind(job) },
+        { k: "GPU", v: job.gpu },
         ...(job.pod ? [{ k: "Pod", v: job.pod }] : []),
         { k: "Steps", v: job.total.toLocaleString() },
         { k: "Batch size", v: String(job.batch) },
