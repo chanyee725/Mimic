@@ -11,6 +11,8 @@ export type EvalRun = {
   instruction: string
   /** Optional time limit (s); null runs until Stop (the server still ends it after 10 min) */
   limitS?: number | null
+  /** Speed limit, % of the servos' top speed; null: the policy's actions are sent as they are */
+  speedPct?: number | null
   /** Record the run as an episode */
   record: boolean
   state: EvalRunState
@@ -24,7 +26,7 @@ export type EvalRun = {
 }
 
 /** Body of POST /evaluate/runs */
-export type EvalRunCreate = { modelId: string; instruction: string; limitS?: number; record?: boolean }
+export type EvalRunCreate = { modelId: string; instruction: string; limitS?: number; speedPct?: number | null; record?: boolean }
 
 /** Verdict sent to POST /evaluate/runs/{id}/result */
 export type EvalJudgement = EvalVerdict | "discard"

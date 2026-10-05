@@ -2,11 +2,12 @@
 
 from app.services.evaluate.runs import (
     MAX_RUN_S,
-    MAX_STEP,
+    FULL_SPEED,
     RECORD_UNAVAILABLE,
     get_run,
     judge,
     list_runs,
+    max_step,
     reset,
     samples,
     start,
@@ -15,11 +16,12 @@ from app.services.evaluate.runs import (
 
 __all__ = [
     "MAX_RUN_S",
-    "MAX_STEP",
+    "FULL_SPEED",
     "RECORD_UNAVAILABLE",
     "get_run",
     "judge",
     "list_runs",
+    "max_step",
     "reset",
     "samples",
     "start",

@@ -120,16 +120,29 @@ def test_run_stop_judge(client, fake, policy, model):
     assert models.get_model("m-a").evals[-1].success == 1
 
 
-def test_actions_are_rate_limited(client, fake, policy, model):
+def test_no_speed_limit_by_default(client, fake, policy, model):
     policy.target = 100.0
-    client.post("/evaluate/runs", json=BODY)
+    assert client.post("/evaluate/runs", json=BODY).json()["speedPct"] is None
+    wait_state(client, "run_001", "running")
+    time.sleep(0.1)
+    client.post("/evaluate/runs/run_001/stop")
+    assert fake.robot.sent[0]["shoulder_pan"] == 100.0
+
+
+def test_speed_limit(client, fake, policy, model):
+    policy.target = 100.0
+    client.post("/evaluate/runs", json={**BODY, "speedPct": 20})
     wait_state(client, "run_001", "running")
     time.sleep(0.2)
     client.post("/evaluate/runs/run_001/stop")
-    steps = [a["shoulder_pan"] for a in fake.robot.sent]
-    assert steps[0] == evaluate.MAX_STEP
-    assert all(b - a <= evaluate.MAX_STEP + 1e-9 for a, b in zip(steps, steps[1:]))
-    assert steps[-1] < 100
+    step = evaluate.max_step(20, 30)  # the fake model's dataset is unknown: 30 Hz
+    assert step == 0.2 * evaluate.FULL_SPEED / 30
+    moves = [a["shoulder_pan"] for a in fake.robot.sent]
+    assert moves[0] == step
+    assert all(b - a <= step + 1e-9 for a, b in zip(moves, moves[1:]))
+    assert moves[-1] < 100
+    assert client.post("/evaluate/runs", json={**BODY, "speedPct": 0}).status_code == 422
+    assert client.post("/evaluate/runs", json={**BODY, "speedPct": 150}).status_code == 422
 
 
 def test_time_limit_moves_to_judging(client, fake, policy, model):

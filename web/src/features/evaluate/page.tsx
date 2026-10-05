@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useSearchParams } from "react-router-dom"
 
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -18,6 +19,7 @@ import { useTrainingConfig } from "@/api/training"
 import type { Model } from "@/domain/model"
 import { useLiveSamples } from "@/hooks/use-live-samples"
 import { formatClock } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 import { ModelField } from "./components/model-field"
 import { ErrorNote, LoadingNote, QueryNote } from "@/components/common/query-state"
@@ -66,11 +68,15 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
   const policy = useTrainingConfig().data?.policy ?? "SmolVLA"
   // The instruction starts from the model's task label and resets when the model changes
   const [edited, setEdited] = useState<{ modelId: string; instruction?: string }>({ modelId: model.id })
+  // Speed limit in % of the servos' top speed; empty = none (the policy's actions go out as they are)
+  const [speedInput, setSpeedInput] = useState("")
+  const speedPct = speedInput.trim() === "" ? null : Number(speedInput)
+  const speedValid = speedPct === null || (Number.isFinite(speedPct) && speedPct > 0 && speedPct <= 100)
   const own = edited.modelId === model.id ? edited : { modelId: model.id }
   const instruction = own.instruction ?? task?.instruction ?? ""
   const edit = (patch: { instruction?: string }) => setEdited({ ...own, ...patch })
   // No time limit: a run goes until Stop. Recording trials is not available yet (the backend refuses record: true)
-  const run = useEvalRun({ modelId: model.id, instruction, record: false })
+  const run = useEvalRun({ modelId: model.id, instruction, speedPct: speedValid ? speedPct : null, valid: speedValid, record: false })
   const samples = useLiveSamples(run.run?.id, run.phase === "running" || run.phase === "judging", getEvalSamples)
   const idle = run.phase === "idle"
   const running = run.phase === "running"
@@ -124,6 +130,25 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-[13px]">
+            <Label htmlFor="e-speed" className="grid gap-0.5 font-normal">
+              Speed limit
+              <span className={cn("text-xs", speedValid ? "text-muted-foreground" : "text-bad")}>
+                {speedValid ? "서보 최고 속도 대비 %, 비우면 제한 없음" : "0 초과 100 이하로 넣거나 비우세요."}
+              </span>
+            </Label>
+            <span className="flex items-center gap-2">
+              <Input
+                id="e-speed"
+                className="h-8 w-16 text-right text-[13px] tabular-nums"
+                inputMode="numeric"
+                placeholder="None"
+                value={idle ? speedInput : (run.run?.speedPct ?? "")}
+                disabled={!idle}
+                aria-invalid={!speedValid}
+                onChange={(e) => setSpeedInput(e.target.value)}
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </span>
             <Label htmlFor="e-rec" className="grid gap-0.5 font-normal">
               Record trials as MCAP
               <span className="text-xs text-muted-foreground">아직 준비 중입니다.</span>
