@@ -359,11 +359,15 @@ def _check(target: str) -> ConnTestResult:
         return ConnTestResult(state="ok")  # this request reached the API
     if target == "grpc":
         return system.tcp_check(get_settings().connection.grpc.url, GRPC_TIMEOUT_S)
+    if target == "isaac":
+        from app.services.simulation import runner  # simulation reads settings: import late
+
+        return runner.check()
     return ConnTestResult(state="error", detail="Camera pipeline is not implemented yet")
 
 
 def run_test(target: str) -> ConnTestResult:
-    """Key check for integrations, a TCP connect for gRPC; WebRTC has no pipeline yet."""
+    """Key check for integrations, a TCP connect for gRPC, the Isaac Sim server's health; WebRTC has no pipeline yet."""
     result = _check(target)
 
     data = _dump()
@@ -372,7 +376,7 @@ def run_test(target: str) -> ConnTestResult:
     elif target in data["connection"]:
         conn = data["connection"][target]
         conn["state"] = result.state
-        if "url" in conn:
+        if "latencyMs" in conn:
             conn["latencyMs"] = result.latency_ms
     _save(data)
     return result
