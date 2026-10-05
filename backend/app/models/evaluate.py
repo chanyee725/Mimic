@@ -11,7 +11,7 @@ class EvalRun(CamelModel):
     id: str
     model_id: str
     instruction: str
-    limit_s: float
+    limit_s: float | None = None
     record: bool
     state: EvalRunState
     started_at: str

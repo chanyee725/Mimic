@@ -1,5 +1,7 @@
 """Real-robot evaluation runs of the current session (in memory).
 
+Runs go until Stop (an optional limitS, MAX_RUN_S at most).
+
 State machine: loading (policy onto the GPU, robot connected) → running (the policy drives the
 follower) → judging (Stop, the time limit or an error; the arm holds its pose with torque on)
 → done (verdict; the robot is released, so its torque drops).
@@ -27,6 +29,8 @@ log = logging.getLogger(__name__)
 # Safety: the most a joint may move towards the policy's target in one control step (degrees;
 # the gripper's 0–100 range too). A wild action is followed slowly instead of in one jump.
 MAX_STEP = 4.0
+# A run without a time limit still ends here, in case nobody presses Stop
+MAX_RUN_S = 600.0
 DEFAULT_HZ = 30  # control rate when the model's dataset fps is unknown
 FRAME_TIMEOUT_S = 1.0  # a camera silent this long ends the run
 BUFFER_S = 120
@@ -267,8 +271,9 @@ def _loop(ro: _Rollout, policy: policies.Policy) -> None:
         time.sleep(0.02)
     while not ro.stop.is_set():
         elapsed = time.perf_counter() - t0
-        run.elapsed_s = round(min(elapsed, run.limit_s), 1)
-        if elapsed >= run.limit_s:
+        limit = run.limit_s or MAX_RUN_S
+        run.elapsed_s = round(min(elapsed, limit), 1)
+        if elapsed >= limit:
             return
         pose = ro.robot.read()
         present = [pose.get(j, 0.0) for j in ro.joints]

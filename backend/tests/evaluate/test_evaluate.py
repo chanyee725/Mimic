@@ -10,7 +10,7 @@ from app.services.evaluate import policy as policies
 from app.services.rigs import driver, ports
 from tests.support import JOINTS, FakeDriver, write_model
 
-BODY = {"modelId": "m-a", "instruction": "stack the blocks", "limitS": 30}
+BODY = {"modelId": "m-a", "instruction": "stack the blocks"}
 
 
 class FakePolicy:
@@ -136,6 +136,15 @@ def test_time_limit_moves_to_judging(client, fake, policy, model):
     client.post("/evaluate/runs", json={**BODY, "limitS": 0.3})
     run = wait_state(client, "run_001", "judging")
     assert run["elapsedS"] == 0.3 and run["error"] is None
+
+
+def test_no_limit_runs_until_the_cap(client, fake, policy, model, monkeypatch):
+    from app.services.evaluate import runs
+
+    monkeypatch.setattr(runs, "MAX_RUN_S", 0.3)
+    r = client.post("/evaluate/runs", json=BODY).json()
+    assert r["limitS"] is None
+    assert wait_state(client, "run_001", "judging")["elapsedS"] == 0.3
 
 
 def test_policy_error_ends_the_run(client, fake, policy, model):

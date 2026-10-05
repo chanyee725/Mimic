@@ -33,8 +33,8 @@ EvalRun = { id: string; modelId: string; instruction: string; limitS: number; re
 | GET | `/models/{id}/files` | | `ModelFile[]` (every file in the folder except `model.yaml`) | `getModelFiles()` |
 | GET | `/models/{id}/download` | | `application/zip` (501 until storage lands) | Download |
 | POST | `/models/{id}/push` | `{ repo?: string; private?: boolean }` | `202 Model` (`hubRepo` set; default `<hf namespace>/smolvla_<task>`); 424 HF token missing | Push to HF Hub |
-| POST | `/evaluate/runs` | `{ modelId, instruction, limitS, record }` | `201 EvalRun` (loading); 404 unknown model; 422 empty instruction or `record: true` (not available yet); 409 if a run or capture is active, teleop runs on the rig or its follower is calibrating; 410 model files gone; 503 no device access / port missing | Run policy (Space) |
-| POST | `/evaluate/runs/{id}/stop` | | `EvalRun` (judging); 409 if not loading / running | Stop (Esc), or automatic at `limitS` |
+| POST | `/evaluate/runs` | `{ modelId, instruction, limitS?, record }` (`limitS` optional: without it the run goes until Stop, 600 s at most) | `201 EvalRun` (loading); 404 unknown model; 422 empty instruction or `record: true` (not available yet); 409 if a run or capture is active, teleop runs on the rig or its follower is calibrating; 410 model files gone; 503 no device access / port missing | Run policy (Space) |
+| POST | `/evaluate/runs/{id}/stop` | | `EvalRun` (judging); 409 if not loading / running | Stop (Esc), or automatic at `limitS` / 600 s |
 | POST | `/evaluate/runs/{id}/result` | `{ result: "success" \| "fail" \| "discard" }` | `EvalRun` (done; the follower is released, torque drops); success/fail are added to the model's current `ModelEval` unless the run has an `error`; 409 if not judging | S / F / Discard |
 | GET | `/evaluate/runs/{id}/samples?after=-1` | | `TeleopSamples` ([rigs.md](rigs.md)): `action` = the goals sent (after the step limit), `state` = follower, last 10 s after seq `after` | Evaluate JointPlots |
 | GET | `/evaluate/runs?modelId=` | | `EvalRun[]` of the current session | Trials list |
@@ -57,7 +57,7 @@ EvalRun = { id: string; modelId: string; instruction: string; limitS: number; re
   `predict_action` (the checkpoint's preprocessor renames the cameras to camera1..3) → each joint moves at most 4° (or 4
   gripper units) towards the action per step → `send`. A camera silent for 1 s, a policy or robot error ends the run with
   `error`.
-- Stop, the time limit or an error moves to `judging`: no more goals are sent and the arm holds its pose with torque on
+- Stop, the time limit (`limitS`, else 600 s) or an error moves to `judging`: no more goals are sent and the arm holds its pose with torque on
   until the verdict, which releases it.
 - `record` (trial MCAPs) is not available yet.
 

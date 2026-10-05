@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { useSearchParams } from "react-router-dom"
 
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -65,14 +64,13 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
   const ports = usePorts()
   const livePorts = new Set((ports.data ?? []).filter((p) => p.kind === "video").flatMap((p) => [p.path, p.device]))
   const policy = useTrainingConfig().data?.policy ?? "SmolVLA"
-  // Instruction and time limit start from the model's task and reset when the model changes
-  const [edited, setEdited] = useState<{ modelId: string; instruction?: string; limitS?: number }>({ modelId: model.id })
+  // The instruction starts from the model's task label and resets when the model changes
+  const [edited, setEdited] = useState<{ modelId: string; instruction?: string }>({ modelId: model.id })
   const own = edited.modelId === model.id ? edited : { modelId: model.id }
   const instruction = own.instruction ?? task?.instruction ?? ""
-  const limitInput = own.limitS ?? task?.durationS ?? 30
-  const edit = (patch: { instruction?: string; limitS?: number }) => setEdited({ ...own, ...patch })
-  // Recording trials is not available yet (the backend refuses record: true)
-  const run = useEvalRun({ modelId: model.id, instruction, limitS: limitInput, record: false })
+  const edit = (patch: { instruction?: string }) => setEdited({ ...own, ...patch })
+  // No time limit: a run goes until Stop. Recording trials is not available yet (the backend refuses record: true)
+  const run = useEvalRun({ modelId: model.id, instruction, record: false })
   const samples = useLiveSamples(run.run?.id, run.phase === "running" || run.phase === "judging", getEvalSamples)
   const idle = run.phase === "idle"
   const running = run.phase === "running"
@@ -126,20 +124,6 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-[13px]">
-            <Label htmlFor="e-limit" className="font-normal">
-              Stop after
-            </Label>
-            <span className="flex items-center gap-2">
-              <Input
-                id="e-limit"
-                className="h-8 w-16 text-right text-[13px] tabular-nums"
-                inputMode="numeric"
-                value={idle ? limitInput : run.limitS}
-                disabled={!idle}
-                onChange={(e) => edit({ limitS: Number(e.target.value) || 0 })}
-              />
-              <span className="text-xs text-muted-foreground">s</span>
-            </span>
             <Label htmlFor="e-rec" className="grid gap-0.5 font-normal">
               Record trials as MCAP
               <span className="text-xs text-muted-foreground">아직 준비 중입니다.</span>
@@ -150,7 +134,6 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
           <RunControls
             phase={run.phase}
             elapsed={run.elapsed}
-            limitS={run.limitS}
             canStart={run.canStart}
             pending={run.pending}
             error={run.runError}
