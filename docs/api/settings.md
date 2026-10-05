@@ -12,11 +12,14 @@ Settings  = { version: number } & {
     hf:     { token: Secret; namespace; privateByDefault; state: ConnState }
     runpod: { apiKey: Secret; region; volume; monthlyBudget; idleAlertMin; spentThisMonth: number | null; state: ConnState }
   }
-  connection: { api: { url; state; latencyMs? }; grpc: { url; state; latencyMs? }; webrtc: { stun; turn; state } }
+  connection: { api: { url; state; latencyMs? }; grpc: { url; state; latencyMs? }; webrtc: { stun; turn; state }
+                isaac: { mode: "local" | "remote"; display: "window" | "headless"; python; port; url; state; latencyMs? } }
   notifications: { slackWebhook: Secret; events: { key; label; on: boolean }[] }
 }
 SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"
-TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "slack"
+TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "isaac" | "slack"
+// isaac: the server's health (latency); locally an installed Python also counts, since the server starts on demand.
+// connection.isaac.url is required when mode is "remote" (422 otherwise). See simulation.md → Isaac Sim server.
 Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other"; label: string; gb: number }[] }
 // totalGB = size of the disk holding the data folder; free = totalGB - sum(parts.gb)
 ```

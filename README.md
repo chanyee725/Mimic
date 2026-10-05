@@ -24,7 +24,7 @@ Rigs ─▶ Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) 
 | Training | SmolVLA 를 로컬 GPU 또는 RunPod 에서 학습, step 마다 loss · GPU 지표 확인 | 준비 중 |
 | Models | 남길 checkpoint 를 모델로 저장 · 관리 | 목록 · 관리만 (학습기 연동 전) |
 | Evaluate | 모델을 실제 로봇에 올려 지시문을 주고 성공률 기록 | 준비 중 |
-| Simulation | Isaac Sim(로컬 RTX 4090) 에서 자동 평가 | 준비 중 |
+| Simulation | Isaac Sim 5.1.0 (이 스테이션 또는 시뮬레이션 서버) 에서 환경 열기 · 자동 평가 | 환경 열기 동작, 평가 준비 중 |
 
 ## 저장소 구성
 
