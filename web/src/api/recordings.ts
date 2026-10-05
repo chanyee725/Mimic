@@ -1,5 +1,5 @@
 // Raw MCAP recordings and their review state — spec: docs/api/recordings.md
-import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
+import { type InfiniteData, useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
 
 import type { Recording, RecordingReview, RecordingSamples, RecordingSource, SampleTopic } from "@/domain/recording"
 
@@ -40,11 +40,48 @@ export function useSetReview() {
   })
 }
 
+/**
+ * Take deleted recordings out of the cached lists right away (so the player moves off them) and drop their detail and
+ * samples queries, so the refetch that follows doesn't hit a 404.
+ */
+function forget(ids: string[]) {
+  const gone = new Set(ids)
+  queryClient.setQueriesData<InfiniteData<Page<Recording>>>(
+    { queryKey: [...qk.recordings, "list"] },
+    (d) => d && { ...d, pages: d.pages.map((p) => ({ ...p, items: p.items.filter((r) => !gone.has(r.id)) })) },
+  )
+  queryClient.removeQueries({ queryKey: qk.recordings, predicate: (q) => q.queryKey.some((k) => gone.has(k as string)) })
+}
+
 export function useDeleteRecording() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/recordings/${encodeURIComponent(id)}`),
     onSuccess: (_, id) => {
-      queryClient.removeQueries({ queryKey: [...qk.recordings, "detail", id] })
+      forget([id])
+      for (const key of [qk.recordings, qk.convert, qk.tasks]) queryClient.invalidateQueries({ queryKey: key })
+    },
+  })
+}
+
+/** Accept / Reject many recordings in one request */
+export function useBulkReview() {
+  return useMutation({
+    mutationFn: ({ ids, review }: { ids: string[]; review: RecordingReview }) =>
+      api.post<{ items: Recording[] }>("/recordings/bulk-review", { ids, review }),
+    onSuccess: ({ items }) => {
+      for (const r of items) queryClient.setQueryData([...qk.recordings, "detail", r.id], r)
+      queryClient.invalidateQueries({ queryKey: [...qk.recordings, "list"] })
+      queryClient.invalidateQueries({ queryKey: qk.convert })
+    },
+  })
+}
+
+/** Deletes many recordings in one request; 404 (nothing deleted) if any id is gone */
+export function useBulkDelete() {
+  return useMutation({
+    mutationFn: (ids: string[]) => api.post("/recordings/bulk-delete", { ids }),
+    onSuccess: (_, ids) => {
+      forget(ids)
       for (const key of [qk.recordings, qk.convert, qk.tasks]) queryClient.invalidateQueries({ queryKey: key })
     },
   })
