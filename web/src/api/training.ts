@@ -49,7 +49,7 @@ const onJob = (job: TrainJob) => {
 export const useStartJob = () =>
   useMutation({ mutationFn: (body: JobCreate) => api.post<TrainJob>("/training/jobs", body), onSuccess: onJob })
 
-/** Stop an active job; it saves a last checkpoint */
+/** Stop an active job (the trainer is killed; checkpoints saved so far stay) */
 export const useStopJob = () =>
   useMutation({ mutationFn: (id: string) => api.post<TrainJob>(`/training/jobs/${id}/stop`), onSuccess: onJob })
 
