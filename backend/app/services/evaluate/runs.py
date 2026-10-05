@@ -26,9 +26,10 @@ from app.utils.time import now_iso
 
 log = logging.getLogger(__name__)
 
-# Safety: the most a joint may move towards the policy's target in one control step (degrees;
-# the gripper's 0–100 range too). A wild action is followed slowly instead of in one jump.
-MAX_STEP = 4.0
+# Optional speed limit, a percentage of the servos' top speed (STS3215 ≈ 270°/s unloaded): each
+# joint moves at most pct% × FULL_SPEED / hz per control step towards the policy's target (the
+# gripper's 0–100 range by the same number). None sends the actions as they are, like lerobot.
+FULL_SPEED = 270.0  # degrees per second at 100 %
 # A run without a time limit still ends here, in case nobody presses Stop
 MAX_RUN_S = 600.0
 DEFAULT_HZ = 30  # control rate when the model's dataset fps is unknown
@@ -140,6 +141,7 @@ def start(body: EvalRunCreate) -> EvalRun:
             model_id=model.id,
             instruction=instruction,
             limit_s=body.limit_s,
+            speed_pct=body.speed_pct,
             record=False,
             state="loading",
             started_at=now_iso(),
@@ -254,13 +256,21 @@ def _frames(ro: _Rollout) -> dict[str, bytes]:
     return out
 
 
-def _limit(target: list[float], present: list[float]) -> list[float]:
-    """Each joint moves at most MAX_STEP towards its target per step."""
-    return [p + max(-MAX_STEP, min(MAX_STEP, t - p)) for t, p in zip(target, present)]
+def max_step(speed_pct: float | None, hz: float) -> float | None:
+    """Largest move per control step for a speed limit; None without one."""
+    return None if speed_pct is None else speed_pct / 100 * FULL_SPEED / hz
+
+
+def _limit(target: list[float], present: list[float], step: float | None) -> list[float]:
+    """Each joint moves at most `step` towards its target (no limit when None)."""
+    if step is None:
+        return list(target)
+    return [p + max(-step, min(step, t - p)) for t, p in zip(target, present)]
 
 
 def _loop(ro: _Rollout, policy: policies.Policy) -> None:
     run, period = ro.run, 1 / ro.hz
+    step = max_step(run.speed_pct, ro.hz)
     t0 = time.perf_counter()
     next_t = t0
     # Cameras may need a moment for their first frame
@@ -280,7 +290,7 @@ def _loop(ro: _Rollout, policy: policies.Policy) -> None:
         target = policy.act(_frames(ro), present, ro.task_text)
         if len(target) != len(present):
             raise RuntimeError(f"Policy gave {len(target)} actions for {len(present)} joints")
-        sent = _limit(target, present)
+        sent = _limit(target, present, step)
         ro.robot.send(dict(zip(ro.joints, sent)))
         ro.seq += 1
         ro.samples.append(_Sample(ro.seq, elapsed, sent, present))

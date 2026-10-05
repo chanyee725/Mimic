@@ -12,6 +12,7 @@ class EvalRun(CamelModel):
     model_id: str
     instruction: str
     limit_s: float | None = None
+    speed_pct: float | None = None  # speed limit (% of the servos' top speed), None: none
     record: bool
     state: EvalRunState
     started_at: str
