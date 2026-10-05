@@ -135,6 +135,20 @@ def test_local_job_runs_to_done(client, dataset):
     assert (local.job_dir("job_001") / "train.log").is_file()
 
 
+def test_job_log(client, dataset):
+    client.post("/training/jobs", json=SMALL)
+    wait_for("job_001", "done")
+    body = client.get("/training/jobs/job_001/log").json()
+    assert body["truncated"] is False
+    assert body["lines"][-1].endswith("End of training")
+    # tqdm redraws collapse to the last state on their line
+    assert not any("\r" in line for line in body["lines"])
+    assert any(line.startswith("Training: 100%") for line in body["lines"])
+    short = client.get("/training/jobs/job_001/log", params={"tail": 2}).json()
+    assert len(short["lines"]) == 2 and short["truncated"] is True
+    assert client.get("/training/jobs/nope/log").status_code == 404
+
+
 def test_failed_job_reports_the_error(client, dataset, monkeypatch):
     monkeypatch.setenv("FAKE_TRAINER_FAIL", "1")
     client.post("/training/jobs", json=SMALL)

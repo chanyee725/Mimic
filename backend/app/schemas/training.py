@@ -104,6 +104,13 @@ class Metrics(CamelModel):
     series: dict[MetricSeries, list[float]]
 
 
+class JobLog(CamelModel):
+    """End of a job's train.log (tqdm redraws collapsed)."""
+
+    lines: list[str]
+    truncated: bool
+
+
 class CheckpointPush(CamelModel):
     repo: str | None = None
 

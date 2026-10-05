@@ -25,6 +25,7 @@ from app.schemas.training import (
     CommandOut,
     CommandPreview,
     JobCreate,
+    JobLog,
     LocalGpu,
     Metrics,
     RunPodConfig,
@@ -163,6 +164,12 @@ def _run_paths(job: TrainJob) -> dict[str, str]:
 
 def _overrides(job: TrainJob) -> dict:
     return {**job.overrides, "steps": job.total, "batch_size": job.batch}
+
+
+def job_log(job_id: str, tail: int) -> JobLog:
+    get_job(job_id)
+    lines, truncated = local.read_log(job_id, tail)
+    return JobLog(lines=lines, truncated=truncated)
 
 
 def job_command(job_id: str) -> CommandOut:

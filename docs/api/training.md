@@ -57,6 +57,7 @@ Metrics = { fromStep: number; toStep: number; every: number; series: Record<Metr
 | POST | `/training/jobs/{id}/stop` | | `TrainJob`: a queued job is stopped at once; a running one stays `running` until its process exits, then `stopped` (event); 409 if not active | Stop training / Cancel |
 | POST | `/training/jobs/{id}/pod/terminate` | | `TrainJob` (podState terminated); 409 if no pod, already terminated or the job is still active | Terminate now |
 | GET | `/training/jobs/{id}/metrics?fromStep=0&maxPoints=2000` | | `Metrics` — samples after `fromStep` averaged into at most `maxPoints` buckets; `every` is in steps (a multiple of `log_freq`) | Metrics plots (history) |
+| GET | `/training/jobs/{id}/log?tail=500` | | `{ lines: string[], truncated: boolean }` — the last `tail` (1–5000) lines of `train.log` from its last 512 KB, each tqdm redraw collapsed to its final state | Log dialog |
 | GET | `/training/jobs/{id}/command` | | `{ command: string }` — the exact `lerobot-train` command line | Confirm dialog / params preview |
 | POST | `/training/command-preview` | same body as POST `/training/jobs` | `{ command, ratePerHr?, capHours?, maxCostUsd? }` | Confirm dialog |
 | GET | `/training/jobs/{id}/checkpoints/{step}/download` | | `application/zip` (501 until storage lands) | Download |
