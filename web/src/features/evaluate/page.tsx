@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
 import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
+import { CameraGrid } from "@/components/robot/camera-grid"
 import { JointPlots } from "@/components/robot/joint-plots"
-import { VideoTile } from "@/components/robot/video-tile"
+import { usePorts, useRigDevices } from "@/api/devices"
 import { useModels } from "@/api/models"
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
@@ -18,7 +19,7 @@ import type { Model } from "@/domain/model"
 import { formatClock } from "@/lib/format"
 
 import { ModelField } from "./components/model-field"
-import { ErrorNote, LoadingNote } from "@/components/common/query-state"
+import { ErrorNote, LoadingNote, QueryNote } from "@/components/common/query-state"
 import { RunControls } from "./components/run-controls"
 import { TrialsList } from "./components/trials-list"
 import { useEvalRun } from "./hooks/use-eval-run"
@@ -57,6 +58,10 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
   const [pickerOpen, setPickerOpen] = useState(false)
   const task = useTask(model.taskId).data
   const rig = useRig(task?.rigId).data
+  const devices = useRigDevices(rig?.id)
+  const cameras = (devices.data ?? []).filter((d) => d.type === "camera")
+  const ports = usePorts()
+  const livePorts = new Set((ports.data ?? []).filter((p) => p.kind === "video").flatMap((p) => [p.path, p.device]))
   const policy = useTrainingConfig().data?.policy ?? "SmolVLA"
   // Instruction and time limit start from the model's task and reset when the model changes
   const [edited, setEdited] = useState<{ modelId: string; instruction?: string; limitS?: number }>({ modelId: model.id })
@@ -73,24 +78,19 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
     <Page fit title="Evaluate" description={DESCRIPTION}>
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
-          <div className="grid min-h-48 flex-1 gap-3 md:grid-cols-2">
-            {rig?.cameras.map((c) => (
-              <VideoTile
-                key={c.id}
-                className="aspect-auto h-full min-h-48"
-                label={c.name.replace(/ camera$/, "")}
-                resolution={c.resolution}
-                measuredFps={null}
-                targetFps={c.fps}
-                timecode={running ? formatClock(run.elapsed / 1000) : undefined}
-              />
-            ))}
-            {!rig?.cameras.length && (
-              <div className="grid place-items-center rounded-lg border bg-stage px-4 text-center text-xs text-muted-foreground md:col-span-2">
-                모델의 Task 에 연결된 Rig 카메라가 없습니다.
-              </div>
-            )}
-          </div>
+          {/* Same camera tiles as Capture: live previews of the model's rig cameras */}
+          <CameraGrid
+            cameras={cameras}
+            livePorts={livePorts}
+            empty={
+              devices.isPending || devices.isError ? (
+                <QueryNote query={devices} />
+              ) : (
+                <span className="text-xs text-muted-foreground">모델의 Task 에 연결된 Rig 카메라가 없습니다.</span>
+              )
+            }
+            timecode={running ? formatClock(run.elapsed / 1000) : undefined}
+          />
           {/* Same plots as Capture. Action is the policy output, Observation is the follower joints */}
           <JointPlots
             joints={rig?.joints ?? []}
@@ -98,7 +98,8 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
             actionSource={`${policy} ${model.jobId}`}
             stateSource={rig?.slave}
             hint="로봇이 연결되어 실행되면 관절값이 표시됩니다."
-            className="h-64 shrink-0"
+            // Takes the height the cameras leave, as on Capture
+            className="min-h-64 flex-1"
           />
         </div>
 
