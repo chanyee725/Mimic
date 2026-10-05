@@ -13,6 +13,7 @@ import { formatDuration, formatRate, formatUsd } from "@/lib/format"
 
 import { CheckpointsPanel } from "./components/checkpoints-panel"
 import { JobConfig } from "./components/job-config"
+import { LogDialog } from "./components/log-dialog"
 import { MetricPlots } from "./components/metric-plots"
 import { PodBar } from "./components/pod-bar"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
@@ -62,18 +63,21 @@ function JobView({ job }: { job: TrainJob }) {
       }
       description={`${job.id}, ${job.dataset}, ${computeText(job)}`}
       actions={
-        isActive(job) && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-bad hover:text-bad"
-            disabled={stop.isPending}
-            onClick={() => stop.mutate(job.id)}
-          >
-            <LuSquare />
-            {stop.isPending ? "Stopping…" : job.status === "running" ? "Stop training" : "Cancel"}
-          </Button>
-        )
+        <div className="flex items-center gap-2">
+          <LogDialog job={job} />
+          {isActive(job) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-bad hover:text-bad"
+              disabled={stop.isPending}
+              onClick={() => stop.mutate(job.id)}
+            >
+              <LuSquare />
+              {stop.isPending ? "Stopping…" : job.status === "running" ? "Stop training" : "Cancel"}
+            </Button>
+          )}
+        </div>
       }
     >
       {job.compute === "runpod" && <PodBar job={job} />}

@@ -2,7 +2,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { Model } from "@/domain/model"
-import type { CommandPreview, JobCreate, JobStatus, Metrics, TrainingConfig, TrainJob } from "@/domain/training"
+import type { CommandPreview, JobCreate, JobLog, JobStatus, Metrics, TrainingConfig, TrainJob } from "@/domain/training"
 
 import { API_BASE, api } from "./client"
 import { qk, queryClient } from "./query"
@@ -26,6 +26,15 @@ export const useJobMetrics = (id: string | undefined, { fromStep = 0, maxPoints 
     queryKey: [...qk.training, "metrics", id, { fromStep, maxPoints }],
     queryFn: () => api.get<Metrics>(`/training/jobs/${id}/metrics`, { fromStep, maxPoints }),
     enabled: !!id,
+  })
+
+/** Last lines of the job's train.log; polled every 2 s while `live` (the log dialog is open on an active job) */
+export const useJobLog = (id: string, { enabled, live }: { enabled: boolean; live: boolean }) =>
+  useQuery({
+    queryKey: [...qk.training, "log", id],
+    queryFn: () => api.get<JobLog>(`/training/jobs/${id}/log`, { tail: 1000 }),
+    enabled,
+    refetchInterval: live ? 2000 : false,
   })
 
 /** The exact lerobot-train command line of a job */

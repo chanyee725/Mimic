@@ -121,6 +121,9 @@ export type JobCreate = {
   runpod?: RunPodOptions
 }
 
+/** End of a job's train.log */
+export type JobLog = { lines: string[]; truncated: boolean }
+
 export type CommandPreview = { command: string; ratePerHr?: number | null; capHours?: number | null; maxCostUsd?: number | null }
 
 export type MetricSeries = "loss_raw" | "loss" | "grad_norm" | "lr" | "update_s" | "data_s" | "gpu_util" | "gpu_mem"
