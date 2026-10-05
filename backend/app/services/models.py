@@ -109,6 +109,13 @@ def add_model(model: Model) -> Model:
     return model
 
 
+def reload(model_id: str) -> Model:
+    """Re-reads a model folder (size after its files were copied in)."""
+    m = _load(folder(model_id))
+    _models[model_id] = m
+    return m
+
+
 def rename(model_id: str, name: str) -> Model:
     m = require_model(model_id).model_copy(update={"name": name.strip()})
     _save(m)

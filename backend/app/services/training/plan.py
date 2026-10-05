@@ -18,6 +18,8 @@ class Plan:
             raise invalid("Dataset is not a ready LeRobot dataset", "dataset")
         if errors := params.check_overrides(body.overrides):
             raise ApiError(422, "Unknown or invalid training parameters", {"errors": errors})
+        if len(cfg.camera_keys(body.dataset)) > cfg.POLICY_CAMERAS:
+            raise invalid(f"SmolVLA takes at most {cfg.POLICY_CAMERAS} cameras", "dataset")
         self.body = body
         self.options: RunPodOptions | None = None
         self.base_price: float | None = None
@@ -25,7 +27,7 @@ class Plan:
             gpu = next((g for g in local_gpus if body.gpu in (g.id, g.name)), None)
             if gpu is None:
                 raise invalid("Unknown local GPU", "gpu")
-            self.gpu_name = gpu.name
+            self.gpu_name, self.gpu_index = gpu.name, int(gpu.id.removeprefix("cuda:"))
             return
         rp = next((g for g in cfg.runpod_gpus() if g.name == body.gpu), None)
         if rp is None:

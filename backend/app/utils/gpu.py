@@ -45,3 +45,18 @@ def detect() -> tuple[Gpu, ...]:
     """Detected once per process (GPUs do not change while the backend runs)."""
     out = query()
     return tuple(parse(out)) if out else ()
+
+
+def utilization(index: int) -> float | None:
+    """Current utilization (%) of GPU `index`; None when nvidia-smi does not answer."""
+    cmd = [
+        "nvidia-smi",
+        "--query-gpu=utilization.gpu",
+        "--format=csv,noheader,nounits",
+        f"--id={index}",
+    ]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_S, check=True)
+        return float(r.stdout.strip())
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None

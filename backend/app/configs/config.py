@@ -54,5 +54,10 @@ class Config(BaseSettings):
     def models_dir(self) -> Path:
         return self.data_dir / "models"
 
+    @property
+    def training_dir(self) -> Path:
+        """One folder per training job: job.yaml, train.log, metrics.jsonl, output/ (lerobot)."""
+        return self.data_dir / "training"
+
 
 config = Config()
