@@ -11,7 +11,7 @@ Guidance for working in this repository.
 
 ## Project
 
-- **Apprentice** (formerly VLA Data Pipeline): a station tool for SO-101 teleoperation: capture → review → LeRobot conversion → training → evaluation. Keep the `VLA_*` env prefix and the `vla.*` MCAP schema names (existing `.env` files and recordings use them). See [README.md](README.md) for the flow.
+- **Mimic** (formerly VLA Data Pipeline, then Apprentice): a station tool for SO-101 teleoperation: capture → review → LeRobot conversion → training → evaluation. Keep the `VLA_*` env prefix and the `vla.*` MCAP schema names (existing `.env` files and recordings use them). See [README.md](README.md) for the flow.
 - Recording: cameras at 30 fps, action at 60 Hz (leader → follower). The raw format is one MCAP file per episode.
 - Conversion: LeRobot v3.0 only. The dataset fps follows the camera fps and action is downsampled (no time-alignment options).
 - Model: SmolVLA (`lerobot/smolvla_base`) only. Training runs on the local GPU or RunPod.
