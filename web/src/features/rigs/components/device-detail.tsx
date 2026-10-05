@@ -99,7 +99,7 @@ export function DeviceDetail({ device }: { device: Device }) {
           {device.check ? (
             <div className="grid gap-0.5">
               <StatusDot tone={device.check.ok ? (device.health === "ok" ? "ok" : "warn") : "bad"} className="text-[13px]">
-                {device.check.message}
+                <span className="min-w-0 [overflow-wrap:anywhere]">{device.check.message}</span>
               </StatusDot>
               <span className="pl-3 text-xs text-muted-foreground tabular-nums">Tested {formatDateTime(device.check.at)}</span>
             </div>

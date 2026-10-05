@@ -124,7 +124,7 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
         <div className="grid gap-1.5">
           <div className="flex h-5 items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground">Environment</span>
-            <LinkButton to="/simulation?view=environments" variant="ghost" size="xs" className="-mr-2 text-muted-foreground">
+            <LinkButton to="/simulation?view=environments" variant="ghost" size="xs" className="text-muted-foreground">
               Manage
             </LinkButton>
           </div>

@@ -57,7 +57,7 @@ export function EnvPicker({
   return (
     <div
       ref={listRef}
-      className="relative grid max-h-80 gap-1.5 overflow-y-auto pr-0.5"
+      className="relative grid max-h-80 grid-cols-[minmax(0,1fr)] gap-1.5 overflow-y-auto pr-0.5"
       role="radiogroup"
       aria-label="Environment"
       onKeyDown={onKeyDown}
@@ -129,14 +129,14 @@ function EnvRow({
       >
         {on && <span className="size-1.5 rounded-full bg-foreground" />}
       </span>
-      <span className="grid min-w-0 flex-1 gap-0.5">
+      <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5">
         <span className={cn("truncate", usable && "font-medium")}>{env.name}</span>
         <span className="truncate text-xs text-muted-foreground">
           {env.id}, {taskName}, {env.cameras.join(" + ")}
         </span>
         {errors.length > 0 ? (
-          <StatusDot tone="bad" className="items-baseline text-xs text-muted-foreground">
-            <span className="line-clamp-2 break-words">{errors.map((i) => i.text).join(", ")}</span>
+          <StatusDot tone="bad" className="text-xs text-muted-foreground">
+            <span className="line-clamp-2 [overflow-wrap:anywhere]">{errors.map((i) => i.text).join(", ")}</span>
           </StatusDot>
         ) : warns.length > 0 ? (
           <StatusDot tone="warn" className="text-xs text-muted-foreground">
