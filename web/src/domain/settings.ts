@@ -22,11 +22,30 @@ export type Settings = {
     api: { url: string; state: ConnState; latencyMs?: number | null }
     grpc: { url: string; state: ConnState; latencyMs?: number | null }
     webrtc: { stun: string; turn: string; state: ConnState }
+    isaac: IsaacSettings
   }
   notifications: {
     slackWebhook: Secret
     events: { key: string; label: string; on: boolean }[]
   }
+}
+
+export type IsaacMode = "local" | "remote"
+export type IsaacDisplay = "window" | "headless"
+
+/** Isaac Sim server: started on this station (local) or a sim server's URL (remote) */
+export type IsaacSettings = {
+  mode: IsaacMode
+  /** Window or headless when the app starts */
+  display: IsaacDisplay
+  /** Local: Python with isaacsim, relative to the repo root */
+  python: string
+  /** Local: server port on 127.0.0.1 */
+  port: number
+  /** Remote: http://host:port */
+  url: string
+  state: ConnState
+  latencyMs?: number | null
 }
 
 export type SettingsSection = Exclude<keyof Settings, "version">
@@ -38,7 +57,7 @@ export type SettingsPatch<S extends SettingsSection = SettingsSection> = { versi
 
 export type SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"
 
-export type TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "slack"
+export type TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "isaac" | "slack"
 
 export type ConnTestResult = { state: ConnState; latencyMs?: number | null; detail?: string | null }
 

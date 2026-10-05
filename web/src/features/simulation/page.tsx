@@ -23,7 +23,7 @@ export function SimulationPage() {
     <Page
       fit
       title="Simulation"
-      description="직접 만든 Isaac Sim 환경을 폴더에 등록하면, 저장한 모델을 그 환경에 불러와 여러 번 돌려 성공률을 봅니다. 시뮬레이션은 이 스테이션의 RTX 4090 에서만 돕니다."
+      description="직접 만든 Isaac Sim 환경을 폴더에 등록하면, 저장한 모델을 그 환경에 불러와 여러 번 돌려 성공률을 봅니다. Isaac Sim 은 이 스테이션이나 시뮬레이션 서버에서 돕니다 (Settings → Connection)."
       actions={
         <Segmented
           label="View"

@@ -14,6 +14,7 @@ _CODES = {
     422: "validation_error",
     424: "dependency_failed",
     501: "not_implemented",
+    502: "bad_gateway",
     503: "unavailable",
 }
 

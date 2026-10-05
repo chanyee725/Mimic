@@ -1,0 +1,178 @@
+"""Isaac Sim server: started here on 127.0.0.1 (local) or a sim server reached by URL (remote).
+
+The server (sim/runner/server.py) fronts one Isaac Sim app process that runs with a window or
+headless. Opening an environment sends its folder as tar.gz, so a remote server needs no copy of
+sim/envs. A local server is detached: it outlives backend reloads and is found again by port.
+"""
+
+import io
+import json
+import subprocess
+import tarfile
+import threading
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+from app.configs.config import REPO_ROOT
+from app.core.errors import ApiError, conflict
+from app.models.settings import IsaacSettings
+from app.models.simulation import SimRunner, SimRunnerApp
+from app.schemas.settings import ConnTestResult
+from app.services.settings import get_settings
+from app.services.simulation.envs import get_env
+
+SERVER_SCRIPT = REPO_ROOT / "sim" / "runner" / "server.py"
+# Overridden in tests (a fake app instead of Isaac Sim, a temp cache)
+APP_SCRIPT: Path | None = None
+CACHE_DIR: Path = Path.home() / ".cache" / "mimic-sim"
+
+HEALTH_TIMEOUT_S = 1.0
+REQUEST_TIMEOUT_S = 30.0
+SERVER_START_S = 10.0
+MAX_ENV_BYTES = 512 * 1024 * 1024
+
+_lock = threading.Lock()
+_server: dict[str, subprocess.Popen] = {}
+
+
+def _settings() -> IsaacSettings:
+    return get_settings().connection.isaac
+
+
+def _python(s: IsaacSettings) -> Path:
+    p = Path(s.python).expanduser()
+    return p if p.is_absolute() else REPO_ROOT / p
+
+
+def base_url(s: IsaacSettings | None = None) -> str:
+    s = s or _settings()
+    return f"http://127.0.0.1:{s.port}" if s.mode == "local" else s.url.strip().rstrip("/")
+
+
+def _request(path: str, body: bytes | None = None, content_type: str = "application/json") -> dict:
+    url = base_url() + path
+    headers = {"Content-Type": content_type} if body is not None else {}
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_S) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        try:
+            detail = json.loads(e.read()).get("error") or e.reason
+        except ValueError:
+            detail = e.reason
+        raise ApiError(502, f"Isaac Sim server: {detail}")
+    except OSError as e:
+        raise ApiError(503, f"Isaac Sim server is not reachable at {base_url()}: {e}")
+
+
+def _health(timeout: float = HEALTH_TIMEOUT_S) -> dict | None:
+    try:
+        with urllib.request.urlopen(base_url() + "/health", timeout=timeout) as r:
+            return json.loads(r.read())
+    except (OSError, ValueError):
+        return None
+
+
+def _ensure_server() -> None:
+    """Local mode: start the server when nothing answers on its port."""
+    s = _settings()
+    if s.mode != "local" or _health():
+        return
+    python = _python(s)
+    if not python.exists():
+        raise ApiError(
+            503, f"Isaac Sim Python not found at {python}. Install it with `cd sim && uv sync`."
+        )
+    with _lock:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cmd = [str(python), str(SERVER_SCRIPT), "--host", "127.0.0.1", "--port", str(s.port)]
+        cmd += ["--cache", str(CACHE_DIR)]
+        if APP_SCRIPT:
+            cmd += ["--app", str(APP_SCRIPT)]
+        with open(CACHE_DIR / "server.log", "wb") as log:
+            proc = subprocess.Popen(
+                cmd, stdout=log, stderr=subprocess.STDOUT, start_new_session=True
+            )
+        _server["local"] = proc
+    deadline = time.monotonic() + SERVER_START_S
+    while time.monotonic() < deadline:
+        if _health():
+            return
+        if proc.poll() is not None:
+            break
+        time.sleep(0.2)
+    raise ApiError(503, f"Isaac Sim server did not start; see {CACHE_DIR / 'server.log'}")
+
+
+def stop_local_server() -> None:
+    """Stops a server this process started (tests; the UI stops only the app)."""
+    with _lock:
+        proc = _server.pop("local", None)
+    if proc and proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def status() -> SimRunner:
+    s = _settings()
+    health = _health()
+    app = SimRunnerApp.model_validate(health["app"]) if health else None
+    return SimRunner(
+        mode=s.mode, display=s.display, url=base_url(s), reachable=health is not None, app=app
+    )
+
+
+def start(display: str | None = None) -> SimRunner:
+    _ensure_server()
+    _request("/app/start", json.dumps({"display": display or _settings().display}).encode())
+    return status()
+
+
+def stop() -> SimRunner:
+    if _health():
+        _request("/app/stop", b"{}")
+    return status()
+
+
+def _archive(folder: Path) -> bytes:
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for path in sorted(folder.rglob("*")):
+            if path.is_file() and "__pycache__" not in path.parts:
+                tar.add(path, arcname=str(path.relative_to(folder)))
+    if buf.tell() > MAX_ENV_BYTES:
+        raise ApiError(422, f"Environment folder is larger than {MAX_ENV_BYTES >> 20} MB")
+    return buf.getvalue()
+
+
+def open_env(env_id: str, display: str | None = None) -> SimRunner:
+    """Sends the environment to the server, which opens its scene (starting the app if needed)."""
+    env = get_env(env_id)
+    if env.state != "ready":
+        raise conflict(f"Environment '{env_id}' is invalid: {env.error}")
+    body = _archive(Path(env.path))
+    _ensure_server()
+    display = display or _settings().display
+    _request(f"/scene?env={env_id}&display={display}", body, "application/gzip")
+    return status()
+
+
+def check() -> ConnTestResult:
+    """Server health with its latency; locally an installed Python also counts (it starts on demand)."""
+    s = _settings()
+    start_t = time.perf_counter()
+    health = _health(timeout=3.0)
+    if health:
+        ms = round((time.perf_counter() - start_t) * 1000)
+        return ConnTestResult(state="ok", latency_ms=ms)
+    if s.mode == "remote":
+        return ConnTestResult(state="error", detail=f"No Isaac Sim server at {base_url(s)}")
+    if not _python(s).exists():
+        return ConnTestResult(state="error", detail=f"Isaac Sim Python not found: {s.python}")
+    return ConnTestResult(state="ok", detail="Isaac Sim is installed; the server starts on demand")
