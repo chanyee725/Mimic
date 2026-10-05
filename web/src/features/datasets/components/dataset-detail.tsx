@@ -53,7 +53,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <Panel className="min-h-0 gap-4">
+    <Panel className="@container min-h-0 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-64 flex-1 basis-0 items-center gap-4">
           <DatasetThumb dataset={dataset} className="w-32" />
@@ -158,7 +158,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
         />
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="flex min-h-0 flex-col gap-2">
           <h3 className="text-sm font-semibold">{dataset.kind === "mcap" ? "Topics" : "Features"}</h3>
           <div className="min-h-0 overflow-auto rounded-md border">
