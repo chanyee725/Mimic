@@ -11,11 +11,13 @@ import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
 import { CameraGrid } from "@/components/robot/camera-grid"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { usePorts, useRigDevices } from "@/api/devices"
+import { getEvalSamples } from "@/api/evaluate"
 import { useModels } from "@/api/models"
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
 import { useTrainingConfig } from "@/api/training"
 import type { Model } from "@/domain/model"
+import { useLiveSamples } from "@/hooks/use-live-samples"
 import { formatClock } from "@/lib/format"
 
 import { ModelField } from "./components/model-field"
@@ -69,8 +71,9 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
   const instruction = own.instruction ?? task?.instruction ?? ""
   const limitInput = own.limitS ?? task?.durationS ?? 30
   const edit = (patch: { instruction?: string; limitS?: number }) => setEdited({ ...own, ...patch })
-  const [record, setRecord] = useState(false)
-  const run = useEvalRun({ modelId: model.id, instruction, limitS: limitInput, record })
+  // Recording trials is not available yet (the backend refuses record: true)
+  const run = useEvalRun({ modelId: model.id, instruction, limitS: limitInput, record: false })
+  const samples = useLiveSamples(run.run?.id, run.phase === "running" || run.phase === "judging", getEvalSamples)
   const idle = run.phase === "idle"
   const running = run.phase === "running"
 
@@ -97,6 +100,7 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
             hz={task?.actionHz ?? 60}
             actionSource={`${policy} ${model.jobId}`}
             stateSource={rig?.slave}
+            data={samples}
             hint="로봇이 연결되어 실행되면 관절값이 표시됩니다."
             // Takes the height the cameras leave, as on Capture
             className="min-h-64 flex-1"
@@ -136,10 +140,11 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
               />
               <span className="text-xs text-muted-foreground">s</span>
             </span>
-            <Label htmlFor="e-rec" className="font-normal">
+            <Label htmlFor="e-rec" className="grid gap-0.5 font-normal">
               Record trials as MCAP
+              <span className="text-xs text-muted-foreground">아직 준비 중입니다.</span>
             </Label>
-            <Switch id="e-rec" checked={record} onCheckedChange={setRecord} disabled={!idle} />
+            <Switch id="e-rec" checked={false} disabled />
           </div>
 
           <RunControls
@@ -148,6 +153,7 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
             limitS={run.limitS}
             canStart={run.canStart}
             pending={run.pending}
+            error={run.runError}
             onStart={run.start}
             onStop={run.stop}
             onJudge={run.judge}
