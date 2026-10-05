@@ -1,9 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <!-- Apprentice: an "A" drawn as a two-link arm; the apex joint is the accent -->
+  <!-- Mimic: an "M" drawn as two mirrored two-link arms (leader and follower); the shared joint is the accent -->
   <rect width="32" height="32" rx="8" fill="#171717"/>
-  <path d="M9 24 16 9.5 23 24" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M12.3 18.6h7.4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="9" cy="24" r="1.9" fill="#fff"/>
-  <circle cx="23" cy="24" r="1.9" fill="#fff"/>
-  <circle cx="16" cy="9.5" r="2.7" fill="#3b82f6" stroke="#171717" stroke-width="1"/>
+  <path d="M8.5 24 11 9.5 16 18 21 9.5 23.5 24" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="8.5" cy="24" r="1.9" fill="#fff"/>
+  <circle cx="23.5" cy="24" r="1.9" fill="#fff"/>
+  <circle cx="16" cy="18" r="2.7" fill="#3b82f6" stroke="#171717" stroke-width="1"/>
 </svg>
