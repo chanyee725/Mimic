@@ -1,4 +1,4 @@
-# Apprentice — backend
+# Mimic — backend
 
 스테이션 백엔드 (FastAPI, Python 3.12). API 명세: [docs/api](../docs/api/README.md)
 
