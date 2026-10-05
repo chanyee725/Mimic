@@ -12,6 +12,7 @@ from app.services.rigs.rigs import (
     list_rigs,
     next_calibration_step,
     open_preview,
+    open_robot,
     record_cameras,
     require_device,
     require_rig,
@@ -30,6 +31,7 @@ from app.services.rigs.rigs import (
     teleop_state,
     test_device,
     test_rig,
+    watch_cameras,
 )
 
 __all__ = [
@@ -44,6 +46,7 @@ __all__ = [
     "list_rigs",
     "next_calibration_step",
     "open_preview",
+    "open_robot",
     "record_cameras",
     "require_device",
     "require_rig",
@@ -62,4 +65,5 @@ __all__ = [
     "teleop_state",
     "test_device",
     "test_rig",
+    "watch_cameras",
 ]

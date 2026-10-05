@@ -1,7 +1,7 @@
 # Models and real-robot evaluation
 
-A model is a checkpoint folder on disk (no mock data). Evaluate runs a model on the real robot and records success / fail
-per trial — not available until the robot is connected (503).
+A model is a checkpoint folder on disk (no mock data). Evaluate runs a model on the real robot (the policy drives the
+follower) and records success / fail per trial.
 Web: `api/models.ts`, Models and Evaluate pages.
 
 ## Types
@@ -16,9 +16,10 @@ Model = {
 }
 ModelFile = { path: string; sizeMB: number }
 
-EvalRunState = "running" | "judging" | "done"
+EvalRunState = "loading" | "running" | "judging" | "done"
 EvalRun = { id: string; modelId: string; instruction: string; limitS: number; record: boolean;
-            state: EvalRunState; startedAt: string; elapsedS: number; result?: "success" | "fail" }
+            state: EvalRunState; startedAt: string; elapsedS: number; result?: "success" | "fail";
+            error?: string }   // why the run ended early
 ```
 
 ## Endpoints
@@ -32,9 +33,10 @@ EvalRun = { id: string; modelId: string; instruction: string; limitS: number; re
 | GET | `/models/{id}/files` | | `ModelFile[]` (every file in the folder except `model.yaml`) | `getModelFiles()` |
 | GET | `/models/{id}/download` | | `application/zip` (501 until storage lands) | Download |
 | POST | `/models/{id}/push` | `{ repo?: string; private?: boolean }` | `202 Model` (`hubRepo` set; default `<hf namespace>/smolvla_<task>`); 424 HF token missing | Push to HF Hub |
-| POST | `/evaluate/runs` | `{ modelId, instruction, limitS, record }` | 404 unknown model; 422 empty instruction; 409 if a run (running or judging) or capture is active; otherwise `503 { error.message: "Robot is not connected" }` (later: `201 EvalRun`) | Run policy (Space) |
-| POST | `/evaluate/runs/{id}/stop` | | `EvalRun` (judging); 409 if not running | Stop (Esc), or automatic at `limitS` |
-| POST | `/evaluate/runs/{id}/result` | `{ result: "success" \| "fail" \| "discard" }` | `EvalRun` (done); success/fail are added to the model's current `ModelEval`; 409 if not judging | S / F / Discard |
+| POST | `/evaluate/runs` | `{ modelId, instruction, limitS, record }` | `201 EvalRun` (loading); 404 unknown model; 422 empty instruction or `record: true` (not available yet); 409 if a run or capture is active, teleop runs on the rig or its follower is calibrating; 410 model files gone; 503 no device access / port missing | Run policy (Space) |
+| POST | `/evaluate/runs/{id}/stop` | | `EvalRun` (judging); 409 if not loading / running | Stop (Esc), or automatic at `limitS` |
+| POST | `/evaluate/runs/{id}/result` | `{ result: "success" \| "fail" \| "discard" }` | `EvalRun` (done; the follower is released, torque drops); success/fail are added to the model's current `ModelEval` unless the run has an `error`; 409 if not judging | S / F / Discard |
+| GET | `/evaluate/runs/{id}/samples?after=-1` | | `TeleopSamples` ([rigs.md](rigs.md)): `action` = the goals sent (after the step limit), `state` = follower, last 10 s after seq `after` | Evaluate JointPlots |
 | GET | `/evaluate/runs?modelId=` | | `EvalRun[]` of the current session | Trials list |
 | GET | `/evaluate/runs/{id}` | | `EvalRun` | Run timer (polling) |
 
@@ -48,7 +50,17 @@ EvalRun = { id: string; modelId: string; instruction: string; limitS: number; re
 
 ## Evaluate
 
-No runs exist until the robot is connected: `GET /evaluate/runs` is `[]` and `POST` ends in 503 after validation.
+- Start connects the model's task rig: its single follower (torque on) and every rig camera (a short recorder each,
+  previews keep running), then loads `models/<id>/pretrained_model` with LeRobot on the GPU (about 10 s the first time;
+  the last model stays loaded). `loading` → `running`.
+- The loop runs at the model's dataset fps (30 if unknown): latest JPEG per camera + follower positions + instruction →
+  `predict_action` (the checkpoint's preprocessor renames the cameras to camera1..3) → each joint moves at most 4° (or 4
+  gripper units) towards the action per step → `send`. A camera silent for 1 s, a policy or robot error ends the run with
+  `error`.
+- Stop, the time limit or an error moves to `judging`: no more goals are sent and the arm holds its pose with torque on
+  until the verdict, which releases it.
+- `record` (trial MCAPs) is not available yet.
+
 The current `ModelEval` is the model's latest eval with the same instruction, from this session (server start) and today;
 otherwise a new one is appended. A run past `limitS` moves to judging on its own.
 

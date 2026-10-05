@@ -64,7 +64,7 @@ export function useEvalRun({
   // Space starts, Esc stops, S / F judges
   useHotkeys((e) => {
     if (phase === "idle" && e.code === "Space" && canStart) start()
-    else if (phase === "running" && (e.code === "Escape" || e.code === "Space")) stop()
+    else if ((phase === "running" || phase === "loading") && (e.code === "Escape" || e.code === "Space")) stop()
     else if (phase === "judging" && e.key.toLowerCase() === "s") judge("success")
     else if (phase === "judging" && e.key.toLowerCase() === "f") judge("fail")
     else return false
@@ -78,6 +78,8 @@ export function useEvalRun({
     elapsed: elapsedS * 1000,
     limitS: run?.limitS ?? limitS,
     recording: phase === "running" && !!run?.record,
+    /** Why the active run ended early (shown while judging) */
+    runError: run?.error ?? null,
     trials: trialsOf(runs.data ?? []),
     canStart,
     pending,

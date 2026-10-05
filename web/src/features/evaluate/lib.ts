@@ -1,7 +1,7 @@
 import { judgedRuns, type EvalRun, type EvalVerdict } from "@/domain/evaluate"
 
-/** One run: idle -> policy running -> human judges the result */
-export type RunPhase = "idle" | "running" | "judging"
+/** One run: idle -> loading the policy -> policy running -> human judges the result */
+export type RunPhase = "idle" | "loading" | "running" | "judging"
 
 export type Trial = { n: number; instruction: string; seconds: number; result: EvalVerdict }
 

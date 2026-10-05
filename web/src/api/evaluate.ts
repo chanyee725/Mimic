@@ -2,6 +2,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { EvalJudgement, EvalRun, EvalRunCreate } from "@/domain/evaluate"
+import type { TeleopSamples } from "@/domain/teleop"
 
 import { api } from "./client"
 import { qk, queryClient } from "./query"
@@ -18,7 +19,7 @@ export const useEvalRun = (id: string | undefined) =>
     queryKey: runKey(id ?? ""),
     queryFn: () => api.get<EvalRun>(`/evaluate/runs/${id}`),
     enabled: !!id,
-    refetchInterval: (q) => (q.state.data?.state === "running" ? 1000 : false),
+    refetchInterval: (q) => (q.state.data?.state === "running" || q.state.data?.state === "loading" ? 1000 : false),
   })
 
 const onRun = (run: EvalRun) => {
@@ -40,3 +41,6 @@ export const useEvalResult = () =>
     mutationFn: ({ id, result }: { id: string; result: EvalJudgement }) => api.post<EvalRun>(`/evaluate/runs/${id}/result`, { result }),
     onSuccess: onRun,
   })
+
+/** Policy action (after the safety limit) and follower state since a seq; for useLiveSamples */
+export const getEvalSamples = (runId: string, after: number) => api.get<TeleopSamples>(`/evaluate/runs/${runId}/samples`, { after })

@@ -4,7 +4,7 @@ from typing import Literal
 
 from app.schemas.common import CamelModel
 
-EvalRunState = Literal["running", "judging", "done"]
+EvalRunState = Literal["loading", "running", "judging", "done"]
 
 
 class EvalRun(CamelModel):
@@ -17,3 +17,4 @@ class EvalRun(CamelModel):
     started_at: str
     elapsed_s: float
     result: Literal["success", "fail"] | None = None
+    error: str | None = None  # why the run ended early (camera lost, policy or robot error)

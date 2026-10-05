@@ -8,15 +8,15 @@ import { CameraGrid } from "@/components/robot/camera-grid"
 import { JointPlots } from "@/components/robot/joint-plots"
 import { useCaptureState } from "@/api/capture"
 import { usePorts, useRigDevices } from "@/api/devices"
-import { useRig, useTeleopStatus, useTestRig } from "@/api/rigs"
+import { getTeleopSamples, useRig, useTeleopStatus, useTestRig } from "@/api/rigs"
 import { useCurrentTask, useSetCurrentTask } from "@/api/station"
 import { useTasks } from "@/api/tasks"
 import { useHotkeys } from "@/hooks/use-hotkeys"
+import { useLiveSamples } from "@/hooks/use-live-samples"
 import { formatTimecode } from "@/lib/format"
 
 import { ControlPanel } from "./components/control-panel"
 import { useCapture } from "./hooks/use-capture"
-import { useTeleopSamples } from "./hooks/use-teleop-samples"
 import { offlineDevices, targetReached } from "./lib"
 
 export function CapturePage() {
@@ -51,7 +51,7 @@ export function CapturePage() {
   const ports = usePorts()
   const livePorts = new Set((ports.data ?? []).filter((p) => p.kind === "video").flatMap((p) => [p.path, p.device]))
   const teleop = useTeleopStatus(rig.data?.id)
-  const samples = useTeleopSamples(rig.data?.id, !!teleop.data?.running)
+  const samples = useLiveSamples(rig.data?.id, !!teleop.data?.running, getTeleopSamples)
 
   const selectTask = (id: string) => {
     setPicked(id)
