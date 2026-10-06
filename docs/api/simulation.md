@@ -118,8 +118,9 @@ Live: `sim.envs` (`{ envs }` after a rescan or delete), `sim.updated` (status, c
 
 ```ts
 SimRunnerApp = { state: "stopped" | "starting" | "running" | "exited"; display: "window" | "headless" | null;
-                 pid: number | null; scene: string | null /* open env id */; error: string | null }
-SimRunner    = { mode: "local" | "remote"; display: "window" | "headless"; url: string; reachable: boolean;
+                 device: "gpu" | "cpu" | null; pid: number | null; scene: string | null /* open env id */; error: string | null }
+SimRunner    = { mode: "local" | "remote"; display: "window" | "headless"; device: "gpu" | "cpu"; url: string;
+                 reachable: boolean;
                  app: SimRunnerApp | null /* null when the server is not reachable */ }
 ```
 
@@ -130,10 +131,17 @@ SimRunner    = { mode: "local" | "remote"; display: "window" | "headless"; url: 
 | POST | `/sim/runner/stop` | | `SimRunner` (app stopped) | Stop |
 | POST | `/sim/envs/{id}/open` | `{ display? }` | `SimRunner` (app `starting` until the scene is open); 404 for an unknown env, 503 as above, 502 when the server rejects it | Open in Isaac Sim |
 
-Server API (backend ↔ server, JSON): `GET /health` → `{ version, app: SimRunnerApp }`; `POST /app/start {display}`;
-`POST /app/stop`; `POST /scene?env=<id>&scene=<file>&display=` with the tar.gz body (the folder's files, or the single
+Server API (backend ↔ server, JSON): `GET /health` → `{ version, app: SimRunnerApp }`; `POST /app/start {display, device}`;
+`POST /app/stop`; `POST /scene?env=<id>&scene=<file>&display=&device=` with the tar.gz body (the folder's files, or the single
 stage file); the server extracts it and opens `<file>` (default `scene.usd`; a path leaving the folder is refused). The app answers `GET /state` and `POST /open {path}`
 on a private port only the server uses.
+
+Physics device (`connection.isaac.device`, default `gpu`): the backend sends it with every start / open; the server
+restarts the app when the display or the device differs from the running one. `gpu` starts the app with
+`active_gpu` / `physics_gpu` 0 and `/physics/cudaDevice` 0, and turns on PhysX GPU dynamics and the GPU broadphase in every
+`PhysicsScene` of an opened stage (one is added at `/physicsScene` when there is none), written to the session layer so
+the environment's files are not changed; `cpu` keeps PhysX on the CPU (`MBP` broadphase). Rendering always uses the
+NVIDIA GPU.
 
 ## Changes from the web mocks
 

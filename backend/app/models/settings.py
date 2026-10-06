@@ -43,6 +43,7 @@ class Integrations(CamelModel):
 
 IsaacMode = Literal["local", "remote"]
 IsaacDisplay = Literal["window", "headless"]
+IsaacDevice = Literal["gpu", "cpu"]
 
 
 class IsaacSettings(CamelModel):
@@ -50,6 +51,7 @@ class IsaacSettings(CamelModel):
 
     mode: IsaacMode
     display: IsaacDisplay
+    device: IsaacDevice = "gpu"  # PhysX: GPU dynamics + broadphase, or CPU
     python: str = Field(min_length=1)  # local: Python with isaacsim, relative to the repo root
     port: int = Field(ge=1, le=65535)  # local: server port on 127.0.0.1
     url: str = ""  # remote: http://host:port

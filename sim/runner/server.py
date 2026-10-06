@@ -7,12 +7,14 @@ stopped through the API, headless or with a window.
 
 API (JSON):
   GET  /health                     {"version", "app": AppState}
-  POST /app/start  {"display"}     start the app ("window" | "headless"); restarts it on a display change
+  POST /app/start  {"display", "device"}  start the app ("window" | "headless", physics "gpu" | "cpu",
+                                   default gpu); restarts it when either changes
   POST /app/stop                   stop the app
-  POST /scene?env=<id>&scene=<file>  body: tar.gz of the environment (folder files, or the single
+  POST /scene?env=<id>&scene=<file>[&display=…&device=…]  body: tar.gz of the environment (folder files, or the single
                                    stage file); opens <file> (default scene.usd), starting the app
                                    first when it is not running
-AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "pid", "scene", "error"}
+AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "device", "pid", "scene",
+            "error"}
 """
 
 import argparse
@@ -37,6 +39,7 @@ VERSION = 1
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")
+DEVICES = ("gpu", "cpu")
 MAX_SCENE_BYTES = 512 * 1024 * 1024
 READY_POLL_S = 1.0
 LOG_TAIL = 2000  # bytes of the app log shown when it exits
@@ -70,6 +73,7 @@ class App:
         self.proc: subprocess.Popen | None = None
         self.port = 0
         self.display: str | None = None
+        self.device: str | None = None
         self.ready = False
         self.scene: str | None = None
         self.pending: tuple[str, str] | None = None  # (env id, scene path)
@@ -88,27 +92,29 @@ class App:
             return {
                 "state": state,
                 "display": self.display,
+                "device": self.device,
                 "pid": pid,
                 "scene": self.scene if state == "running" else None,
                 "error": self.error,
             }
 
-    def start(self, display: str) -> None:
+    def start(self, display: str, device: str = "gpu") -> None:
         with self.lock:
             if self.proc and self.proc.poll() is None:
-                if self.display == display:
+                if self.display == display and self.device == device:
                     return
                 self.stop()
             self.cache.mkdir(parents=True, exist_ok=True)
             self.port = _free_port()
-            cmd = [self.python, str(self.script), "--port", str(self.port)]
+            cmd = [self.python, str(self.script), "--port", str(self.port), "--device", device]
             if display == "headless":
                 cmd.append("--headless")
             env = {**os.environ, "OMNI_KIT_ACCEPT_EULA": "YES"}
             log = open(self.log, "wb")
             self.proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, env=env)
             log.close()
-            self.display, self.ready, self.scene, self.error = display, False, None, None
+            self.display, self.device = display, device
+            self.ready, self.scene, self.error = False, None, None
             threading.Thread(target=self._watch, args=(self.proc,), daemon=True).start()
 
     def _watch(self, proc: subprocess.Popen) -> None:
@@ -138,7 +144,8 @@ class App:
     def stop(self) -> None:
         with self.lock:
             proc, self.proc = self.proc, None
-            self.ready, self.scene, self.pending, self.display = False, None, None, None
+            self.ready, self.scene, self.pending = False, None, None
+            self.display, self.device = None, None
         if proc and proc.poll() is None:
             proc.terminate()
             try:
@@ -148,7 +155,12 @@ class App:
                 proc.wait()
 
     def open_scene(
-        self, env_id: str, archive: bytes, display: str, scene_name: str = "scene.usd"
+        self,
+        env_id: str,
+        archive: bytes,
+        display: str,
+        scene_name: str = "scene.usd",
+        device: str = "gpu",
     ) -> None:
         folder = self.cache / "scenes" / env_id
         shutil.rmtree(folder, ignore_errors=True)
@@ -162,8 +174,9 @@ class App:
             raise ValueError(f"the environment has no {scene_name}")
         with self.lock:
             self.pending = (env_id, str(scene))
-            if not (self.proc and self.proc.poll() is None):
-                self.start(display)
+            running = self.proc and self.proc.poll() is None
+            if not running or (self.display, self.device) != (display, device):
+                self.start(display, device)  # (re)start: the app takes the device at launch
             elif self.ready:
                 self._send_pending()
 
@@ -210,10 +223,13 @@ def make_handler(app: App):
             url = urlparse(self.path)
             try:
                 if url.path == "/app/start":
-                    display = (json.loads(self._body() or b"{}")).get("display", "window")
-                    if display not in DISPLAYS:
-                        return self._send(422, {"error": f"display must be one of {DISPLAYS}"})
-                    app.start(display)
+                    body = json.loads(self._body() or b"{}")
+                    display, device = body.get("display", "window"), body.get("device", "gpu")
+                    if display not in DISPLAYS or device not in DEVICES:
+                        return self._send(
+                            422, {"error": f"display must be one of {DISPLAYS}, device {DEVICES}"}
+                        )
+                    app.start(display, device)
                 elif url.path == "/app/stop":
                     app.stop()
                 elif url.path == "/scene":
@@ -221,9 +237,10 @@ def make_handler(app: App):
                     env_id = query.get("env", [""])[0]
                     display = query.get("display", ["window"])[0]
                     scene = query.get("scene", ["scene.usd"])[0]
-                    if not ENV_ID.match(env_id) or display not in DISPLAYS:
-                        return self._send(422, {"error": "invalid env id or display"})
-                    app.open_scene(env_id, self._body(), display, scene)
+                    device = query.get("device", ["gpu"])[0]
+                    if not ENV_ID.match(env_id) or display not in DISPLAYS or device not in DEVICES:
+                        return self._send(422, {"error": "invalid env id, display or device"})
+                    app.open_scene(env_id, self._body(), display, scene, device)
                 else:
                     return self._send(404, {"error": "not found"})
             except (ValueError, tarfile.TarError, OSError) as e:
