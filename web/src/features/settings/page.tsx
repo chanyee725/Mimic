@@ -12,12 +12,12 @@ export function SettingsPage() {
 
   return (
     // Centred both ways, form-width, no page header: the section list names where you are.
-    // The list and the form are each centred vertically, so the list never moves when the section
-    // changes; a section taller than the screen takes the full height and scrolls.
+    // The list and the form are centred together and share their top edge; a section taller than
+    // the screen takes the full height and scrolls. Lifted 10px above true centre (reads as centred).
     <Page fit className="mx-auto w-full max-w-4xl">
       <h1 className="sr-only">Settings</h1>
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
-        <Panel className="h-fit p-2 lg:self-center">
+      <div className="grid min-h-0 grid-cols-1 gap-4 lg:my-auto lg:max-h-full lg:-translate-y-2.5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+        <Panel className="h-fit p-2">
           <nav aria-label="Settings sections">
             <ul className="grid gap-0.5">
               {SECTIONS.map((s) => {
@@ -44,11 +44,7 @@ export function SettingsPage() {
         </Panel>
 
         {/* Keying by section discards in-progress edits when the section changes */}
-        <section
-          key={current.id}
-          className="grid min-h-0 content-start overflow-y-auto pb-1 lg:max-h-full lg:self-center"
-          aria-label={current.label}
-        >
+        <section key={current.id} className="grid min-h-0 content-start overflow-y-auto pb-1" aria-label={current.label}>
           {current.render()}
         </section>
       </div>
