@@ -21,10 +21,14 @@ job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message"
 
 ```
 sim/envs/
-  table.usda              a top-level stage file: id "table"
+  table.usda              a top-level stage file: id "table" (usable with any rig)
+  table.png               its thumbnail (same stem)
   kitchen/                a folder: id "kitchen"
     scene.usd             its stage (scene.<ext> first, else the only top-level USD file)
+    thumbnail.png         its thumbnail
     assets/…              sub-assets the stage references
+  so101-kit/              a folder named after a rig id: that rig's environments (same rules inside)
+    arm-table.usda        id "arm-table", rigId "so101-kit"
 ```
 
 Scanning rules:
@@ -34,7 +38,13 @@ Scanning rules:
 - A folder is one environment when it holds a stage: `scene.<ext>` first, else its only top-level stage file. A folder with
   no stage, or several and none named `scene`, is not listed. `files`: every file under it (recursive, posix paths, sorted),
   skipping hidden files and `__pycache__`.
-- A folder wins over a top-level file with the same id. `sizeKB` (each file and the total) is rounded up.
+- A top-level folder whose name is a configured rig id is a rig group: its entries are scanned with the same rules and
+  get `rigId` = that rig; everything else has `rigId: null` (usable with any rig). A top-level folder not named after a
+  rig is an ordinary folder environment.
+- Duplicate ids: the first one found wins (folders before files, top level in name order, a rig group's entries where
+  the group sorts); the others are skipped with a warning in the backend log.
+- Thumbnail: `<stem>.png|jpg|jpeg|webp` beside a stage file, or `thumbnail.png|jpg|jpeg|webp` inside an environment
+  folder (`thumbnail: true`, served by `/sim/envs/{id}/thumbnail`). Images are never environments. `sizeKB` (each file and the total) is rounded up.
 - `registeredAt`: first time the backend saw it (per process). `updatedAt`: latest mtime of the file, or of the folder and
   any file in it.
 - The list is cached; `GET /sim/envs` returns the last scan (done at startup); rescan and delete refresh it.
@@ -49,6 +59,8 @@ SimEnv = {
   sizeKB: number
   files: { path: string; sizeKB: number }[]
   registeredAt: string; updatedAt: string
+  rigId: string | null                         // rig folder it sits in; null = usable with any rig
+  thumbnail: boolean                           // an image is served by /sim/envs/{id}/thumbnail
 }
 Randomization = "none" | "low" | "high"
 SimEpisode = { index: number; seed: number; success: boolean; seconds: number; reason?: string }
@@ -69,12 +81,13 @@ SimJob = {
 | --- | --- | --- | --- | --- |
 | GET | `/sim/envs` | | `SimEnv[]` by id | `listSimEnvs()` |
 | GET | `/sim/envs/{id}` | | `SimEnv`; 404 if unknown | `getSimEnv(id)` |
+| GET | `/sim/envs/{id}/thumbnail` | | the image (`image/png`, `image/jpeg`, `image/webp`); 404 when the env is unknown or has none | Environment thumbnail |
 | POST | `/sim/envs/rescan` | | `{ dir: string; scannedAt: string; envs: SimEnv[] }` | Rescan |
 | DELETE | `/sim/envs/{id}` | | 204; deletes the file or folder. 404 if unknown; 409 with `details.tasks` while a task's `envId` uses it | Delete |
 | GET | `/sim/config` | | `{ envsDir: string; gpu: { id, name, vram, busyBy?: string } \| null }` — first GPU from nvidia-smi, `null` when none is detected | `getSimEnvsDir()`, GPU row |
 | GET | `/sim/jobs?status=` | | `SimJob[]` newest first | `listSimJobs()` |
 | GET | `/sim/jobs/{id}` | | `SimJob` | `getSimJob(id)` |
-| POST | `/sim/jobs` | `{ modelId, envId, episodes, seedStart, maxSeconds, randomization }` | `503` (runner not connected; later `202 SimJob`); 422 if the model / env is unknown | Start / Queue evaluation |
+| POST | `/sim/jobs` | `{ modelId, envId, episodes, seedStart, maxSeconds, randomization }` | `503` (runner not connected; later `202 SimJob`); 422 if the model / env is unknown, or the env belongs to another rig than the model's task | Start / Queue evaluation |
 | POST | `/sim/jobs/{id}/stop` | | `SimJob` (stopped); 409 if not active | Stop evaluation / Cancel |
 | GET | `/sim/jobs/{id}/episodes?result=success\|fail&limit=&cursor=` | | `Page<SimEpisode>` by index | Episodes table |
 | GET | `/sim/jobs/{id}/episodes/{index}/video/{camera}` | | `video/mp4` | Rollout replay |

@@ -73,3 +73,22 @@ def test_registered_and_updated_times(root: Path):
     [env] = scan_envs(root, {"table": "2026-01-01T00:00:00+09:00"})
     assert env.registered_at == "2026-01-01T00:00:00+09:00"
     assert env.updated_at.startswith("2023-11-15")
+
+
+def test_rig_folders_and_thumbnails(root: Path):
+    write(root, "so101-kit/arm.usda")
+    write(root, "so101-kit/arm.png", "img")
+    write(root, "so101-kit/bench/scene.usd")
+    write(root, "so101-kit/table.usda")  # found before the top-level folder below: wins
+    write(root, "table/scene.usda")
+    write(root, "yard/scene.usda")
+    write(root, "yard/thumbnail.jpg", "img")
+    write(root, "other-rig/scene.usda")  # not a rig: a folder env as before
+    envs = {e.id: e for e in scan_envs(root, rig_ids={"so101-kit"})}
+    assert list(envs) == ["arm", "bench", "other-rig", "table", "yard"]
+    assert envs["arm"].rig_id == "so101-kit" and envs["arm"].thumbnail
+    assert envs["bench"].rig_id == "so101-kit" and not envs["bench"].thumbnail
+    assert envs["table"].rig_id == "so101-kit"
+    assert envs["table"].path == str((root / "so101-kit" / "table.usda").resolve())
+    assert envs["yard"].rig_id is None and envs["yard"].thumbnail
+    assert envs["other-rig"].rig_id is None

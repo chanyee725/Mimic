@@ -47,6 +47,15 @@ def test_create_unknown_ids(client):
     assert r.status_code == 422 and "nope" in r.json()["error"]["message"]
 
 
+def test_create_checks_the_env_rig(client, envs_dir):
+    (envs_dir / "so101-bimanual-kit").mkdir()
+    (envs_dir / "so101-bimanual-kit" / "duo.usda").write_text("#usda 1.0\n")
+    client.post("/sim/envs/rescan")
+    assert client.post("/sim/jobs", json={**NEW, "envId": "arm-table"}).status_code == 503
+    r = client.post("/sim/jobs", json={**NEW, "envId": "duo"})
+    assert r.status_code == 422 and "belongs to rig 'so101-bimanual-kit'" in r.text
+
+
 def test_create_bad_body(client):
     r = client.post("/sim/jobs", json={**NEW, "episodes": 0})
     assert r.status_code == 422 and r.json()["error"]["details"]["errors"]

@@ -8,6 +8,8 @@ from app.services.simulation.envs import (
     get_env,
     list_envs,
     rescan,
+    rig_problem,
+    thumbnail,
 )
 from app.services.simulation.jobs import (
     ACTIVE,
@@ -37,6 +39,8 @@ __all__ = [
     "page_episodes",
     "reset",
     "rescan",
+    "rig_problem",
+    "thumbnail",
     "runner",
     "sim_config",
     "stop_job",

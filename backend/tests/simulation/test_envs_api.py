@@ -9,11 +9,16 @@ from tests.conftest import FIXTURES, add_tasks
 
 def test_list_envs(client, envs_dir: Path):
     envs = client.get("/sim/envs").json()
-    assert [e["id"] for e in envs] == ["drawer", "kitchen", "table"]
-    drawer = envs[0]
+    assert [e["id"] for e in envs] == ["arm-table", "drawer", "kitchen", "table"]
+    drawer = envs[1]
     assert drawer["path"] == str((envs_dir / "drawer").resolve())
     assert drawer["scene"] == "scene.usda"
-    assert [f["path"] for f in drawer["files"]] == ["assets/handle.usda", "scene.usda"]
+    assert [f["path"] for f in drawer["files"]] == [
+        "assets/handle.usda",
+        "scene.usda",
+        "thumbnail.png",
+    ]
+    assert drawer["rigId"] is None and drawer["thumbnail"]
     assert set(drawer) == {
         "id",
         "name",
@@ -23,7 +28,23 @@ def test_list_envs(client, envs_dir: Path):
         "files",
         "registeredAt",
         "updatedAt",
+        "rigId",
+        "thumbnail",
     }
+    # Under a rig folder: only for that rig, thumbnail beside the stage
+    arm = envs[0]
+    assert arm["rigId"] == "so101-kit" and arm["scene"] == "arm-table.usda" and arm["thumbnail"]
+    assert arm["path"] == str((envs_dir / "so101-kit" / "arm-table.usda").resolve())
+    assert not envs[3]["thumbnail"]
+
+
+def test_thumbnail(client):
+    r = client.get("/sim/envs/drawer/thumbnail")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png"
+    assert r.content.startswith(b"\x89PNG")
+    assert client.get("/sim/envs/arm-table/thumbnail").status_code == 200
+    assert client.get("/sim/envs/table/thumbnail").status_code == 404
+    assert client.get("/sim/envs/nope/thumbnail").status_code == 404
 
 
 def test_get_env(client):
@@ -41,7 +62,7 @@ def test_rescan_picks_up_changes(client, envs_dir: Path, events):
     body = client.post("/sim/envs/rescan").json()
     assert body["dir"] == str(envs_dir) and body["scannedAt"]
     ids = [e["id"] for e in body["envs"]]
-    assert ids == ["drawer", "garage", "table"]
+    assert ids == ["arm-table", "drawer", "garage", "table"]
     # First-seen time survives rescans
     assert client.get("/sim/envs/table").json()["registeredAt"] == registered
     msgs = [m for m in events() if m["type"] == "sim.envs"]
@@ -53,7 +74,7 @@ def test_delete_env(client, envs_dir: Path):
     assert not (envs_dir / "drawer").exists()
     assert client.delete("/sim/envs/kitchen").status_code == 204
     assert not (envs_dir / "kitchen.usd").exists()
-    assert [e["id"] for e in client.get("/sim/envs").json()] == ["table"]
+    assert [e["id"] for e in client.get("/sim/envs").json()] == ["arm-table", "table"]
     assert client.delete("/sim/envs/nope").status_code == 404
 
 

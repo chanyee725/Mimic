@@ -16,9 +16,16 @@ export type SimEnv = {
   scene: string
   sizeKB: number
   files: SimEnvFile[]
+  /** Rig folder it sits in (sim/envs/<rig-id>/); null = top level, usable with any rig */
+  rigId: string | null
+  /** A same-name image is served at /sim/envs/{id}/thumbnail */
+  thumbnail: boolean
   registeredAt: string
   updatedAt: string
 }
+
+/** An environment is usable by a rig when it sits in that rig's folder or at the top level (older responses omit rigId) */
+export const envFitsRig = (env: Pick<SimEnv, "rigId">, rigId: string | undefined) => !env.rigId || env.rigId === rigId
 
 /** GPU Isaac Sim runs on; busyBy is the sim job holding it */
 export type SimGpu = { id: string; name: string; vram: string; busyBy?: string }

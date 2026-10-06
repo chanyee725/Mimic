@@ -1,6 +1,7 @@
 """Isaac Sim environments: USD stages scanned from the environments folder, deleted."""
 
 from fastapi import APIRouter, Response
+from fastapi.responses import FileResponse
 
 from app.models.simulation import SimEnv
 from app.schemas.simulation import RescanResult
@@ -23,6 +24,12 @@ def rescan():
 @router.get("/envs/{env_id}", response_model=SimEnv)
 def get_env(env_id: str):
     return service.get_env(env_id)
+
+
+@router.get("/envs/{env_id}/thumbnail", response_class=FileResponse)
+def env_thumbnail(env_id: str):
+    path, media_type = service.thumbnail(env_id)
+    return FileResponse(path, media_type=media_type)
 
 
 @router.delete("/envs/{env_id}", status_code=204)

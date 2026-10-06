@@ -5,6 +5,7 @@ import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { Segmented } from "@/components/common/segmented"
 import { SettingsSection } from "@/components/common/settings-section"
 import { useSimEnvs } from "@/api/simulation"
+import { envFitsRig } from "@/domain/simulation"
 import { TASK_WORLD_LABEL, taskWorld, type Task, type TaskWorld } from "@/domain/task"
 
 import { SimpleSelect } from "./simple-select"
@@ -15,7 +16,8 @@ export function TaskWorldSection({ task, onChange }: { task: Task; onChange: (pa
   // Isaac Sim stays picked while no environment is chosen yet
   const [picked, setPicked] = useState<TaskWorld>()
   const world = task.envId ? "sim" : (picked ?? taskWorld(task))
-  const list = envs.data ?? []
+  // Environments in the task rig's folder or at the top level
+  const list = (envs.data ?? []).filter((e) => envFitsRig(e, task.rigId))
 
   function pick(w: TaskWorld) {
     setPicked(w)
@@ -54,9 +56,7 @@ export function TaskWorldSection({ task, onChange }: { task: Task; onChange: (pa
         ) : envs.isPending ? (
           <LoadingNote />
         ) : (
-          list.length === 0 && (
-            <p className="text-[13px] text-muted-foreground">불러온 환경이 없습니다. Environments 에서 USD 파일을 불러오세요.</p>
-          )
+          list.length === 0 && <p className="text-[13px] text-muted-foreground">이 Rig 에서 쓸 수 있는 환경이 없습니다.</p>
         ))}
     </SettingsSection>
   )
