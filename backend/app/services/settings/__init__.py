@@ -9,6 +9,7 @@ from app.services.settings.settings import (
     put_secret,
     reset,
     run_test,
+    secret_value,
     shortcuts,
     versions,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "put_secret",
     "reset",
     "run_test",
+    "secret_value",
     "shortcuts",
     "versions",
 ]

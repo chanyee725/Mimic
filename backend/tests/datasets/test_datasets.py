@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import time
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -234,16 +235,59 @@ def test_thumbnail_needs_video(client, recs):
 
 
 def test_push(client, recs, monkeypatch, events):
+    from app.services.datasets import hub
+
     convert(client, "local/stack")
     r = client.post("/datasets/local/stack/push", json={"private": False})
     assert r.status_code == 424 and r.json()["error"]["details"] == {"secret": "hf_token"}
-    monkeypatch.setattr(service.datasets, "hf_token_set", lambda: True)
+    uploaded = []
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+    monkeypatch.setattr(hub, "upload_folder", lambda *a: uploaded.append(a))
     r = client.post("/datasets/local/stack/push", json={"private": False})
-    assert r.status_code == 202 and r.json()["hub"] == {"pushed": True, "private": False}
+    assert r.status_code == 202 and r.json()["hub"]["pushing"] is True
+    for _ in range(100):
+        if not service.require("local/stack").hub.pushing:
+            break
+        time.sleep(0.02)
+    folder, repo, private, token = uploaded[0]
+    assert (repo, private, token) == ("vla-lab/stack", False, "hf_test")
+    assert folder == service.folder("local/stack")
+    hub_state = client.get("/datasets/local/stack").json()["hub"]
+    assert hub_state == {
+        "pushed": True,
+        "private": False,
+        "pulled": False,
+        "repo": "vla-lab/stack",
+        "pushing": False,
+        "error": None,
+    }
     side = yaml.safe_load((service.folder("local/stack") / "station.yaml").read_text())
-    assert side["hub"] == {"pushed": True, "private": False}
+    assert side["hub"] == {
+        "pushed": True,
+        "private": False,
+        "pulled": False,
+        "repo": "vla-lab/stack",
+    }
     service.reset()
-    assert client.get("/datasets/local/stack").json()["hub"]["pushed"] is True
+    assert client.get("/datasets/local/stack").json()["hub"]["repo"] == "vla-lab/stack"
+    # Already pushed: upload() skips it
+    assert service.upload("local/stack") == "vla-lab/stack" and len(uploaded) == 1
+
+
+def test_push_failure_is_kept_on_the_dataset(client, recs, monkeypatch):
+    from app.services.datasets import hub
+
+    convert(client, "local/stack")
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+
+    def fail(*a):
+        raise RuntimeError("quota exceeded")
+
+    monkeypatch.setattr(hub, "upload_folder", fail)
+    with pytest.raises(Exception, match="quota exceeded"):
+        service.upload("local/stack")
+    h = service.require("local/stack").hub
+    assert h.pushed is False and h.pushing is False and h.error == "quota exceeded"
 
 
 def test_delete(client, recs, events):
@@ -418,3 +462,90 @@ def test_merge_source_deleted_meanwhile(client, two):
     ds = service.wait("m/x")
     assert ds.status == "failed" and ds.error == "local/b has 0 of 3 episodes in its data files"
     assert not service.folder("m/x").exists()
+
+
+# --- pull from the Hub ---
+
+
+@pytest.fixture
+def fake_hub(monkeypatch, tmp_path):
+    """Serves folders under tmp_path/hub/<ns>/<name> as Hub dataset repos."""
+    import httpx
+    from huggingface_hub.errors import RepositoryNotFoundError
+
+    from app.services.datasets import hub
+
+    root = tmp_path / "hub"
+
+    def repo_files(repo_id, token):
+        src = root / repo_id
+        if not src.is_dir():
+            raise RepositoryNotFoundError(
+                f"{repo_id} not found",
+                response=httpx.Response(404, request=httpx.Request("GET", "https://hf.co")),
+            )
+        files = [p for p in sorted(src.rglob("*")) if p.is_file()]
+        return [(str(p.relative_to(src)), p.stat().st_size) for p in files], True
+
+    def download(repo_id, filename, local_dir, token):
+        out = local_dir / filename
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / repo_id / filename, out)
+
+    monkeypatch.setattr(hub, "repo_files", repo_files)
+    monkeypatch.setattr(hub, "download", download)
+    return root
+
+
+def upload(client, fake_hub, local: str, remote: str):
+    """Converts `local` and moves it onto the fake Hub as `remote`."""
+    convert(client, local)
+    dest = fake_hub / remote
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(service.folder(local), dest)
+    client.delete(f"/datasets/{local}")
+
+
+def test_pull(client, recs, fake_hub, events):
+    upload(client, fake_hub, "local/stack", "op-01/stack")
+    r = client.post("/datasets/pull", json={"repoId": "op-01/stack"})
+    assert r.status_code == 202, r.text
+    body = r.json()
+    assert body["status"] == "converting" and body["progress"] == 0
+    assert body["hub"]["pulled"] is True and body["hub"]["repo"] == "op-01/stack"
+    assert body["episodeCount"] == 3 and body["fps"] == 30
+    ds = service.wait("op-01/stack")
+    assert ds.status == "ready" and ds.task_id == TASK  # from the uploaded station.yaml
+    assert info("op-01/stack")["total_episodes"] == 3
+    assert not (service.folder("op-01/stack") / ".cache").exists()
+    assert client.get("/datasets/op-01/stack/episodes").json()["items"][0]["frames"] > 0
+    assert any(e["type"] == "dataset.updated" and e["data"]["status"] == "ready" for e in events())
+    service.reset()
+    assert client.get("/datasets/op-01/stack").json()["hub"]["pulled"] is True
+    r = client.post("/datasets/pull", json={"repoId": "op-01/stack"})
+    assert r.status_code == 409
+
+
+def test_pull_without_station_yaml(client, recs, fake_hub):
+    upload(client, fake_hub, "local/stack", "op-01/plain")
+    (fake_hub / "op-01/plain/station.yaml").unlink()
+    client.post("/datasets/pull", json={"repoId": "op-01/plain"})
+    ds = service.wait("op-01/plain")
+    assert ds.status == "ready" and ds.task_id == "unknown" and ds.rig_id == "so101-kit"
+
+
+def test_pull_errors(client, recs, fake_hub):
+    r = client.post("/datasets/pull", json={"repoId": "nope"})
+    assert r.status_code == 422
+    r = client.post("/datasets/pull", json={"repoId": "op-01/missing"})
+    assert r.status_code == 404 and "not found on the Hub" in r.json()["error"]["message"]
+    (fake_hub / "op-01/empty").mkdir(parents=True)
+    (fake_hub / "op-01/empty/README.md").write_text("hi")
+    r = client.post("/datasets/pull", json={"repoId": "op-01/empty"})
+    assert r.status_code == 422 and "meta/info.json" in r.json()["error"]["message"]
+    upload(client, fake_hub, "local/stack", "op-01/old")
+    path = fake_hub / "op-01/old/meta/info.json"
+    path.write_text(json.dumps({**json.loads(path.read_text()), "codebase_version": "v2.1"}))
+    r = client.post("/datasets/pull", json={"repoId": "op-01/old"})
+    assert r.status_code == 422 and "v2.1" in r.json()["error"]["message"]
+    assert client.get("/datasets").json() == []

@@ -7,17 +7,21 @@ import type { TrainJob } from "@/domain/training"
 import { formatDateTime, formatDuration, formatRate, formatUsd } from "@/lib/format"
 
 import { ErrorNote } from "@/components/common/query-state"
+import { runpodPhase } from "../lib"
 
 /** RunPod pod status bar. Highlights a pod still running after training so it does not keep billing */
 export function PodBar({ job }: { job: TrainJob }) {
   const terminate = useTerminatePod()
   const pod = job.podState
   const rate = formatRate(job.pricePerHr ?? 0)
+  const phase = runpodPhase(job)
   if (!pod)
     return (
       <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-[13px] text-muted-foreground">
         <LuCloud className="size-4 shrink-0" aria-hidden />
-        GPU 가 비면 {job.gpu} pod 를 띄워 시작합니다. 대기 중에는 요금이 나가지 않습니다.
+        {phase
+          ? `${phase.hint}. pod 가 뜨기 전이라 아직 요금이 나가지 않습니다.`
+          : `${job.gpu} pod 를 띄워 시작합니다. pod 가 뜨기 전에는 요금이 나가지 않습니다.`}
       </div>
     )
 
@@ -55,7 +59,7 @@ export function PodBar({ job }: { job: TrainJob }) {
       </StatusDot>
       <span className="min-w-0 flex-1 truncate text-muted-foreground">
         {pod.state === "running"
-          ? `Running, ${rate}. ${pod.autoTerminate ? "학습이 끝나면 자동으로 꺼집니다." : "학습이 끝나도 켜져 있으니 직접 꺼야 합니다."}`
+          ? `${phase ? `${phase.hint}, ` : "Running, "}${rate}. ${pod.autoTerminate ? "학습이 끝나면 자동으로 꺼집니다." : "학습이 끝나도 켜져 있으니 직접 꺼야 합니다."}`
           : `Terminated ${formatDateTime(pod.since)}. 더 이상 요금이 나가지 않습니다.`}
       </span>
     </div>
