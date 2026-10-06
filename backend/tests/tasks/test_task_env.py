@@ -3,9 +3,9 @@ import shutil
 
 import pytest
 
-from app.configs.config import REPO_ROOT, config
+from app.configs.config import config
 from app.services import simulation, tasks
-from tests.conftest import add_tasks
+from tests.conftest import FIXTURES, add_tasks
 
 TASK = "stack-two-blocks"
 
@@ -13,7 +13,7 @@ TASK = "stack-two-blocks"
 @pytest.fixture(autouse=True)
 def envs(tmp_path, monkeypatch):
     d = tmp_path / "envs"
-    shutil.copytree(REPO_ROOT / "sim" / "envs", d)
+    shutil.copytree(FIXTURES / "envs", d)
     monkeypatch.setattr(config, "sim_envs_dir", d)
     simulation.reset()
     add_tasks(TASK)
@@ -27,7 +27,7 @@ def sim_task(client):
     body = copy.deepcopy(client.get(f"/tasks/{TASK}").json())
     for k in ("collected", "version", "updatedAt", "updatedBy"):
         body.pop(k)
-    return body | {"id": "sim-stack", "name": "Sim stack", "envId": "stack-two-blocks"}
+    return body | {"id": "sim-stack", "name": "Sim stack", "envId": "table"}
 
 
 def env_errors(r):
@@ -42,17 +42,15 @@ def test_real_task_has_no_env(client):
 def test_isaac_sim_task_stores_its_env(client, sim_task):
     r = client.post("/tasks", json=sim_task)
     assert r.status_code == 201, r.text
-    assert r.json()["envId"] == "stack-two-blocks"
-    assert "env: stack-two-blocks\n" in client.get("/tasks/sim-stack/yaml").text
+    assert r.json()["envId"] == "table"
+    assert "env: table\n" in client.get("/tasks/sim-stack/yaml").text
     tasks.reset()  # reloads from the file
-    assert tasks.require_task("sim-stack").env_id == "stack-two-blocks"
+    assert tasks.require_task("sim-stack").env_id == "table"
 
 
-def test_unknown_or_incompatible_env_is_refused(client, sim_task):
+def test_unknown_env_is_refused(client, sim_task):
     r = client.post("/tasks", json=sim_task | {"envId": "nope"})
     assert r.status_code == 422 and "unknown environment" in env_errors(r)[0]["msg"]
-    r = client.post("/tasks", json=sim_task | {"envId": "top-only-demo"})
-    assert r.status_code == 422 and "Missing camera wrist" in env_errors(r)[0]["msg"]
 
 
 def test_capture_refuses_isaac_sim_tasks(client, sim_task):

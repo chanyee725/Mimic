@@ -7,7 +7,7 @@ from tests.support import write_model
 
 NEW = {
     "modelId": "m-stack",
-    "envId": "clutter-stress",
+    "envId": "table",
     "episodes": 5,
     "seedStart": 500,
     "maxSeconds": 30,
@@ -32,22 +32,12 @@ def test_jobs_empty(client):
 
 
 def test_create_needs_the_runner(client, events):
-    for env in ("clutter-stress", "sort-by-color"):  # sort-by-color only has a warning
+    for env in ("table", "drawer"):
         r = client.post("/sim/jobs", json={**NEW, "envId": env})
         assert r.status_code == 503
         assert r.json()["error"]["message"] == "Isaac Sim runner is not connected"
     assert client.get("/sim/jobs").json() == []
     assert not [m for m in events() if m["type"] == "sim.updated"]
-
-
-def test_create_incompatible(client):
-    r = client.post("/sim/jobs", json={**NEW, "envId": "top-only-demo"})
-    assert r.status_code == 422
-    err = r.json()["error"]
-    assert err["code"] == "validation_error"
-    assert err["details"]["issues"] == [{"level": "error", "text": "Missing camera wrist"}]
-    r = client.post("/sim/jobs", json={**NEW, "envId": "pour-into-cup"})
-    assert r.status_code == 422 and r.json()["error"]["details"]["issues"][0]["level"] == "error"
 
 
 def test_create_unknown_ids(client):

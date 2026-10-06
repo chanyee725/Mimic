@@ -1,17 +1,17 @@
-"""Registered Isaac Sim environments and model compatibility."""
+"""Isaac Sim environments: USD stages scanned from the environments folder, deleted."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
-from app.models.simulation import SimEnv, SimEnvState
-from app.schemas.simulation import ModelCompat, RescanResult
+from app.models.simulation import SimEnv
+from app.schemas.simulation import RescanResult
 from app.services import simulation as service
 
 router = APIRouter()
 
 
 @router.get("/envs", response_model=list[SimEnv])
-def list_envs(state: SimEnvState | None = None):
-    return service.list_envs(state)
+def list_envs():
+    return service.list_envs()
 
 
 # Before /envs/{env_id}
@@ -25,6 +25,7 @@ def get_env(env_id: str):
     return service.get_env(env_id)
 
 
-@router.get("/envs/{env_id}/compat", response_model=list[ModelCompat])
-def env_compat(env_id: str):
-    return service.compat(env_id)
+@router.delete("/envs/{env_id}", status_code=204)
+def delete_env(env_id: str):
+    service.delete_env(env_id)
+    return Response(status_code=204)
