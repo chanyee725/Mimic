@@ -11,7 +11,8 @@ export function SettingsPage() {
   const current = SECTIONS.find((s) => s.id === (SECTION_ALIASES[id] ?? id)) ?? SECTIONS[0]
 
   return (
-    <Page fit title="Settings" description="계정 연결, Isaac Sim, 알림을 설정합니다.">
+    // Centred column: the title lines up with the section nav, and the form no longer hugs the sidebar on wide screens
+    <Page fit className="mx-auto w-full max-w-5xl" title="Settings" description="계정 연결, Isaac Sim, 알림을 설정합니다.">
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <Panel className="h-fit p-2">
           <nav aria-label="Settings sections">
