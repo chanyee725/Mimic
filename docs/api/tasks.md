@@ -60,8 +60,7 @@ Session = { id: string; taskId: string; operator: string | null; episodes: numbe
 
 Validation: `rigId` must exist; `cameras` ⊆ rig camera keys; `actionHz` ∈ rig `actionHzOptions`; `videoFps` ∈ rig `videoFpsOptions`;
 `envId`, when set, must be a
-registered environment (`/sim/envs`) compatible with the task: its cameras include the task `cameras` and its `action_dim`
-equals the rig's joint count (else 422 on `envId`); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
+registered environment (`/sim/envs`, a USD stage; else 422 on `envId` "unknown environment"); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
 `cameras` and `outcomes` non-empty. Rule failures return `422` with `details.errors = [{ loc: ["body", field, ...], msg }]`.
 `updatedBy` comes from the `X-Operator` header (pseudonymous ID matching `^OP-\d{2}$`, else 422), default `OP-01`.
 
@@ -79,7 +78,7 @@ name: Stack two blocks
 label: stack the blue block on top of the red block
 tags: [pick-place, tabletop]
 rig: so101-kit
-env: pick-red-cube                                 # optional: Isaac Sim task; omit for the real rig
+env: tabletop                                      # optional: Isaac Sim task (a registered USD stage); omit for the real rig
 cameras: [top, wrist]
 rates: { action_hz: 60, video_fps: 30 }
 episode: { target: 50, duration_s: 30, reset_s: 10, countdown_s: 3 }
