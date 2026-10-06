@@ -4,7 +4,8 @@ import { HfBadge } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { SearchInput } from "@/components/common/search-input"
 import { Segmented } from "@/components/common/segmented"
-import type { Dataset } from "@/domain/dataset"
+import { WorldMarks } from "@/components/robot/world-mark"
+import { datasetWorlds, type Dataset } from "@/domain/dataset"
 import { formatSize, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -82,6 +83,7 @@ export function DatasetList({
                     <span className={cn("size-1.5 shrink-0 rounded-full", KIND_DOT[d.kind])} aria-hidden />
                     <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{d.repoId}</span>
                     {d.hub.pushed && <HfBadge />}
+                    <WorldMarks worlds={datasetWorlds(d)} className="ml-auto" />
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground tabular-nums">
                     {KIND_LABEL[d.kind]},{" "}

@@ -25,6 +25,7 @@ def write_recording(
     subtasks: list[SubtaskSpan] | None = None,
     cameras: list[str] | None = None,
     camera_fps: float = 30,
+    sim_env: str | None = None,
 ) -> Recording:
     """An episode MCAP + sidecar under <raw>/<task>/ep_NNNN, like Capture writes them; `cameras`
     adds JPEG frames (grey shade changing per frame) for each key."""
@@ -57,6 +58,7 @@ def write_recording(
         source="capture",
         task_id=task_id,
         rig_id="so101-kit",
+        sim_env=sim_env,
         episode=episode,
         recorded_at=f"2026-10-01T10:{episode % 60:02d}:00+09:00",
         duration_s=duration_s,

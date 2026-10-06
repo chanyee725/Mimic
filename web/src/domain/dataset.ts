@@ -1,3 +1,5 @@
+import type { TaskWorld } from "./task"
+
 export type DatasetKind = "lerobot" | "mcap"
 
 export type DatasetStatus = "ready" | "converting" | "failed"
@@ -37,7 +39,11 @@ export type Dataset = {
   episodeCount: number
   /** repoIds this dataset was merged from (merged datasets only) */
   sources?: string[] | null
+  /** Kinds of episodes it holds (real, Isaac Sim, or both after a merge); older responses omit it */
+  worlds?: TaskWorld[]
 }
+
+export const datasetWorlds = (d: Pick<Dataset, "worlds">): TaskWorld[] => d.worlds ?? ["real"]
 
 /** What converting a task's accepted recordings (minus excluded ones) would produce */
 export type ConvertPreview = {

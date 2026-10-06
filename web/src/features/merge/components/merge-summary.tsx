@@ -2,12 +2,15 @@ import { Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
 import { QueryNote } from "@/components/common/query-state"
 import { StatusDot } from "@/components/common/status-dot"
+import { WorldMarks } from "@/components/robot/world-mark"
 import type { MergePreview } from "@/domain/dataset"
+import type { TaskWorld } from "@/domain/task"
 
 type PreviewQuery = { data?: MergePreview; isPending: boolean; error: Error | null; refetch: () => unknown }
 
 /** Totals, per-source rows, features and problems of the merge preview */
-export function MergeSummary({ count, query }: { count: number; query: PreviewQuery }) {
+/** `worlds`: every kind of episode the picked sources hold (Real, Isaac Sim or both) */
+export function MergeSummary({ count, query, worlds }: { count: number; query: PreviewQuery; worlds: TaskWorld[] }) {
   const preview = query.data
   return (
     <Panel title="Summary" className="min-h-0 flex-1 overflow-y-auto">
@@ -17,8 +20,9 @@ export function MergeSummary({ count, query }: { count: number; query: PreviewQu
         <QueryNote query={query} />
       ) : (
         <>
-          <dl className="grid grid-cols-4 gap-x-6 gap-y-3">
+          <dl className="grid grid-cols-5 gap-x-6 gap-y-3">
             {[
+              { k: "Data", v: <WorldMarks worlds={worlds} /> },
               { k: "Episodes", v: preview.episodes.toLocaleString() },
               { k: "Frames", v: preview.frames.toLocaleString() },
               { k: "fps", v: preview.fps ?? "—" },

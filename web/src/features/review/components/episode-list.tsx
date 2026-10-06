@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatusDot } from "@/components/common/status-dot"
+import { WorldMark } from "@/components/robot/world-mark"
 import type { Recording } from "@/domain/recording"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -162,7 +163,7 @@ export function EpisodeList({
                   )}
                   <span className={REVIEW_CLASS[r.review]}>{r.review}</span>
                   <span className={issues ? "text-warn" : "text-muted-foreground"}>{issues ? plural(issues, "issue") : "valid"}</span>
-                  {r.simEnv && <span className="text-muted-foreground">Isaac Sim</span>}
+                  {r.simEnv && <WorldMark world="sim" label />}
                 </span>
               </button>
             </li>

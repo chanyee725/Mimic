@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 
 from app.core.errors import ApiError
-from app.models.datasets import Dataset, DatasetFeature, Hub
+from app.models.datasets import WORLDS, Dataset, DatasetFeature, Hub
 from app.models.recordings import Recording
 from app.models.tasks import Task
 from app.schemas.datasets import ConvertPreview
@@ -218,10 +218,17 @@ def _build(task: Task, recs: list[Recording]) -> store.Build:
             "hub": {"pushed": False, "private": True},
             "notes": notes(task),
             "episode_sources": [r.file for r in recs],
+            "worlds": worlds_of(recs),
             "skipped_cameras": skipped,
         }
 
     return build
+
+
+def worlds_of(recs) -> list[str]:
+    """Real and / or sim, from the recordings' Isaac Sim environment."""
+    found = {"sim" if r.sim_env else "real" for r in recs}
+    return [w for w in WORLDS if w in found]
 
 
 def convert(task_id: str, repo_id: str, exclude: list[str]) -> Dataset:
@@ -245,5 +252,6 @@ def convert(task_id: str, repo_id: str, exclude: list[str]) -> Dataset:
         hub=Hub(pushed=False, private=True),
         features=features_for(task, recs),
         episode_count=0,
+        worlds=worlds_of(recs),
     )
     return store.start_job(ds, _build(task, recs))

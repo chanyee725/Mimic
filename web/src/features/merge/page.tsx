@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 
 import { Page } from "@/components/layout/page-layout"
 import { useDatasets, useMergeDatasets, useMergePreview } from "@/api/datasets"
-import { isMergeable } from "@/domain/dataset"
+import { datasetWorlds, isMergeable } from "@/domain/dataset"
 
 import { MergeOutput } from "./components/merge-output"
 import { MergeSummary } from "./components/merge-summary"
@@ -17,6 +17,7 @@ export function MergePage() {
   const [picked, setPicked] = useState<string[]>([])
   const sources = picked.filter((id) => candidates.some((d) => d.repoId === id))
   const preview = useMergePreview(sources)
+  const worlds = [...new Set(candidates.filter((d) => sources.includes(d.repoId)).flatMap(datasetWorlds))]
   const [name, setName] = useState<string | null>(null)
   const repoId = name ?? defaultRepoId(sources[0])
 
@@ -41,7 +42,7 @@ export function MergePage() {
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <SourceList datasets={candidates} query={datasets} picked={sources} onToggle={toggle} onClear={() => setPicked([])} />
         <div className="flex min-h-0 flex-col gap-4">
-          <MergeSummary count={sources.length} query={preview} />
+          <MergeSummary count={sources.length} query={preview} worlds={worlds} />
           <MergeOutput
             repoId={repoId}
             onRepoIdChange={setName}
