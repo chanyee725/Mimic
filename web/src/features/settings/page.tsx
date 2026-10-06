@@ -3,14 +3,15 @@ import { useSearchParams } from "react-router-dom"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { cn } from "@/lib/utils"
 
-import { SECTIONS } from "./sections"
+import { SECTION_ALIASES, SECTIONS } from "./sections"
 
 export function SettingsPage() {
   const [params, setParams] = useSearchParams()
-  const current = SECTIONS.find((s) => s.id === params.get("section")) ?? SECTIONS[0]
+  const id = params.get("section") ?? ""
+  const current = SECTIONS.find((s) => s.id === (SECTION_ALIASES[id] ?? id)) ?? SECTIONS[0]
 
   return (
-    <Page fit title="Settings" description="외부 서비스, 백엔드 연결, 알림을 설정합니다.">
+    <Page fit title="Settings" description="계정 연결, Isaac Sim, 알림을 설정합니다.">
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <Panel className="h-fit p-2">
           <nav aria-label="Settings sections">
@@ -40,10 +41,7 @@ export function SettingsPage() {
 
         {/* Keying by section discards in-progress edits when the section changes */}
         <div key={current.id} className="grid min-h-0 content-start gap-3 overflow-y-auto pb-1">
-          <div className="grid gap-0.5">
-            <h2 className="text-lg font-semibold">{current.label}</h2>
-            <p className="text-[13px] text-muted-foreground">{current.description}</p>
-          </div>
+          <h2 className="text-lg font-semibold">{current.label}</h2>
           <div className="max-w-3xl">{current.render()}</div>
         </div>
       </div>

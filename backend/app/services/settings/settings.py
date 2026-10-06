@@ -46,7 +46,7 @@ PARTS: dict[str, tuple[tuple[str, ...], type[CamelModel]]] = {
     "notifications": (("notifications",), NotificationSettings),
 }
 # Live values and secrets: kept in memory, never written (snake_case keys)
-LIVE_FIELDS = {"state", "latency_ms", "spent_this_month"}
+LIVE_FIELDS = {"state", "latency_ms"}
 SECRET_FIELDS = {"token", "api_key", "slack_webhook"}
 
 _doc: dict[str, Settings] = {}
@@ -56,7 +56,7 @@ _secrets: dict[str, str] = {}
 _disk: dict[str, str] = {}
 
 # Fields a PATCH never changes (live values, secrets)
-READ_ONLY = {"state", "latencyMs", "spentThisMonth", "token", "apiKey", "slackWebhook"}
+READ_ONLY = {"state", "latencyMs", "token", "apiKey", "slackWebhook"}
 
 # Secret name → (section, path inside it)
 SECRET_PATHS: dict[str, tuple[str, ...]] = {
@@ -69,7 +69,6 @@ TARGET_SECRET = {
     "runpod": "runpod_api_key",
     "slack": "slack_webhook",
 }
-GRPC_TIMEOUT_S = 1.0
 
 
 def reset() -> None:
@@ -141,13 +140,34 @@ def _read_part(part: str, seed: dict[str, Any], model: type[CamelModel]) -> dict
         if not isinstance(raw, dict):
             raise ValueError("expected a mapping")
         values = model.model_validate(_overlay(seed, raw)).model_dump(mode="json")
+        if part == "notifications":
+            values["events"] = _known_events(seed["events"], raw.get("events"))
     except (storage.StorageError, ValidationError, ValueError) as e:
         log.warning("%s is invalid, using seed values: %s", storage.path(rel), e)
         raise _BrokenPart from e
-    # Old files may still carry secret {set, last4}: leave them unremembered so they get cleaned
-    if not _secret_keys(raw):
+    # Old files with secret {set, last4} or dropped keys stay unremembered so they get rewritten;
+    # a partial file (keys missing, filled from the seed) is left as written
+    if not _secret_keys(raw) and not _dropped(raw, _persisted(values)):
         _disk[part] = storage.dumps(_persisted(values))
     return values
+
+
+def _dropped(raw: Any, kept: Any) -> bool:
+    """True when the file holds keys (or notification events) the settings no longer have."""
+    if isinstance(raw, dict):
+        if not isinstance(kept, dict):
+            return True
+        return any(k not in kept or _dropped(v, kept[k]) for k, v in raw.items())
+    if isinstance(raw, list) and isinstance(kept, list):
+        known = {e.get("key") for e in kept if isinstance(e, dict)}
+        return any(isinstance(e, dict) and e.get("key") not in known for e in raw)
+    return False
+
+
+def _known_events(seed: list[dict[str, Any]], stored: Any) -> list[dict[str, Any]]:
+    """The seed's events in seed order, `on` taken from the file; unknown keys are dropped."""
+    on = {e.get("key"): e.get("on") for e in stored or [] if isinstance(e, dict)}
+    return [e | ({"on": on[e["key"]]} if isinstance(on.get(e["key"]), bool) else {}) for e in seed]
 
 
 def _secret_keys(value: Any) -> bool:
@@ -355,19 +375,13 @@ def _check(target: str) -> ConnTestResult:
         if not has_secret(secret):
             return ConnTestResult(state="error", detail=f"{secret} is not set")
         return ConnTestResult(state="ok", detail="Key is set (not verified online)")
-    if target == "api":
-        return ConnTestResult(state="ok")  # this request reached the API
-    if target == "grpc":
-        return system.tcp_check(get_settings().connection.grpc.url, GRPC_TIMEOUT_S)
-    if target == "isaac":
-        from app.services.simulation import runner  # simulation reads settings: import late
+    from app.services.simulation import runner  # simulation reads settings: import late
 
-        return runner.check()
-    return ConnTestResult(state="error", detail="Camera pipeline is not implemented yet")
+    return runner.check()  # isaac
 
 
 def run_test(target: str) -> ConnTestResult:
-    """Key check for integrations, a TCP connect for gRPC, the Isaac Sim server's health; WebRTC has no pipeline yet."""
+    """Key check for integrations, the Isaac Sim server's health."""
     result = _check(target)
 
     data = _dump()

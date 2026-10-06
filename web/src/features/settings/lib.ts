@@ -1,7 +1,7 @@
 import { ApiError } from "@/api/client"
 
 /** Fields the server owns: PATCH ignores them, so they never count as an edit */
-const READ_ONLY = new Set(["state", "latencyMs", "spentThisMonth", "token", "apiKey", "slackWebhook"])
+const READ_ONLY = new Set(["state", "latencyMs", "token", "apiKey", "slackWebhook"])
 
 /** Copy of a section without its read-only fields (deep) */
 export function editable<T>(value: T): T {

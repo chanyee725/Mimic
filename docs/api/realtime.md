@@ -92,5 +92,5 @@ The web JointPlots read frames into their ring buffer (no React state per sample
 - Unknown `rigId` → `404`. `DELETE` of an unknown session → `404`.
 - The answer carries `sessionId`, used by `DELETE /webrtc/sessions/{id}` to hang up.
 
-STUN / TURN come from `settings.connection.webrtc`. Until the camera pipeline exists a valid offer answers
+STUN / TURN servers will be configured when the camera pipeline is built (no setting yet). Until then a valid offer answers
 `501` with `{ "error": { "code": "not_implemented", ... } }`.
