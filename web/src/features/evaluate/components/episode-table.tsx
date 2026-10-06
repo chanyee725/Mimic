@@ -9,7 +9,7 @@ import { useSimEpisodes } from "@/api/simulation"
 import type { SimEpisode, SimJob } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
-import { EPISODES_PER_PAGE, RESULT_FILTERS, type ResultFilter } from "../job-stats"
+import { EPISODES_PER_PAGE, RESULT_FILTERS, type ResultFilter } from "../lib"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 /**

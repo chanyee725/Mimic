@@ -12,6 +12,7 @@ from pathlib import Path
 from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
+from app.models.rigs import RigKind
 from app.models.recordings import (
     Recording,
     RecordingCheck,
@@ -86,11 +87,14 @@ def page_recordings(
     limit: int,
     cursor: str | None,
     order: RecordingOrder = "newest",
+    kind: RigKind | None = None,
 ) -> Page[Recording]:
     rows = [
         r
         for r in list_recordings(task_id)
-        if (review is None or r.review == review) and (source is None or r.source == source)
+        if (review is None or r.review == review)
+        and (source is None or r.source == source)
+        and (kind is None or (r.sim_env is not None) == (kind == "sim"))
     ]
     if order == "episode":
         # Lowest episode number first; imports (no number) last, oldest first

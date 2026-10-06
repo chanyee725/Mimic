@@ -1,6 +1,6 @@
 # sim
 
-Isaac Sim 5.1.0 평가 환경과 실행기를 두는 곳입니다. 시뮬레이션은 **평가만** 하고, 이 스테이션이나 시뮬레이션 서버에서 돕니다.
+Isaac Sim 5.1.0 환경과 실행기를 두는 곳입니다. 시뮬레이션은 **데이터 수집**(가상 Rig)과 **평가**에 쓰고, 이 스테이션이나 시뮬레이션 서버에서 돕니다.
 
 ```
 sim/
@@ -27,7 +27,7 @@ cd sim && uv sync     # Isaac Sim 5.1.0 (약 16 GB). 실행기는 NVIDIA EULA �
 
 Settings → Connection → **Isaac Sim** 에서 고릅니다.
 
-- **This station:** 백엔드가 필요할 때 `127.0.0.1:8211` 에 서버를 띄웁니다. 백엔드를 재시작해도 서버는 남아 있고, 앱은 Simulation 화면의 **Stop** 으로 끕니다.
+- **This station:** 백엔드가 필요할 때 `127.0.0.1:8211` 에 서버를 띄웁니다. 백엔드를 재시작해도 서버는 남아 있고, 앱은 Environments 화면의 **Stop** 으로 끕니다.
 - **Remote server:** 시뮬레이션 서버에 이 저장소를 받고 `cd sim && uv sync` 한 뒤 아래처럼 띄워 두고, Server URL 에 `http://<서버>:8211` 을 적습니다. 환경을 열 때 폴더를 서버로 보내므로 서버에 `envs/` 를 맞춰 둘 필요는 없습니다.
 
   ```sh
@@ -36,13 +36,23 @@ Settings → Connection → **Isaac Sim** 에서 고릅니다.
 
 - **Display:** Window 는 Isaac Sim 창을 띄우고, Headless 는 화면 없이 돌립니다. 원격 서버에서 Window 를 고르면 서버 화면에 창이 뜹니다.
 
-Simulation → Environments 에서 환경을 고르고 **Open in Isaac Sim** 을 누르면 그 환경의 `scene.usd` 가 열립니다. 로그와 받은 환경은 `~/.cache/mimic-sim/` 에 있습니다.
+Environments 화면에서 환경을 고르고 **Open in Isaac Sim** 을 누르면 그 환경의 `scene.usd` 가 열립니다. 로그와 받은 환경은 `~/.cache/mimic-sim/` 에 있습니다.
 
 ## 환경 추가
 
-- 새 환경은 `envs/_template/` 를 복사해서 만들고, 웹의 Simulation → Environments 에서 **Rescan** 하면 목록에 나타납니다.
+- 새 환경은 `envs/_template/` 를 복사해서 만들고, 웹의 Environments 화면에서 **Rescan** 하면 목록에 나타납니다.
 - `_` 나 `.` 로 시작하는 폴더는 스캔하지 않습니다.
 - 폴더 위치는 환경 변수 `VLA_SIM_ENVS_DIR` (기본값 `sim/envs`).
 - 예시 환경의 `scene.usd` 는 빈 자리표시 장면입니다. Isaac Sim 에서 만든 장면으로 바꿔 넣으세요.
 - 매니페스트 형식과 서버 API: [docs/api/simulation.md](../docs/api/simulation.md)
 - USD 파일이 커지면 Git LFS 로 관리합니다.
+
+## 가상 Rig (데이터 수집)
+
+`config/rigs/<id>.yaml` 에 `sim: { env: <env-id> }` 를 넣으면 가상 Rig 가 됩니다. 팔로워와 카메라는 그 환경 안에서 돌고 (포트, 캘리브레이션 없음), 리더 팔은 실제 Rig 와 같은 장치를 씁니다. 예시: `config/rigs/so101-sim.yaml`.
+
+- Task 에서 가상 Rig 를 고르면 Capture, Review, Datasets 흐름을 그대로 씁니다. 녹화에는 환경 id (`simEnv`) 가 붙습니다.
+- 가상 장치의 id 는 실제 Rig 와 겹치지 않게 따로 짓습니다 (`sim-follower`, `sim-top`). 리더는 실제 Rig 와 같은 id 를 씁니다.
+- Isaac Sim 연결(브리지)은 아직 없어서, 가상 Rig 의 Capture 와 텔레오퍼레이션은 지금은 503 을 돌려줍니다.
+- 평가는 Evaluate 화면에서 대상을 **Isaac Sim** 으로 고릅니다.
+- 형식: [docs/api/rigs.md](../docs/api/rigs.md#sim-rigs)

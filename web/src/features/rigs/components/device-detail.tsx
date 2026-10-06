@@ -49,25 +49,29 @@ export function DeviceDetail({ device }: { device: Device }) {
       <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto">
         <div className="grid gap-1.5">
           <span className="text-xs text-muted-foreground">Port</span>
-          <div className="flex items-center justify-between gap-3">
-            <div className="grid min-w-0 gap-0.5 text-[13px]">
-              {port ? (
-                <span className="truncate">
-                  {port.device} · {port.label || "USB device"}
-                </span>
-              ) : (
-                <span className="truncate text-warn">{portsQuery.isPending ? device.port : `${device.port} (not found)`}</span>
-              )}
-              {port && (
-                <span className="truncate text-xs text-muted-foreground" title={port.path}>
-                  {port.path}
-                </span>
-              )}
+          {device.simulated ? (
+            <span className="text-[13px]">Isaac Sim</span>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid min-w-0 gap-0.5 text-[13px]">
+                {port ? (
+                  <span className="truncate">
+                    {port.device} · {port.label || "USB device"}
+                  </span>
+                ) : (
+                  <span className="truncate text-warn">{portsQuery.isPending ? device.port : `${device.port} (not found)`}</span>
+                )}
+                {port && (
+                  <span className="truncate text-xs text-muted-foreground" title={port.path}>
+                    {port.path}
+                  </span>
+                )}
+              </div>
+              <Button variant="outline" size="sm" disabled={busy || preview} onClick={() => setPicking(true)}>
+                Change…
+              </Button>
             </div>
-            <Button variant="outline" size="sm" disabled={busy || preview} onClick={() => setPicking(true)}>
-              Change…
-            </Button>
-          </div>
+          )}
         </div>
 
         {/* The test opens the port once (LeRobot); health and stats come from its result */}
@@ -77,7 +81,7 @@ export function DeviceDetail({ device }: { device: Device }) {
               <LuPlugZap />
               {testing ? "Testing…" : "Test connection"}
             </Button>
-            {device.type === "camera" && (
+            {device.type === "camera" && !device.simulated && (
               <Button
                 variant="outline"
                 size="sm"
@@ -89,7 +93,7 @@ export function DeviceDetail({ device }: { device: Device }) {
                 {preview ? "Hide preview" : "Preview"}
               </Button>
             )}
-            {isArm(device) && (
+            {isArm(device) && !device.simulated && (
               <Button variant="outline" size="sm" disabled={testing} onClick={() => setCalibrating(true)}>
                 <LuSlidersHorizontal />
                 {busy ? "Calibrating…" : "Calibrate"}
@@ -104,7 +108,9 @@ export function DeviceDetail({ device }: { device: Device }) {
               <span className="pl-3 text-xs text-muted-foreground tabular-nums">Tested {formatDateTime(device.check.at)}</span>
             </div>
           ) : (
-            <span className="text-xs text-muted-foreground">포트를 고른 뒤 Test connection 으로 연결 상태를 확인하세요.</span>
+            !device.simulated && (
+              <span className="text-xs text-muted-foreground">포트를 고른 뒤 Test connection 으로 연결 상태를 확인하세요.</span>
+            )
           )}
           {test.isError && test.variables === device.id && <span className="text-[13px] text-bad">{test.error.message}</span>}
           {/* A camera has one reader: the preview holds it, so testing waits until it is hidden */}
@@ -132,8 +138,8 @@ export function DeviceDetail({ device }: { device: Device }) {
           </dl>
         </div>
       </div>
-      <PortDialog key={`port-${device.id}`} device={device} open={picking} onOpenChange={setPicking} />
-      {isArm(device) && (
+      {!device.simulated && <PortDialog key={`port-${device.id}`} device={device} open={picking} onOpenChange={setPicking} />}
+      {isArm(device) && !device.simulated && (
         <CalibrationDialog key={device.id} device={device} active={busy} open={calibrating} onOpenChange={setCalibrating} />
       )}
     </Panel>

@@ -162,6 +162,7 @@ export function EpisodeList({
                   )}
                   <span className={REVIEW_CLASS[r.review]}>{r.review}</span>
                   <span className={issues ? "text-warn" : "text-muted-foreground"}>{issues ? plural(issues, "issue") : "valid"}</span>
+                  {r.simEnv && <span className="text-muted-foreground">Isaac Sim</span>}
                 </span>
               </button>
             </li>

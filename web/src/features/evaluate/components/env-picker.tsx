@@ -4,7 +4,7 @@ import { StatusDot } from "@/components/common/status-dot"
 import type { Task } from "@/domain/task"
 import { cn } from "@/lib/utils"
 
-import type { EnvOption } from "../new-eval"
+import type { EnvOption } from "../lib"
 
 /**
  * Registered environments as a radio list. Rows the model can be loaded into are selectable;

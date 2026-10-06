@@ -5,6 +5,7 @@ import { Panel } from "@/components/layout/page-layout"
 import { StatusDot } from "@/components/common/status-dot"
 import { useDevices } from "@/api/devices"
 import { useRigs } from "@/api/rigs"
+import { RIG_KIND_LABEL } from "@/domain/rig"
 import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE, rigDeviceIds, rigHealth } from "../lib"
@@ -65,6 +66,7 @@ export function RigList({ selectedId, onSelect }: { selectedId: string | undefin
                 <span className="flex min-w-0 items-center gap-2">
                   <StatusDot tone={devices ? HEALTH_TONE[rigHealth(devices)] : "muted"} />
                   <span className={cn("truncate text-[13px]", selected ? "font-medium" : "font-normal")}>{r.name}</span>
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">{RIG_KIND_LABEL[r.kind]}</span>
                 </span>
                 <span className="truncate pl-3.5 text-xs text-muted-foreground">
                   {r.master} → {r.slave}

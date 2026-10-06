@@ -11,7 +11,7 @@ import { useTask } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
 import { formatDateTime } from "@/lib/format"
 
-import { ENV_STATE, evalHref } from "../envs"
+import { ENV_STATE, evalHref } from "../lib"
 import { EnvCompatList } from "./env-compat-list"
 import { EnvFiles, EnvManifest } from "./env-manifest"
 import { IsaacStatus } from "./isaac-status"

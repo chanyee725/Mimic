@@ -11,3 +11,7 @@ export function trialsOf(runs: EvalRun[]): Trial[] {
     .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
     .map((r, i) => ({ n: i + 1, instruction: r.instruction, seconds: r.elapsedS, result: r.result! }))
 }
+
+export * from "./job-stats"
+export * from "./new-eval"
+export * from "./sim"

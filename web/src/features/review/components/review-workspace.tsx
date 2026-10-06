@@ -3,6 +3,7 @@ import { useState } from "react"
 import { EmptyState } from "@/components/common/empty-state"
 import { Panel } from "@/components/layout/page-layout"
 import { useBulkDelete, useDeleteRecording, useRecordings } from "@/api/recordings"
+import type { RigKind } from "@/domain/rig"
 
 import type { ReviewFilter } from "../lib"
 import { BulkActions } from "./bulk-actions"
@@ -14,14 +15,14 @@ import { ReviewActions } from "./review-actions"
 
 /**
  * Player, episode list and review actions for one task. The page keys it by task id,
- * so the filter and selection reset when the task changes.
+ * so the filter and selection reset when the task or the rig kind changes.
  */
-export function ReviewWorkspace({ taskId, taskPicker }: { taskId: string; taskPicker: React.ReactNode }) {
+export function ReviewWorkspace({ taskId, kind, taskPicker }: { taskId: string; kind?: RigKind; taskPicker: React.ReactNode }) {
   const [filter, setFilter] = useState<ReviewFilter>("all")
   // Checked ids for the bulk actions; cleared when the filter changes
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set())
   const [checkingAll, setCheckingAll] = useState(false)
-  const recordings = useRecordings({ taskId, review: filter === "all" ? undefined : filter, order: "episode" })
+  const recordings = useRecordings({ taskId, kind, review: filter === "all" ? undefined : filter, order: "episode" })
   const episodes = recordings.data?.pages.flatMap((p) => p.items) ?? []
   const total = recordings.data?.pages[0]?.total ?? 0
 

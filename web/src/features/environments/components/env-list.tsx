@@ -13,7 +13,7 @@ import type { SimEnv } from "@/domain/simulation"
 import { formatDateTime, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { ENV_FILTERS, ENV_STATE, type EnvFilter } from "../envs"
+import { ENV_FILTERS, ENV_STATE, type EnvFilter } from "../lib"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { RegisterEnvHelp } from "./register-env-help"
 

@@ -17,6 +17,7 @@ export function ControlPanel({
   task,
   ep,
   offline,
+  simEnv,
   onSelectTask,
   taskError,
 }: {
@@ -24,6 +25,8 @@ export function ControlPanel({
   ep: CaptureControls
   /** Names of required devices that are not connected */
   offline: string[]
+  /** Isaac Sim environment when the task's rig is a sim rig */
+  simEnv: string | null
   onSelectTask: (id: string) => void
   taskError: Error | null
 }) {
@@ -43,7 +46,7 @@ export function ControlPanel({
         </div>
       </div>
 
-      <TeleopRow rigId={task.rigId} locked={ep.phase !== "idle"} />
+      <TeleopRow rigId={task.rigId} locked={ep.phase !== "idle"} simEnv={simEnv} />
 
       <RecordingStatus
         task={task}
@@ -57,7 +60,7 @@ export function ControlPanel({
       <EpisodeControls
         phase={ep.phase}
         busy={ep.busy}
-        blocked={ep.phase === "idle" ? startBlockedNote(task, offline) : null}
+        blocked={ep.phase === "idle" ? startBlockedNote(task, offline, simEnv) : null}
         error={ep.error}
         onToggle={ep.toggle}
         onSave={ep.save}
@@ -68,8 +71,9 @@ export function ControlPanel({
   )
 }
 
-/** Why a new episode can't start: the task's target is reached, or rig devices are offline */
-function startBlockedNote(task: Task, offline: string[]): React.ReactNode | null {
+/** Why a new episode can't start: a sim rig (Isaac Sim not connected), the task's target is reached, or rig devices are offline */
+function startBlockedNote(task: Task, offline: string[], simEnv: string | null): React.ReactNode | null {
+  if (simEnv) return <>Isaac Sim 연결 전이라 이 Task({simEnv}) 는 아직 녹화할 수 없습니다.</>
   if (targetReached(task))
     return (
       <>

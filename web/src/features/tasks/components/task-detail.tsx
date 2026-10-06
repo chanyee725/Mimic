@@ -9,6 +9,7 @@ import { Panel } from "@/components/layout/page-layout"
 import { LinkButton } from "@/components/common/link-button"
 import { StatusDot } from "@/components/common/status-dot"
 import { ApiError } from "@/api/client"
+import { useRigs } from "@/api/rigs"
 import { useDuplicateTask, useTask, useTaskYaml, useUpdateTask } from "@/api/tasks"
 import type { Task } from "@/domain/task"
 import { taskInput } from "@/domain/task"
@@ -55,6 +56,7 @@ function TaskEditor({ base }: { base: Task }) {
 
   const dirty = isDirty(task, base)
   const status = STATUS[task.status]
+  const sim = useRigs().data?.find((r) => r.id === task.rigId)?.kind === "sim"
 
   function onSave() {
     setConflict(false)
@@ -96,7 +98,7 @@ function TaskEditor({ base }: { base: Task }) {
             </Badge>
           </div>
           <span className="truncate text-[13px] text-muted-foreground tabular-nums">
-            v{base.version} · updated {formatDateTime(base.updatedAt)} by {base.updatedBy}
+            {sim && "Isaac Sim · "}v{base.version} · updated {formatDateTime(base.updatedAt)} by {base.updatedBy}
             {dirty && <span className="text-foreground"> · unsaved changes</span>}
           </span>
         </div>

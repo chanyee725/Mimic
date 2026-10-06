@@ -17,7 +17,7 @@ export function SimJobRow({ job, modelName, envName }: { job: SimJob; modelName?
   return (
     <li>
       <Link
-        to={`/simulation/${job.id}`}
+        to={`/evaluate/sim/${job.id}`}
         className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 rounded-md px-3 py-3 transition-colors hover:bg-accent/60"
       >
         <div className="grid min-w-0 gap-0.5">

@@ -20,9 +20,14 @@ class TargetHz(CamelModel):
     video: int
 
 
+RigKind = Literal["real", "sim"]
+
+
 class Rig(CamelModel):
     id: str
     name: str
+    kind: RigKind = "real"  # sim: robots and cameras live in an Isaac Sim environment
+    env_id: str | None = None  # the Isaac Sim environment of a sim rig
     master: str
     slave: str
     robots: list[str]
@@ -74,6 +79,7 @@ class Device(CamelModel):
     streams: list[DeviceStream]
     stats: list[Stat]
     check: DeviceCheck | None = None
+    simulated: bool = False  # lives in Isaac Sim (a sim rig's robot or camera)
 
 
 PortKind = Literal["serial", "video"]

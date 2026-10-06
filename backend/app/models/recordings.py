@@ -39,6 +39,7 @@ class Recording(CamelModel):
     source: RecordingSource
     task_id: str | None = None
     rig_id: str | None = None
+    sim_env: str | None = None  # Isaac Sim environment, for an episode recorded on a sim rig
     episode: int | None = None
     recorded_at: str
     duration_s: float

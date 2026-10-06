@@ -14,12 +14,12 @@ export function SimJobTitle({ job, modelName }: { job: SimJob; modelName: string
   return (
     <span className="flex min-w-0 items-center gap-3">
       <LinkButton
-        to="/simulation"
+        to="/evaluate?target=sim"
         variant="ghost"
         size="icon-sm"
         className="-ml-1.5"
-        aria-label="Back to simulation"
-        title="Back to simulation"
+        aria-label="Back to Evaluate"
+        title="Back to Evaluate"
       >
         <LuArrowLeft />
       </LinkButton>

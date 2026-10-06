@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
+import { ErrorNote, LoadingNote, QueryNote } from "@/components/common/query-state"
+import { Segmented } from "@/components/common/segmented"
 import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
 import { CameraGrid } from "@/components/robot/camera-grid"
 import { JointPlots } from "@/components/robot/joint-plots"
@@ -20,17 +22,62 @@ import { useLiveSamples } from "@/hooks/use-live-samples"
 import { formatClock } from "@/lib/format"
 
 import { ModelField } from "./components/model-field"
-import { ErrorNote, LoadingNote, QueryNote } from "@/components/common/query-state"
+import { NewEvalPanel } from "./components/new-eval-panel"
 import { RunControls } from "./components/run-controls"
+import { SimJobsPanel } from "./components/sim-jobs-panel"
 import { TrialsList } from "./components/trials-list"
 import { useEvalRun } from "./hooks/use-eval-run"
 
-// Runs a checkpoint saved in Models on the real robot.
-// The policy takes cameras, joint state and an instruction, outputs actions, and each run is judged Success / Fail.
+// Runs a saved model on the real robot (one run at a time, judged by hand) or in Isaac Sim
+// (batch evaluations judged by the environment's success check).
 
-const DESCRIPTION = "학습한 checkpoint 를 실제 로봇에 올려 지시문을 주고 바로 돌려 봅니다."
+type Target = "real" | "sim"
+
+const DESCRIPTION: Record<Target, string> = {
+  real: "저장한 모델을 실제 로봇에 올려 지시문을 주고 바로 돌려 봅니다.",
+  sim: "저장한 모델을 Isaac Sim 환경에서 여러 번 돌려 성공률을 봅니다.",
+}
 
 export function EvaluatePage() {
+  const [params, setParams] = useSearchParams()
+  const target: Target = params.get("target") === "sim" ? "sim" : "real"
+
+  return (
+    <Page
+      fit
+      title="Evaluate"
+      description={DESCRIPTION[target]}
+      actions={
+        <Segmented
+          label="Target"
+          value={target}
+          onChange={(v) => setParams(v === "sim" ? { target: v } : {}, { replace: true })}
+          options={[
+            { value: "real", label: "Real robot" },
+            { value: "sim", label: "Isaac Sim" },
+          ]}
+        />
+      }
+    >
+      {target === "sim" ? <SimTarget /> : <RealTarget />}
+    </Page>
+  )
+}
+
+/** Isaac Sim: evaluation jobs and the new evaluation form (?env= / ?model= preselect) */
+function SimTarget() {
+  const [params] = useSearchParams()
+  const envId = params.get("env") ?? undefined
+  const modelId = params.get("model") ?? undefined
+  return (
+    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <SimJobsPanel />
+      <NewEvalPanel key={`${envId}/${modelId}`} initialEnvId={envId} initialModelId={modelId} />
+    </div>
+  )
+}
+
+function RealTarget() {
   // Preselect via ?model= when coming from the Evaluate button in Models
   const [params] = useSearchParams()
   const models = useModels()
@@ -40,17 +87,15 @@ export function EvaluatePage() {
 
   if (!model)
     return (
-      <Page fit title="Evaluate" description={DESCRIPTION}>
-        <Panel className="flex-1">
-          {models.isPending ? (
-            <LoadingNote />
-          ) : models.isError ? (
-            <ErrorNote error={models.error} onRetry={() => models.refetch()} />
-          ) : (
-            <EmptyState className="py-10">평가할 모델이 없습니다. Training 의 checkpoint 를 Models 에 먼저 저장하세요.</EmptyState>
-          )}
-        </Panel>
-      </Page>
+      <Panel className="flex-1">
+        {models.isPending ? (
+          <LoadingNote />
+        ) : models.isError ? (
+          <ErrorNote error={models.error} onRetry={() => models.refetch()} />
+        ) : (
+          <EmptyState className="py-10">평가할 모델이 없습니다. Training 의 checkpoint 를 Models 에 먼저 저장하세요.</EmptyState>
+        )}
+      </Panel>
     )
   return <EvaluateView model={model} onModelChange={setModelId} />
 }
@@ -80,7 +125,7 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
   const running = run.phase === "running"
 
   return (
-    <Page fit title="Evaluate" description={DESCRIPTION}>
+    <>
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
           {/* Same camera tiles as Capture: live previews of the model's rig cameras */}
@@ -167,6 +212,6 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
         </Panel>
       </div>
       <ModelPickerDialog open={pickerOpen} onOpenChange={setPickerOpen} value={model.id} onSelect={onModelChange} />
-    </Page>
+    </>
   )
 }
