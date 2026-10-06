@@ -46,10 +46,6 @@ export function DiskUsage() {
           </span>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">
-        녹화, 데이터셋, 모델은 스테이션 data 폴더(<span className="font-mono">data/recordings</span>,{" "}
-        <span className="font-mono">data/datasets</span>, <span className="font-mono">data/models</span>)에 저장됩니다.
-      </p>
     </div>
   )
 }
