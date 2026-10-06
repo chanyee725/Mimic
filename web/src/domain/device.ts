@@ -20,6 +20,7 @@ export type Device = {
   streams: DeviceStream[]
   stats: { label: string; value: string }[]
   check: DeviceCheck | null
+  simulated: boolean // a sim rig's robot or camera (no port, no calibration)
 }
 
 /** Last connection test (POST /devices/{id}/test) */

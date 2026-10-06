@@ -25,6 +25,7 @@ export type Recording = {
   source: RecordingSource
   taskId: string | null // capture files only
   rigId: string | null
+  simEnv: string | null // Isaac Sim environment, for an episode recorded on a sim rig
   episode: number | null
   /** ISO 8601 */
   recordedAt: string
