@@ -7,6 +7,7 @@ import { StatStrip } from "@/components/common/stat-strip"
 import { ApiError } from "@/api/client"
 import { useModel } from "@/api/models"
 import { useSimConfig, useSimEnv, useSimEpisodes, useSimJob } from "@/api/simulation"
+import { useTask } from "@/api/tasks"
 import { simSuccessRate, type SimEpisode, type SimJob } from "@/domain/simulation"
 import { formatDuration, formatPct, plural } from "@/lib/format"
 
@@ -35,6 +36,8 @@ export function SimJobPage() {
 
 function SimJobView({ job }: { job: SimJob }) {
   const model = useModel(job.modelId).data
+  // Rollouts render the cameras the model was trained on
+  const cameras = useTask(model?.taskId).data?.cameras ?? []
   const env = useSimEnv(job.envId).data
   const gpu = useSimConfig().data?.gpu
   // Unfiltered episodes (shared with the table's "All" filter): default selection and the average length
@@ -95,12 +98,12 @@ function SimJobView({ job }: { job: SimJob }) {
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Scrolls only on short screens where the episode table would get too small */}
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <RolloutViewer job={job} cameras={env?.cameras ?? ["top", "wrist"]} episode={episode} onShowLive={() => setPicked(null)} />
+          <RolloutViewer job={job} cameras={cameras} episode={episode} onShowLive={() => setPicked(null)} />
           <EpisodeTable job={job} selected={episode?.index} onSelect={setPicked} />
         </div>
 
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <SimVsReal job={job} model={model} env={env} />
+          <SimVsReal job={job} model={model} />
           <FailureReasons job={job} />
           <Panel title="Config" className="shrink-0">
             <SimJobConfig job={job} modelName={modelName} env={env} gpu={gpu} />

@@ -116,7 +116,7 @@ export function TaskDefinition({ task, onChange }: Props) {
         )}
       </SettingsSection>
 
-      <TaskWorldSection task={task} rig={rig} onChange={onChange} />
+      <TaskWorldSection task={task} onChange={onChange} />
 
       <SettingsSection title="Recording">
         <div className="grid gap-3 @lg:grid-cols-3">

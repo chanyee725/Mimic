@@ -11,12 +11,7 @@ export function SimJobConfig({ job, modelName, env, gpu }: { job: SimJob; modelN
       rows={[
         { k: "Model", v: modelName },
         { k: "Environment", v: env?.name ?? job.envId },
-        ...(env
-          ? [
-              { k: "Folder", v: <span title={env.path}>{env.path}</span> },
-              { k: "Cameras", v: env.cameras.join(", ") },
-            ]
-          : []),
+        ...(env ? [{ k: "Scene", v: <span title={env.path}>{env.scene}</span> }] : []),
         { k: "Episodes", v: plural(job.episodes, "episode") },
         { k: "Randomization", v: randomizationLabel(job) },
         { k: "Seeds", v: seedRange(job) },
