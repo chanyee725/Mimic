@@ -50,7 +50,12 @@ export type TrainJob = {
   overrides: Record<string, ParamValue>
   checkpoints: Checkpoint[]
   error?: string | null
+  /** RunPod job step while running (see RUNPOD_PHASES); null otherwise */
+  phase?: RunPodPhase | string | null
 }
+
+/** Steps of a running RunPod job, in order */
+export type RunPodPhase = "pushing dataset" | "starting pod" | "installing" | "downloading" | "training" | "uploading"
 
 export type GpuStock = "high" | "low" | "none"
 
@@ -62,6 +67,8 @@ export type RunPodGpu = {
   /** Also available on Community cloud */
   community: boolean
   stock: GpuStock
+  /** RunPod gpuTypeId, e.g. "NVIDIA GeForce RTX 4090" */
+  typeId: string
 }
 
 export type RunPodOptions = {
