@@ -8,6 +8,9 @@ from app.schemas.common import CamelModel
 
 DatasetKind = Literal["lerobot", "mcap"]
 DatasetStatus = Literal["ready", "converting", "failed"]
+# Where the episodes were recorded: the real robot or an Isaac Sim environment
+World = Literal["real", "sim"]
+WORLDS: tuple[World, ...] = ("real", "sim")
 
 
 class DatasetFeature(CamelModel):
@@ -46,3 +49,5 @@ class Dataset(CamelModel):
     episode_count: int
     # repoIds a merged dataset was made from (null for converted ones)
     sources: list[str] | None = None
+    # Kinds of episodes it holds, in WORLDS order (a merge can hold both)
+    worlds: list[World] = ["real"]

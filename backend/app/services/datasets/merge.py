@@ -15,7 +15,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from app.core.errors import ApiError
-from app.models.datasets import Dataset, Hub
+from app.models.datasets import WORLDS, Dataset, Hub
 from app.schemas.datasets import MergePreview, MergeSource
 from app.services.datasets import datasets as store
 from app.services.datasets import lerobot as lr
@@ -227,10 +227,16 @@ def _build(found: list[Dataset], infos: dict[str, dict[str, Any]]) -> store.Buil
             "hub": {"pushed": False, "private": True},
             "notes": {f.key: f.note for f in first.features if f.note},
             "sources": [d.repo_id for d in found],
+            "worlds": _worlds(found),
             "episode_sources": episode_sources,
         }
 
     return build
+
+
+def _worlds(found: list[Dataset]) -> list[str]:
+    seen = {w for d in found for w in d.worlds}
+    return [w for w in WORLDS if w in seen]
 
 
 def merge(sources: list[str], repo_id: str) -> Dataset:
@@ -254,5 +260,6 @@ def merge(sources: list[str], repo_id: str) -> Dataset:
         features=found[0].features,
         episode_count=0,
         sources=[d.repo_id for d in found],
+        worlds=_worlds(found),
     )
     return store.start_job(ds, _build(found, infos))

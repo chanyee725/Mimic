@@ -21,6 +21,7 @@ Dataset = {
   features: DatasetFeature[]
   episodeCount: number
   sources?: string[] | null                      // merged datasets: the repoIds it was made from; null for converted ones
+  worlds: ("real" | "sim")[]                    // kinds of episodes it holds (sim = recorded for an Isaac Sim task); a merge unions its sources'; kept in station.yaml, ["real"] when missing
 }
 
 ConvertPreview = { fps: number; actionHz: number; features: DatasetFeature[]; episodes: number;
