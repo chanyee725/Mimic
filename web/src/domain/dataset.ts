@@ -34,7 +34,7 @@ export type Dataset = {
   /** ISO 8601 */
   createdAt: string
   sizeGB: number
-  hub: { pushed: boolean; private: boolean }
+  hub: { pushed: boolean; private: boolean; pulled: boolean } // pulled: downloaded from the Hub
   features: DatasetFeature[]
   episodeCount: number
   /** repoIds this dataset was merged from (merged datasets only) */

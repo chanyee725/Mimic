@@ -11,13 +11,13 @@ import { ProgressBar } from "@/components/common/progress-bar"
 import { StatStrip } from "@/components/common/stat-strip"
 import { StatusDot } from "@/components/common/status-dot"
 import { useDataset, useDatasetEpisodes, useDeleteDataset, usePushDataset } from "@/api/datasets"
-import { useRig } from "@/api/rigs"
-import { useTask } from "@/api/tasks"
+import { useRigs } from "@/api/rigs"
+import { useTasks } from "@/api/tasks"
 import { WorldMarks } from "@/components/robot/world-mark"
 import { MIXED_TASK, datasetWorlds, type Dataset } from "@/domain/dataset"
 import { formatDateTime, formatLength, formatSize, plural } from "@/lib/format"
 
-import { STATUS } from "../lib"
+import { datasetStatus } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
 import { DeleteDatasetDialog } from "./delete-dataset-dialog"
 import { ErrorNote, QueryNote } from "@/components/common/query-state"
@@ -40,15 +40,16 @@ export function DatasetDetail({ repoId, fallback, onDeleted }: { repoId: string;
 
 function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () => void }) {
   const mixed = dataset.taskId === MIXED_TASK
-  const task = useTask(mixed ? undefined : dataset.taskId).data
-  const rig = useRig(dataset.rigId).data
+  // Looked up in the lists: a pulled dataset may name a task or rig this station doesn't have
+  const task = useTasks().data?.find((t) => !mixed && t.id === dataset.taskId)
+  const rig = useRigs().data?.find((r) => r.id === dataset.rigId)
   const episodes = useDatasetEpisodes(dataset.repoId)
   const rows = episodes.data?.pages.flatMap((p) => p.items) ?? []
   // Totals need every episode; until the last page is in they stay unknown
   const complete = !!episodes.data && !episodes.hasNextPage
   const frames = rows.reduce((a, e) => a + e.frames, 0)
   const lengthS = rows.reduce((a, e) => a + e.lengthS, 0)
-  const status = STATUS[dataset.status]
+  const status = datasetStatus(dataset)
 
   const push = usePushDataset()
   const del = useDeleteDataset()
@@ -123,20 +124,22 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
       {dataset.status === "converting" && (
         <div className="grid gap-1.5">
           <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
-            <span>Encoding videos and writing parquet files</span>
+            <span>{dataset.hub.pulled ? "Downloading from Hugging Face Hub" : "Encoding videos and writing parquet files"}</span>
             <span>{dataset.progress ?? 0}%</span>
           </div>
-          <ProgressBar value={dataset.progress ?? 0} label="Conversion progress" />
+          <ProgressBar value={dataset.progress ?? 0} label={dataset.hub.pulled ? "Download progress" : "Conversion progress"} />
         </div>
       )}
 
       {dataset.status === "failed" && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-bad-muted px-3 py-2.5 text-[13px] text-bad">
           <span>{dataset.error ?? "변환이 중단됐습니다. 원인을 확인한 뒤 다시 시도하세요."}</span>
-          <LinkButton to={dataset.sources?.length ? "/merge" : "/convert"} variant="outline" size="sm" className="bg-background">
-            <LuRotateCcw />
-            {dataset.sources?.length ? "Merge again" : "Convert again"}
-          </LinkButton>
+          {!dataset.hub.pulled && (
+            <LinkButton to={dataset.sources?.length ? "/merge" : "/convert"} variant="outline" size="sm" className="bg-background">
+              <LuRotateCcw />
+              {dataset.sources?.length ? "Merge again" : "Convert again"}
+            </LinkButton>
+          )}
         </div>
       )}
 
