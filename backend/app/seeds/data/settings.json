@@ -14,6 +14,7 @@
       "isaac": {
         "mode": "local",
         "display": "window",
+        "device": "gpu",
         "python": "sim/.venv/bin/python",
         "port": 8211,
         "url": "",

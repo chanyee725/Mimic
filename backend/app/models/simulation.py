@@ -51,6 +51,7 @@ class SimRunnerApp(CamelModel):
 
     state: SimAppState
     display: Literal["window", "headless"] | None = None
+    device: Literal["gpu", "cpu"] | None = None
     pid: int | None = None
     scene: str | None = None  # id of the open environment
     error: str | None = None
@@ -59,6 +60,7 @@ class SimRunnerApp(CamelModel):
 class SimRunner(CamelModel):
     mode: Literal["local", "remote"]
     display: Literal["window", "headless"]  # from settings; used when the app starts
+    device: Literal["gpu", "cpu"] = "gpu"  # from settings: physics device of the app
     url: str
     reachable: bool
     app: SimRunnerApp | None  # null when the server is not reachable
