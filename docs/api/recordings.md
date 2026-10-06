@@ -14,6 +14,7 @@ Recording = {
   id: string; file: string                 // path relative to the raw folder, e.g. "stack-two-blocks/ep_0042.mcap"
   source: "capture" | "external"
   taskId?: string; rigId?: string; episode?: number
+  simEnv: string | null                     // Isaac Sim environment, for an episode recorded on a sim rig
   recordedAt: string                        // ISO
   durationS: number; sizeMB: number
   outcome?: Outcome
@@ -29,7 +30,7 @@ Recording = {
 
 | Method | Path | Body | Returns | Web |
 | --- | --- | --- | --- | --- |
-| GET | `/recordings?taskId=&review=&source=&order=&limit=&cursor=` | | `Page<Recording>`: `order=newest` (default) newest first, `order=episode` lowest episode number first (imports last) | `useRecordings()` |
+| GET | `/recordings?taskId=&review=&source=&kind=&order=&limit=&cursor=` | | `Page<Recording>` (`kind=real` / `sim`: episodes without / with `simEnv`): `order=newest` (default) newest first, `order=episode` lowest episode number first (imports last) | `useRecordings()` |
 | GET | `/recordings/{id}` | | `Recording` | Review detail |
 | PATCH | `/recordings/{id}` | `{ review }` | `Recording` | `setReview()` (Accept / Reject) |
 | DELETE | `/recordings/{id}` | | `204` (deletes the MCAP and its sidecar) | `deleteRecording()` |
@@ -45,7 +46,7 @@ Changes are pushed as `recording.created` / `recording.updated` / `recording.del
 
 ### Notes
 
-- `limit` 1–500 (default 50). Unknown `review` / `source` / `order` values return 422. Review lists with `order=episode`.
+- `limit` 1–500 (default 50). Unknown `review` / `source` / `kind` / `order` values return 422. Review lists with `order=episode`.
 - Bulk: `ids` holds 1–100,000 ids (422 otherwise). Any unknown id returns 404 with `details.missing` and nothing changes.
 - Samples: `topics` ⊆ `action,state`; `toS` defaults to and is clamped to the duration; `series[topic][joint][sample]`, one
   sample every `1/hz` s from `fromS`. Max 100,000 samples per series, else 422. Read from the MCAP (`/action`,

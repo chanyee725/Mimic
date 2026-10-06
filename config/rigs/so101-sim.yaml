@@ -1,0 +1,43 @@
+id: so101-sim
+name: SO-101 Sim
+
+# Isaac Sim environment the follower and cameras run in (sim/envs/<env>)
+sim:
+  env: pick-red-cube
+
+# Simulated follower: executes actions in Isaac Sim (no port, no calibration)
+robot:
+  id: sim-follower
+  type: so101_follower
+  name: SO-101 Follower (Isaac Sim)
+  joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
+
+# Real teleop leader arm: same device as in so101-kit (that file holds its port)
+device:
+  id: leader
+  type: so101_leader
+  name: SO-101 Leader
+  port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14029549-if00
+  calibration_id: so101_leader
+
+# Simulated cameras by key (keys match the environment's cameras; ids differ from the real rig's)
+cameras:
+  top:
+    id: sim-top
+    name: Top camera (Isaac Sim)
+    resolution: 640x480
+    fps: 30
+    default_on: true
+  wrist:
+    id: sim-wrist
+    name: Wrist camera (Isaac Sim)
+    resolution: 640x480
+    fps: 30
+    default_on: true
+
+# Recording rates: action (leader → simulated follower) in Hz, cameras in fps
+rates:
+  action_hz: 60
+  video_fps: 30
+  action_hz_options: [30, 60]
+  video_fps_options: [15, 30]
