@@ -11,11 +11,13 @@ export function SettingsPage() {
   const current = SECTIONS.find((s) => s.id === (SECTION_ALIASES[id] ?? id)) ?? SECTIONS[0]
 
   return (
-    // Centred, form-width column with no page header: the section list names where you are
+    // Centred both ways, form-width, no page header: the section list names where you are.
+    // The list and the form are each centred vertically, so the list never moves when the section
+    // changes; a section taller than the screen takes the full height and scrolls.
     <Page fit className="mx-auto w-full max-w-4xl">
       <h1 className="sr-only">Settings</h1>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
-        <Panel className="h-fit p-2">
+        <Panel className="h-fit p-2 lg:self-center">
           <nav aria-label="Settings sections">
             <ul className="grid gap-0.5">
               {SECTIONS.map((s) => {
@@ -42,7 +44,11 @@ export function SettingsPage() {
         </Panel>
 
         {/* Keying by section discards in-progress edits when the section changes */}
-        <section key={current.id} className="grid min-h-0 content-start overflow-y-auto pb-1" aria-label={current.label}>
+        <section
+          key={current.id}
+          className="grid min-h-0 content-start overflow-y-auto pb-1 lg:max-h-full lg:self-center"
+          aria-label={current.label}
+        >
           {current.render()}
         </section>
       </div>
