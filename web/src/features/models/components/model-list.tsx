@@ -5,14 +5,15 @@ import { LuHardDrive } from "react-icons/lu"
 import { HfBadge } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { SearchFilter } from "@/components/common/search-filter"
+import { useRigs } from "@/api/rigs"
+import { useTasks } from "@/api/tasks"
 import { successRate, type Model } from "@/domain/model"
 import { formatPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { FILTERS, type Filter } from "../lib"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
-/** Left-hand model list. Filter by location, search by name, task or dataset */
+/** Left-hand model list. Filter by the rig of the model's task, search by name, task or dataset */
 export function ModelList({
   models,
   selected,
@@ -23,12 +24,15 @@ export function ModelList({
   selected?: string
   onSelect: (id: string) => void
 }) {
-  const [filter, setFilter] = useState<Filter>("all")
+  const [rig, setRig] = useState("all")
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
   const list = models.data ?? []
+  const rigs = useRigs().data ?? []
+  const tasks = useTasks().data ?? []
+  const rigOf = (m: Model) => tasks.find((t) => t.id === m.taskId)?.rigId
   const shown = list
-    .filter(FILTERS.find((f) => f.id === filter)!.fits)
+    .filter((m) => rig === "all" || rigOf(m) === rig)
     .filter((m) => !q || m.name.toLowerCase().includes(q) || m.taskId.includes(q) || m.dataset.includes(q))
 
   return (
@@ -45,10 +49,13 @@ export function ModelList({
         search={query}
         onSearch={setQuery}
         placeholder="Search models or tasks"
-        filterLabel="Location"
-        filter={filter}
-        onFilter={setFilter}
-        options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: list.filter(f.fits).length }))}
+        filterLabel="Rig"
+        filter={rig}
+        onFilter={setRig}
+        options={[
+          { value: "all", label: "All", count: list.length },
+          ...rigs.map((r) => ({ value: r.id, label: r.name, count: list.filter((m) => rigOf(m) === r.id).length })),
+        ]}
       />
 
       {models.isPending && <LoadingNote />}
