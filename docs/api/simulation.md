@@ -3,14 +3,15 @@
 Isaac Sim 5.1.0 runs on the station or on a remote sim server (see **Isaac Sim server** below) and is used for both
 **data** and **evaluation**:
 
-- Data: a **sim rig** ([rigs.md](rigs.md#sim-rigs)) puts its follower and cameras in an environment while the real leader
-  arm drives them. Tasks pick a real or a sim rig; Capture on a sim rig records the same MCAP, tagged with `simEnv`
-  ([recordings.md](recordings.md)). The bridge is pending: Capture and teleoperation on a sim rig answer 503 for now.
+- Data: a task tagged **Isaac Sim** stores one registered environment (`envId`, [tasks.md](tasks.md)); the rig's real
+  leader arm drives the simulated follower and Capture records the same MCAP, tagged with `simEnv`
+  ([recordings.md](recordings.md)). The bridge is pending: Capture on an Isaac Sim task answers 503 for now.
 - Evaluation: a saved model is loaded into any compatible environment and rolled out many times.
 
 The user builds environments and registers each one as a folder under the environments folder (`VLA_SIM_ENVS_DIR` in
-`.env` or the environment, default `sim/envs` in this repo). Web: `api/simulation.ts`; environments on the **Environments**
-page, sim evaluation as the **Isaac Sim** target of Evaluate (`/evaluate?target=sim`, job page `/evaluate/sim/<jobId>`).
+`.env` or the environment, default `sim/envs` in this repo). Web: `api/simulation.ts`; environments are managed on the
+**Environments** page (register, check, open), tasks pick one, and sim evaluation runs as the **Isaac Sim** target of
+Evaluate (`/evaluate?target=sim`, job page `/evaluate/sim/<jobId>`).
 
 **Evaluation is not connected yet**: environments are scanned for real and can be opened in Isaac Sim, but there are no jobs (lists are `[]`,
 job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message": "Isaac Sim runner is not connected" } }`.

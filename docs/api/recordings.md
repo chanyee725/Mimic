@@ -14,7 +14,7 @@ Recording = {
   id: string; file: string                 // path relative to the raw folder, e.g. "stack-two-blocks/ep_0042.mcap"
   source: "capture" | "external"
   taskId?: string; rigId?: string; episode?: number
-  simEnv: string | null                     // Isaac Sim environment, for an episode recorded on a sim rig
+  simEnv: string | null                     // the task's Isaac Sim environment (`envId`) when it was recorded; null for real episodes
   recordedAt: string                        // ISO
   durationS: number; sizeMB: number
   outcome?: Outcome

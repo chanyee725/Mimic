@@ -1,6 +1,6 @@
 # sim
 
-Isaac Sim 5.1.0 환경과 실행기를 두는 곳입니다. 시뮬레이션은 **데이터 수집**(가상 Rig)과 **평가**에 쓰고, 이 스테이션이나 시뮬레이션 서버에서 돕니다.
+Isaac Sim 5.1.0 환경과 실행기를 두는 곳입니다. 시뮬레이션은 **데이터 수집**(Isaac Sim Task)과 **평가**에 쓰고, 이 스테이션이나 시뮬레이션 서버에서 돕니다.
 
 ```
 sim/
@@ -47,12 +47,11 @@ Environments 화면에서 환경을 고르고 **Open in Isaac Sim** 을 누르�
 - 매니페스트 형식과 서버 API: [docs/api/simulation.md](../docs/api/simulation.md)
 - USD 파일이 커지면 Git LFS 로 관리합니다.
 
-## 가상 Rig (데이터 수집)
+## Task 환경 선택 (데이터 수집)
 
-`config/rigs/<id>.yaml` 에 `sim: { env: <env-id> }` 를 넣으면 가상 Rig 가 됩니다. 팔로워와 카메라는 그 환경 안에서 돌고 (포트, 캘리브레이션 없음), 리더 팔은 실제 Rig 와 같은 장치를 씁니다. 예시: `config/rigs/so101-sim.yaml`.
+Rig 는 실제 장비 하나로 씁니다. Tasks 에서 **Isaac Sim** 태그를 고르고 Environments 에 등록된 환경 하나를 고르면, 그 환경이 Task 에 저장됩니다 (YAML `env: <env-id>`).
 
-- Task 에서 가상 Rig 를 고르면 Capture, Review, Datasets 흐름을 그대로 씁니다. 녹화에는 환경 id (`simEnv`) 가 붙습니다.
-- 가상 장치의 id 는 실제 Rig 와 겹치지 않게 따로 짓습니다 (`sim-follower`, `sim-top`). 리더는 실제 Rig 와 같은 id 를 씁니다.
-- Isaac Sim 연결(브리지)은 아직 없어서, 가상 Rig 의 Capture 와 텔레오퍼레이션은 지금은 503 을 돌려줍니다.
-- 평가는 Evaluate 화면에서 대상을 **Isaac Sim** 으로 고릅니다.
-- 형식: [docs/api/rigs.md](../docs/api/rigs.md#sim-rigs)
+- 환경의 카메라가 Task 카메라를 모두 포함하고 `action_dim` 이 Rig 관절 수와 같아야 저장됩니다.
+- 실제 리더 팔이 환경 안의 팔로워를 움직이고, Capture, Review, Datasets 흐름을 그대로 씁니다. 녹화에는 환경 id (`simEnv`) 가 붙습니다.
+- Isaac Sim 연결(브리지)은 아직 없어서, Isaac Sim Task 의 Capture 는 지금은 503 을 돌려줍니다.
+- Environments 화면은 환경 등록과 확인만 합니다. 평가는 Evaluate 화면에서 대상을 **Isaac Sim** 으로 고릅니다.
