@@ -17,6 +17,7 @@ function PageTitle({ title, description }: { title: React.ReactNode; description
 /**
  * Dashboard-style page frame.
  * Title and description (plus actions on the right) without a top bar, then panels below.
+ * Without a title or actions the header row is left out (the page names itself, e.g. with an sr-only heading).
  * With fit, it fills the viewport height on desktop (lg) and only panels scroll.
  */
 export function Page({
@@ -27,7 +28,7 @@ export function Page({
   className,
   children,
 }: {
-  title: React.ReactNode
+  title?: React.ReactNode
   description?: React.ReactNode
   actions?: React.ReactNode
   fit?: boolean
@@ -36,14 +37,14 @@ export function Page({
 }) {
   return (
     <div className={cn("flex flex-col gap-4 p-4 md:p-6", fit && "lg:h-svh", className)}>
-      <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-        {/* Desktop uses the toggle inside the sidebar; this one only shows on mobile (off-canvas) */}
-        <SidebarTrigger className="mt-1 md:hidden" />
-        <div className="min-w-0 flex-1">
-          <PageTitle title={title} description={description} />
+      {(title || actions) && (
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+          {/* Desktop uses the toggle inside the sidebar; this one only shows on mobile (off-canvas) */}
+          <SidebarTrigger className="mt-1 md:hidden" />
+          <div className="min-w-0 flex-1">{title && <PageTitle title={title} description={description} />}</div>
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-      </div>
+      )}
       {children}
     </div>
   )

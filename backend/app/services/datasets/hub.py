@@ -96,11 +96,15 @@ def namespace(token: str) -> str:
 
 
 def hub_repo(ds: Dataset, token: str) -> str:
+    """Pushed / pulled repo, else <hf ns>/<name>, or <hf ns>/<local ns>-<name> when the local
+    namespace differs, so two local datasets with the same name never share a Hub repo."""
     if ds.hub.repo:
         return ds.hub.repo
     if ds.hub.pulled:
         return ds.repo_id
-    return f"{namespace(token)}/{ds.repo_id.split('/', 1)[1]}"
+    ns = namespace(token)
+    local_ns, name = ds.repo_id.split("/", 1)
+    return f"{ns}/{name}" if local_ns == ns else f"{ns}/{local_ns}-{name}"
 
 
 def upload(repo_id: str, private: bool | None = None) -> str:
@@ -114,14 +118,20 @@ def upload(repo_id: str, private: bool | None = None) -> str:
         ds = store.require(repo_id)
         if ds.hub.pushed and ds.hub.repo and private is None:
             return ds.hub.repo
-        repo = hub_repo(ds, token)
         private = ds.hub.private if private is None else private
         store.set_hub(repo_id, ds.hub.model_copy(update={"pushing": True, "error": None}), False)
+        repo = ds.hub.repo or repo_id
         try:
+            repo = hub_repo(ds, token)  # may call the Hub (whoami): inside, so pushing is cleared
             upload_folder(store.folder(repo_id), repo, private, token)
         except Exception as e:  # any failure is reported on the dataset
             log.warning("Push of %s to %s failed: %s", repo_id, repo, e)
-            err = _hub_error(repo, e) if isinstance(e, (HfHubHTTPError, OSError)) else None
+            if isinstance(e, ApiError):
+                err = e
+            elif isinstance(e, (HfHubHTTPError, OSError)):
+                err = _hub_error(repo, e)
+            else:
+                err = None
             msg = err.message if err else str(e) or type(e).__name__
             store.set_hub(
                 repo_id, ds.hub.model_copy(update={"pushing": False, "error": msg}), False

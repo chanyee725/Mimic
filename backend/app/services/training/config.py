@@ -59,7 +59,11 @@ def account_volumes() -> list[dict[str, Any]]:
     return vols
 
 
-def network_volume(volume_id: str) -> dict[str, Any] | None:
+def network_volume(volume_id: str, fresh: bool = False) -> dict[str, Any] | None:
+    """The account volume with that id; `fresh` re-lists the volumes instead of the cache."""
+    global _volumes
+    if fresh:
+        _volumes = (0.0, _volumes[1])
     return next((v for v in account_volumes() if v.get("id") == volume_id), None)
 
 
