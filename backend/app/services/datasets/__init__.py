@@ -1,4 +1,5 @@
-"""Datasets: LeRobot v3.0 folders (datasets.py), their file format (lerobot.py), convert and merge."""
+"""Datasets: LeRobot v3.0 folders (datasets.py), their file format (lerobot.py), convert, merge
+and Hub pull (hub.py)."""
 
 from app.services.datasets.convert import convert, features_for, preview
 from app.services.datasets.datasets import (
@@ -16,6 +17,7 @@ from app.services.datasets.datasets import (
     total_frames,
     wait,
 )
+from app.services.datasets.hub import pull
 from app.services.datasets.merge import merge
 from app.services.datasets.merge import preview as merge_preview
 
@@ -31,6 +33,7 @@ __all__ = [
     "merge_preview",
     "page_episodes",
     "preview",
+    "pull",
     "push",
     "require",
     "reset",

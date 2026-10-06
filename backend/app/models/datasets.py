@@ -30,6 +30,8 @@ class DatasetEpisode(CamelModel):
 class Hub(CamelModel):
     pushed: bool
     private: bool
+    # Downloaded from the Hub (Pull) rather than made on this station
+    pulled: bool = False
 
 
 class Dataset(CamelModel):
