@@ -53,6 +53,16 @@ def test_unknown_env_is_refused(client, sim_task):
     assert r.status_code == 422 and "unknown environment" in env_errors(r)[0]["msg"]
 
 
+def test_rig_folder_env_must_match_the_task_rig(client, sim_task, envs):
+    (envs / "so101-bimanual-kit").mkdir()
+    (envs / "so101-bimanual-kit" / "duo.usda").write_text("#usda 1.0\n")
+    simulation.rescan()
+    assert client.post("/tasks", json=sim_task | {"envId": "arm-table"}).status_code == 201
+    r = client.post("/tasks", json=sim_task | {"id": "sim-duo", "envId": "duo"})
+    assert r.status_code == 422
+    assert env_errors(r)[0]["msg"] == "environment 'duo' belongs to rig 'so101-bimanual-kit'"
+
+
 def test_capture_refuses_isaac_sim_tasks(client, sim_task):
     client.post("/tasks", json=sim_task)
     r = client.post("/capture/start", json={"taskId": "sim-stack", "operator": "OP-01"})

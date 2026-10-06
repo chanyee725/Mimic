@@ -27,6 +27,8 @@ class SimEnv(CamelModel):
     files: list[SimEnvFile] = []
     registered_at: str
     updated_at: str
+    rig_id: str | None = None  # set for a stage under a rig folder; None = usable with any rig
+    thumbnail: bool = False  # an image is served by /sim/envs/{id}/thumbnail
 
 
 class SimGpu(CamelModel):

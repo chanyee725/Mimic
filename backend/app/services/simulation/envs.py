@@ -9,7 +9,8 @@ from app.core.errors import conflict, not_found
 from app.core.events import bus
 from app.models.simulation import SimEnv
 from app.schemas.simulation import RescanResult
-from app.services.simulation.scanner import scan_envs
+from app.services.rigs import list_rigs
+from app.services.simulation.scanner import IMAGE_TYPES, scan_envs, thumbnail_file
 from app.services.tasks import list_tasks
 from app.utils.time import now_iso
 
@@ -26,7 +27,7 @@ def reset() -> None:
 
 
 def _scan() -> list[SimEnv]:
-    envs = scan_envs(config.sim_envs_dir, _first_seen)
+    envs = scan_envs(config.sim_envs_dir, _first_seen, {r.id for r in list_rigs()})
     for e in envs:
         _first_seen.setdefault(e.id, e.registered_at)
     _envs.clear()
@@ -51,6 +52,21 @@ def get_env(env_id: str) -> SimEnv:
     if env is None:
         raise not_found("Environment", env_id)
     return env
+
+
+def thumbnail(env_id: str) -> tuple[Path, str]:
+    """The env's image and its media type; 404 when it has none."""
+    path = thumbnail_file(Path(get_env(env_id).path))
+    if path is None:
+        raise not_found("Thumbnail", env_id)
+    return path, IMAGE_TYPES[path.suffix.lower()]
+
+
+def rig_problem(env: SimEnv, rig_id: str | None) -> str | None:
+    """An env under a rig folder only fits that rig."""
+    if env.rig_id is not None and env.rig_id != rig_id:
+        return f"environment '{env.id}' belongs to rig '{env.rig_id}'"
+    return None
 
 
 def rescan() -> RescanResult:
