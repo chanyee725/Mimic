@@ -1,4 +1,4 @@
-import { MdPrecisionManufacturing } from "react-icons/md"
+import { LuGlobe } from "react-icons/lu"
 import { SiNvidia } from "react-icons/si"
 
 import { TASK_WORLD_LABEL, type TaskWorld } from "@/domain/task"
@@ -11,7 +11,7 @@ const SIM_TEXT = "text-[#5a8f00]"
 /** Where a task or episode runs: Real (robot icon) or Isaac Sim (NVIDIA icon, green) */
 export function WorldMark({ world, label = false, className }: { world: TaskWorld; label?: boolean; className?: string }) {
   const sim = world === "sim"
-  const Icon = sim ? SiNvidia : MdPrecisionManufacturing
+  const Icon = sim ? SiNvidia : LuGlobe
   return (
     <span
       className={cn("inline-flex shrink-0 items-center gap-1 text-[11px]", sim ? SIM_TEXT : "text-muted-foreground", className)}
