@@ -25,7 +25,6 @@ from app.core.events import bus
 from app.models.datasets import Dataset, DatasetEpisode, DatasetFeature, Hub
 from app.schemas.common import Page, paginate
 from app.schemas.datasets import REPO_ID
-from app.services import settings
 from app.services.datasets import lerobot as lr
 from app.utils.time import from_timestamp
 from app.utils.video import first_frame_at
@@ -131,6 +130,7 @@ def load(root: Path, repo_id: str) -> tuple[Dataset, int]:
                 pushed=bool(hub.get("pushed", False)),
                 private=bool(hub.get("private", True)),
                 pulled=bool(hub.get("pulled", False)),
+                repo=hub.get("repo"),
             ),
             features=api_features(info["features"], side.get("notes")),
             episode_count=int(info.get("total_episodes", 0)),
@@ -279,7 +279,7 @@ def wait(repo_id: str, timeout: float = 30) -> Dataset:
     return require(repo_id)
 
 
-# --- hub, thumbnail and delete ---
+# --- hub state, thumbnail and delete ---
 
 
 THUMBNAIL = "meta/thumbnail.jpg"
@@ -316,25 +316,19 @@ def thumbnail(repo_id: str) -> Path:
         return out
 
 
-def hf_token_set() -> bool:
-    return settings.has_secret("hf_token")
-
-
-def push(repo_id: str, private: bool) -> Dataset:
-    """Marks the dataset as pushed; the real upload runs once the HF client exists."""
-    ds = require(repo_id)
-    if ds.status != "ready":
-        raise conflict(f"Dataset is {ds.status}", status=ds.status)
-    if not hf_token_set():
-        raise ApiError(424, "Hugging Face token is not set", {"secret": "hf_token"})
-    hub = Hub(pushed=True, private=private, pulled=ds.hub.pulled)
-    root = folder(repo_id)
-    try:
-        write_sidecar(root, {**read_sidecar(root), "hub": hub.model_dump()})
-    except (OSError, storage.StorageError) as e:
-        raise ApiError(503, "Could not write to the datasets folder", {"reason": str(e)}) from e
+def set_hub(repo_id: str, hub: Hub, persist: bool = True) -> Dataset:
+    """Updates the dataset's hub state (station.yaml unless persist is False) and publishes it."""
     with _lock:
-        ds = ds.model_copy(update={"hub": hub})
+        ds = require(repo_id).model_copy(update={"hub": hub})
+        if persist:
+            root = folder(repo_id)
+            data = hub.model_dump(exclude={"pushing", "error"})
+            try:
+                write_sidecar(root, {**read_sidecar(root), "hub": data})
+            except (OSError, storage.StorageError) as e:
+                raise ApiError(
+                    503, "Could not write to the datasets folder", {"reason": str(e)}
+                ) from e
         _datasets[repo_id] = ds
     bus.publish("dataset.updated", ds)
     return ds

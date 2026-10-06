@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import time
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -234,20 +235,59 @@ def test_thumbnail_needs_video(client, recs):
 
 
 def test_push(client, recs, monkeypatch, events):
+    from app.services.datasets import hub
+
     convert(client, "local/stack")
     r = client.post("/datasets/local/stack/push", json={"private": False})
     assert r.status_code == 424 and r.json()["error"]["details"] == {"secret": "hf_token"}
-    monkeypatch.setattr(service.datasets, "hf_token_set", lambda: True)
+    uploaded = []
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+    monkeypatch.setattr(hub, "upload_folder", lambda *a: uploaded.append(a))
     r = client.post("/datasets/local/stack/push", json={"private": False})
-    assert r.status_code == 202 and r.json()["hub"] == {
+    assert r.status_code == 202 and r.json()["hub"]["pushing"] is True
+    for _ in range(100):
+        if not service.require("local/stack").hub.pushing:
+            break
+        time.sleep(0.02)
+    folder, repo, private, token = uploaded[0]
+    assert (repo, private, token) == ("vla-lab/stack", False, "hf_test")
+    assert folder == service.folder("local/stack")
+    hub_state = client.get("/datasets/local/stack").json()["hub"]
+    assert hub_state == {
         "pushed": True,
         "private": False,
         "pulled": False,
+        "repo": "vla-lab/stack",
+        "pushing": False,
+        "error": None,
     }
     side = yaml.safe_load((service.folder("local/stack") / "station.yaml").read_text())
-    assert side["hub"] == {"pushed": True, "private": False, "pulled": False}
+    assert side["hub"] == {
+        "pushed": True,
+        "private": False,
+        "pulled": False,
+        "repo": "vla-lab/stack",
+    }
     service.reset()
-    assert client.get("/datasets/local/stack").json()["hub"]["pushed"] is True
+    assert client.get("/datasets/local/stack").json()["hub"]["repo"] == "vla-lab/stack"
+    # Already pushed: upload() skips it
+    assert service.upload("local/stack") == "vla-lab/stack" and len(uploaded) == 1
+
+
+def test_push_failure_is_kept_on_the_dataset(client, recs, monkeypatch):
+    from app.services.datasets import hub
+
+    convert(client, "local/stack")
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+
+    def fail(*a):
+        raise RuntimeError("quota exceeded")
+
+    monkeypatch.setattr(hub, "upload_folder", fail)
+    with pytest.raises(Exception, match="quota exceeded"):
+        service.upload("local/stack")
+    h = service.require("local/stack").hub
+    assert h.pushed is False and h.pushing is False and h.error == "quota exceeded"
 
 
 def test_delete(client, recs, events):
@@ -472,7 +512,7 @@ def test_pull(client, recs, fake_hub, events):
     assert r.status_code == 202, r.text
     body = r.json()
     assert body["status"] == "converting" and body["progress"] == 0
-    assert body["hub"] == {"pushed": True, "private": True, "pulled": True}
+    assert body["hub"]["pulled"] is True and body["hub"]["repo"] == "op-01/stack"
     assert body["episodeCount"] == 3 and body["fps"] == 30
     ds = service.wait("op-01/stack")
     assert ds.status == "ready" and ds.task_id == TASK  # from the uploaded station.yaml
