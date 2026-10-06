@@ -93,7 +93,7 @@ export function DatasetList({
                         ? d.hub.pulled
                           ? "download failed"
                           : "conversion failed"
-                        : `${plural(d.episodeCount, "episode")}, ${formatSize(d.sizeGB * 1024)}`}
+                        : `${plural(d.episodeCount, "episode")}, ${formatSize(d.sizeGB * 1024)}${d.hub.pushing ? ", pushing" : ""}`}
                   </span>
                 </span>
               </button>

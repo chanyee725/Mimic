@@ -1,12 +1,19 @@
-"""Pull: download a LeRobot v3.0 dataset repo from the Hugging Face Hub into the datasets folder.
+"""Hugging Face Hub: push a dataset folder to a dataset repo, pull one back.
 
-meta/info.json is fetched first so a missing repo or a non-v3.0 dataset fails the request itself;
+Push uploads the whole folder (station.yaml included, so a pull restores the task) to
+<hf namespace>/<name> (a pulled dataset keeps its repo) and tags it with the codebase version,
+which lerobot looks for when it loads a dataset from the Hub. It runs in a thread; the dataset
+shows hub.pushing meanwhile. RunPod jobs call upload() directly.
+
+Pull: meta/info.json is fetched first so a missing repo or a non-v3.0 dataset fails the request itself;
 the remaining files download in a background job (same partial-folder flow as Convert), with
 progress by bytes. The HF token from .env is used when set (needed for private repos).
 """
 
+import logging
 import shutil
 import tempfile
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -21,7 +28,10 @@ from app.services.datasets import datasets as store
 from app.services.datasets import lerobot as lr
 from app.utils.time import now_iso
 
+log = logging.getLogger(__name__)
+
 SKIP = (".gitattributes",)
+_push_lock = threading.Lock()
 
 
 def _token() -> str | None:
@@ -40,6 +50,114 @@ def repo_files(repo_id: str, token: str | None) -> tuple[list[tuple[str, int]], 
 
 def download(repo_id: str, filename: str, local_dir: Path, token: str | None) -> None:
     hf_hub_download(repo_id, filename, repo_type="dataset", local_dir=local_dir, token=token)
+
+
+def upload_folder(folder: Path, repo: str, private: bool, token: str) -> None:
+    """Creates the dataset repo if needed, uploads the folder and (re)points the version tag."""
+    api = HfApi(token=token)
+    api.create_repo(repo, repo_type="dataset", private=private, exist_ok=True)
+    api.upload_folder(
+        repo_id=repo,
+        repo_type="dataset",
+        folder_path=folder,
+        ignore_patterns=[".*", "**/.*"],
+        commit_message="Upload from Mimic",
+    )
+    try:
+        api.delete_tag(repo, tag=lr.CODEBASE_VERSION, repo_type="dataset")
+    except HfHubHTTPError:
+        pass  # no tag yet
+    api.create_tag(repo, tag=lr.CODEBASE_VERSION, repo_type="dataset")
+
+
+def whoami(token: str) -> str:
+    return HfApi(token=token).whoami()["name"]
+
+
+# --- push ---
+
+
+def require_token() -> str:
+    token = _token()
+    if not token:
+        raise ApiError(424, "Hugging Face token is not set", {"secret": "hf_token"})
+    return token
+
+
+def namespace(token: str) -> str:
+    """Settings → Hugging Face namespace, else the token's user."""
+    ns = settings.get_settings().integrations.hf.namespace.strip()
+    if ns:
+        return ns
+    try:
+        return whoami(token)
+    except (HfHubHTTPError, OSError) as e:
+        raise _hub_error("whoami", e) from e
+
+
+def hub_repo(ds: Dataset, token: str) -> str:
+    if ds.hub.repo:
+        return ds.hub.repo
+    if ds.hub.pulled:
+        return ds.repo_id
+    return f"{namespace(token)}/{ds.repo_id.split('/', 1)[1]}"
+
+
+def upload(repo_id: str, private: bool | None = None) -> str:
+    """Uploads a ready dataset now (blocking) and returns its Hub repo; skipped when already
+    pushed. Raises ApiError; the dataset's hub state follows (pushing, then pushed or error)."""
+    token = require_token()
+    ds = store.require(repo_id)
+    if ds.status != "ready":
+        raise ApiError(409, f"Dataset is {ds.status}", {"status": ds.status})
+    with _push_lock:
+        ds = store.require(repo_id)
+        if ds.hub.pushed and ds.hub.repo and private is None:
+            return ds.hub.repo
+        repo = hub_repo(ds, token)
+        private = ds.hub.private if private is None else private
+        store.set_hub(repo_id, ds.hub.model_copy(update={"pushing": True, "error": None}), False)
+        try:
+            upload_folder(store.folder(repo_id), repo, private, token)
+        except Exception as e:  # any failure is reported on the dataset
+            log.warning("Push of %s to %s failed: %s", repo_id, repo, e)
+            err = _hub_error(repo, e) if isinstance(e, (HfHubHTTPError, OSError)) else None
+            msg = err.message if err else str(e) or type(e).__name__
+            store.set_hub(
+                repo_id, ds.hub.model_copy(update={"pushing": False, "error": msg}), False
+            )
+            raise err or ApiError(502, msg) from e
+        hub = ds.hub.model_copy(
+            update={
+                "pushed": True,
+                "private": private,
+                "repo": repo,
+                "pushing": False,
+                "error": None,
+            }
+        )
+        store.set_hub(repo_id, hub)
+        return repo
+
+
+def push(repo_id: str, private: bool) -> Dataset:
+    """Starts uploading the dataset in a thread; returns it with hub.pushing."""
+    ds = store.require(repo_id)
+    if ds.status != "ready":
+        raise ApiError(409, f"Dataset is {ds.status}", {"status": ds.status})
+    if ds.hub.pushing:
+        raise ApiError(409, "Dataset is already being pushed", {"repoId": repo_id})
+    require_token()
+
+    def run() -> None:
+        try:
+            upload(repo_id, private)
+        except ApiError:
+            pass  # kept on the dataset as hub.error
+
+    ds = store.set_hub(repo_id, ds.hub.model_copy(update={"pushing": True, "error": None}), False)
+    threading.Thread(target=run, name=f"push:{repo_id}", daemon=True).start()
+    return ds
 
 
 # --- pull ---
@@ -81,7 +199,7 @@ def pull(repo_id: str) -> Dataset:
         raise _hub_error(repo_id, e) from e
 
     files = [(f, n) for f, n in files if f not in SKIP]
-    hub = Hub(pushed=True, private=private, pulled=True)
+    hub = Hub(pushed=True, private=private, pulled=True, repo=repo_id)
     ds = Dataset(
         kind="lerobot",
         repo_id=repo_id,
@@ -113,7 +231,7 @@ def pull(repo_id: str) -> Dataset:
             **side,
             "rig_id": side.get("rig_id") or ds.rig_id,
             "created_at": side.get("created_at") or ds.created_at,
-            "hub": hub.model_dump(),
+            "hub": hub.model_dump(exclude={"pushing", "error"}),
         }
 
     return store.start_job(ds, build)

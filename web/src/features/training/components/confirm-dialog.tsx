@@ -53,7 +53,7 @@ export function ConfirmTrainingDialog({
             {plan.queuedBehind
               ? `로컬 GPU 를 ${plan.queuedBehind} 가 쓰고 있어 끝나면 이어서 시작합니다.`
               : pod
-                ? "확인을 누르면 RunPod pod 를 빌리고 요금이 나가기 시작합니다."
+                ? "확인을 누르면 RunPod pod 를 빌리고 요금이 나가기 시작합니다. HF Hub 를 거쳐 데이터셋과 checkpoint 를 주고받습니다."
                 : "확인을 누르면 이 스테이션의 GPU 에서 바로 시작합니다."}
           </DialogDescription>
         </DialogHeader>
@@ -95,6 +95,10 @@ export function ConfirmTrainingDialog({
                       { k: "Disk", v: `${pod.diskGB} GB` },
                       { k: "Network volume", v: config.runpod.volumes.find((v) => v.id === pod.volume)?.label ?? pod.volume },
                       { k: "When finished", v: pod.terminateOnFinish ? "Terminate pod" : "Keep pod running" },
+                      {
+                        k: "Checkpoints",
+                        v: pod.pushToHub ? "Kept in a private HF model repo" : "Downloaded, then the HF repo is deleted",
+                      },
                     ]
                   : []),
               ]}
@@ -115,6 +119,13 @@ export function ConfirmTrainingDialog({
                 )}
               </span>
             </div>
+          )}
+
+          {pod && (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              아직 올리지 않은 데이터셋은 HF Hub 에 비공개로 먼저 올립니다. pod 에는 Hugging Face 토큰이 전달되고, checkpoint 는 비공개 모델
+              저장소를 거쳐 이 스테이션으로 내려받습니다.
+            </p>
           )}
 
           <section className="grid gap-1.5">

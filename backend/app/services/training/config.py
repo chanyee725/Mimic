@@ -1,13 +1,18 @@
 """Training options (seeds/data/training.json): policy, RunPod catalogue, pricing, train command."""
 
 import json
+import logging
 import math
 import shlex
+import time
+from typing import Any
 
 from app.schemas.training import PriceFactor, RunPodGpu, RunPodOptions, RunPodVolume
 from app.seeds import load
 from app.services import datasets
 from app.services.training import params
+
+log = logging.getLogger(__name__)
 
 
 def raw(key: str):
@@ -30,8 +35,46 @@ def runpod_regions() -> list[str]:
     return raw("RUNPOD_REGIONS")
 
 
+VOLUMES_TTL_S = 60
+_volumes: tuple[float, list[dict[str, Any]]] = (0.0, [])
+
+
+def account_volumes() -> list[dict[str, Any]]:
+    """The RunPod account's network volumes (cached a minute; [] without a key or on errors)."""
+    global _volumes
+    from app.core.errors import ApiError
+    from app.services.training import runpod_api
+
+    if not runpod_api.key_set():
+        return []
+    at, cached = _volumes
+    if time.monotonic() - at < VOLUMES_TTL_S:
+        return cached
+    try:
+        vols = runpod_api.network_volumes()
+    except ApiError as e:
+        log.warning("RunPod network volumes: %s", e.message)
+        vols = cached
+    _volumes = (time.monotonic(), vols)
+    return vols
+
+
+def network_volume(volume_id: str) -> dict[str, Any] | None:
+    return next((v for v in account_volumes() if v.get("id") == volume_id), None)
+
+
 def runpod_volumes() -> list[RunPodVolume]:
-    return [RunPodVolume.model_validate(v) for v in raw("RUNPOD_VOLUMES")]
+    """ "none" from the seeds, then the account's network volumes."""
+    out = [RunPodVolume.model_validate(v) for v in raw("RUNPOD_VOLUMES")]
+    for v in account_volumes():
+        out.append(
+            RunPodVolume(
+                id=v["id"],
+                label=f"{v.get('name') or v['id']} ({v.get('size', '?')} GB, {v.get('dataCenterId', '?')})",
+                note="데이터셋 · LeRobot 설치를 pod 사이에 재사용합니다",
+            )
+        )
+    return out
 
 
 def runpod_defaults() -> RunPodOptions:
@@ -79,12 +122,19 @@ def rename_map(dataset: str) -> dict[str, str]:
     return {k: f"observation.images.camera{i + 1}" for i, k in enumerate(camera_keys(dataset))}
 
 
-def train_args(dataset: str, overrides: dict, run: dict[str, str] | None = None) -> list[str]:
-    """lerobot-train arguments (no program name). `run` adds the job's paths (output_dir, …)."""
+def train_args(
+    dataset: str,
+    overrides: dict,
+    run: dict[str, str] | None = None,
+    repo_id: str | None = None,
+    root: str | None = None,
+) -> list[str]:
+    """lerobot-train arguments (no program name). `run` adds the job's paths (output_dir, …);
+    `repo_id` / `root` replace the local dataset (a RunPod job's Hub copy)."""
     args = [
         f"--policy.path={policy_base()}",
-        f"--dataset.repo_id={dataset}",
-        f"--dataset.root={datasets.folder(dataset)}",
+        f"--dataset.repo_id={repo_id or dataset}",
+        f"--dataset.root={root or datasets.folder(dataset)}",
         "--policy.device=cuda",
         "--policy.push_to_hub=false",
         "--wandb.enable=false",

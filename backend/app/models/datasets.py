@@ -32,6 +32,11 @@ class Hub(CamelModel):
     private: bool
     # Downloaded from the Hub (Pull) rather than made on this station
     pulled: bool = False
+    # Hub repo it was pushed to / pulled from; null until then
+    repo: str | None = None
+    # Upload running (Push or a RunPod job); error of the last failed upload
+    pushing: bool = False
+    error: str | None = None
 
 
 class Dataset(CamelModel):

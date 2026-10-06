@@ -19,133 +19,152 @@
       "vramGB": 16,
       "pricePerHr": 0.25,
       "community": true,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA RTX A4000"
     },
     {
       "name": "RTX A4500",
       "vramGB": 20,
       "pricePerHr": 0.34,
       "community": true,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA RTX A4500"
     },
     {
       "name": "RTX 3090",
       "vramGB": 24,
       "pricePerHr": 0.43,
       "community": true,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA GeForce RTX 3090"
     },
     {
       "name": "RTX A5000",
       "vramGB": 24,
       "pricePerHr": 0.36,
       "community": true,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA RTX A5000"
     },
     {
       "name": "L4",
       "vramGB": 24,
       "pricePerHr": 0.43,
       "community": false,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA L4"
     },
     {
       "name": "RTX 4090",
       "vramGB": 24,
       "pricePerHr": 0.69,
       "community": true,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA GeForce RTX 4090"
     },
     {
       "name": "RTX 5090",
       "vramGB": 32,
       "pricePerHr": 0.94,
       "community": true,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA GeForce RTX 5090"
     },
     {
       "name": "A40",
       "vramGB": 48,
       "pricePerHr": 0.44,
       "community": false,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA A40"
     },
     {
       "name": "RTX A6000",
       "vramGB": 48,
       "pricePerHr": 0.76,
       "community": true,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA RTX A6000"
     },
     {
       "name": "RTX 6000 Ada",
       "vramGB": 48,
       "pricePerHr": 0.77,
       "community": true,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA RTX 6000 Ada Generation"
     },
     {
       "name": "L40S",
       "vramGB": 48,
       "pricePerHr": 0.86,
       "community": true,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA L40S"
     },
     {
       "name": "L40",
       "vramGB": 48,
       "pricePerHr": 0.99,
       "community": false,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA L40"
     },
     {
       "name": "A100 PCIe",
       "vramGB": 80,
       "pricePerHr": 1.64,
       "community": true,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA A100 80GB PCIe"
     },
     {
       "name": "A100 SXM",
       "vramGB": 80,
       "pricePerHr": 1.89,
       "community": false,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA A100-SXM4-80GB"
     },
     {
       "name": "H100 PCIe",
       "vramGB": 80,
       "pricePerHr": 2.39,
       "community": true,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA H100 PCIe"
     },
     {
       "name": "H100 SXM",
       "vramGB": 80,
       "pricePerHr": 2.99,
       "community": false,
-      "stock": "high"
+      "stock": "high",
+      "typeId": "NVIDIA H100 80GB HBM3"
     },
     {
       "name": "H100 NVL",
       "vramGB": 94,
       "pricePerHr": 2.79,
       "community": false,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA H100 NVL"
     },
     {
       "name": "H200 SXM",
       "vramGB": 141,
       "pricePerHr": 3.99,
       "community": false,
-      "stock": "low"
+      "stock": "low",
+      "typeId": "NVIDIA H200"
     },
     {
       "name": "B200",
       "vramGB": 180,
       "pricePerHr": 5.99,
       "community": false,
-      "stock": "none"
+      "stock": "none",
+      "typeId": "NVIDIA B200"
     }
   ],
   "RUNPOD_PRICE_FACTOR": {
@@ -170,11 +189,12 @@
       "id": "none",
       "label": "None",
       "note": "pod 를 끄면 데이터가 지워집니다"
-    },
-    {
-      "id": "vla-datasets",
-      "label": "vla-datasets (200 GB, EU-RO-1)",
-      "note": "데이터셋 캐시 + checkpoint 보관"
     }
-  ]
+  ],
+  "RUNPOD_POD": {
+    "image": "runpod/pytorch:1.4.0-cu1281-torch280-ubuntu2404",
+    "port": 8000,
+    "extras": "training,smolvla",
+    "lerobot": "0.6.1"
+  }
 }

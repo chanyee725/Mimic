@@ -52,6 +52,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
   const status = datasetStatus(dataset)
 
   const push = usePushDataset()
+  const pushing = push.isPending || dataset.hub.pushing
   const del = useDeleteDataset()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -86,11 +87,11 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
             <Button
               variant="outline"
               size="sm"
-              disabled={push.isPending || dataset.status !== "ready" || dataset.hub.pushed}
+              disabled={pushing || dataset.status !== "ready" || dataset.hub.pushed}
               onClick={() => push.mutate({ repoId: dataset.repoId, private: dataset.hub.private })}
             >
               {dataset.hub.pushed ? <SiHuggingface /> : <LuCloudUpload />}
-              {dataset.hub.pushed ? "Pushed" : push.isPending ? "Pushing…" : "Push to HF Hub"}
+              {dataset.hub.pushed ? "Pushed" : pushing ? "Pushing…" : "Push to HF Hub"}
             </Button>
             {dataset.kind === "lerobot" ? (
               <LinkButton to="/training" size="sm" disabled={dataset.status !== "ready"}>
@@ -117,7 +118,17 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
               <LuTrash2 />
             </Button>
           </div>
-          <ErrorNote error={push.error} className="max-w-96" />
+          {dataset.hub.pushed && dataset.hub.repo && (
+            <a
+              href={`https://huggingface.co/datasets/${dataset.hub.repo}`}
+              target="_blank"
+              rel="noreferrer"
+              className="max-w-96 truncate text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
+              {dataset.hub.repo}
+            </a>
+          )}
+          <ErrorNote error={push.error ?? (dataset.hub.pushing ? null : dataset.hub.error)} className="max-w-96" />
         </div>
       </div>
 

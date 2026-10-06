@@ -6,12 +6,13 @@ import { StatusDot } from "@/components/common/status-dot"
 import { jobPct, type TrainJob } from "@/domain/training"
 import { formatDuration, formatRate } from "@/lib/format"
 
-import { JOB_STATUS, computeText } from "../lib"
+import { JOB_STATUS, computeText, runpodPhase } from "../lib"
 
 /** One row in the job list. Links to the job detail page */
 export function JobRow({ job }: { job: TrainJob }) {
   const pct = jobPct(job)
   const status = JOB_STATUS[job.status]
+  const phase = runpodPhase(job)
   return (
     <li>
       <Link
@@ -56,6 +57,7 @@ export function JobRow({ job }: { job: TrainJob }) {
           {job.elapsedS != null && <span>Elapsed {formatDuration(job.elapsedS)}</span>}
           {job.etaS != null && job.status === "running" && <span>ETA {formatDuration(job.etaS)}</span>}
           {job.status === "queued" && <span>Waiting for a GPU</span>}
+          {phase && phase.label !== "Training" && <span className="text-info">{phase.label}</span>}
           {job.podState?.state === "idle" && <span className="text-warn">Pod still running, {formatRate(job.pricePerHr ?? 0)}</span>}
         </div>
       </Link>

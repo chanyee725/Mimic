@@ -131,3 +131,17 @@ def record(client, devices_online):
     return lambda task_id="stack-two-blocks", outcome="success": record_episode(
         client, task_id, outcome
     )
+
+
+@pytest.fixture(autouse=True)
+def _no_runpod(monkeypatch):
+    """Tests never reach RunPod: every REST call fails unless a test patches the client."""
+    from app.core.errors import ApiError
+    from app.services.training import config as training_config
+    from app.services.training import runpod_api
+
+    def offline(method, path, body=None):
+        raise ApiError(502, "RunPod is offline in tests", {"path": path})
+
+    monkeypatch.setattr(runpod_api, "_call", offline)
+    monkeypatch.setattr(training_config, "_volumes", (0.0, []))
