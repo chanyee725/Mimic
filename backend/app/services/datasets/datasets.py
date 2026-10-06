@@ -127,7 +127,11 @@ def load(root: Path, repo_id: str) -> tuple[Dataset, int]:
             status="ready",
             created_at=created,
             size_gb=round(lr.folder_size(root) / 1024**3, 4),
-            hub=Hub(pushed=bool(hub.get("pushed", False)), private=bool(hub.get("private", True))),
+            hub=Hub(
+                pushed=bool(hub.get("pushed", False)),
+                private=bool(hub.get("private", True)),
+                pulled=bool(hub.get("pulled", False)),
+            ),
             features=api_features(info["features"], side.get("notes")),
             episode_count=int(info.get("total_episodes", 0)),
             sources=side.get("sources"),
@@ -323,7 +327,7 @@ def push(repo_id: str, private: bool) -> Dataset:
         raise conflict(f"Dataset is {ds.status}", status=ds.status)
     if not hf_token_set():
         raise ApiError(424, "Hugging Face token is not set", {"secret": "hf_token"})
-    hub = Hub(pushed=True, private=private)
+    hub = Hub(pushed=True, private=private, pulled=ds.hub.pulled)
     root = folder(repo_id)
     try:
         write_sidecar(root, {**read_sidecar(root), "hub": hub.model_dump()})

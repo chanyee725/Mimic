@@ -365,6 +365,11 @@ def has_secret(name: str) -> bool:
     return bool(_secrets.get(name))
 
 
+def secret_value(name: str) -> str | None:
+    """Raw secret for backend clients (huggingface_hub); never returned by the API."""
+    return _secrets.get(name) or None
+
+
 # --- connection tests -------------------------------------------------------
 
 

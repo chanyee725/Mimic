@@ -1,4 +1,8 @@
+import { useState } from "react"
+import { LuDownload } from "react-icons/lu"
 import { useSearchParams } from "react-router-dom"
+
+import { Button } from "@/components/ui/button"
 
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
@@ -6,8 +10,9 @@ import { LinkButton } from "@/components/common/link-button"
 import { useDatasets } from "@/api/datasets"
 
 import { DatasetDetail } from "./components/dataset-detail"
-import { DatasetList } from "./components/dataset-list"
 import { QueryNote } from "@/components/common/query-state"
+import { DatasetList } from "./components/dataset-list"
+import { PullDatasetDialog } from "./components/pull-dataset-dialog"
 
 export function DatasetsPage() {
   const datasets = useDatasets()
@@ -16,9 +21,21 @@ export function DatasetsPage() {
   const list = datasets.data ?? []
   const selected = params.get("repo") ?? list[0]?.repoId
   const select = (repoId: string | null) => setParams(repoId ? { repo: repoId } : {}, { replace: true })
+  const [pulling, setPulling] = useState(false)
 
   return (
-    <Page fit title="Datasets" description="변환한 LeRobot 데이터셋과 원본 MCAP 묶음을 확인하고 HF Hub 에 올리거나 학습에 사용합니다.">
+    <Page
+      fit
+      title="Datasets"
+      description="변환한 LeRobot 데이터셋과 원본 MCAP 묶음을 확인하고 HF Hub 에 올리거나 내려받아 학습에 사용합니다."
+      actions={
+        <Button variant="outline" size="sm" onClick={() => setPulling(true)}>
+          <LuDownload />
+          Pull from Hub
+        </Button>
+      }
+    >
+      <PullDatasetDialog open={pulling} onOpenChange={setPulling} onPulled={select} />
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
         <DatasetList datasets={list} query={datasets} selected={selected} onSelect={select} />
         {selected ? (
@@ -33,7 +50,7 @@ export function DatasetsPage() {
             <QueryNote query={datasets} />
             {datasets.data?.length === 0 && (
               <EmptyState className="grid justify-items-center gap-3 py-10">
-                아직 데이터셋이 없습니다. Convert 에서 승인한 에피소드로 데이터셋을 만드세요.
+                아직 데이터셋이 없습니다. Convert 에서 승인한 에피소드로 데이터셋을 만들거나 Pull from Hub 로 내려받으세요.
                 <LinkButton to="/convert" variant="outline" size="sm">
                   Open Convert
                 </LinkButton>

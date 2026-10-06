@@ -87,6 +87,14 @@ export function useMergeDatasets() {
   })
 }
 
+/** Downloads a LeRobot v3.0 dataset repo from the HF Hub; returns it in "converting" with hub.pulled (progress via dataset.updated) */
+export function usePullDataset() {
+  return useMutation({
+    mutationFn: (repoId: string) => api.post<Dataset>("/datasets/pull", { repoId }),
+    onSuccess: cacheDataset,
+  })
+}
+
 export function usePushDataset() {
   return useMutation({
     mutationFn: ({ repoId, private: isPrivate }: { repoId: string; private: boolean }) =>

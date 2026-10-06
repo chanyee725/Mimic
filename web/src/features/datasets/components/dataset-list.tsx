@@ -88,9 +88,11 @@ export function DatasetList({
                   <span className="truncate text-[11px] text-muted-foreground tabular-nums">
                     {KIND_LABEL[d.kind]},{" "}
                     {d.status === "converting"
-                      ? `converting ${d.progress}%`
+                      ? `${d.hub.pulled ? "downloading" : "converting"} ${d.progress}%`
                       : d.status === "failed"
-                        ? "conversion failed"
+                        ? d.hub.pulled
+                          ? "download failed"
+                          : "conversion failed"
                         : `${plural(d.episodeCount, "episode")}, ${formatSize(d.sizeGB * 1024)}`}
                   </span>
                 </span>

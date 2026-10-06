@@ -17,7 +17,7 @@ Dataset = {
   status: DatasetStatus; progress?: number | null // 0–99 while converting / merging, null otherwise
   error?: string | null                          // when failed
   createdAt: string; sizeGB: number              // sizeGB: files on disk (0 while converting)
-  hub: { pushed: boolean; private: boolean }
+  hub: { pushed: boolean; private: boolean; pulled: boolean }   // pulled: downloaded from the Hub (Pull)
   features: DatasetFeature[]
   episodeCount: number
   sources?: string[] | null                      // merged datasets: the repoIds it was made from; null for converted ones
@@ -50,6 +50,7 @@ MergePreview = {
 | GET | `/datasets/{repoId}` | | `Dataset` (`repoId` is URL-encoded, e.g. `local%2Fstack_two_blocks`) | Datasets detail |
 | GET | `/datasets/{repoId}/episodes?limit=&cursor=` | | `Page<DatasetEpisode>` (empty while converting) | Datasets episodes |
 | GET | `/datasets/{repoId}/thumbnail` | | `image/jpeg`: first frame of the first episode of the first video feature (made once, cached as `meta/thumbnail.jpg`); 404 when the dataset has no video feature; 409 while it is not ready | Dataset thumbnail |
+| POST | `/datasets/pull` | `{ repoId }` (Hub repo, also the local repoId) | `202 Dataset` (converting, `hub.pulled`); 409 if repoId exists locally; 404 if not on the Hub; 403 if gated; 422 if not LeRobot v3.0; 502 on Hub errors | Pull from Hub |
 | POST | `/datasets/{repoId}/push` | `{ private: boolean }` | `202 Dataset`; 409 unless status ready; 424 if HF token missing | Push to HF Hub |
 | DELETE | `/datasets/{repoId}` | | `204` (removes the folder; cancels a running conversion / merge) | Delete |
 
@@ -85,6 +86,12 @@ Progress: `dataset.updated` events (`progress`, `status`, `error`). Deleting emi
   unioned (first-seen order) with `task_index` / `subtask_index` remapped. `taskId` = the common task, or `"mixed"` when the
   sources come from different tasks. Episode `source` keeps the original recording file.
 - `q` matches `repoId` or `taskId` (case-insensitive substring). Push only records `hub` in `station.yaml` (no upload yet).
+- Pull downloads a Hub dataset repo (`huggingface_hub`, HF token from `.env` when set — needed for private repos).
+  `meta/info.json` is fetched first, so a missing repo or a non-v3.0 dataset fails the request; the response already has
+  `fps`, `features`, `episodeCount` and `rigId` (`robot_type`). The other files download in the background into the
+  partial folder (progress by bytes, `dataset.updated`), `.gitattributes` skipped. The repo's `station.yaml` is kept
+  when it has one (task, notes, episode sources); otherwise `taskId` is `"unknown"`. `hub` becomes
+  `{ pushed: true, private: <repo visibility>, pulled: true }`. Delete cancels a running pull.
 
 ## Storage
 
