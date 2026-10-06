@@ -60,7 +60,7 @@ Session = { id: string; taskId: string; operator: string | null; episodes: numbe
 
 Validation: `rigId` must exist; `cameras` ⊆ rig camera keys; `actionHz` ∈ rig `actionHzOptions`; `videoFps` ∈ rig `videoFpsOptions`;
 `envId`, when set, must be a
-registered environment (`/sim/envs`, a USD stage; else 422 on `envId` "unknown environment"); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
+registered environment (`/sim/envs`, a USD stage; else 422 on `envId` "unknown environment") whose `rigId` is null or the task's rig (else 422 "environment '<id>' belongs to rig '<rig>'"); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
 `cameras` and `outcomes` non-empty. Rule failures return `422` with `details.errors = [{ loc: ["body", field, ...], msg }]`.
 `updatedBy` comes from the `X-Operator` header (pseudonymous ID matching `^OP-\d{2}$`, else 422), default `OP-01`.
 

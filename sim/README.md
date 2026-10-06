@@ -11,6 +11,7 @@ sim/
   envs/            환경 (USD 장면). 저장소에는 비어 있습니다
     <env-id>.usd   USD 파일 하나가 환경 하나 (.usd / .usda / .usdc / .usdz)
     <env-id>/      또는 폴더: scene.usd (없으면 하나뿐인 USD 파일) + 하위 asset
+    <rig-id>/      Rig id 이름의 폴더: 그 Rig 전용 환경들 (안의 규칙은 같음)
 ```
 
 ## 설치
@@ -43,6 +44,8 @@ Environments 화면에서 환경을 고르고 **Open in Isaac Sim** 을 누르�
 - 하위 asset 이 있는 장면은 `envs/<env-id>/` 폴더에 `scene.usd` 와 asset 을 넣고 **Rescan** 합니다.
 - `_` 나 `.` 로 시작하는 파일과 폴더는 스캔하지 않습니다. 폴더 위치는 환경 변수 `VLA_SIM_ENVS_DIR` (기본값 `sim/envs`).
 - Task 가 쓰고 있는 환경은 지울 수 없습니다.
+- Rig 별로 나누려면 `envs/<rig-id>/` 폴더(예: `envs/so101-kit/`)에 넣습니다. 그 환경은 해당 Rig 의 Task 와 모델에만 쓸 수 있고, 최상위에 둔 환경은 모든 Rig 에서 씁니다.
+- 썸네일: USD 파일 옆에 같은 이름의 이미지(`table.usda` → `table.png`, jpg / webp 도 가능)를 두거나, 폴더 환경이면 안에 `thumbnail.png` 를 둡니다.
 - 스캔 규칙과 서버 API: [docs/api/simulation.md](../docs/api/simulation.md)
 - USD 파일이 커지면 Git LFS 로 관리합니다.
 
