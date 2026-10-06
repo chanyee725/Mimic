@@ -8,10 +8,8 @@ scan, camera preview, connection test, arm calibration and a teleoperation test.
 
 ```ts
 RigCamera = { id: string; key: string; name: string; feature: string; resolution: string; fps: number; defaultOn: boolean }
-RigKind = "real" | "sim"                 // sim: robots and cameras run in an Isaac Sim environment
 Rig = {
   id: string; name: string
-  kind: RigKind; envId: string | null    // envId: the Isaac Sim environment of a sim rig
   master: string; slave: string          // display names (leader / follower)
   robots: string[]; devices: string[]    // device ids
   cameras: RigCamera[]
@@ -26,8 +24,7 @@ DeviceStream = { key: string; shape: string; targetHz: number | null; measuredHz
 DeviceCheck = { ok: boolean; message: string; at: string }   // last connection test (ISO 8601)
 Device = { id: string; name: string; type: DeviceType; port: string; health: Health;
            calibration: { done: boolean; note: string }; streams: DeviceStream[]; stats: { label: string; value: string }[];
-           check: DeviceCheck | null
-           simulated: boolean }                   // a sim rig's robot or camera: no port, no calibration
+           check: DeviceCheck | null }
 
 Port = { path: string; device: string; kind: "serial" | "video"; label: string; usedBy: string[] }
 
@@ -51,7 +48,7 @@ TeleopSamples = { joints: string[]; seq: number; t: number[]; action: number[][]
 | GET | `/rigs` | `Rig[]` | `listRigs()` |
 | GET | `/rigs/{id}` | `Rig`; **404** if unknown (the web mock falls back to the first rig — the client keeps that fallback) | `getRig(id)` |
 | GET | `/rigs/{id}/yaml` | `text/yaml`: the rig file as it is on disk (comments and written ports included) | Rigs Config tab |
-| POST | `/rigs/{id}/teleop` | `201 TeleopState`: connects every leader / follower pair and starts the loop. 503 `Isaac Sim teleoperation is not connected yet` for a sim rig; 400 unless the rig has one leader per follower; 409 if already running or a rig arm is calibrating, or an arm has no calibration file (`Calibrate '<id>' first`); 503 if a port is missing or fails to open | Test teleoperation |
+| POST | `/rigs/{id}/teleop` | `201 TeleopState`: connects every leader / follower pair and starts the loop. 400 unless the rig has one leader per follower; 409 if already running or a rig arm is calibrating, or an arm has no calibration file (`Calibrate '<id>' first`); 503 if a port is missing or fails to open | Test teleoperation |
 | GET | `/rigs/{id}/teleop` | `TeleopState`, or `null` (200) when there is no session — polled every second on Capture and while the dialog runs | Teleoperation dialog |
 | GET | `/rigs/{id}/teleop/samples?after=` | `TeleopSamples`: samples with `seq > after` (default -1), at most the last 10 s; `seq` = the last returned sample, or `after` when none. 404 when there is no session | Capture live plots (poll with the last `seq`) |
 | DELETE | `/rigs/{id}/teleop` | 204; disconnects the arms (followers drop torque). 404 when there is none | Stop |
@@ -61,9 +58,9 @@ TeleopSamples = { joints: string[]; seq: number; t: number[]; action: number[][]
 | GET | `/devices/{id}` | `Device` | Rigs detail |
 | GET | `/devices/ports` | `Port[]`: USB serial ports (`/dev/ttyACM*`, `/dev/ttyUSB*`), then video capture nodes (index 0 only). `path` is the `/dev/serial/by-id` link for serial ports (unique adapter serial) and the `/dev/v4l/by-path` link (USB position; identical cameras often share a serial) for video, else the node; `usedBy` = devices whose port is the path or the node | Rigs port picker, Rescan ports |
 | GET | `/devices/ports/preview?path=` | `multipart/x-mixed-replace; boundary=frame`: live JPEG frames (MJPG 640×480, about 12 fps) for an `<img>`. Only a scanned video port's `path` or `device` (else 400); 503 if it does not open or gives no frame. Frames come from the camera hub: one reader per camera (opened at the rig camera's resolution / fps when the port belongs to a rig camera, else 640×480 @ 30) shared by previews and Capture recorders, closed with its last subscriber. One preview per camera: opening another one closes the previous stream; a connection test of a device on the camera closes its previews and reader. A stream ends after 30 s (the web reopens it every 25 s) or when the client disconnects | Port dialog previews |
-| PUT | `/devices/{id}/port` | Body `{ port }` (absolute path, else 400) → `Device`. 400 for a simulated device (no port). Written into the rig file that declares the device, in place (only the `port` value changes; comments and layout stay); resets health, stats and `check`. 409 while calibrating or in a teleoperation test | Port dialog |
+| PUT | `/devices/{id}/port` | Body `{ port }` (absolute path, else 400) → `Device`. Written into the rig file that declares the device, in place (only the `port` value changes; comments and layout stay); resets health, stats and `check`. 409 while calibrating or in a teleoperation test | Port dialog |
 | POST | `/devices/{id}/test` | `Device` after one connection test (about 1 s). 409 while calibrating, in a teleoperation test, or (cameras) while Capture records it; 503 if LeRobot is unavailable. A failed test is **200** with `check.ok: false` and `health: "off"` | Rigs Test connection |
-| POST | `/devices/{id}/calibrate` | `201 CalibrationSession` in step `center` (arm opened, torque off). 400 for a camera, a simulated device or a non-Feetech arm; 409 if already calibrating or in a teleoperation test; 503 if the port is missing or does not open | Rigs Calibrate |
+| POST | `/devices/{id}/calibrate` | `201 CalibrationSession` in step `center` (arm opened, torque off). 400 for a camera or a non-Feetech arm; 409 if already calibrating or in a teleoperation test; 503 if the port is missing or does not open | Rigs Calibrate |
 | GET | `/devices/{id}/calibration` | `CalibrationSession` with live joint positions (the web polls it every 100 ms while it runs); 404 when there is none | Calibration dialog |
 | POST | `/devices/{id}/calibration/next` | `center` → `range` (writes half-turn homing offsets) → `done` (writes the calibration to the motors and saves the LeRobot file). 409 when not running, or in `range` while some joints have not moved (`details.motors`) | Next / Finish |
 | DELETE | `/devices/{id}/calibration` | 204; closes the port. 404 when there is none | Cancel |
@@ -82,9 +79,6 @@ TeleopSamples = { joints: string[]; seq: number; t: number[]; action: number[][]
 - Cameras: LeRobot `OpenCVCamera` opens the port at the rig resolution and fps (fails when the camera cannot), then frames
   are counted for 1 s. Stats: `Resolution`, `Frame rate`; `measuredHz` = the measured fps. `warn` below 90% of the target.
 - A missing port or one that fails to open gives `check.ok: false`, `health: "off"`.
-- Simulated devices ask the Isaac Sim server ([simulation.md](simulation.md#isaac-sim-server)) instead of LeRobot, without
-  stats: `off` with `Isaac Sim server is not reachable at <url>`; `warn` with `Isaac Sim is reachable; open '<env>' to run
-  it` when the app is not running that environment; `ok` with `Running in Isaac Sim (<env>)`.
 
 ### Calibration
 
@@ -101,7 +95,7 @@ Arms only; mirrors LeRobot `SOFollower.calibrate()` / `SOLeader.calibrate()` wit
 
 While a session runs the device reports `calibration: { done: false, note: "Calibrating…" }`. `calibration` is otherwise
 `{ done: true, note: "Calibrated · <file date>" }` when the LeRobot file exists, `{ done: false, note: "Required" }` when it
-does not, and `{ done: true, note: "Not required" }` for cameras and simulated devices.
+does not, and `{ done: true, note: "Not required" }` for cameras.
 
 ### Teleoperation test
 
@@ -164,40 +158,6 @@ rates:
   action_hz_options: [30, 60]
   video_fps_options: [15, 30]
 ```
-
-### Sim rigs
-
-A rig file with a `sim` section is a sim rig (`kind: "sim"`, `envId` = `sim.env`): its robots and cameras run in that Isaac
-Sim environment ([simulation.md](simulation.md)) and leave out `port`; its leader arms are real devices on the station.
-
-```yaml
-id: so101-sim
-name: SO-101 Sim
-sim:
-  env: pick-red-cube            # environment id (folder under VLA_SIM_ENVS_DIR)
-robot:
-  id: sim-follower              # simulated: no port, no calibration
-  type: so101_follower
-  name: SO-101 Follower (Isaac Sim)
-  joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]
-device:                         # the real leader: same id and port as in the real rig
-  id: leader
-  type: so101_leader
-  name: SO-101 Leader
-  port: /dev/so101_leader
-cameras:
-  top: { id: sim-top, name: Top camera (Isaac Sim), resolution: 640x480 }
-rates: { action_hz: 60, video_fps: 30 }
-```
-
-- The leader is shared through the first-rig-wins rule: declaring the real rig's leader id makes both rigs use one device
-  (its port is written into the file that declares it first). Simulated devices need ids of their own (`sim-follower`,
-  `sim-top`): an id another rig already declares is that rig's device, and a clash between a simulated and a real device is
-  logged and the second one dropped.
-- Until the Isaac Sim bridge exists, teleoperation and Capture on a sim rig answer 503 `Isaac Sim teleoperation is not
-  connected yet`, and real-robot Evaluate on it answers 400 (evaluate it with the Isaac Sim target instead).
-
-### Rig file details
 
 - Multi-arm rigs use maps keyed by id instead: `robots: { bi-follower-l: {type, name, port, joints}, bi-follower-r: {…} }` and `devices: { … }`. Either form loads; the backend writes the singular form when there is exactly one. Every robot has the same number of joints, and joint names are unique across robots.
 - Mapping to `Rig`: `slave` / `master` = the robot / device names (one name as is; `X (L)` + `X (R)` → `X ×2`; otherwise joined with ` + `); `robots` / `devices` = their ids; `joints` = the robots' joints in order; camera `id` = `id` or the key, `feature` = `observation.images.<key>`, `resolution` as `640×480`; `targetHz` = `rates.action_hz` / `rates.video_fps`.

@@ -35,6 +35,7 @@ class TaskFields(CamelModel):
     variants: list[str] = []
     tags: list[str] = []
     rig_id: str
+    env_id: str | None = None  # Isaac Sim environment: set for an Isaac Sim task, None for real
     cameras: list[str] = Field(min_length=1)
     action_hz: int
     video_fps: int

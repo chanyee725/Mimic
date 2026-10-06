@@ -4,10 +4,6 @@ No seeds: a missing folder means no rigs. Devices start not connected; a connect
 (driver.py, LeRobot) reports health and stats, arms calibrate through calibration.py and a rig's
 leader drives its follower in teleop.py. A port picked on the Rigs page is written into the rig
 file in place (comments kept).
-
-A sim rig's robots and cameras are simulated: they have no port or calibration, a connection test
-asks the Isaac Sim server, and teleoperation, Capture and real-robot Evaluate refuse the rig until
-the Isaac Sim bridge exists.
 """
 
 import logging
@@ -47,9 +43,6 @@ _devices: dict[str, Device] = {}
 _hardware: dict[str, Hardware] = {}
 _files: dict[str, str] = {}  # rig id → data-relative file
 _owner: dict[str, str] = {}  # device id → rig id whose file declares it
-_simulated: set[str] = set()  # devices that live in Isaac Sim
-
-SIM_NOT_CONNECTED = "Isaac Sim teleoperation is not connected yet"
 
 CALIBRATING = "Calibrating…"
 
@@ -72,16 +65,10 @@ def reset() -> None:
     _devices.clear()
     _hardware.clear()
     _owner.clear()
-    _simulated.clear()
     for spec in _specs.values():
         for d, hw in zip(rigs_file.declared_devices(spec), rigs_file.hardware(spec)):
             if d.id in _devices:
-                # The first rig declaring an id wins (a sim rig shares the real leader this way)
-                if d.simulated != _devices[d.id].simulated:
-                    log.warning("%s: device id '%s' is taken by another rig", spec.id, d.id)
-                continue
-            if d.simulated:
-                _simulated.add(d.id)
+                continue  # the first rig declaring an id wins
             _hardware[d.id] = hw
             _owner[d.id] = spec.id
             _devices[d.id] = d.model_copy(update={"calibration": _file_calibration(hw)})
@@ -146,16 +133,6 @@ def require_rig(rig_id: str) -> Rig:
     if rig is None:
         raise not_found("Rig", rig_id)
     return rig
-
-
-def is_sim(rig_id: str) -> bool:
-    rig = _rigs.get(rig_id)
-    return rig is not None and rig.kind == "sim"
-
-
-def _require_real(device_id: str, what: str) -> None:
-    if device_id in _simulated:
-        raise ApiError(400, f"Device '{device_id}' lives in Isaac Sim: it has no {what}")
 
 
 def require_device(device_id: str) -> Device:
@@ -236,8 +213,6 @@ def record_cameras(rig_id: str, keys: list[str], max_s: float) -> dict[str, came
     """A recorder per rig camera key (every frame, kept up to `max_s`); {} without device access.
     Any camera that fails to open releases the others and answers 503."""
     rig = require_rig(rig_id)
-    if rig.kind == "sim":
-        raise ApiError(503, SIM_NOT_CONNECTED)
     if driver.get().unavailable():
         return {}
     out: dict[str, cameras.Recorder] = {}
@@ -267,10 +242,6 @@ def open_robot(rig_id: str) -> tuple[driver.RobotLink, str]:
     """The rig's follower with torque on, for a policy to drive; returns it and its device id.
     409 while the rig is teleoperated or calibrating."""
     rig = require_rig(rig_id)
-    if rig.kind == "sim":
-        raise ApiError(
-            400, f"Rig '{rig_id}' runs in Isaac Sim: evaluate it with the Isaac Sim target"
-        )
     if len(rig.robots) != 1:
         raise ApiError(400, "Evaluate drives rigs with one follower")
     robot_id = rig.robots[0]
@@ -287,7 +258,6 @@ def open_robot(rig_id: str) -> tuple[driver.RobotLink, str]:
 def set_port(device_id: str, port: str) -> Device:
     """Write `port` into the rig file that declares the device (in place); resets its test."""
     require_device(device_id)
-    _require_real(device_id, "port")
     port = port.strip()
     if not port.startswith("/"):
         raise ApiError(400, "A port is an absolute path (/dev/…)")
@@ -313,8 +283,6 @@ def set_port(device_id: str, port: str) -> Device:
 def test_device(device_id: str) -> Device:
     """Open the device once (LeRobot) and report what answered; a failed test is not an error."""
     require_device(device_id)
-    if device_id in _simulated:
-        return _tested_sim(device_id)
     _require_idle(device_id)
     hw = _hardware[device_id]
     if reason := driver.get().unavailable():
@@ -348,24 +316,11 @@ def test_rig(rig_id: str) -> list[Device]:
         for d in devices
         if not calibration.active(d.id)
         and not teleop.uses(d.id)
-        and not (d.type == "camera" and not d.simulated and cameras.recording(_hardware[d.id].port))
+        and not (d.type == "camera" and cameras.recording(_hardware[d.id].port))
     ]
     with ThreadPoolExecutor(max_workers=max(1, len(idle))) as pool:
         list(pool.map(test_device, idle))
     return rig_devices(rig_id)
-
-
-def _tested_sim(device_id: str) -> Device:
-    """A simulated device is as reachable as the Isaac Sim server and its environment."""
-    from app.services import simulation  # lazy: simulation reads rigs
-
-    env = _rigs[_owner[device_id]].env_id
-    r = simulation.runner.status()
-    if not r.reachable:
-        return _tested(device_id, False, f"Isaac Sim server is not reachable at {r.url}", "off", [])
-    if r.app and r.app.state == "running" and r.app.scene == env:
-        return _tested(device_id, True, f"Running in Isaac Sim ({env})", "ok", [])
-    return _tested(device_id, True, f"Isaac Sim is reachable; open '{env}' to run it", "warn", [])
 
 
 def _tested_arm(device_id: str, hw: Hardware) -> Device:
@@ -416,7 +371,7 @@ def _tested(device_id: str, ok: bool, message: str, health: str, stats: list[Sta
 
 def _file_calibration(hw: Hardware) -> Calibration:
     """Arms: calibrated when LeRobot has a calibration file for the device's calibration id."""
-    if hw.kind == "camera" or hw.id in _simulated:
+    if hw.kind == "camera":
         return Calibration(done=True, note="Not required")
     path = driver.get().calibration_file(hw)
     if path is None:
@@ -427,7 +382,6 @@ def _file_calibration(hw: Hardware) -> Calibration:
 
 def _arm(device_id: str) -> Hardware:
     require_device(device_id)
-    _require_real(device_id, "calibration")
     hw = _hardware[device_id]
     if hw.kind == "camera":
         raise ApiError(400, f"Device '{device_id}' is a camera: only arms are calibrated here")
@@ -473,8 +427,6 @@ def cancel_calibration(device_id: str) -> None:
 def start_teleop(rig_id: str) -> TeleopState:
     """Each leader (devices[i]) drives its follower (robots[i]) at the rig's action rate."""
     rig = require_rig(rig_id)
-    if rig.kind == "sim":
-        raise ApiError(503, SIM_NOT_CONNECTED)
     if not rig.robots or len(rig.robots) != len(rig.devices):
         raise ApiError(400, "Teleoperation needs one leader per follower")
     ids = [*rig.robots, *rig.devices]
@@ -506,8 +458,6 @@ def teleop_running(rig_id: str) -> bool:
 def ensure_teleop(rig_id: str) -> bool:
     """Start the rig's teleoperation unless it runs; False when there is no device access
     (tests, a station without LeRobot) and nothing was started."""
-    if is_sim(rig_id):
-        raise ApiError(503, SIM_NOT_CONNECTED)
     if driver.get().unavailable() is not None:
         return False
     if not teleop.running(rig_id):
