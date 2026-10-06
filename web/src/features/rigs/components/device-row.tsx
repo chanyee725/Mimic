@@ -22,7 +22,7 @@ export function DeviceRow({ device, selected, onSelect }: { device: Device; sele
             <span className={cn("truncate text-[13px]", selected ? "font-medium" : "font-normal")}>{device.name}</span>
           </div>
           <span className="truncate pl-3.5 text-xs text-muted-foreground">
-            {device.port}
+            {device.simulated ? "Isaac Sim" : device.port}
             {!device.calibration.done && <span className="text-warn"> · {device.calibration.note}</span>}
           </span>
         </div>
