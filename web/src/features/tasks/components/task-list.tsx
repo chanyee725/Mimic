@@ -127,7 +127,15 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
                   </p>
                 </div>
                 <WorldMark world={taskWorld(t)} label />
-                <ProgressRing pct={pct} tone={TASK_RING_TONE[t.status]} label={`${t.id} progress`} thin className="size-10" />
+                {/* A full ring turns black so finished tasks stand out */}
+                <ProgressRing
+                  pct={pct}
+                  tone={pct >= 100 ? "foreground" : TASK_RING_TONE[t.status]}
+                  label={`${t.id} progress`}
+                  thin
+                  className="size-10"
+                  labelClassName={cn(pct >= 100 && "font-medium text-foreground")}
+                />
               </button>
             </li>
           )
