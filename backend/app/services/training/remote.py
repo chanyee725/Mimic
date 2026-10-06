@@ -21,7 +21,6 @@ import secrets
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
 from importlib import metadata
 from pathlib import Path
 from typing import Any
@@ -36,7 +35,7 @@ from app.schemas.training import RunPodOptions
 from app.services import datasets
 from app.services.training import config as cfg
 from app.services.training import local, params, runpod_api
-from app.utils.time import now_iso
+from app.utils.time import now_iso, parse_iso, seconds_since
 
 log = logging.getLogger(__name__)
 
@@ -45,6 +44,7 @@ POD_CHECK_S = 30.0  # RunPod API: pod still running, actual rate
 BOOT_TIMEOUT_S = 25 * 60  # pod created → runner answers (image pull + start)
 LOST_TIMEOUT_S = 10 * 60  # runner answered before, silent since
 PUBLISH_EVERY_S = 3.0
+FINAL_RETRIES = 20  # polls to fetch the last checkpoints after the runner finished
 FINAL = ("done", "failed", "stopped")
 RUNNER = Path(__file__).with_name("pod_runner.py")
 WORKDIR = "/workspace/mimic"  # on the network volume when there is one
@@ -68,6 +68,8 @@ class Remote:
     last_seen: float | None = None
     last_pod_check: float = 0.0
     published: float = 0.0
+    final_tries: int = 0  # polls since the runner reported a final phase
+    cap_hours: float = 0.0
     thread: threading.Thread | None = None
 
 
@@ -164,11 +166,15 @@ def model_repo(job: TrainJob, namespace: str) -> str:
     return f"{namespace}/smolvla_{task}_{job.id}"
 
 
-def start(job: TrainJob, options: RunPodOptions, cap_hours: float) -> None:
-    """Registers the job and starts its thread (push → pod → follow). Keys are checked first."""
+def preflight() -> str:
+    """Checks the RunPod key and the HF token; returns the HF namespace (may call the Hub)."""
     if not runpod_api.key_set():
         raise ApiError(424, "RunPod API key is not set", {"secret": "runpod_api_key"})
-    namespace = datasets.hf_namespace(datasets.hf_token())
+    return datasets.hf_namespace(datasets.hf_token())
+
+
+def register(job: TrainJob, options: RunPodOptions, cap_hours: float, namespace: str) -> None:
+    """Follows the job from now on (extras() has its token); launch() starts the work."""
     r = Remote(
         job=job,
         token=secrets.token_hex(16),
@@ -176,14 +182,24 @@ def start(job: TrainJob, options: RunPodOptions, cap_hours: float) -> None:
         options=options,
         run=_new_run(job),
         port=int(cfg.raw("RUNPOD_POD")["port"]),
+        cap_hours=cap_hours,
     )
     with _lock:
         _remotes[job.id] = r
     local.job_dir(job.id).mkdir(parents=True, exist_ok=True)
-    r.thread = threading.Thread(
-        target=_launch, args=(r, cap_hours), name=f"runpod:{job.id}", daemon=True
-    )
+
+
+def launch(job_id: str) -> None:
+    """Starts a registered job's thread: push → pod → follow."""
+    with _lock:
+        r = _remotes[job_id]
+    r.thread = threading.Thread(target=_launch, args=(r,), name=f"runpod:{job_id}", daemon=True)
     r.thread.start()
+
+
+def run_id(r: Remote) -> str:
+    """Job id + token prefix: unique on a network volume shared by stations / data folders."""
+    return f"{r.job.id}-{r.token[:8]}"
 
 
 def _new_run(job: TrainJob, known: int = 0) -> local.Run:
@@ -244,11 +260,11 @@ def _check_cancel(r: Remote) -> None:
         raise _Cancelled
 
 
-def _launch(r: Remote, cap_hours: float) -> None:
-    _guard(r, _launch_steps, cap_hours)
+def _launch(r: Remote) -> None:
+    _guard(r, _launch_steps)
 
 
-def _launch_steps(r: Remote, cap_hours: float) -> None:
+def _launch_steps(r: Remote) -> None:
     job = r.job
     _phase(r, "pushing dataset")
     say(job.id, f"Pushing {job.dataset} to the Hugging Face Hub")
@@ -258,7 +274,7 @@ def _launch_steps(r: Remote, cap_hours: float) -> None:
         _end(r, "stopped", None)
         return
     _phase(r, "starting pod")
-    spec = pod_spec(r, dataset_repo, cap_hours)
+    spec = pod_spec(r, dataset_repo, r.cap_hours)
     say(job.id, f"Creating a {job.gpu} pod ({spec['cloudType'].lower()} cloud)")
     pod = runpod_api.create_pod(spec)
     job.pod = pod["id"]
@@ -279,12 +295,17 @@ def pod_spec(r: Remote, dataset_repo: str, cap_hours: float) -> dict[str, Any]:
     o, job = r.options, r.job
     gpu = next(g for g in cfg.runpod_gpus() if g.name == job.gpu)
     pod = cfg.raw("RUNPOD_POD")
-    volume = cfg.network_volume(o.volume)
+    volume = None
+    if o.volume != "none":
+        volume = cfg.network_volume(o.volume, fresh=True)
+        if volume is None:
+            raise ApiError(409, f"RunPod network volume '{o.volume}' is not available")
     workdir = WORKDIR if volume else "/mimic"
     venv = f"/workspace/mimic-venv-{lerobot_spec().rsplit('==', 1)[-1]}" if volume else LOCAL_VENV
     dataset_root = f"{workdir}/datasets/{dataset_repo}"
     runner_job = {
         "jobId": job.id,
+        "runId": run_id(r),
         "token": r.token,
         "port": r.port,
         "workdir": workdir,
@@ -373,10 +394,20 @@ def _follow(r: Remote) -> None:
             _pull_log(r, int(st.get("logSize") or 0))
             local.follow(r.run)
             phase = st.get("phase") or job.phase
-            _collect(r, st.get("checkpoints") or [])
+            missing = _collect(r, st.get("checkpoints") or [])
             if phase in FINAL:
+                r.final_tries += 1
+                if missing and r.final_tries < FINAL_RETRIES:
+                    r.cancel.wait(POLL_S)  # the pod waits for the ack: retry the downloads
+                    continue
                 local.follow(r.run, final=True)
-                _end(r, phase, st.get("error"))
+                error = st.get("error")
+                if missing:
+                    note = (
+                        f"Checkpoints {', '.join(missing)} not downloaded; kept in {r.model_repo}"
+                    )
+                    error = f"{error}; {note}" if error else note
+                _end(r, phase, error, keep_repo=bool(missing))
                 return
             _phase(r, phase)
         if now - r.last_pod_check > POD_CHECK_S:
@@ -391,8 +422,13 @@ def _follow(r: Remote) -> None:
 
 
 def _pull_log(r: Remote, size: int) -> None:
+    """Appends the pod's new log bytes; a failed fetch is retried on the next poll."""
     while r.pod_offset < size:
-        chunk = runner_log(r, r.pod_offset)
+        try:
+            chunk = runner_log(r, r.pod_offset)
+        except httpx.HTTPError as e:
+            log.warning("Log of %s not fetched (retrying): %s", r.job.id, e)
+            return
         if not chunk:
             return
         with local.log_path(r.job.id).open("ab") as f:
@@ -401,19 +437,27 @@ def _pull_log(r: Remote, size: int) -> None:
         local._cb.save(r.job)
 
 
-def _collect(r: Remote, uploaded: list[dict[str, Any]]) -> None:
+def _collect(r: Remote, uploaded: list[dict[str, Any]]) -> list[str]:
+    """Downloads the checkpoints not here yet; returns the ones that failed (retried next poll)."""
     have = {c.step for c in r.job.checkpoints}
+    missing = []
     for c in uploaded:
         step = int(c["step"])
         if step in have:
             continue
-        d = download_checkpoint(r, c["dir"])
+        try:
+            d = download_checkpoint(r, c["dir"])
+        except (HfHubHTTPError, httpx.HTTPError, OSError) as e:
+            log.warning("Checkpoint %s of %s not downloaded (retrying): %s", c["dir"], r.job.id, e)
+            missing.append(c["dir"])
+            continue
         size = sum(p.stat().st_size for p in d.rglob("*") if p.is_file()) if d.is_dir() else 0
         ckpt = Checkpoint(step=step, saved_at=now_iso(), size_mb=round(size / 1_000_000, 1))
         r.job.checkpoints = [*r.job.checkpoints, ckpt]
         say(r.job.id, f"Checkpoint {c['dir']} downloaded")
         local._cb.save(r.job)
         local._cb.updated(r.job)
+    return missing
 
 
 def _pod_alive(r: Remote) -> bool:
@@ -458,7 +502,13 @@ def _fail(r: Remote, error: str) -> None:
     _end(r, "failed", error, force_terminate=True)
 
 
-def _end(r: Remote, status: str, error: str | None, force_terminate: bool = False) -> None:
+def _end(
+    r: Remote,
+    status: str,
+    error: str | None,
+    force_terminate: bool = False,
+    keep_repo: bool = False,
+) -> None:
     job = r.job
     with _lock:
         if _remotes.get(job.id) is not r:
@@ -479,7 +529,7 @@ def _end(r: Remote, status: str, error: str | None, force_terminate: bool = Fals
                 say(job.id, f"Could not terminate pod {job.pod}: {e.message}")
         else:
             job.pod_state = PodState(state="idle", auto_terminate=False, since=now_iso())
-        if not r.options.push_to_hub and status != "failed":
+        if not r.options.push_to_hub and status != "failed" and not keep_repo:
             try:
                 delete_model_repo(r.model_repo)
             except (HfHubHTTPError, OSError) as e:
@@ -487,7 +537,7 @@ def _end(r: Remote, status: str, error: str | None, force_terminate: bool = Fals
     job.status = status  # type: ignore[assignment]
     if status == "done":
         job.step = job.total
-    job.error = error if status == "failed" else None
+    job.error = error if status == "failed" or keep_repo else None
     job.phase, job.eta_s, job.steps_per_s = None, None, None
     local._cb.save(job)
     local._cb.updated(job)
@@ -502,5 +552,4 @@ def terminate(job: TrainJob) -> None:
 def idle_for(job: TrainJob) -> int | None:
     if job.pod_state is None or job.pod_state.state != "idle" or not job.pod_state.since:
         return None
-    since = datetime.fromisoformat(job.pod_state.since)
-    return max(0, int((datetime.now(since.tzinfo) - since).total_seconds()))
+    return max(0, int(seconds_since(parse_iso(job.pod_state.since))))

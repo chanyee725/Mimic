@@ -199,3 +199,104 @@ def test_runpod_job_is_followed_after_a_restart(client, dataset, pod):
     j = until(lambda: job(client)["status"] == "done" and job(client))
     assert len(client.get("/training/jobs/job_001/metrics").json()["series"]["loss_raw"]) == 1
     assert j["podState"]["state"] == "terminated"
+
+
+def test_runpod_log_error_is_retried(client, dataset, pod, monkeypatch):
+    import httpx
+
+    calls = {"n": 0}
+
+    def flaky(r, offset):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise httpx.HTTPStatusError("502", request=httpx.Request("GET", "x"), response=None)
+        return pod.log[offset : offset + 64]
+
+    monkeypatch.setattr(remote, "runner_log", flaky)
+    client.post("/training/jobs", json=BODY)
+    pod.status = {"phase": "training", "checkpoints": []}
+    pod.log = LOG.encode()
+    until(lambda: job(client)["step"] == 5)
+    assert job(client)["status"] == "running" and pod.deleted == []
+
+
+def test_runpod_checkpoint_download_is_retried_then_kept(client, dataset, pod, monkeypatch):
+    import httpx
+    from huggingface_hub.errors import HfHubHTTPError
+
+    def unavailable():
+        resp = httpx.Response(503, request=httpx.Request("GET", "https://huggingface.co"))
+        return HfHubHTTPError("503 Service Unavailable", response=resp)
+
+    monkeypatch.setattr(remote, "FINAL_RETRIES", 3)
+    tries = {"n": 0}
+
+    def flaky(r, dirname):
+        tries["n"] += 1
+        if dirname == "000010" and tries["n"] == 1:
+            raise unavailable()
+        if dirname == "000020":
+            raise unavailable()
+        return pod.download_checkpoint(r, dirname)
+
+    monkeypatch.setattr(remote, "download_checkpoint", flaky)
+    client.post("/training/jobs", json=BODY)
+    ckpt10 = {"step": 10, "dir": "000010", "sizeMB": 2}
+    pod.status = {"phase": "training", "checkpoints": [ckpt10]}
+    until(lambda: [c["step"] for c in job(client)["checkpoints"]] == [10])
+    assert job(client)["status"] == "running"  # the failed first try did not end the job
+    ckpt20 = {"step": 20, "dir": "000020", "sizeMB": 2}
+    pod.status = {"phase": "done", "checkpoints": [ckpt10, ckpt20]}
+    j = until(lambda: job(client)["status"] == "done" and job(client))
+    assert "000020 not downloaded" in j["error"] and pod.repos_deleted == []
+
+
+def test_runpod_unknown_volume_fails_before_a_pod(client, dataset, pod, monkeypatch):
+    listings = [[{"id": "vol-1", "dataCenterId": "EU-RO-1"}], []]  # gone when the pod is made
+    monkeypatch.setattr(runpod_api, "network_volumes", lambda: listings.pop(0) if listings else [])
+    body = {**BODY, "runpod": {**BODY["runpod"], "volume": "vol-1"}}
+    r = client.post("/training/jobs", json=body)
+    assert r.status_code == 202, r.text  # validated against the cached listing
+    j = until(lambda: job(client)["status"] == "failed" and job(client))
+    assert "vol-1" in j["error"] and pod.specs == []
+
+
+def test_runpod_run_id_is_unique_per_job(client, dataset, pod):
+    client.post("/training/jobs", json=BODY)
+    until(lambda: pod.specs)
+    cfg = json.loads(pod.specs[0]["env"]["MIMIC_JOB"])
+    assert cfg["runId"].startswith("job_001-") and len(cfg["runId"]) == len("job_001-") + 8
+
+
+def test_runpod_unfollowed_job_terminates_its_pod_on_restart(client, dataset, pod):
+    import yaml
+
+    from app.services.training import local
+
+    client.post("/training/jobs", json=BODY)
+    until(lambda: job(client)["pod"] == "pod123")
+    remote.reset()
+    path = local.job_dir("job_001") / "job.yaml"
+    raw = yaml.safe_load(path.read_text())
+    raw["remote"] = None  # the runner token is lost
+    path.write_text(yaml.safe_dump(raw))
+    training.reset()
+    j = job(client)
+    assert j["status"] == "failed" and j["podState"]["state"] == "terminated"
+    assert pod.deleted == ["pod123"]
+
+
+def test_runpod_push_namespace_error_clears_pushing(client, dataset, monkeypatch):
+    from app.core.errors import ApiError
+    from app.services.datasets import hub
+
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+
+    def no_namespace(token):
+        raise ApiError(502, "Hugging Face Hub request failed")
+
+    monkeypatch.setattr(hub, "namespace", no_namespace)
+    with pytest.raises(ApiError):
+        datasets.upload("local/stack")
+    h = datasets.require("local/stack").hub
+    assert h.pushing is False and h.error == "Hugging Face Hub request failed"

@@ -250,14 +250,14 @@ def test_push(client, recs, monkeypatch, events):
             break
         time.sleep(0.02)
     folder, repo, private, token = uploaded[0]
-    assert (repo, private, token) == ("vla-lab/stack", False, "hf_test")
+    assert (repo, private, token) == ("vla-lab/local-stack", False, "hf_test")
     assert folder == service.folder("local/stack")
     hub_state = client.get("/datasets/local/stack").json()["hub"]
     assert hub_state == {
         "pushed": True,
         "private": False,
         "pulled": False,
-        "repo": "vla-lab/stack",
+        "repo": "vla-lab/local-stack",
         "pushing": False,
         "error": None,
     }
@@ -266,12 +266,12 @@ def test_push(client, recs, monkeypatch, events):
         "pushed": True,
         "private": False,
         "pulled": False,
-        "repo": "vla-lab/stack",
+        "repo": "vla-lab/local-stack",
     }
     service.reset()
-    assert client.get("/datasets/local/stack").json()["hub"]["repo"] == "vla-lab/stack"
+    assert client.get("/datasets/local/stack").json()["hub"]["repo"] == "vla-lab/local-stack"
     # Already pushed: upload() skips it
-    assert service.upload("local/stack") == "vla-lab/stack" and len(uploaded) == 1
+    assert service.upload("local/stack") == "vla-lab/local-stack" and len(uploaded) == 1
 
 
 def test_push_failure_is_kept_on_the_dataset(client, recs, monkeypatch):

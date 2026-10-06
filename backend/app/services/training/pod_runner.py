@@ -29,7 +29,9 @@ from urllib.parse import parse_qs, urlparse
 
 JOB = json.loads(os.environ.get("MIMIC_JOB", "{}"))
 TOKEN = JOB.get("token", "")
-WORK = Path(JOB.get("workdir", "/workspace/mimic")) / JOB.get("jobId", "job")
+# runId (job id + token prefix) keeps runs apart on a network volume shared across stations
+WORK = Path(JOB.get("workdir", "/workspace/mimic")) / JOB.get("runId", JOB.get("jobId", "job"))
+FINAL_UPLOAD_TRIES = 3
 LOG = WORK / "train.log"
 OUTPUT = WORK / "output"
 VENV = Path(JOB.get("venv", "/opt/mimic-venv"))
@@ -319,7 +321,14 @@ def train(dataset_root: Path) -> int:
         except RuntimeError as e:
             say(str(e))
     current.remove(p)
-    upload_new_checkpoints()
+    # The last checkpoints: retried, and a failure does not turn a finished run into "failed"
+    for attempt in range(1, FINAL_UPLOAD_TRIES + 1):
+        try:
+            upload_new_checkpoints()
+            break
+        except RuntimeError as e:
+            say(f"{e} (attempt {attempt}/{FINAL_UPLOAD_TRIES})")
+            time.sleep(POLL_S)
     return p.returncode
 
 
