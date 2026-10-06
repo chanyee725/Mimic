@@ -36,7 +36,9 @@ export function CapturePage() {
   const devices = useRigDevices(rig.data?.id)
   const cameras = (devices.data ?? []).filter((d) => d.type === "camera")
   const offline = offlineDevices(devices.data ?? [])
-  const ep = useCapture(task, { startBlocked: offline.length > 0 || (!!task && targetReached(task)) })
+  // An Isaac Sim task records in its environment, which is not connected yet
+  const simEnv = task?.envId ?? null
+  const ep = useCapture(task, { startBlocked: !!simEnv || offline.length > 0 || (!!task && targetReached(task)) })
 
   // Devices start "off" after a backend restart: test the rig once when Capture opens with some of them off
   const { mutate: testRig, isPending: testing } = useTestRig()
@@ -136,7 +138,14 @@ export function CapturePage() {
         </div>
 
         {task ? (
-          <ControlPanel task={task} ep={ep} offline={offline.map((d) => d.name)} onSelectTask={selectTask} taskError={setCurrent.error} />
+          <ControlPanel
+            task={task}
+            ep={ep}
+            offline={offline.map((d) => d.name)}
+            simEnv={simEnv}
+            onSelectTask={selectTask}
+            taskError={setCurrent.error}
+          />
         ) : (
           <Panel>
             <QueryNote query={tasks} />

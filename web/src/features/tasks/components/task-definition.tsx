@@ -12,6 +12,7 @@ import { Field } from "./field"
 import { Info } from "./info"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { SimpleSelect } from "./simple-select"
+import { TaskWorldSection } from "./task-world"
 import { UnitInput } from "./unit-input"
 
 type Props = {
@@ -114,6 +115,8 @@ export function TaskDefinition({ task, onChange }: Props) {
           </>
         )}
       </SettingsSection>
+
+      <TaskWorldSection task={task} onChange={onChange} />
 
       <SettingsSection title="Recording">
         <div className="grid gap-3 @lg:grid-cols-3">

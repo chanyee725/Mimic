@@ -15,6 +15,7 @@ from app.schemas.common import Page, paginate
 from app.models.recordings import (
     Recording,
     RecordingCheck,
+    RecordingKind,
     RecordingOrder,
     RecordingReview,
     RecordingSource,
@@ -86,11 +87,14 @@ def page_recordings(
     limit: int,
     cursor: str | None,
     order: RecordingOrder = "newest",
+    kind: RecordingKind | None = None,
 ) -> Page[Recording]:
     rows = [
         r
         for r in list_recordings(task_id)
-        if (review is None or r.review == review) and (source is None or r.source == source)
+        if (review is None or r.review == review)
+        and (source is None or r.source == source)
+        and (kind is None or (r.sim_env is not None) == (kind == "sim"))
     ]
     if order == "episode":
         # Lowest episode number first; imports (no number) last, oldest first

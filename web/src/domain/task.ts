@@ -11,6 +11,7 @@ export type Task = {
   variants: string[]
   tags: string[]
   rigId: string
+  envId: string | null // Isaac Sim environment; null = recorded on the real robot
   cameras: string[] // rig cameras recorded for this task
   actionHz: number // one of the rig's actionHzOptions
   videoFps: number // one of the rig's videoFpsOptions
@@ -29,6 +30,14 @@ export type Task = {
   updatedAt: string // read-only, ISO 8601
   updatedBy: string // read-only, pseudonymous operator ID only (never store PII)
 }
+
+/** Where a task runs: the real robot, or the Isaac Sim environment in envId */
+export type TaskWorld = "real" | "sim"
+
+export const TASK_WORLD_LABEL: Record<TaskWorld, string> = { real: "Real", sim: "Isaac Sim" }
+
+/** Older responses may omit envId */
+export const taskWorld = (task: Pick<Task, "envId">): TaskWorld => (task.envId ? "sim" : "real")
 
 /** Body of POST /tasks (create) */
 export type TaskInput = Omit<Task, "collected" | "version" | "updatedAt" | "updatedBy">

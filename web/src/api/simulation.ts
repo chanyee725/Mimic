@@ -1,12 +1,10 @@
-// Simulation: Isaac Sim environments, model compatibility and evaluation jobs. Spec: docs/api/simulation.md
+// Simulation: Isaac Sim environments (USD files) and evaluation jobs. Spec: docs/api/simulation.md
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
 
 import type {
-  ModelCompat,
   RescanResult,
   SimConfig,
   SimEnv,
-  SimEnvState,
   SimEpisode,
   SimEpisodeResult,
   SimJob,
@@ -26,8 +24,7 @@ const jobsKey = [...qk.sim, "jobs"] as const
 export const useSimConfig = () => useQuery({ queryKey: [...qk.sim, "config"], queryFn: () => api.get<SimConfig>("/sim/config") })
 
 /** Environments from the last folder scan */
-export const useSimEnvs = (state?: SimEnvState) =>
-  useQuery({ queryKey: [...envsKey, "list", state ?? null], queryFn: () => api.get<SimEnv[]>("/sim/envs", { state }) })
+export const useSimEnvs = () => useQuery({ queryKey: [...envsKey, "list"], queryFn: () => api.get<SimEnv[]>("/sim/envs") })
 
 export const useSimEnv = (id: string | undefined) =>
   useQuery({ queryKey: [...envsKey, id], queryFn: () => api.get<SimEnv>(`/sim/envs/${id}`), enabled: !!id })
@@ -39,12 +36,11 @@ export const useRescanEnvs = () =>
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
   })
 
-/** Every saved model checked against this environment: task models first, other usable ones, then blocked ones */
-export const useEnvCompat = (envId: string | undefined) =>
-  useQuery({
-    queryKey: [...envsKey, envId, "compat"],
-    queryFn: () => api.get<ModelCompat[]>(`/sim/envs/${envId}/compat`),
-    enabled: !!envId,
+/** Removes the environment's file or folder; 409 with details.tasks while a task uses it */
+export const useDeleteSimEnv = () =>
+  useMutation({
+    mutationFn: (id: string) => api.delete(`/sim/envs/${encodeURIComponent(id)}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
   })
 
 /** Evaluation jobs, newest first */
@@ -69,12 +65,15 @@ function onJob(job: SimJob) {
   return queryClient.invalidateQueries({ queryKey: qk.sim })
 }
 
-/** Starts an evaluation (queued when the GPU is busy); 422 with details.issues if the pair is incompatible */
+/** Starts an evaluation (queued when the GPU is busy); 422 for an unknown model or environment */
 export const useStartSimJob = () =>
   useMutation({ mutationFn: (body: SimJobCreate) => api.post<SimJob>("/sim/jobs", body), onSuccess: onJob })
 
 /** 409 if the job is not running or queued */
 export const useStopSimJob = () => useMutation({ mutationFn: (id: string) => api.post<SimJob>(`/sim/jobs/${id}/stop`), onSuccess: onJob })
+
+/** Thumbnail image of an environment (404 when it has none) */
+export const simEnvThumbnailUrl = (id: string) => `${API_BASE}/sim/envs/${encodeURIComponent(id)}/thumbnail`
 
 /** Rollout video of one episode (501 until Isaac Sim is connected) */
 export const simEpisodeVideoUrl = (jobId: string, index: number, camera: string) =>
@@ -100,6 +99,6 @@ export const useStartSimRunner = () =>
 
 export const useStopSimRunner = () => useMutation({ mutationFn: () => api.post<SimRunner>("/sim/runner/stop"), onSuccess: onRunner })
 
-/** Sends the environment folder to the server and opens its scene (starts the app when needed); 409 if the env is invalid */
+/** Sends the environment to the server and opens its scene (starts the app when needed) */
 export const useOpenSimEnv = () =>
   useMutation({ mutationFn: (envId: string) => api.post<SimRunner>(`/sim/envs/${envId}/open`), onSuccess: onRunner })

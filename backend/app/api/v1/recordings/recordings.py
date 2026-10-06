@@ -4,7 +4,13 @@ from fastapi import APIRouter, Query, Response, UploadFile
 from fastapi.responses import FileResponse
 
 from app.api.deps import Pagination, TaskIdFilter
-from app.models.recordings import Recording, RecordingOrder, RecordingReview, RecordingSource
+from app.models.recordings import (
+    Recording,
+    RecordingKind,
+    RecordingOrder,
+    RecordingReview,
+    RecordingSource,
+)
 from app.schemas.common import Page
 from app.schemas.recordings import BulkIds, BulkReview, BulkReviewResult, ReviewPatch, Samples
 from app.services import recordings as service
@@ -18,9 +24,10 @@ def list_recordings(
     task_id: TaskIdFilter = None,
     review: RecordingReview | None = None,
     source: RecordingSource | None = None,
+    kind: RecordingKind | None = None,
     order: RecordingOrder = "newest",
 ):
-    return service.page_recordings(task_id, review, source, page.limit, page.cursor, order)
+    return service.page_recordings(task_id, review, source, page.limit, page.cursor, order, kind)
 
 
 @router.post("/import", status_code=201, response_model=Recording)

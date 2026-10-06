@@ -1,6 +1,6 @@
 # sim
 
-Isaac Sim 5.1.0 평가 환경과 실행기를 두는 곳입니다. 시뮬레이션은 **평가만** 하고, 이 스테이션이나 시뮬레이션 서버에서 돕니다.
+Isaac Sim 5.1.0 환경과 실행기를 두는 곳입니다. 시뮬레이션은 **데이터 수집**(Isaac Sim Task)과 **평가**에 쓰고, 이 스테이션이나 시뮬레이션 서버에서 돕니다.
 
 ```
 sim/
@@ -8,11 +8,10 @@ sim/
   runner/
     server.py      Isaac Sim 서버: 앱을 띄우고 끄며 환경 장면을 엽니다 (표준 라이브러리만 사용)
     app.py         Isaac Sim 앱: server.py 가 window / headless 로 실행
-  envs/<env-id>/
-    env.yaml       매니페스트 (이름, 연결 Task, 카메라, action_dim, 에피소드 시간 제한, 성공 판정)
-    scene.usd      Isaac Sim 장면
-    success.py     check(state) -> (done, success, reason)
-    assets/        (선택) USD 하위 asset
+  envs/            환경 (USD 장면). 저장소에는 비어 있습니다
+    <env-id>.usd   USD 파일 하나가 환경 하나 (.usd / .usda / .usdc / .usdz)
+    <env-id>/      또는 폴더: scene.usd (없으면 하나뿐인 USD 파일) + 하위 asset
+    <rig-id>/      Rig id 이름의 폴더: 그 Rig 전용 환경들 (안의 규칙은 같음)
 ```
 
 ## 설치
@@ -27,8 +26,8 @@ cd sim && uv sync     # Isaac Sim 5.1.0 (약 16 GB). 실행기는 NVIDIA EULA �
 
 Settings → Connection → **Isaac Sim** 에서 고릅니다.
 
-- **This station:** 백엔드가 필요할 때 `127.0.0.1:8211` 에 서버를 띄웁니다. 백엔드를 재시작해도 서버는 남아 있고, 앱은 Simulation 화면의 **Stop** 으로 끕니다.
-- **Remote server:** 시뮬레이션 서버에 이 저장소를 받고 `cd sim && uv sync` 한 뒤 아래처럼 띄워 두고, Server URL 에 `http://<서버>:8211` 을 적습니다. 환경을 열 때 폴더를 서버로 보내므로 서버에 `envs/` 를 맞춰 둘 필요는 없습니다.
+- **This station:** 백엔드가 필요할 때 `127.0.0.1:8211` 에 서버를 띄웁니다. 백엔드를 재시작해도 서버는 남아 있고, 앱은 Environments 화면의 **Stop** 으로 끕니다.
+- **Remote server:** 시뮬레이션 서버에 이 저장소를 받고 `cd sim && uv sync` 한 뒤 아래처럼 띄워 두고, Server URL 에 `http://<서버>:8211` 을 적습니다. 환경을 열 때 USD 파일(폴더면 폴더 전체)을 서버로 보내므로 서버에 `envs/` 를 맞춰 둘 필요는 없습니다.
 
   ```sh
   sim/.venv/bin/python sim/runner/server.py --host 0.0.0.0 --port 8211
@@ -36,13 +35,24 @@ Settings → Connection → **Isaac Sim** 에서 고릅니다.
 
 - **Display:** Window 는 Isaac Sim 창을 띄우고, Headless 는 화면 없이 돌립니다. 원격 서버에서 Window 를 고르면 서버 화면에 창이 뜹니다.
 
-Simulation → Environments 에서 환경을 고르고 **Open in Isaac Sim** 을 누르면 그 환경의 `scene.usd` 가 열립니다. 로그와 받은 환경은 `~/.cache/mimic-sim/` 에 있습니다.
+Environments 화면에서 환경을 고르고 **Open in Isaac Sim** 을 누르면 그 환경의 USD 장면이 열립니다. 로그와 받은 환경은 `~/.cache/mimic-sim/` 에 있습니다.
 
 ## 환경 추가
 
-- 새 환경은 `envs/_template/` 를 복사해서 만들고, 웹의 Simulation → Environments 에서 **Rescan** 하면 목록에 나타납니다.
-- `_` 나 `.` 로 시작하는 폴더는 스캔하지 않습니다.
-- 폴더 위치는 환경 변수 `VLA_SIM_ENVS_DIR` (기본값 `sim/envs`).
-- 예시 환경의 `scene.usd` 는 빈 자리표시 장면입니다. Isaac Sim 에서 만든 장면으로 바꿔 넣으세요.
-- 매니페스트 형식과 서버 API: [docs/api/simulation.md](../docs/api/simulation.md)
+- 환경은 USD 장면 하나입니다. 매니페스트(`env.yaml`)나 성공 판정 스크립트는 없습니다.
+- `.usd` / `.usda` / `.usdc` / `.usdz` 파일을 `envs/` 에 직접 복사한 뒤 Environments 화면에서 **Rescan** 하면 목록에 나타납니다 (id 는 파일 이름).
+- 하위 asset 이 있는 장면은 `envs/<env-id>/` 폴더에 `scene.usd` 와 asset 을 넣고 **Rescan** 합니다.
+- `_` 나 `.` 로 시작하는 파일과 폴더는 스캔하지 않습니다. 폴더 위치는 환경 변수 `VLA_SIM_ENVS_DIR` (기본값 `sim/envs`).
+- Task 가 쓰고 있는 환경은 지울 수 없습니다.
+- Rig 별로 나누려면 `envs/<rig-id>/` 폴더(예: `envs/so101-kit/`)에 넣습니다. 그 환경은 해당 Rig 의 Task 와 모델에만 쓸 수 있고, 최상위에 둔 환경은 모든 Rig 에서 씁니다.
+- 썸네일: USD 파일 옆에 같은 이름의 이미지(`table.usda` → `table.png`, jpg / webp 도 가능)를 두거나, 폴더 환경이면 안에 `thumbnail.png` 를 둡니다.
+- 스캔 규칙과 서버 API: [docs/api/simulation.md](../docs/api/simulation.md)
 - USD 파일이 커지면 Git LFS 로 관리합니다.
+
+## Task 환경 선택 (데이터 수집)
+
+Rig 는 실제 장비 하나로 씁니다. Tasks 에서 **Isaac Sim** 태그를 고르고 Environments 에 등록된 환경 하나를 고르면, 그 환경이 Task 에 저장됩니다 (YAML `env: <env-id>`).
+
+- 실제 리더 팔이 환경 안의 팔로워를 움직이고, Capture, Review, Datasets 흐름을 그대로 씁니다. 녹화에는 환경 id (`simEnv`) 가 붙습니다.
+- Isaac Sim 연결(브리지)은 아직 없어서, Isaac Sim Task 의 Capture 는 지금은 503 을 돌려줍니다.
+- Environments 화면은 환경 관리(Rescan, 열기, 삭제)만 합니다. 평가는 Evaluate 화면에서 대상을 **Isaac Sim** 으로 고릅니다.

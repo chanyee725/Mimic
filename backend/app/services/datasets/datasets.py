@@ -131,6 +131,7 @@ def load(root: Path, repo_id: str) -> tuple[Dataset, int]:
             features=api_features(info["features"], side.get("notes")),
             episode_count=int(info.get("total_episodes", 0)),
             sources=side.get("sources"),
+            worlds=side.get("worlds") or ["real"],
         )
     except (KeyError, TypeError, ValueError) as e:
         raise lr.FormatError(f"info.json is incomplete: {e}") from e

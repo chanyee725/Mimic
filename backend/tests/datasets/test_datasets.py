@@ -338,6 +338,20 @@ def test_merge_writes_reindexed_dataset(client, two, events):
     assert client.get("/datasets/m/ab").json() == ds
 
 
+def test_worlds_follow_the_recordings_and_merge(client, recs):
+    convert(client, "local/a", exclude=[f"{TASK}-3"])
+    for i in (1, 2, 3):
+        write_recording(i, task_id="open-drawer", duration_s=1, sim_env="open-drawer")
+    convert(client, "local/b", task_id="open-drawer")
+    assert client.get("/datasets/local/a").json()["worlds"] == ["real"]
+    assert client.get("/datasets/local/b").json()["worlds"] == ["sim"]
+    client.post("/datasets/merge", json={"sources": ["local/b", "local/a"], "repoId": "m/ab"})
+    service.wait("m/ab")
+    assert client.get("/datasets/m/ab").json()["worlds"] == ["real", "sim"]
+    service.reset()  # kept in the sidecar
+    assert client.get("/datasets/m/ab").json()["worlds"] == ["real", "sim"]
+
+
 def test_merge_same_task_keeps_task_id(client, recs):
     convert(client, "local/a", exclude=[f"{TASK}-3"])
     convert(client, "local/b", exclude=[f"{TASK}-1", f"{TASK}-2"])

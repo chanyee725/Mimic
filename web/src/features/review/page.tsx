@@ -4,9 +4,12 @@ import { LuUpload } from "react-icons/lu"
 import { Button } from "@/components/ui/button"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
+import { Segmented } from "@/components/common/segmented"
 import { TaskPicker } from "@/components/pickers/task-picker"
+import { WorldMark } from "@/components/robot/world-mark"
 import { useImportRecording } from "@/api/recordings"
 import { useTasks } from "@/api/tasks"
+import type { TaskWorld } from "@/domain/task"
 
 import { ErrorNote, QueryNote } from "@/components/common/query-state"
 import { ReviewWorkspace } from "./components/review-workspace"
@@ -17,6 +20,7 @@ export function ReviewPage() {
   const tasks = useTasks()
   const [picked, setPicked] = useState<string | null>(null)
   const task = tasks.data?.find((t) => t.id === picked) ?? null
+  const [kind, setKind] = useState<"all" | TaskWorld>("all")
 
   const importRec = useImportRecording()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -28,6 +32,17 @@ export function ReviewPage() {
       description="Task 를 고르고 녹화한 에피소드를 재생해 승인, 거절하거나 지웁니다. 승인한 에피소드만 Convert 에서 변환할 수 있습니다."
       actions={
         <div className="flex items-center gap-3">
+          <Segmented
+            label="Rig kind"
+            size="md"
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "all", label: "All" },
+              { value: "real", label: <WorldMark world="real" label /> },
+              { value: "sim", label: <WorldMark world="sim" label /> },
+            ]}
+          />
           {importRec.data && !importRec.isPending && (
             <span className="text-xs text-muted-foreground">{importRec.data.file} 을 가져왔습니다.</span>
           )}
@@ -51,7 +66,12 @@ export function ReviewPage() {
       }
     >
       {task ? (
-        <ReviewWorkspace key={task.id} taskId={task.id} taskPicker={<TaskPicker task={task} onSelect={setPicked} />} />
+        <ReviewWorkspace
+          key={`${task.id}/${kind}`}
+          taskId={task.id}
+          kind={kind === "all" ? undefined : kind}
+          taskPicker={<TaskPicker task={task} onSelect={setPicked} />}
+        />
       ) : (
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
           <EmptyState className="grid min-h-[28rem] place-items-center rounded-lg bg-stage py-0 text-sm">

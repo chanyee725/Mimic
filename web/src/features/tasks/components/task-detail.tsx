@@ -96,7 +96,7 @@ function TaskEditor({ base }: { base: Task }) {
             </Badge>
           </div>
           <span className="truncate text-[13px] text-muted-foreground tabular-nums">
-            v{base.version} · updated {formatDateTime(base.updatedAt)} by {base.updatedBy}
+            {base.envId && `Isaac Sim · ${base.envId} · `}v{base.version} · updated {formatDateTime(base.updatedAt)} by {base.updatedBy}
             {dirty && <span className="text-foreground"> · unsaved changes</span>}
           </span>
         </div>

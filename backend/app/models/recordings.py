@@ -10,6 +10,7 @@ from app.models.tasks import Outcome
 TopicKind = Literal["action", "state", "video", "label", "glove", "other"]
 RecordingReview = Literal["pending", "accepted", "rejected"]
 RecordingSource = Literal["capture", "external"]
+RecordingKind = Literal["real", "sim"]  # sim: recorded for an Isaac Sim task (simEnv set)
 RecordingOrder = Literal["newest", "episode"]  # list order: recordedAt desc, or episode number asc
 
 
@@ -39,6 +40,7 @@ class Recording(CamelModel):
     source: RecordingSource
     task_id: str | None = None
     rig_id: str | None = None
+    sim_env: str | None = None  # Isaac Sim environment, for an episode recorded on a sim rig
     episode: int | None = None
     recorded_at: str
     duration_s: float

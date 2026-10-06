@@ -12,11 +12,12 @@ import tarfile
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from app.configs.config import REPO_ROOT
-from app.core.errors import ApiError, conflict
+from app.core.errors import ApiError
 from app.models.settings import IsaacSettings
 from app.models.simulation import SimRunner, SimRunnerApp
 from app.schemas.settings import ConnTestResult
@@ -140,26 +141,28 @@ def stop() -> SimRunner:
     return status()
 
 
-def _archive(folder: Path) -> bytes:
+def _archive(path: Path) -> bytes:
+    """The folder's files (or the single stage file) as tar.gz."""
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-        for path in sorted(folder.rglob("*")):
-            if path.is_file() and "__pycache__" not in path.parts:
-                tar.add(path, arcname=str(path.relative_to(folder)))
+        if path.is_file():
+            tar.add(path, arcname=path.name)
+        for p in sorted(path.rglob("*")) if path.is_dir() else []:
+            if p.is_file() and "__pycache__" not in p.parts:
+                tar.add(p, arcname=str(p.relative_to(path)))
     if buf.tell() > MAX_ENV_BYTES:
         raise ApiError(422, f"Environment folder is larger than {MAX_ENV_BYTES >> 20} MB")
     return buf.getvalue()
 
 
 def open_env(env_id: str, display: str | None = None) -> SimRunner:
-    """Sends the environment to the server, which opens its scene (starting the app if needed)."""
+    """Sends the environment to the server, which opens its stage (starting the app if needed)."""
     env = get_env(env_id)
-    if env.state != "ready":
-        raise conflict(f"Environment '{env_id}' is invalid: {env.error}")
     body = _archive(Path(env.path))
     _ensure_server()
     display = display or _settings().display
-    _request(f"/scene?env={env_id}&display={display}", body, "application/gzip")
+    query = urllib.parse.urlencode({"env": env_id, "scene": env.scene, "display": display})
+    _request(f"/scene?{query}", body, "application/gzip")
     return status()
 
 

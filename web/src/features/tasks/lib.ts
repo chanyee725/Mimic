@@ -43,6 +43,7 @@ export function newTaskInput(id: string, name: string, rig: Rig): TaskInput {
     variants: [],
     tags: [],
     ...rigDefaults(rig),
+    envId: null,
     targetEpisodes: 50,
     durationS: 30,
     resetS: 10,

@@ -7,23 +7,9 @@ export type Settings = {
   version: number
   integrations: {
     hf: { token: Secret; namespace: string; privateByDefault: boolean; state: ConnState }
-    runpod: {
-      apiKey: Secret
-      region: string
-      volume: string
-      monthlyBudget: number
-      idleAlertMin: number
-      /** null until RunPod billing is read */
-      spentThisMonth: number | null
-      state: ConnState
-    }
+    runpod: { apiKey: Secret; state: ConnState }
   }
-  connection: {
-    api: { url: string; state: ConnState; latencyMs?: number | null }
-    grpc: { url: string; state: ConnState; latencyMs?: number | null }
-    webrtc: { stun: string; turn: string; state: ConnState }
-    isaac: IsaacSettings
-  }
+  connection: { isaac: IsaacSettings }
   notifications: {
     slackWebhook: Secret
     events: { key: string; label: string; on: boolean }[]
@@ -57,7 +43,7 @@ export type SettingsPatch<S extends SettingsSection = SettingsSection> = { versi
 
 export type SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"
 
-export type TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "isaac" | "slack"
+export type TestTarget = "hf" | "runpod" | "isaac" | "slack"
 
 export type ConnTestResult = { state: ConnState; latencyMs?: number | null; detail?: string | null }
 

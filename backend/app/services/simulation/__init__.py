@@ -1,16 +1,15 @@
-"""Simulation: scanned environments (envs), evaluation jobs (jobs), the folder scanner and the
-Isaac Sim server (runner)."""
+"""Simulation: USD environments (envs, scanner), evaluation jobs (jobs) and the Isaac Sim server
+(runner)."""
 
 from app.services.simulation import envs, jobs, runner
 from app.services.simulation.envs import (
-    compat,
-    env_compat,
+    delete_env,
     find_env,
     get_env,
     list_envs,
-    model_compat,
-    model_spec,
     rescan,
+    rig_problem,
+    thumbnail,
 )
 from app.services.simulation.jobs import (
     ACTIVE,
@@ -27,9 +26,8 @@ from app.services.simulation.jobs import (
 
 __all__ = [
     "ACTIVE",
-    "compat",
     "create_job",
-    "env_compat",
+    "delete_env",
     "episode_video",
     "find_env",
     "get_env",
@@ -38,11 +36,11 @@ __all__ = [
     "list_envs",
     "list_episodes",
     "list_jobs",
-    "model_compat",
-    "model_spec",
     "page_episodes",
     "reset",
     "rescan",
+    "rig_problem",
+    "thumbnail",
     "runner",
     "sim_config",
     "stop_job",

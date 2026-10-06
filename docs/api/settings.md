@@ -10,14 +10,13 @@ ConnState = "ok" | "error" | "unknown"
 Settings  = { version: number } & {
   integrations: {
     hf:     { token: Secret; namespace; privateByDefault; state: ConnState }
-    runpod: { apiKey: Secret; region; volume; monthlyBudget; idleAlertMin; spentThisMonth: number | null; state: ConnState }
+    runpod: { apiKey: Secret; state: ConnState }   // region, volume and budget are options of a RunPod training job
   }
-  connection: { api: { url; state; latencyMs? }; grpc: { url; state; latencyMs? }; webrtc: { stun; turn; state }
-                isaac: { mode: "local" | "remote"; display: "window" | "headless"; python; port; url; state; latencyMs? } }
-  notifications: { slackWebhook: Secret; events: { key; label; on: boolean }[] }
+  connection: { isaac: { mode: "local" | "remote"; display: "window" | "headless"; python; port; url; state; latencyMs? } }
+  notifications: { slackWebhook: Secret; events: { key; label; on: boolean }[] }   // keys: train_done, train_failed, disk
 }
 SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"
-TestTarget = "hf" | "runpod" | "api" | "grpc" | "webrtc" | "isaac" | "slack"
+TestTarget = "hf" | "runpod" | "isaac" | "slack"
 // isaac: the server's health (latency); locally an installed Python also counts, since the server starts on demand.
 // connection.isaac.url is required when mode is "remote" (422 otherwise). See simulation.md → Isaac Sim server.
 Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other"; label: string; gb: number }[] }
@@ -29,11 +28,14 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 - `config/settings/<part>.yaml`, one file per part, snake_case keys, hand-editable and committed:
   `huggingface` (integrations.hf), `runpod`, `connection`, `notifications`.
   Files hold only editable values: no `version` (kept in memory, 1 after each start), no live fields
-  (`state`, `latency_ms`, `spent_this_month`) and no secrets, so connection tests and key changes never touch them.
+  (`state`, `latency_ms`) and no secrets, so connection tests and key changes never touch them.
 - On load the seed document is overlaid with each file (nested objects merge, other values replace), so missing keys and live
   fields get seed values. Live fields start honest: every `state` is `unknown` until a connection test runs, `latencyMs` is
-  `null` and `spentThisMonth` is `null` (RunPod spend is not tracked yet). A missing file is written from the seeds; an invalid one is left untouched and that part uses the seeds
-  (a warning is logged) until it is fixed or that part is saved.
+  `null`. A missing file is written from the seeds; an invalid one is left untouched and that part uses the seeds
+  (a warning is logged) until it is fixed or that part is saved. Keys the settings no longer have (the old
+  `connection.api` / `grpc` / `webrtc`, RunPod `region` / `volume` / `monthly_budget` / `idle_alert_min`, and notification
+  events other than the three above) are ignored and the file is rewritten without them on load; a partial file (keys missing)
+  is not rewritten.
 - A save rewrites only the files whose content changed.
 - There is no storage section. Two folders, both relative to the repo root unless absolute:
   - config folder (`VLA_CONFIG_DIR`, default `config`, committed): `rigs/`, `settings/`, `calibration/` — the station's setup.
@@ -62,7 +64,7 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 | Method | Path | Body | Returns | Web |
 | --- | --- | --- | --- | --- |
 | GET | `/settings` | | `Settings` | `getSettings()` |
-| PATCH | `/settings/{section}` | `{ version, ...sectionFields }` (secrets and read-only fields like `state`, `spentThisMonth` are ignored) | `Settings`; 409 stale version | Save changes |
+| PATCH | `/settings/{section}` | `{ version, ...sectionFields }` (secrets and read-only fields like `state` are ignored) | `Settings`; 409 stale version | Save changes |
 | PUT | `/settings/secrets/{name}` | `{ value }` (min 8 chars) | `Secret` | Set / Replace key |
 | DELETE | `/settings/secrets/{name}` | | `Secret` (`set: false`) | Remove key |
 | POST | `/settings/test/{target}` | | `{ state: ConnState; latencyMs?: number; detail?: string }` | Test / Send test |
@@ -81,16 +83,13 @@ GiB rounded to 3 decimals.
 Rules:
 
 - PATCH merges: nested objects merge key by key, other values replace. Keys may be camelCase or snake_case;
-  unknown keys are ignored. Read-only: `state`, `latencyMs`, `spentThisMonth`, secrets (`token`, `apiKey`, `slackWebhook`).
+  unknown keys are ignored. Read-only: `state`, `latencyMs`, secrets (`token`, `apiKey`, `slackWebhook`).
 - `notifications.events` is matched by `key`; only `on` is editable (unknown key → 422).
 - A missing `version` or an invalid section value → 422 (`details.errors[].loc` starts with `body`); a stale version → 409 with
   the whole document in `details.current`. Success bumps `version` and publishes `settings.updated` (data `Settings`).
 - Unknown `section`, secret `name` or test `target` in the path → 422.
 - Secret writes do not bump `version`; they reset the related integration `state` to `unknown`. Raw values stay in `.env` and backend memory only.
-- `POST /settings/test/{target}` stores the result in the matching `state` (and `latencyMs` for api / grpc):
-  - `api` → `ok` (the request reached the API; no latency).
-  - `grpc` → a real TCP connect to `connection.grpc.url` (1 s timeout): `ok` with the measured `latencyMs`, else `error`
-    with `detail`.
-  - `webrtc` → `error` ("Camera pipeline is not implemented yet").
+- `POST /settings/test/{target}` stores the result in the matching `state` (and `latencyMs` for isaac):
   - `hf` / `runpod` / `slack` → `error` with `detail` when the related secret is missing; otherwise `ok` with
     `detail: "Key is set (not verified online)"` (no online call yet, no latency).
+  - `isaac` → the Isaac Sim server's health with `latencyMs` (see simulation.md).

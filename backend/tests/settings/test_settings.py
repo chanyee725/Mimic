@@ -16,23 +16,22 @@ def test_get_settings(client):
     # Tests run with an empty .env and no secret env vars
     assert s["integrations"]["hf"]["token"] == {"set": False}
     assert set(s) == {"version", "integrations", "connection", "notifications"}
-    # Live values are unknown until a connection test runs; spend is not tracked
-    assert s["integrations"]["runpod"]["spentThisMonth"] is None
+    # Live values are unknown until a connection test runs
     assert s["integrations"]["hf"]["state"] == "unknown"
-    assert s["connection"]["api"] == {
-        "url": "http://localhost:8000",
-        "state": "unknown",
-        "latencyMs": None,
-    }
+    assert s["integrations"]["runpod"] == {"apiKey": {"set": False}, "state": "unknown"}
+    assert list(s["connection"]) == ["isaac"]
+    assert s["connection"]["isaac"]["state"] == "unknown"
+    keys = [e["key"] for e in s["notifications"]["events"]]
+    assert keys == ["train_done", "train_failed", "disk"]
 
 
 def test_patch_section(client):
-    body = {"version": 1, "idle_alert_min": 5, "runpod": {"idleAlertMin": 30}}
-    r = client.patch("/settings/integrations", json=body)
+    body = {"version": 1, "port": 5, "isaac": {"port": 8300}}
+    r = client.patch("/settings/connection", json=body)
     assert r.status_code == 200
     s = r.json()
     assert s["version"] == 2
-    assert s["integrations"]["runpod"]["idleAlertMin"] == 30
+    assert s["connection"]["isaac"]["port"] == 8300
     assert get(client)["version"] == 2
 
 
@@ -42,22 +41,21 @@ def test_patch_ignores_read_only_and_unknown(client):
     body = {
         "version": 1,
         "hf": {"namespace": "lab", "state": "error", "token": {"set": False}},
-        "runpod": {"spentThisMonth": 0, "monthlyBudget": 500},
+        "runpod": {"monthlyBudget": 500},
         "bogus": 1,
     }
     s = client.patch("/settings/integrations", json=body).json()
     assert s["integrations"]["hf"]["namespace"] == "lab"
     assert s["integrations"]["hf"]["state"] == "ok"
     assert s["integrations"]["hf"]["token"]["set"] is True
-    assert s["integrations"]["runpod"]["spentThisMonth"] is None
-    assert s["integrations"]["runpod"]["monthlyBudget"] == 500
+    assert "monthlyBudget" not in s["integrations"]["runpod"]
 
 
 def test_patch_notification_events(client):
-    body = {"version": 1, "events": [{"key": "sim_done", "on": True, "label": "renamed"}]}
+    body = {"version": 1, "events": [{"key": "disk", "on": False, "label": "renamed"}]}
     events = client.patch("/settings/notifications", json=body).json()["notifications"]["events"]
-    sim = next(e for e in events if e["key"] == "sim_done")
-    assert sim["on"] is True and sim["label"] == "Simulation evaluation finished"
+    disk = next(e for e in events if e["key"] == "disk")
+    assert disk["on"] is False and disk["label"] == "Disk almost full"
     body = {"version": 2, "events": [{"key": "nope", "on": True}]}
     assert client.patch("/settings/notifications", json=body).status_code == 422
 
@@ -72,9 +70,9 @@ def test_patch_stale_version(client):
 @pytest.mark.parametrize(
     "section,body",
     [
-        ("integrations", {"runpod": {"idleAlertMin": -1}}),
-        ("connection", {"api": {"url": ""}}),
-        ("integrations", {"runpod": {"monthlyBudget": -1}}),
+        ("connection", {"isaac": {"port": 0}}),
+        ("connection", {"isaac": {"mode": "remote", "url": ""}}),
+        ("integrations", {"hf": {"privateByDefault": "maybe"}}),
     ],
 )
 def test_patch_validation(client, section, body):
@@ -119,7 +117,6 @@ def test_secret_errors(client):
 
 
 def test_connection_tests(client):
-    assert client.post("/settings/test/api").json()["state"] == "ok"
     assert client.post("/settings/test/hf").json()["state"] == "error"
     client.put("/settings/secrets/hf_token", json={"value": "hf_value_3kQz"})
     assert client.post("/settings/test/hf").json()["state"] == "ok"
@@ -129,15 +126,9 @@ def test_connection_tests(client):
     client.put("/settings/secrets/slack_webhook", json={"value": "https://hooks.example/abcd"})
     assert client.post("/settings/test/slack").json()["state"] == "ok"
     assert client.post("/settings/test/nope").status_code == 422
-
-
-def test_connection_test_grpc_is_real(client):
-    # Nothing listens on the default gRPC port in tests: a real connect fails
-    client.patch("/settings/connection", json={"version": 1, "grpc": {"url": "127.0.0.1:1"}})
-    r = client.post("/settings/test/grpc").json()
-    assert r["state"] == "error" and "latencyMs" not in r
-    assert client.post("/settings/test/webrtc").json()["state"] == "error"
-    assert client.post("/settings/test/api").json() == {"state": "ok"}
+    # Removed targets
+    for target in ("api", "grpc", "webrtc"):
+        assert client.post(f"/settings/test/{target}").status_code == 422
 
 
 def test_disk_is_real(client):

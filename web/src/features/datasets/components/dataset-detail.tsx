@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { LuArrowRightLeft, LuClock, LuCloudUpload, LuCpu, LuFilm, LuHardDrive, LuListVideo, LuRotateCcw, LuTrash2 } from "react-icons/lu"
+import { SiHuggingface } from "react-icons/si"
 
 import { Button } from "@/components/ui/button"
 import { LinkButton } from "@/components/common/link-button"
@@ -12,7 +13,8 @@ import { StatusDot } from "@/components/common/status-dot"
 import { useDataset, useDatasetEpisodes, useDeleteDataset, usePushDataset } from "@/api/datasets"
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
-import { MIXED_TASK, type Dataset } from "@/domain/dataset"
+import { WorldMarks } from "@/components/robot/world-mark"
+import { MIXED_TASK, datasetWorlds, type Dataset } from "@/domain/dataset"
 import { formatDateTime, formatLength, formatSize, plural } from "@/lib/format"
 
 import { STATUS } from "../lib"
@@ -64,6 +66,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
                 {status.label}
               </StatusDot>
               {dataset.hub.pushed && <HfBadge title={dataset.hub.private ? "On HF Hub (private)" : "On HF Hub"} />}
+              <WorldMarks worlds={datasetWorlds(dataset)} />
             </div>
             <p className="truncate text-[13px] text-muted-foreground">{mixed ? "Mixed tasks" : (task?.instruction ?? dataset.taskId)}</p>
             {!!dataset.sources?.length && (
@@ -85,14 +88,8 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
               disabled={push.isPending || dataset.status !== "ready" || dataset.hub.pushed}
               onClick={() => push.mutate({ repoId: dataset.repoId, private: dataset.hub.private })}
             >
-              <LuCloudUpload />
-              {dataset.hub.pushed
-                ? dataset.hub.private
-                  ? "On HF Hub (private)"
-                  : "On HF Hub"
-                : push.isPending
-                  ? "Pushing…"
-                  : "Push to HF Hub"}
+              {dataset.hub.pushed ? <SiHuggingface /> : <LuCloudUpload />}
+              {dataset.hub.pushed ? "Pushed" : push.isPending ? "Pushing…" : "Push to HF Hub"}
             </Button>
             {dataset.kind === "lerobot" ? (
               <LinkButton to="/training" size="sm" disabled={dataset.status !== "ready"}>

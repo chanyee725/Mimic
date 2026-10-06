@@ -9,7 +9,8 @@ from app.models.simulation import SimConfig, SimEpisode, SimGpu, SimJob
 from app.schemas.common import Page, paginate
 from app.schemas.simulation import SimJobCreate
 from app.services.models import get_model
-from app.services.simulation.envs import find_env, get_env, lock, model_compat
+from app.services.simulation.envs import find_env, lock, rig_problem
+from app.services.tasks import get_task
 from app.utils import gpu
 from app.utils.ids import seq_num
 
@@ -61,13 +62,9 @@ def create_job(body: SimJobCreate) -> SimJob:
         env = find_env(body.env_id)
         if env is None:
             raise ApiError(422, f"Environment '{body.env_id}' does not exist")
-        issues = model_compat(env, model).issues
-        if any(i.level == "error" for i in issues):
-            raise ApiError(
-                422,
-                f"Model '{model.id}' cannot be loaded into '{env.id}'",
-                {"issues": [i.model_dump(mode="json") for i in issues]},
-            )
+        task = get_task(model.task_id)
+        if problem := rig_problem(env, task.rig_id if task else None):
+            raise ApiError(422, problem, {"envId": env.id, "rigId": env.rig_id})
     raise ApiError(503, NOT_CONNECTED, {"envId": env.id, "modelId": model.id})
 
 
@@ -106,6 +103,8 @@ def page_episodes(
 def episode_video(job_id: str, index: int, camera: str) -> bytes:
     """Rollout video of one episode camera; always refused until Isaac Sim is connected."""
     get_episode(job_id, index)
-    if camera not in get_env(get_job(job_id).env_id).cameras:
-        raise ApiError(404, f"Camera '{camera}' is not rendered by this environment")
+    model = get_model(get_job(job_id).model_id)
+    task = get_task(model.task_id) if model else None
+    if task is None or camera not in task.cameras:
+        raise ApiError(404, f"Camera '{camera}' is not a camera of the model's task")
     raise ApiError(501, "Rollout video is not available until Isaac Sim is connected")

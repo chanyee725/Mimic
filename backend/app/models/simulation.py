@@ -6,7 +6,6 @@ from pydantic import Field
 
 from app.schemas.common import CamelModel
 
-SimEnvState = Literal["ready", "invalid"]
 Randomization = Literal["none", "low", "high"]
 SimJobStatus = Literal["running", "queued", "done", "failed", "stopped"]
 EpisodeResult = Literal["success", "fail"]
@@ -18,21 +17,18 @@ class SimEnvFile(CamelModel):
 
 
 class SimEnv(CamelModel):
+    """A USD stage under the environments folder: a top-level file or a folder with its assets."""
+
     id: str
     name: str
-    path: str
-    description: str | None = None
-    task_id: str | None = None
-    cameras: list[str] = []
-    action_dim: int = 0
-    max_seconds: float = 0
-    calibrated: bool = False
-    state: SimEnvState
-    error: str | None = None
-    manifest: str = ""
+    path: str  # absolute path of the file or folder
+    scene: str  # stage file, relative to the folder (the file name for a top-level file)
+    size_kb: int = Field(alias="sizeKB")
     files: list[SimEnvFile] = []
     registered_at: str
     updated_at: str
+    rig_id: str | None = None  # set for a stage under a rig folder; None = usable with any rig
+    thumbnail: bool = False  # an image is served by /sim/envs/{id}/thumbnail
 
 
 class SimGpu(CamelModel):

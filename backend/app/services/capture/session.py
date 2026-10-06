@@ -23,6 +23,8 @@ from app.services.rigs import (
 from app.services.tasks import get_task
 from app.utils.time import now, seconds_since, to_iso
 
+SIM_NOT_CONNECTED = "Isaac Sim teleoperation is not connected yet"
+
 _session: Session | None = None
 _last_task_id: str | None = None
 _issued: dict[str, int] = {}  # last episode number handed out per task
@@ -159,6 +161,9 @@ def start(task_id: str, operator: str) -> CaptureState:
     rig = get_rig(task.rig_id)
     if rig is None:
         raise not_found("Rig", task.rig_id)
+    if task.env_id:
+        # The leader would drive the follower in Isaac Sim and record its cameras there
+        raise ApiError(503, SIM_NOT_CONNECTED)
     if task.collected >= task.target_episodes:
         # Raise the task's target (Tasks) to record more
         raise conflict(

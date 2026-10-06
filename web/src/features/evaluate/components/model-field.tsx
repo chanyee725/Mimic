@@ -1,11 +1,9 @@
 import { LuChevronRight } from "react-icons/lu"
 
-import { useTrainingConfig } from "@/api/training"
 import type { Model } from "@/domain/model"
 
 /** Summary of the selected model; click to open the model picker */
 export function ModelField({ model, disabled, onOpen }: { model: Model; disabled: boolean; onOpen: () => void }) {
-  const gpu = useTrainingConfig().data?.localGpus[0]?.name
   return (
     <div className="grid gap-1.5">
       <span className="text-xs text-muted-foreground">Model</span>
@@ -23,9 +21,6 @@ export function ModelField({ model, disabled, onOpen }: { model: Model; disabled
         </span>
         <LuChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
-      <span className="text-xs text-muted-foreground">
-        {model.dataset}, inference on {gpu ?? "the local GPU"}
-      </span>
     </div>
   )
 }

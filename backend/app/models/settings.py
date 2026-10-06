@@ -31,31 +31,14 @@ class HfSettings(CamelModel):
 
 
 class RunpodSettings(CamelModel):
+    # Training options (region, volume, budget) live on the RunPod training form
     api_key: Secret
-    region: str
-    volume: str
-    monthly_budget: float = Field(ge=0)
-    idle_alert_min: int = Field(ge=0)
-    # Not tracked yet (needs the RunPod billing API)
-    spent_this_month: float | None = None
     state: ConnState
 
 
 class Integrations(CamelModel):
     hf: HfSettings
     runpod: RunpodSettings
-
-
-class Endpoint(CamelModel):
-    url: str = Field(min_length=1)
-    state: ConnState
-    latency_ms: int | None = None
-
-
-class WebrtcSettings(CamelModel):
-    stun: str
-    turn: str
-    state: ConnState
 
 
 IsaacMode = Literal["local", "remote"]
@@ -81,9 +64,6 @@ class IsaacSettings(CamelModel):
 
 
 class ConnectionSettings(CamelModel):
-    api: Endpoint
-    grpc: Endpoint
-    webrtc: WebrtcSettings
     isaac: IsaacSettings
 
 

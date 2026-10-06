@@ -19,6 +19,7 @@ FIELD_PATHS: dict[str, tuple[str, ...]] = {
     "variants": ("variants",),
     "tags": ("tags",),
     "rig_id": ("rig",),
+    "env_id": ("env",),
     "cameras": ("cameras",),
     "action_hz": ("rates", "action_hz"),
     "video_fps": ("rates", "video_fps"),
@@ -44,6 +45,7 @@ def dump(task: Task) -> str:
         "variants": task.variants,
         "tags": task.tags,
         "rig": task.rig_id,
+        **({"env": task.env_id} if task.env_id else {}),
         "cameras": task.cameras,
         "rates": {"action_hz": task.action_hz, "video_fps": task.video_fps},
         "episode": {

@@ -3,18 +3,18 @@ from pathlib import Path
 
 import pytest
 
-from app.configs.config import REPO_ROOT, config
+from app.configs.config import config
 from app.core.events import bus
 from app.services import simulation as service
 
-REPO_ENVS = REPO_ROOT / "sim" / "envs"
+FIXTURE_ENVS = Path(__file__).parent.parent / "fixtures" / "envs"
 
 
 @pytest.fixture(autouse=True)
 def envs_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Copy of the repo's example environments; state reset before and after each test."""
+    """Copy of the fixture environments; state reset before and after each test."""
     d = tmp_path / "envs"
-    shutil.copytree(REPO_ENVS, d)
+    shutil.copytree(FIXTURE_ENVS, d)
     monkeypatch.setattr(config, "sim_envs_dir", d)
     service.reset()
     yield d
