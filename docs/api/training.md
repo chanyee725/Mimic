@@ -118,26 +118,33 @@ Rules:
    `pricePerHr` (RunPod's `adjustedCostPerHr` / `costPerHr`) and `podState` running are set.
 3. **Runner** — installs `lerobot[training,smolvla]==<the station's lerobot version>` into a venv ("installing"),
    downloads the dataset ("downloading"), creates the private model repo `<hf namespace>/smolvla_<task>_<job>` and runs
-   `lerobot-train` with the job's arguments ("training"; `accelerate launch --multi_gpu` for more than one GPU). Each
+   `lerobot-train` with the job's arguments in `<workdir>/<job>-<token prefix>` (unique on a shared network volume;
+   "training"; `accelerate launch --multi_gpu` for more than one GPU). Each
    checkpoint's `pretrained_model/` is uploaded to the model repo as `checkpoints/<step>/pretrained_model` once
-   `checkpoints/last` points at it. It serves `https://<pod>-8000.proxy.runpod.net/<token>/…`: `status` (phase, exit
+   `checkpoints/last` points at it; the last ones are retried 3 times after training and a failed upload does not turn
+   a finished run into `failed`. It serves `https://<pod>-8000.proxy.runpod.net/<token>/…`: `status` (phase, exit
    code, error, uploaded checkpoints, GPU use, log size), `log?offset=N` (≤ 1 MB), `stop`, `ack`; any other path is 404.
 4. **Follow** — every 3 s the station appends the new log bytes to the job's `train.log` and parses it like a local run
    (step, ETA, metrics, epoch; `gpu_util` from the runner), downloads new checkpoints into
-   `output/checkpoints/<step>/pretrained_model` (then listed, so Save to Models / Evaluate work), and every 30 s checks
+   `output/checkpoints/<step>/pretrained_model` (then listed, so Save to Models / Evaluate work; a failed log fetch or
+   download is retried on the next poll), and every 30 s checks
    the pod on RunPod (rate; `EXITED` / `TERMINATED` → failed, e.g. a spot interruption). `costUsd` = rate × time since
    the pod was created.
 5. **End** — on a final runner phase (`done` / `failed` / `stopped`) the station acks, deletes the pod when
    `terminateOnFinish` (`podState` terminated) or leaves it `idle` (`idleForS` counts up; Terminate now deletes it) and,
-   unless `pushToHub`, deletes the model repo (not after a failure).
+   unless `pushToHub`, deletes the model repo (not after a failure). Checkpoints still missing after 20 more polls are
+   named in `error` and the repo is kept.
 
 Safety: the runner stops training at `capHours` (max runtime / budget) and terminates its own pod (pod-scoped
 `RUNPOD_API_KEY`) after the ack or 20 min without one, so a station that is down does not leave it billing. The station
 fails the job and deletes the pod when the runner does not answer within 25 min of creation or stays silent for 10 min.
+A picked network volume is looked up again right before the pod is created; when it is gone the job fails without a pod.
 Station lines in `train.log` start with `[station]`, runner lines with `[mimic]`.
 
 `job.yaml` of a RunPod job also keeps `remote: { token, model_repo, pod_offset, port, pod_since, options }` (never sent to
-the web); on start a running RunPod job is followed again from there.
+the web); on start a running RunPod job is followed again from there. When it cannot be (extras missing), the job fails
+and its pod is terminated; Stop on such a job terminates the pod too. Keys and the HF namespace are checked before the
+job is created (424).
 
 Live: `training.updated` (status, step, eta, cost, pod state, new checkpoint) and `training.metrics` (one sample per step) events.
 

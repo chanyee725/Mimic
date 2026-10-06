@@ -89,7 +89,9 @@ Progress: `dataset.updated` events (`progress`, `status`, `error`). Deleting emi
   sources come from different tasks. Episode `source` keeps the original recording file.
 - `q` matches `repoId` or `taskId` (case-insensitive substring).
 - Push uploads in a background thread (`huggingface_hub`, HF token from `.env`) to `<namespace>/<name>`, where namespace
-  is Settings → Hugging Face namespace, else the token's user; a pulled dataset keeps its repo. It creates the repo
+  is Settings → Hugging Face namespace, else the token's user (`<namespace>/<local namespace>-<name>` when the local
+  namespace differs, so `local/pick` and `team/pick` never share a repo); a pulled dataset keeps its repo. Any failure,
+  the namespace lookup included, clears `pushing` and sets `error`. It creates the repo
   (`private` from the body), uploads the whole folder (`station.yaml` included, hidden files skipped) and re-points the
   `v3.0` tag lerobot looks for. Done: `hub` `{ pushed: true, private, repo }` is written to `station.yaml`; failure:
   `hub.error` (not stored). Both publish `dataset.updated`. RunPod jobs push the same way before renting a pod (skipped

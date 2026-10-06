@@ -48,7 +48,10 @@ def runner(tmp_path):
         venv = tmp_path / "venv"
         (venv / "bin").mkdir(parents=True)
         py = venv / "bin" / "python"  # huggingface_hub snippets: succeed without doing anything
-        py.write_text("#!/bin/sh\nexit 0\n")
+        py.write_text(  # FAKE_UPLOAD_FAIL: checkpoint uploads fail
+            '#!/bin/sh\ncase "$*" in *upload_folder*) [ -n "$FAKE_UPLOAD_FAIL" ] && exit 1;; esac\n'
+            "exit 0\n"
+        )
         trainer = venv / "bin" / "lerobot-train"
         trainer.write_text(FAKE_TRAINER)
         for f in (py, trainer):
@@ -56,6 +59,7 @@ def runner(tmp_path):
         port = _free_port()
         job = {
             "jobId": "job_001",
+            "runId": "job_001-abcd1234",
             "token": TOKEN,
             "port": port,
             "workdir": str(tmp_path / "work"),
@@ -145,3 +149,13 @@ def test_failure_reports_the_last_exception(runner):
 def test_runner_file_is_stdlib_only():
     src = Path(pod_runner.__file__).read_text()
     assert "import huggingface_hub" not in src and "from app" not in src
+
+
+def test_failed_last_upload_keeps_a_finished_run_done(runner, tmp_path):
+    base = runner(FAKE_UPLOAD_FAIL="1")
+    st = _wait_phase(base, ("done", "failed"), timeout=15)
+    assert st["phase"] == "done" and st["checkpoints"] == []
+    log = httpx.get(f"{base}/{TOKEN}/log").content.decode()
+    assert "attempt 3/3" in log
+    # The run folder is keyed by runId, not the job id alone
+    assert (tmp_path / "work" / "job_001-abcd1234" / "train.log").is_file()

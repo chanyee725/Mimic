@@ -81,6 +81,8 @@ def reset() -> None:
             if not followed:
                 job.status, job.eta_s, job.steps_per_s, job.phase = "failed", None, None, None
                 job.error = "Trainer stopped while the backend was down"
+                if job.compute == "runpod":
+                    _terminate_orphan(job)  # nothing follows its pod any more: stop the billing
                 _save(job)
         queued = [j for j in _jobs.values() if j.status == "queued" and j.compute == "local"]
         for g in {_gpu_index[j.id] for j in queued}:
@@ -211,6 +213,8 @@ def create_job(body: JobCreate) -> TrainJob:
     """Local: starts lerobot-train, or queues the job while its GPU is busy. RunPod: rents a pod
     (remote.py); 424 when the RunPod key or the HF token is missing."""
     plan = Plan(body, local_gpus())
+    # Keys and the HF namespace (a network call) are checked before the lock is taken
+    namespace = remote.preflight() if body.compute == "runpod" else None
     ds = datasets.get_dataset(body.dataset)
     steps = int(body.overrides.get("steps", params.DEFAULTS["steps"]))
     batch = int(body.overrides.get("batch_size", params.DEFAULTS["batch_size"]))
@@ -232,7 +236,7 @@ def create_job(body: JobCreate) -> TrainJob:
             overrides=body.overrides,
         )
         if body.compute == "runpod":
-            _start_remote(job, plan)
+            _start_remote(job, plan, namespace or "")
         else:
             _jobs[job.id], _gpu_index[job.id] = job, plan.gpu_index
             _save(job)
@@ -242,14 +246,28 @@ def create_job(body: JobCreate) -> TrainJob:
     return job
 
 
-def _start_remote(job: TrainJob, plan: Plan) -> None:
+def _start_remote(job: TrainJob, plan: Plan, namespace: str) -> None:
     o = plan.options or cfg.runpod_defaults()
     rate = plan.rate or 0.0
     job.status, job.started_at, job.phase = "running", now_iso(), "pushing dataset"
     job.price_per_hr, job.cost_usd = round(rate, 4), 0.0
-    remote.start(job, o, cfg.runpod_cap_hours(o, rate) if rate else o.max_hours)
+    remote.register(job, o, cfg.runpod_cap_hours(o, rate) if rate else o.max_hours, namespace)
     _jobs[job.id] = job
-    _save(job)
+    _save(job)  # job.yaml (with the runner token) exists before the thread can end the job
+    remote.launch(job.id)
+
+
+def _terminate_orphan(job: TrainJob) -> None:
+    """Terminates the pod of a RunPod job nothing follows (best effort; the error is noted)."""
+    if not job.pod or (job.pod_state and job.pod_state.state == "terminated"):
+        return
+    try:
+        remote.terminate(job)
+    except ApiError as e:
+        log.warning("Could not terminate pod %s of %s: %s", job.pod, job.id, e.message)
+        job.error = f"{job.error}; pod {job.pod} could not be terminated: {e.message}"
+        return
+    job.pod_state = PodState(state="terminated", auto_terminate=True, since=now_iso())
 
 
 def _existing_ids() -> list[str]:
@@ -297,7 +315,10 @@ def stop_job(job_id: str) -> TrainJob:
     if job.status == "running" and remote.stop(job_id):
         return job  # stopped once the pod reports it
     job.status, job.eta_s, job.steps_per_s = "stopped", None, None
-    if job.pod_state and job.pod_state.state == "running":
+    if job.compute == "runpod":
+        job.phase = None
+        _terminate_orphan(job)
+    elif job.pod_state and job.pod_state.state == "running":
         state = "terminated" if job.pod_state.auto_terminate else "idle"
         job.pod_state = PodState(
             state=state, auto_terminate=job.pod_state.auto_terminate, since=now_iso()
