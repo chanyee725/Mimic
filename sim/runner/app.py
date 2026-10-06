@@ -9,7 +9,8 @@ HTTP port that only server.py talks to; USD work runs on the main loop between a
 --device gpu (default) simulates on GPU 0: PhysX GPU dynamics and broadphase are turned on in
 every PhysicsScene of an opened stage (one is added when the stage has none), in the session
 layer so the environment's files stay untouched; --device cpu keeps PhysX on the CPU.
-Rendering is always on the NVIDIA GPU.
+Rendering is always on the NVIDIA GPU. A window app also enables the physics UI extensions
+(Physics Inspector for moving joints, physics menus and properties).
 """
 
 import argparse
@@ -24,11 +25,22 @@ p.add_argument("--headless", action="store_true")
 p.add_argument("--device", choices=("gpu", "cpu"), default="gpu")
 args = p.parse_args()
 GPU = args.device == "gpu"
+UI_EXTENSIONS = ("omni.physx.ui", "omni.physx.supportui", "isaacsim.gui.property")
 
 # SimulationApp must start before any omni import
 from isaacsim import SimulationApp  # noqa: E402
 
 app = SimulationApp({"headless": args.headless, "active_gpu": 0, "physics_gpu": 0})
+
+# A window gets the physics authoring UI the lean default experience leaves out: Physics
+# Inspector (joint sliders), physics menus and property widgets. The full experience kit
+# crashes when started through SimulationApp, so only these extensions are added.
+if not args.headless:
+    import omni.kit.app
+
+    manager = omni.kit.app.get_app().get_extension_manager()
+    for ext in UI_EXTENSIONS:
+        manager.set_extension_enabled_immediate(ext, True)
 
 import carb  # noqa: E402
 import omni.usd  # noqa: E402
