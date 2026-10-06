@@ -376,13 +376,27 @@ def secret_value(name: str) -> str | None:
 def _check(target: str) -> ConnTestResult:
     secret = TARGET_SECRET.get(target)
     if secret:
-        # Integrations are not called online yet: only the key is checked
         if not has_secret(secret):
             return ConnTestResult(state="error", detail=f"{secret} is not set")
+        if target == "runpod":
+            return _check_runpod()
+        # HF and Slack are not called here: only the key is checked
         return ConnTestResult(state="ok", detail="Key is set (not verified online)")
     from app.services.simulation import runner  # simulation reads settings: import late
 
     return runner.check()  # isaac
+
+
+def _check_runpod() -> ConnTestResult:
+    """Lists the account's network volumes with the key (training reads settings: import late)."""
+    from app.core.errors import ApiError
+    from app.services.training import runpod_api
+
+    try:
+        n = len(runpod_api.network_volumes())
+    except ApiError as e:
+        return ConnTestResult(state="error", detail=e.message)
+    return ConnTestResult(state="ok", detail=f"Key verified ({n} network volumes)")
 
 
 def run_test(target: str) -> ConnTestResult:

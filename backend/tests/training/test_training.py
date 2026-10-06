@@ -215,10 +215,9 @@ def test_running_job_without_process_fails_on_restart(client, dataset, monkeypat
     assert job.status == "failed" and "backend was down" in job.error
 
 
-def test_runpod_has_no_trainer(client, dataset):
+def test_runpod_needs_keys(client, dataset):
     r = client.post("/training/jobs", json=RUNPOD)
-    assert r.status_code == 503
-    assert r.json()["error"]["message"] == "RunPod trainer is not connected yet"
+    assert r.status_code == 424 and r.json()["error"]["details"] == {"secret": "runpod_api_key"}
     assert client.get("/training/jobs").json() == []
 
 

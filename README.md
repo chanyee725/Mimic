@@ -19,9 +19,9 @@ Rigs ─▶ Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) 
 | Capture | leader 가 follower 를 움직이는 동안 action · state(60 Hz)와 카메라(30 fps)를 에피소드마다 MCAP 하나로 녹화. 화면에 실시간 영상 · 관절 그래프 | 실제 장치로 동작 |
 | Review | MCAP 을 영상 · 관절 그래프와 함께 재생하며 Accept / Reject / Delete | 동작 |
 | Convert | Task 의 승인된 에피소드를 LeRobot v3.0 데이터셋으로 변환 (카메라 영상 포함, action 을 카메라 fps 로 맞춤) | 동작 |
-| Datasets | LeRobot 데이터셋과 원본 MCAP 묶음 관리, 썸네일, HF Hub 업로드 | 업로드는 준비 중 |
+| Datasets | LeRobot 데이터셋과 원본 MCAP 묶음 관리, 썸네일, HF Hub 업로드 · 내려받기(Pull) | 동작 |
 | Merge | fps · feature · Rig 가 같은 데이터셋 여러 개를 하나로 합침 (영상 포함, 에피소드 · index 번호를 다시 매김) | 동작 |
-| Training | SmolVLA 를 로컬 GPU 또는 RunPod 에서 학습, step 마다 loss · GPU 지표 확인 | 준비 중 |
+| Training | SmolVLA 를 로컬 GPU 또는 RunPod 에서 학습, step 마다 loss · GPU 지표 확인. RunPod 은 데이터셋을 HF Hub 에 올린 뒤 pod 를 빌려 학습하고, 체크포인트를 내려받은 다음 pod 를 끔 | 로컬 GPU · RunPod 동작 |
 | Models | 남길 checkpoint 를 모델로 저장 · 관리 | 목록 · 관리만 (학습기 연동 전) |
 | Evaluate | 모델을 실제 로봇에 올려 지시문을 주고 성공률 기록 | 준비 중 |
 | Simulation | Isaac Sim 5.1.0 (이 스테이션 또는 시뮬레이션 서버) 에서 환경 열기 · 자동 평가 | 환경 열기 동작, 평가 준비 중 |

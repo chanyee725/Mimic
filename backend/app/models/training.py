@@ -35,6 +35,8 @@ class TrainJob(CamelModel):
     price_per_hr: float | None = None
     pod_state: PodState | None = None
     status: JobStatus
+    # RunPod while running: pushing dataset, starting pod, installing, downloading, training
+    phase: str | None = None
     step: int
     total: int
     batch: int

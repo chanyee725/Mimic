@@ -16,6 +16,7 @@ class RunPodGpu(CamelModel):
     price_per_hr: float
     community: bool
     stock: Literal["high", "low", "none"]
+    type_id: str  # RunPod gpuTypeId, e.g. "NVIDIA GeForce RTX 4090"
 
 
 class RunPodOptions(CamelModel):
