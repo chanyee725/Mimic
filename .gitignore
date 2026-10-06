@@ -87,3 +87,6 @@ Thumbs.db
 *.sw?
 *.log
 logs/
+
+# Example environment downloaded by scripts/fetch-sim-example.sh
+sim/envs/so101-kit/so101_lift_cube/

@@ -8,6 +8,7 @@ sim/
   runner/
     server.py      Isaac Sim 서버: 앱을 띄우고 끄며 환경 장면을 엽니다 (표준 라이브러리만 사용)
     app.py         Isaac Sim 앱: server.py 가 window / headless 로 실행
+  examples/        예제 환경의 장면 파일 (에셋은 scripts/fetch-sim-example.sh 로 받음)
   envs/            환경 (USD 장면). 저장소에는 비어 있습니다
     <env-id>.usd   USD 파일 하나가 환경 하나 (.usd / .usda / .usdc / .usdz)
     <env-id>/      또는 폴더: scene.usd (없으면 하나뿐인 USD 파일) + 하위 asset
@@ -38,6 +39,12 @@ Settings → Connection → **Isaac Sim** 에서 고릅니다.
 Environments 화면에서 환경을 고르고 **Open in Isaac Sim** 을 누르면 그 환경의 USD 장면이 열립니다. 로그와 받은 환경은 `~/.cache/mimic-sim/` 에 있습니다.
 
 ## 환경 추가
+
+예제로 시작하려면 SO-101 이 테이블 위 큐브를 마주 보는 장면을 받으세요 ([examples/so101_lift_cube](examples/so101_lift_cube/README.md), LeIsaac 에셋, Apache-2.0).
+
+```sh
+scripts/fetch-sim-example.sh     # sim/envs/so101-kit/so101_lift_cube/ (약 28 MB)
+```
 
 - 환경은 USD 장면 하나입니다. 매니페스트(`env.yaml`)나 성공 판정 스크립트는 없습니다.
 - `.usd` / `.usda` / `.usdc` / `.usdz` 파일을 `envs/` 에 직접 복사한 뒤 Environments 화면에서 **Rescan** 하면 목록에 나타납니다 (id 는 파일 이름).
