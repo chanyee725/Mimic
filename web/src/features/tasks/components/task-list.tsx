@@ -103,6 +103,7 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{t.instruction}</p>
                   <p className="truncate text-[11px] text-muted-foreground/80 tabular-nums">
+                    {t.envId && `Isaac Sim · ${t.envId} · `}
                     {t.collected}/{t.targetEpisodes} · {plural(stats.sessions, "session")} · success{" "}
                     {stats.success === null ? "—" : `${stats.success}%`}
                   </p>

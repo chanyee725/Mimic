@@ -20,12 +20,16 @@ export function modelSpec(model: Model, tasks: Task[], rigs: Rig[]): ModelSpec {
 
 export type EnvOption = { env: SimEnv; issues: CompatIssue[]; usable: boolean }
 
+/** The Isaac Sim environment the model's task was recorded in, if any */
+export const taskEnvId = (model: Model | undefined, tasks: Task[]) => tasks.find((t) => t.id === model?.taskId)?.envId ?? undefined
+
 /**
- * Every registered environment with its compatibility for the model. Order: usable environments
- * for the model's task, other usable ones, then the ones the model can't be loaded into.
+ * Every registered environment with its compatibility for the model. Order: the model's task
+ * environment, usable environments linked to the task, other usable ones, then the ones the model
+ * can't be loaded into.
  */
-export function envOptions(envs: SimEnv[], model?: Model, spec?: ModelSpec): EnvOption[] {
-  const rank = (o: EnvOption) => (!o.usable ? 2 : o.env.taskId === model?.taskId ? 0 : 1)
+export function envOptions(envs: SimEnv[], model?: Model, spec?: ModelSpec, taskEnv?: string): EnvOption[] {
+  const rank = (o: EnvOption) => (!o.usable ? 3 : o.env.id === taskEnv ? 0 : o.env.taskId === model?.taskId ? 1 : 2)
   return envs
     .map((env) => {
       const issues = spec ? envCompat(env, spec) : []

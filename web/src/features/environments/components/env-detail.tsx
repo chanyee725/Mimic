@@ -1,4 +1,5 @@
 import { LuBox, LuFlaskConical } from "react-icons/lu"
+import { Link } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/layout/page-layout"
@@ -7,7 +8,7 @@ import { LinkButton } from "@/components/common/link-button"
 import { ErrorNote } from "@/components/common/query-state"
 import { StatusDot } from "@/components/common/status-dot"
 import { useEnvCompat, useOpenSimEnv } from "@/api/simulation"
-import { useTask } from "@/api/tasks"
+import { useTasks } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
 import { formatDateTime } from "@/lib/format"
 
@@ -19,13 +20,27 @@ import { IsaacStatus } from "./isaac-status"
 /** Right-hand environment detail: summary, compatible models, files and env.yaml */
 export function EnvDetail({ env }: { env: SimEnv }) {
   const state = ENV_STATE[env.state]
-  const task = useTask(env.taskId ?? undefined).data
+  // Tasks recorded in this environment (picked under World on the Tasks page)
+  const tasks = (useTasks().data ?? []).filter((t) => t.envId === env.id)
   const compat = useEnvCompat(env.id)
   const open = useOpenSimEnv()
   const invalid = env.state === "invalid"
   const canEval = !invalid && !!compat.data?.some((m) => m.usable)
   const details = [
-    { k: "Task", v: env.taskId ? (task?.name ?? env.taskId) : <span className="text-muted-foreground">Not linked</span> },
+    {
+      k: "Tasks",
+      v: tasks.length ? (
+        <span className="flex flex-wrap justify-end gap-x-2">
+          {tasks.map((t) => (
+            <Link key={t.id} to={`/tasks/${t.id}`} className="hover:underline">
+              {t.name}
+            </Link>
+          ))}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">None</span>
+      ),
+    },
     { k: "Cameras", v: env.cameras.join(", ") },
     { k: "Action size", v: env.actionDim },
     { k: "Time limit", v: `${env.maxSeconds} s per episode` },

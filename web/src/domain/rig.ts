@@ -8,16 +8,9 @@ export type RigCamera = {
   defaultOn: boolean
 }
 
-/** real: hardware on the station; sim: robots and cameras run in an Isaac Sim environment, the real leader drives them */
-export type RigKind = "real" | "sim"
-
-export const RIG_KIND_LABEL: Record<RigKind, string> = { real: "Real", sim: "Isaac Sim" }
-
 export type Rig = {
   id: string
   name: string
-  kind: RigKind
-  envId: string | null // Isaac Sim environment of a sim rig
   master: string // display name: teleop (leader)
   slave: string // display name: robot (follower)
   robots: string[] // robot device ids (slave / follower)

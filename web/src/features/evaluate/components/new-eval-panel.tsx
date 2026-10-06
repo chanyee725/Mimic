@@ -21,7 +21,7 @@ import type { Rig } from "@/domain/rig"
 import type { CompatIssue, Randomization, SimEnv, SimGpu } from "@/domain/simulation"
 import type { Task } from "@/domain/task"
 
-import { NEW_EVAL_DEFAULTS, RANDOMIZATION, envOptions, initialSelection, modelSpec, usableEnvId, type EnvOption } from "../lib"
+import { NEW_EVAL_DEFAULTS, RANDOMIZATION, envOptions, initialSelection, modelSpec, taskEnvId, usableEnvId, type EnvOption } from "../lib"
 import { EnvPicker } from "./env-picker"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
@@ -58,7 +58,8 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
   const start = useStartSimJob()
   const gpu = useSimConfig().data?.gpu
   // Compatibility is checked client-side with the same rule as the backend (domain envCompat)
-  const optionsFor = (m?: Model): EnvOption[] => envOptions(data.envs, m, m && modelSpec(m, data.tasks, data.rigs))
+  const optionsFor = (m?: Model): EnvOption[] =>
+    envOptions(data.envs, m, m && modelSpec(m, data.tasks, data.rigs), taskEnvId(m, data.tasks))
   const findEnv = (id?: string) => data.envs.find((e) => e.id === id)
 
   const [initial] = useState(() => initialSelection(data.models, optionsFor, initialEnvId, initialModelId))
@@ -133,7 +134,7 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
           {!options.some((o) => o.usable) && (
             <EmptyState className="px-4">이 모델을 불러올 수 있는 환경이 없습니다. 환경 폴더를 추가하세요.</EmptyState>
           )}
-          {options.length > 0 && <EnvPicker options={options} tasks={data.tasks} value={selected?.env.id} onChange={selectEnv} />}
+          {options.length > 0 && <EnvPicker options={options} value={selected?.env.id} onChange={selectEnv} />}
           {selected?.issues.some((i) => i.level === "warn") && (
             <p className="text-xs text-warn">이 환경은 실제 rig 와 맞춰지지 않아 결과가 실제 로봇과 다를 수 있습니다.</p>
           )}

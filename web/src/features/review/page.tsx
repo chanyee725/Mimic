@@ -8,7 +8,7 @@ import { Segmented } from "@/components/common/segmented"
 import { TaskPicker } from "@/components/pickers/task-picker"
 import { useImportRecording } from "@/api/recordings"
 import { useTasks } from "@/api/tasks"
-import { RIG_KIND_LABEL, type RigKind } from "@/domain/rig"
+import { TASK_WORLD_LABEL, type TaskWorld } from "@/domain/task"
 
 import { ErrorNote, QueryNote } from "@/components/common/query-state"
 import { ReviewWorkspace } from "./components/review-workspace"
@@ -19,7 +19,7 @@ export function ReviewPage() {
   const tasks = useTasks()
   const [picked, setPicked] = useState<string | null>(null)
   const task = tasks.data?.find((t) => t.id === picked) ?? null
-  const [kind, setKind] = useState<"all" | RigKind>("all")
+  const [kind, setKind] = useState<"all" | TaskWorld>("all")
 
   const importRec = useImportRecording()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -38,8 +38,8 @@ export function ReviewPage() {
             onChange={setKind}
             options={[
               { value: "all", label: "All" },
-              { value: "real", label: RIG_KIND_LABEL.real },
-              { value: "sim", label: RIG_KIND_LABEL.sim },
+              { value: "real", label: TASK_WORLD_LABEL.real },
+              { value: "sim", label: TASK_WORLD_LABEL.sim },
             ]}
           />
           {importRec.data && !importRec.isPending && (
