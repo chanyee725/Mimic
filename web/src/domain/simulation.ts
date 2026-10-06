@@ -1,4 +1,4 @@
-import type { IsaacDisplay, IsaacMode } from "./settings"
+import type { IsaacDevice, IsaacDisplay, IsaacMode } from "./settings"
 
 /**
  * An Isaac Sim environment: a USD file the user imported or dropped into the environments directory
@@ -40,13 +40,21 @@ export type SimAppState = "stopped" | "starting" | "running" | "exited"
 export type SimRunnerApp = {
   state: SimAppState
   display: IsaacDisplay | null
+  device: IsaacDevice | null
   pid: number | null
   scene: string | null
   error: string | null
 }
 
 /** Isaac Sim server; app is null when the server is not reachable */
-export type SimRunner = { mode: IsaacMode; display: IsaacDisplay; url: string; reachable: boolean; app: SimRunnerApp | null }
+export type SimRunner = {
+  mode: IsaacMode
+  display: IsaacDisplay
+  device: IsaacDevice
+  url: string
+  reachable: boolean
+  app: SimRunnerApp | null
+}
 
 export type RescanResult = { dir: string; scannedAt: string; envs: SimEnv[] }
 

@@ -125,13 +125,20 @@ def status() -> SimRunner:
     health = _health()
     app = SimRunnerApp.model_validate(health["app"]) if health else None
     return SimRunner(
-        mode=s.mode, display=s.display, url=base_url(s), reachable=health is not None, app=app
+        mode=s.mode,
+        display=s.display,
+        device=s.device,
+        url=base_url(s),
+        reachable=health is not None,
+        app=app,
     )
 
 
 def start(display: str | None = None) -> SimRunner:
     _ensure_server()
-    _request("/app/start", json.dumps({"display": display or _settings().display}).encode())
+    s = _settings()
+    body = {"display": display or s.display, "device": s.device}
+    _request("/app/start", json.dumps(body).encode())
     return status()
 
 
@@ -160,8 +167,10 @@ def open_env(env_id: str, display: str | None = None) -> SimRunner:
     env = get_env(env_id)
     body = _archive(Path(env.path))
     _ensure_server()
-    display = display or _settings().display
-    query = urllib.parse.urlencode({"env": env_id, "scene": env.scene, "display": display})
+    s = _settings()
+    query = urllib.parse.urlencode(
+        {"env": env_id, "scene": env.scene, "display": display or s.display, "device": s.device}
+    )
     _request(f"/scene?{query}", body, "application/gzip")
     return status()
 

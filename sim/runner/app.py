@@ -5,6 +5,11 @@ HTTP port that only server.py talks to; USD work runs on the main loop between a
 
   GET  /state              {"scene": path | null, "error": str | null}
   POST /open {"path"}      open a stage
+
+--device gpu (default) simulates on GPU 0: PhysX GPU dynamics and broadphase are turned on in
+every PhysicsScene of an opened stage (one is added when the stage has none), in the session
+layer so the environment's files stay untouched; --device cpu keeps PhysX on the CPU.
+Rendering is always on the NVIDIA GPU.
 """
 
 import argparse
@@ -16,14 +21,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 p = argparse.ArgumentParser()
 p.add_argument("--port", type=int, required=True)
 p.add_argument("--headless", action="store_true")
+p.add_argument("--device", choices=("gpu", "cpu"), default="gpu")
 args = p.parse_args()
+GPU = args.device == "gpu"
 
 # SimulationApp must start before any omni import
 from isaacsim import SimulationApp  # noqa: E402
 
-app = SimulationApp({"headless": args.headless})
+app = SimulationApp({"headless": args.headless, "active_gpu": 0, "physics_gpu": 0})
 
+import carb  # noqa: E402
 import omni.usd  # noqa: E402
+from pxr import PhysxSchema, Usd, UsdPhysics  # noqa: E402
+
+carb.settings.get_settings().set_int("/physics/cudaDevice", 0 if GPU else -1)
 
 state = {"scene": None, "error": None}
 commands: queue.Queue = queue.Queue()
@@ -52,6 +63,22 @@ class Handler(BaseHTTPRequestHandler):
         self._send(202, dict(state))
 
 
+def use_physics_device(stage) -> None:
+    """GPU (or CPU) PhysX on every PhysicsScene of the stage, written to the session layer."""
+    prev = stage.GetEditTarget()
+    stage.SetEditTarget(Usd.EditTarget(stage.GetSessionLayer()))
+    try:
+        scenes = [p for p in stage.Traverse() if p.IsA(UsdPhysics.Scene)]
+        if not scenes:
+            scenes = [UsdPhysics.Scene.Define(stage, "/physicsScene").GetPrim()]
+        for prim in scenes:
+            api = PhysxSchema.PhysxSceneAPI.Apply(prim)
+            api.CreateEnableGPUDynamicsAttr().Set(GPU)
+            api.CreateBroadphaseTypeAttr().Set("GPU" if GPU else "MBP")
+    finally:
+        stage.SetEditTarget(prev)
+
+
 server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 
@@ -62,6 +89,8 @@ while app.is_running():
         kind, path = commands.get()
         if kind == "open":
             ok = omni.usd.get_context().open_stage(path)
+            if ok:
+                use_physics_device(omni.usd.get_context().get_stage())
             state.update(scene=path if ok else None, error=None if ok else f"Could not open {path}")
 
 server.shutdown()

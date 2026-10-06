@@ -12,7 +12,7 @@ Settings  = { version: number } & {
     hf:     { token: Secret; namespace; privateByDefault; state: ConnState }
     runpod: { apiKey: Secret; state: ConnState }   // region, volume and budget are options of a RunPod training job
   }
-  connection: { isaac: { mode: "local" | "remote"; display: "window" | "headless"; python; port; url; state; latencyMs? } }
+  connection: { isaac: { mode: "local" | "remote"; display: "window" | "headless"; device: "gpu" | "cpu"; python; port; url; state; latencyMs? } }
   notifications: { slackWebhook: Secret; events: { key; label; on: boolean }[] }   // keys: train_done, train_failed, disk
 }
 SecretName = "hf_token" | "runpod_api_key" | "slack_webhook"

@@ -35,6 +35,8 @@ Settings → Connection → **Isaac Sim** 에서 고릅니다.
   ```
 
 - **Display:** Window 는 Isaac Sim 창을 띄우고, Headless 는 화면 없이 돌립니다. 원격 서버에서 Window 를 고르면 서버 화면에 창이 뜹니다.
+- **Physics:** 물리 연산(PhysX) 장치입니다. 기본값은 GPU 이고, 바꾸면 앱이 다시 시작됩니다. 렌더링은 항상 NVIDIA GPU 에서 합니다.
+- **첫 실행:** 처음 장면을 열 때 RTX 셰이더를 컴파일하느라 1~3분 걸리고 CPU 를 많이 씁니다. 캐시(`sim/.venv/.../isaacsim/kit/cache`)가 생긴 뒤에는 20초 안팎으로 열립니다.
 
 Environments 화면에서 환경을 고르고 **Open in Isaac Sim** 을 누르면 그 환경의 USD 장면이 열립니다. 로그와 받은 환경은 `~/.cache/mimic-sim/` 에 있습니다.
 

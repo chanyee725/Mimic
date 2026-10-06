@@ -109,3 +109,13 @@ def test_remote_needs_url(client):
         json={"version": settings.get_settings().version, "isaac": {"mode": "remote", "url": ""}},
     )
     assert r.status_code == 422
+
+
+def test_physics_device_defaults_to_gpu_and_restarts_on_change(client, local_server):
+    body = client.post("/sim/runner/start").json()
+    assert body["device"] == "gpu" and body["app"]["device"] == "gpu"
+    pid = body["app"]["pid"]
+    _isaac(device="cpu")
+    body = client.post("/sim/runner/start").json()
+    assert body["device"] == "cpu" and body["app"]["device"] == "cpu"
+    assert body["app"]["pid"] != pid  # the app takes the device at launch
