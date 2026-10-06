@@ -72,6 +72,9 @@ export const useStartSimJob = () =>
 /** 409 if the job is not running or queued */
 export const useStopSimJob = () => useMutation({ mutationFn: (id: string) => api.post<SimJob>(`/sim/jobs/${id}/stop`), onSuccess: onJob })
 
+/** Thumbnail image of an environment (404 when it has none) */
+export const simEnvThumbnailUrl = (id: string) => `${API_BASE}/sim/envs/${encodeURIComponent(id)}/thumbnail`
+
 /** Rollout video of one episode (501 until Isaac Sim is connected) */
 export const simEpisodeVideoUrl = (jobId: string, index: number, camera: string) =>
   `${API_BASE}/sim/jobs/${encodeURIComponent(jobId)}/episodes/${index}/video/${encodeURIComponent(camera)}`

@@ -18,7 +18,7 @@ import type { Model } from "@/domain/model"
 import type { Randomization, SimEnv, SimGpu } from "@/domain/simulation"
 import type { Task } from "@/domain/task"
 
-import { NEW_EVAL_DEFAULTS, RANDOMIZATION, orderEnvs, pickEnvId, taskEnvId } from "../lib"
+import { NEW_EVAL_DEFAULTS, RANDOMIZATION, orderEnvs, pickEnvId, taskEnvId, usableEnvs } from "../lib"
 import { EnvPicker } from "./env-picker"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
@@ -57,9 +57,10 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
   const [modelId, setModelId] = useState(() => (data.models.find((m) => m.id === initialModelId) ?? data.models[0])?.id ?? "")
   const model = data.models.find((m) => m.id === modelId)
   // ?env= wins, else the environment of the model's task
-  const [envId, setEnvId] = useState(() => pickEnvId(data.envs, taskEnvId(model, data.tasks), initialEnvId))
-  const envs = orderEnvs(data.envs, taskEnvId(model, data.tasks))
-  const selected = data.envs.find((e) => e.id === envId)
+  const fits = usableEnvs(data.envs, model, data.tasks)
+  const [envId, setEnvId] = useState(() => pickEnvId(fits, taskEnvId(model, data.tasks), initialEnvId))
+  const envs = orderEnvs(fits, taskEnvId(model, data.tasks))
+  const selected = fits.find((e) => e.id === envId)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [episodes, setEpisodes] = useState(NEW_EVAL_DEFAULTS.episodes)
   const [seedStart, setSeedStart] = useState(NEW_EVAL_DEFAULTS.seedStart)
@@ -111,7 +112,9 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
             </LinkButton>
           </div>
           {envs.length === 0 ? (
-            <EmptyState className="px-4">불러온 환경이 없습니다. Environments 에서 USD 파일을 불러오세요.</EmptyState>
+            <EmptyState className="px-4">
+              {data.envs.length === 0 ? "환경 폴더에 USD 파일이 없습니다." : "이 모델의 Rig 에서 쓸 수 있는 환경이 없습니다."}
+            </EmptyState>
           ) : (
             <EnvPicker envs={envs} value={selected?.id} onChange={setEnvId} />
           )}
@@ -154,16 +157,8 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
           setModelId(id)
           start.reset()
           // The new model's task environment, if it has one; otherwise keep the current one
-          setEnvId(
-            pickEnvId(
-              data.envs,
-              taskEnvId(
-                data.models.find((m) => m.id === id),
-                data.tasks,
-              ),
-              envId,
-            ),
-          )
+          const next = data.models.find((m) => m.id === id)
+          setEnvId(pickEnvId(usableEnvs(data.envs, next, data.tasks), taskEnvId(next, data.tasks), envId))
         }}
       />
     </>

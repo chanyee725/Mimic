@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 
+import { EnvThumb } from "@/components/robot/env-thumb"
 import type { SimEnv } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
@@ -65,6 +66,7 @@ export function EnvPicker({ envs, value, onChange }: { envs: SimEnv[]; value?: s
             <span className={cn("mt-0.5 grid size-3.5 shrink-0 place-items-center rounded-full border", on && "border-foreground")}>
               {on && <span className="size-1.5 rounded-full bg-foreground" />}
             </span>
+            <EnvThumb env={env} className="w-12" />
             <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5">
               <span className="truncate font-medium">{env.name}</span>
               <span className="truncate font-mono text-xs text-muted-foreground">{env.scene}</span>

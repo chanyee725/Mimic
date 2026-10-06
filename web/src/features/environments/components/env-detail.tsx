@@ -7,13 +7,15 @@ import { Panel } from "@/components/layout/page-layout"
 import { DetailList } from "@/components/common/detail-list"
 import { LinkButton } from "@/components/common/link-button"
 import { ErrorNote } from "@/components/common/query-state"
+import { EnvThumb } from "@/components/robot/env-thumb"
 import { ApiError } from "@/api/client"
+import { useRigs } from "@/api/rigs"
 import { useDeleteSimEnv, useOpenSimEnv } from "@/api/simulation"
 import { useTasks } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
 import { formatDateTime } from "@/lib/format"
 
-import { evalHref, formatKB } from "../lib"
+import { evalHref, formatKB, rigLabel } from "../lib"
 import { EnvFiles } from "./env-files"
 import { IsaacStatus } from "./isaac-status"
 
@@ -28,10 +30,12 @@ function deleteError(error: unknown) {
 export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => void }) {
   // Tasks recorded in this environment (picked under World on the Tasks page)
   const tasks = (useTasks().data ?? []).filter((t) => t.envId === env.id)
+  const rigs = useRigs().data ?? []
   const open = useOpenSimEnv()
   const remove = useDeleteSimEnv()
   const [confirming, setConfirming] = useState(false)
   const details = [
+    { k: "Rig", v: rigLabel(env.rigId, rigs) },
     { k: "Scene", v: <span className="font-mono">{env.scene}</span> },
     { k: "Size", v: formatKB(env.sizeKB) },
     {
@@ -55,13 +59,16 @@ export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => vo
   return (
     <Panel className="min-h-0 gap-4 overflow-y-auto">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid min-w-0 gap-1">
-          <h2 className="truncate text-lg font-semibold">{env.name}</h2>
-          <p className="truncate font-mono text-xs text-muted-foreground" title={env.path}>
-            {env.path}
-          </p>
+        <div className="flex min-w-0 flex-1 basis-80 items-start gap-4">
+          <EnvThumb env={env} className="w-32" />
+          <div className="grid min-w-0 gap-1">
+            <h2 className="truncate text-lg font-semibold">{env.name}</h2>
+            <p className="truncate font-mono text-xs text-muted-foreground" title={env.path}>
+              {env.path}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {confirming ? (
             <>
               <span className="text-[13px] text-muted-foreground">파일을 지웁니다.</span>

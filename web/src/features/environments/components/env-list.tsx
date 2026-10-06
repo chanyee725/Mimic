@@ -2,21 +2,40 @@ import { useState } from "react"
 
 import { Panel } from "@/components/layout/page-layout"
 import { SearchInput } from "@/components/common/search-input"
+import { Segmented } from "@/components/common/segmented"
+import { EnvThumb } from "@/components/robot/env-thumb"
+import { useRigs } from "@/api/rigs"
 import { useSimConfig } from "@/api/simulation"
 import { useTasks } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { formatKB } from "../lib"
+import { ANY_RIG, formatKB, rigLabel, rigOf, type RigFilter } from "../lib"
 
-/** Left-hand list of the environments in the environments folder */
-export function EnvList({ envs, selected, onSelect }: { envs: SimEnv[]; selected?: string; onSelect: (id: string) => void }) {
+/** Left-hand list of the environments in the environments folder, filtered by rig */
+export function EnvList({
+  envs,
+  selected,
+  onSelect,
+  rig,
+  onRigChange,
+}: {
+  envs: SimEnv[]
+  selected?: string
+  onSelect: (id: string) => void
+  rig: RigFilter
+  onRigChange: (rig: RigFilter) => void
+}) {
   const [search, setSearch] = useState("")
   const envsDir = useSimConfig().data?.envsDir
   const tasks = useTasks().data ?? []
+  const rigs = useRigs().data ?? []
   const q = search.trim().toLowerCase()
-  const shown = envs.filter((e) => !q || e.name.toLowerCase().includes(q) || e.id.includes(q))
+  const shown = envs.filter((e) => (rig === "all" || rigOf(e) === rig) && (!q || e.name.toLowerCase().includes(q) || e.id.includes(q)))
+  const count = (r: string) => envs.filter((e) => rigOf(e) === r).length
+  // Rig folders found on disk that no rig file declares still get a tab
+  const rigIds = [...new Set([...rigs.map((r) => r.id), ...envs.flatMap((e) => (e.rigId ? [e.rigId] : []))])]
 
   return (
     <Panel
@@ -37,6 +56,18 @@ export function EnvList({ envs, selected, onSelect }: { envs: SimEnv[]; selected
         placeholder="Search environments"
         aria-label="Search environments"
       />
+      <Segmented
+        label="Rig"
+        fill
+        className="overflow-x-auto"
+        value={rig}
+        onChange={onRigChange}
+        options={[
+          { value: "all", label: "All", count: envs.length },
+          ...rigIds.map((id) => ({ value: id, label: rigLabel(id, rigs), count: count(id) })),
+          { value: ANY_RIG, label: "Any rig", count: count(ANY_RIG) },
+        ]}
+      />
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
         {shown.map((e) => {
           const on = e.id === selected
@@ -48,14 +79,20 @@ export function EnvList({ envs, selected, onSelect }: { envs: SimEnv[]; selected
                 aria-pressed={on}
                 onClick={() => onSelect(e.id)}
                 className={cn(
-                  "grid w-full gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/60",
+                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/60",
                   on && "bg-accent hover:bg-accent",
                 )}
               >
-                <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{e.name}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  <span className="font-mono">{e.scene}</span>, {formatKB(e.sizeKB)}
-                  {used > 0 && `, ${plural(used, "task")}`}
+                <EnvThumb env={e} className="w-16" />
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{e.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    <span className="font-mono">{e.scene}</span>, {formatKB(e.sizeKB)}
+                  </span>
+                  <span className="truncate text-[11px] text-muted-foreground/80">
+                    {rigLabel(e.rigId, rigs)}
+                    {used > 0 && ` · ${plural(used, "task")}`}
+                  </span>
                 </span>
               </button>
             </li>
