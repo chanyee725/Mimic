@@ -2,7 +2,7 @@ import { useId } from "react"
 
 import { cn } from "@/lib/utils"
 
-/** Mimic mark: a parrot (repeats what it hears) in the UI blue accent (same drawing as public/favicon.svg) */
+/** Mimic mark: a parrot (repeats what it hears) in the UI neutrals with one muted green crest (same drawing as public/favicon.svg) */
 export function AppLogo({ className }: { className?: string }) {
   const clip = useId()
   return (
@@ -14,11 +14,11 @@ export function AppLogo({ className }: { className?: string }) {
       </defs>
       <rect width="64" height="64" rx="16" fill="#171717" />
       <g clipPath={`url(#${clip})`}>
-        <path d="M31 9 C28 2 22 -2 14 -2 C17 1 18 4 18 7 C15 5 11 4 7 5 C14 8 20 13 24 19 Z" fill="#1d4ed8" />
-        <ellipse cx="29" cy="64" rx="23" ry="22" fill="#3b82f6" />
-        <circle cx="29" cy="28" r="18" fill="#3b82f6" />
-        <path d="M37 12 C49 12 56 20 55 28 C54 37 51 44 47 46 C49 39 47 33 43 31 C41 30 39 29 37 29 Z" fill="#fafafa" />
-        <circle cx="28" cy="24" r="7" fill="#fff" />
+        <path d="M31 9 C28 2 22 -2 14 -2 C17 1 18 4 18 7 C15 5 11 4 7 5 C14 8 20 13 24 19 Z" fill="#3f9d5f" />
+        <ellipse cx="29" cy="64" rx="23" ry="22" fill="#f5f5f5" />
+        <circle cx="29" cy="28" r="18" fill="#f5f5f5" />
+        <path d="M37 12 C49 12 56 20 55 28 C54 37 51 44 47 46 C49 39 47 33 43 31 C41 30 39 29 37 29 Z" fill="#a3a3a3" />
+        <circle cx="28" cy="24" r="7" fill="#171717" />
         <circle cx="29.5" cy="24" r="3.4" fill="#171717" />
         <circle cx="27.3" cy="22" r="1.3" fill="#fff" />
         <circle cx="44" cy="20" r="1.6" fill="#171717" />
