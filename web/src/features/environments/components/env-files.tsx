@@ -2,7 +2,7 @@ import type { SimEnv } from "@/domain/simulation"
 
 import { formatKB } from "../lib"
 
-/** Files found in the environment folder */
+/** Files of a folder environment (scene USD and its sub-assets) */
 export function EnvFiles({ env }: { env: SimEnv }) {
   return (
     <section className="grid content-start gap-2">
@@ -15,18 +15,6 @@ export function EnvFiles({ env }: { env: SimEnv }) {
           </li>
         ))}
       </ul>
-    </section>
-  )
-}
-
-/** env.yaml as found on disk */
-export function EnvManifest({ env }: { env: SimEnv }) {
-  return (
-    <section className="grid content-start gap-2">
-      <h3 className="text-sm font-semibold">env.yaml</h3>
-      <pre className="max-h-72 overflow-auto rounded-md bg-muted px-3 py-2.5 font-mono text-xs leading-5 text-muted-foreground">
-        {env.manifest}
-      </pre>
     </section>
   )
 }

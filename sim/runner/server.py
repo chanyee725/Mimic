@@ -9,8 +9,9 @@ API (JSON):
   GET  /health                     {"version", "app": AppState}
   POST /app/start  {"display"}     start the app ("window" | "headless"); restarts it on a display change
   POST /app/stop                   stop the app
-  POST /scene?env=<id>             body: tar.gz of the environment folder; opens its scene.usd,
-                                   starting the app first when it is not running
+  POST /scene?env=<id>&scene=<file>  body: tar.gz of the environment (folder files, or the single
+                                   stage file); opens <file> (default scene.usd), starting the app
+                                   first when it is not running
 AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "pid", "scene", "error"}
 """
 
@@ -146,15 +147,19 @@ class App:
                 proc.kill()
                 proc.wait()
 
-    def open_scene(self, env_id: str, archive: bytes, display: str) -> None:
+    def open_scene(
+        self, env_id: str, archive: bytes, display: str, scene_name: str = "scene.usd"
+    ) -> None:
         folder = self.cache / "scenes" / env_id
         shutil.rmtree(folder, ignore_errors=True)
         folder.mkdir(parents=True)
         with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as tar:
             tar.extractall(folder, filter="data")
-        scene = folder / "scene.usd"
+        scene = (folder / scene_name).resolve()
+        if not scene.is_relative_to(folder.resolve()):
+            raise ValueError("the scene path leaves the environment")
         if not scene.is_file():
-            raise ValueError("the environment has no scene.usd")
+            raise ValueError(f"the environment has no {scene_name}")
         with self.lock:
             self.pending = (env_id, str(scene))
             if not (self.proc and self.proc.poll() is None):
@@ -215,9 +220,10 @@ def make_handler(app: App):
                     query = parse_qs(url.query)
                     env_id = query.get("env", [""])[0]
                     display = query.get("display", ["window"])[0]
+                    scene = query.get("scene", ["scene.usd"])[0]
                     if not ENV_ID.match(env_id) or display not in DISPLAYS:
                         return self._send(422, {"error": "invalid env id or display"})
-                    app.open_scene(env_id, self._body(), display)
+                    app.open_scene(env_id, self._body(), display, scene)
                 else:
                     return self._send(404, {"error": "not found"})
             except (ValueError, tarfile.TarError, OSError) as e:

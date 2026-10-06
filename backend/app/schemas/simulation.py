@@ -12,17 +12,6 @@ class RescanResult(CamelModel):
     envs: list[SimEnv]
 
 
-class CompatIssue(CamelModel):
-    level: Literal["error", "warn"]
-    text: str
-
-
-class ModelCompat(CamelModel):
-    model_id: str
-    usable: bool
-    issues: list[CompatIssue]
-
-
 class SimJobCreate(CamelModel):
     model_id: str
     env_id: str

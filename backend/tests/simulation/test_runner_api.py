@@ -55,11 +55,17 @@ def test_status_without_server(client):
 
 @pytest.mark.usefixtures("local_server")
 def test_open_env_starts_server_and_app(client):
-    r = client.post("/sim/envs/pick-red-cube/open")
+    r = client.post("/sim/envs/drawer/open")
     assert r.status_code == 200, r.text
     assert r.json()["reachable"] is True
     body = _wait_app(client, "running")
-    assert body["app"]["scene"] == "pick-red-cube" and body["app"]["display"] == "headless"
+    assert body["app"]["scene"] == "drawer" and body["app"]["display"] == "headless"
+    # A top-level stage file is sent alone and opened by its name
+    assert client.post("/sim/envs/kitchen/open").status_code == 200
+    deadline = time.monotonic() + 15
+    while client.get("/sim/runner").json()["app"]["scene"] != "kitchen":
+        assert time.monotonic() < deadline, "kitchen did not open"
+        time.sleep(0.2)
 
     assert client.post("/sim/runner/stop").json()["app"]["state"] == "stopped"
 
@@ -82,8 +88,8 @@ def test_settings_test_reports_the_server(client):
     client.post("/sim/runner/stop")
 
 
-def test_invalid_env_is_not_opened(client):
-    assert client.post("/sim/envs/pour-into-cup/open").status_code == 409
+def test_unknown_env_is_not_opened(client):
+    assert client.post("/sim/envs/nope/open").status_code == 404
 
 
 def test_missing_python_and_remote_errors(client):
@@ -93,7 +99,7 @@ def test_missing_python_and_remote_errors(client):
     assert client.post("/settings/test/isaac").json()["state"] == "error"
 
     _isaac(mode="remote", url=f"http://127.0.0.1:{_free_port()}")
-    assert client.post("/sim/envs/pick-red-cube/open").status_code == 503
+    assert client.post("/sim/envs/table/open").status_code == 503
     assert client.get("/sim/runner").json()["reachable"] is False
 
 

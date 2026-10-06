@@ -14,16 +14,9 @@ def test_capture_save_counts_toward_task(client, task, record):
 
 
 def test_sim_envs_dir_comes_from_config(client, tmp_path, monkeypatch):
-    # VLA_SIM_ENVS_DIR is the only source; a rescan picks up the new folder
+    # VLA_SIM_ENVS_DIR is the only source; a rescan picks up the new stage
     monkeypatch.setattr(config, "sim_envs_dir", tmp_path)
-    env = tmp_path / "solo"
-    env.mkdir()
-    (env / "scene.usd").write_text("#usda 1.0\n")
-    (env / "success.py").write_text("def check(state):\n    return False, False, None\n")
-    (env / "env.yaml").write_text(
-        "name: Solo\nscene: scene.usd\ncameras:\n  top: {}\naction_dim: 6\n"
-        "episode:\n  max_seconds: 30\n  success: success.py:check\n"
-    )
+    (tmp_path / "solo.usd").write_text("#usda 1.0\n")
     assert client.post("/sim/envs/rescan").status_code == 200
     assert client.get("/sim/config").json()["envsDir"] == str(tmp_path)
     assert [e["id"] for e in client.get("/sim/envs").json()] == ["solo"]

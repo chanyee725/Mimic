@@ -77,7 +77,7 @@ def problems(fields: TaskFields) -> list[tuple[tuple, str]]:
     if fields.video_fps not in rig.video_fps_options:
         out.append((("video_fps",), f"must be one of {rig.video_fps_options}"))
     if fields.env_id:
-        out += [(("env_id",), msg) for msg in _env_problems(fields.env_id, fields.cameras, rig)]
+        out += [(("env_id",), msg) for msg in _env_problems(fields.env_id)]
     seen: set[str] = set()
     for i, s in enumerate(fields.subtasks):
         if s.key in seen:
@@ -89,15 +89,11 @@ def problems(fields: TaskFields) -> list[tuple[tuple, str]]:
     return out
 
 
-def _env_problems(env_id: str, cameras: list[str], rig) -> list[str]:
-    """An Isaac Sim task's environment must exist and fit the task's cameras and the rig."""
-    from app.services import simulation  # lazy: simulation reads tasks through models
+def _env_problems(env_id: str) -> list[str]:
+    """An Isaac Sim task's environment must be registered."""
+    from app.services import simulation  # lazy: simulation reads tasks
 
-    env = simulation.find_env(env_id)
-    if env is None:
-        return [f"unknown environment '{env_id}'"]
-    issues = simulation.env_compat(env, cameras, len(rig.joints))
-    return [i.text for i in issues if i.level == "error"]
+    return [] if simulation.find_env(env_id) else [f"unknown environment '{env_id}'"]
 
 
 def _alias(name: str) -> str:

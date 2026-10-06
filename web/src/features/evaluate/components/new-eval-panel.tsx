@@ -11,40 +11,37 @@ import { LinkButton } from "@/components/common/link-button"
 import { Segmented } from "@/components/common/segmented"
 import { StatusDot } from "@/components/common/status-dot"
 import { ModelPickerDialog } from "@/components/pickers/model-picker-dialog"
-import { ApiError } from "@/api/client"
 import { useModels } from "@/api/models"
-import { useRigs } from "@/api/rigs"
 import { useSimConfig, useSimEnvs, useStartSimJob } from "@/api/simulation"
 import { useTasks } from "@/api/tasks"
 import type { Model } from "@/domain/model"
-import type { Rig } from "@/domain/rig"
-import type { CompatIssue, Randomization, SimEnv, SimGpu } from "@/domain/simulation"
+import type { Randomization, SimEnv, SimGpu } from "@/domain/simulation"
 import type { Task } from "@/domain/task"
 
-import { NEW_EVAL_DEFAULTS, RANDOMIZATION, envOptions, initialSelection, modelSpec, taskEnvId, usableEnvId, type EnvOption } from "../lib"
+import { NEW_EVAL_DEFAULTS, RANDOMIZATION, orderEnvs, pickEnvId, taskEnvId } from "../lib"
 import { EnvPicker } from "./env-picker"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
-type FormData = { models: Model[]; envs: SimEnv[]; tasks: Task[]; rigs: Rig[] }
+type FormData = { models: Model[]; envs: SimEnv[]; tasks: Task[] }
 
 /**
  * New evaluation form. Pick a saved model, load it into one of the registered environments,
  * set the rollout count, then start (or queue) on the local GPU.
  */
 export function NewEvalPanel({ initialEnvId, initialModelId }: { initialEnvId?: string; initialModelId?: string }) {
-  const queries = [useModels(), useSimEnvs(), useTasks(), useRigs()] as const
-  const [models, envs, tasks, rigs] = queries
+  const queries = [useModels(), useSimEnvs(), useTasks()] as const
+  const [models, envs, tasks] = queries
   const failed = queries.find((q) => q.isError)
 
   return (
     <Panel title="New evaluation" className="min-h-0">
       {failed ? (
         <ErrorNote error={failed.error} onRetry={() => queries.forEach((q) => q.isError && q.refetch())} />
-      ) : !models.data || !envs.data || !tasks.data || !rigs.data ? (
+      ) : !models.data || !envs.data || !tasks.data ? (
         <LoadingNote />
       ) : (
         <NewEvalForm
-          data={{ models: models.data, envs: envs.data, tasks: tasks.data, rigs: rigs.data }}
+          data={{ models: models.data, envs: envs.data, tasks: tasks.data }}
           initialEnvId={initialEnvId}
           initialModelId={initialModelId}
         />
@@ -57,39 +54,24 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
   const navigate = useNavigate()
   const start = useStartSimJob()
   const gpu = useSimConfig().data?.gpu
-  // Compatibility is checked client-side with the same rule as the backend (domain envCompat)
-  const optionsFor = (m?: Model): EnvOption[] =>
-    envOptions(data.envs, m, m && modelSpec(m, data.tasks, data.rigs), taskEnvId(m, data.tasks))
-  const findEnv = (id?: string) => data.envs.find((e) => e.id === id)
-
-  const [initial] = useState(() => initialSelection(data.models, optionsFor, initialEnvId, initialModelId))
-  const [modelId, setModelId] = useState(initial.modelId)
+  const [modelId, setModelId] = useState(() => (data.models.find((m) => m.id === initialModelId) ?? data.models[0])?.id ?? "")
   const model = data.models.find((m) => m.id === modelId)
-  const options = optionsFor(model)
-  const [envId, setEnvId] = useState(initial.envId)
-  const selected = options.find((o) => o.env.id === envId && o.usable)
+  // ?env= wins, else the environment of the model's task
+  const [envId, setEnvId] = useState(() => pickEnvId(data.envs, taskEnvId(model, data.tasks), initialEnvId))
+  const envs = orderEnvs(data.envs, taskEnvId(model, data.tasks))
+  const selected = data.envs.find((e) => e.id === envId)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [episodes, setEpisodes] = useState(NEW_EVAL_DEFAULTS.episodes)
   const [seedStart, setSeedStart] = useState(NEW_EVAL_DEFAULTS.seedStart)
-  const [maxSeconds, setMaxSeconds] = useState(() => findEnv(initial.envId)?.maxSeconds ?? NEW_EVAL_DEFAULTS.maxSeconds)
+  const [maxSeconds, setMaxSeconds] = useState(NEW_EVAL_DEFAULTS.maxSeconds)
   const [randomization, setRandomization] = useState<Randomization>(NEW_EVAL_DEFAULTS.randomization)
   const busyBy = gpu?.busyBy
   const hint = RANDOMIZATION.find((r) => r.value === randomization)?.hint
-  // ?env= named an environment the chosen model can't be loaded into
-  const requested = initialEnvId && initialEnvId !== envId ? options.find((o) => o.env.id === initialEnvId && !o.usable) : undefined
-
-  // A newly selected environment brings its own default time limit
-  const selectEnv = (id?: string) => {
-    if (id === envId) return
-    setEnvId(id)
-    const next = findEnv(id)
-    if (next) setMaxSeconds(next.maxSeconds)
-  }
 
   const submit = () => {
     if (!model || !selected) return
     start.mutate(
-      { modelId: model.id, envId: selected.env.id, episodes, seedStart, maxSeconds, randomization },
+      { modelId: model.id, envId: selected.id, episodes, seedStart, maxSeconds, randomization },
       { onSuccess: (job) => navigate(`/evaluate/sim/${job.id}`) },
     )
   }
@@ -128,15 +110,10 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
               Manage
             </LinkButton>
           </div>
-          {requested && (
-            <p className="text-xs text-muted-foreground">{requested.env.name} 에는 이 모델을 불러올 수 없어 다른 환경을 골랐습니다.</p>
-          )}
-          {!options.some((o) => o.usable) && (
-            <EmptyState className="px-4">이 모델을 불러올 수 있는 환경이 없습니다. 환경 폴더를 추가하세요.</EmptyState>
-          )}
-          {options.length > 0 && <EnvPicker options={options} value={selected?.env.id} onChange={selectEnv} />}
-          {selected?.issues.some((i) => i.level === "warn") && (
-            <p className="text-xs text-warn">이 환경은 실제 rig 와 맞춰지지 않아 결과가 실제 로봇과 다를 수 있습니다.</p>
+          {envs.length === 0 ? (
+            <EmptyState className="px-4">불러온 환경이 없습니다. Environments 에서 USD 파일을 불러오세요.</EmptyState>
+          ) : (
+            <EnvPicker envs={envs} value={selected?.id} onChange={setEnvId} />
           )}
         </div>
 
@@ -164,7 +141,7 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
       </div>
 
       {busyBy && <p className="text-xs text-muted-foreground">GPU 가 사용 중이라 {busyBy} 가 끝나면 시작합니다.</p>}
-      <StartError error={start.error} />
+      <ErrorNote error={start.error} />
       <Button size="lg" className="w-full" disabled={!model || !selected || start.isPending} onClick={submit}>
         <LuPlay />
         {start.isPending ? "Starting…" : busyBy ? "Queue evaluation" : "Start evaluation"}
@@ -176,8 +153,17 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
         onSelect={(id) => {
           setModelId(id)
           start.reset()
-          // Keep the environment if the new model still loads into it, else jump to the first usable one
-          selectEnv(usableEnvId(optionsFor(data.models.find((m) => m.id === id)), envId))
+          // The new model's task environment, if it has one; otherwise keep the current one
+          setEnvId(
+            pickEnvId(
+              data.envs,
+              taskEnvId(
+                data.models.find((m) => m.id === id),
+                data.tasks,
+              ),
+              envId,
+            ),
+          )
         }}
       />
     </>
@@ -211,22 +197,6 @@ function GpuRow({ gpu }: { gpu?: SimGpu }) {
           <span className="text-xs text-muted-foreground">Loading…</span>
         )}
       </div>
-    </div>
-  )
-}
-
-/** Start failure; an incompatible pair (422) also lists the compatibility issues */
-function StartError({ error }: { error: Error | null }) {
-  if (!error) return null
-  const issues = error instanceof ApiError ? ((error.details.issues as CompatIssue[] | undefined) ?? []) : []
-  return (
-    <div className="grid gap-1">
-      <ErrorNote error={error} />
-      {issues.map((i) => (
-        <p key={i.text} className={i.level === "error" ? "text-xs text-bad" : "text-xs text-warn"}>
-          {i.text}
-        </p>
-      ))}
     </div>
   )
 }
