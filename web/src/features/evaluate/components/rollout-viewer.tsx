@@ -5,7 +5,7 @@ import type { SimEpisode, SimJob } from "@/domain/simulation"
 import { formatTimecode } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { episodeText } from "../job-stats"
+import { episodeText } from "../lib"
 
 const SIM_FPS = 30
 const SIM_RESOLUTION = "640×480"

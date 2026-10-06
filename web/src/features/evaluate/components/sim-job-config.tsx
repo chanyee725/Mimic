@@ -2,7 +2,7 @@ import { DetailList } from "@/components/common/detail-list"
 import type { SimEnv, SimGpu, SimJob } from "@/domain/simulation"
 import { formatDateTime, plural } from "@/lib/format"
 
-import { randomizationLabel, seedRange } from "../job-stats"
+import { randomizationLabel, seedRange } from "../lib"
 
 /** Evaluation config summary (model, environment, episodes, randomization, ...) */
 export function SimJobConfig({ job, modelName, env, gpu }: { job: SimJob; modelName: string; env?: SimEnv; gpu?: SimGpu }) {

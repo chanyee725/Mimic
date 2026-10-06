@@ -1,6 +1,6 @@
 import type { SimEnv } from "@/domain/simulation"
 
-import { formatKB } from "../envs"
+import { formatKB } from "../lib"
 
 /** Files found in the environment folder */
 export function EnvFiles({ env }: { env: SimEnv }) {

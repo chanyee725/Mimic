@@ -7,7 +7,7 @@ import { useModels } from "@/api/models"
 import type { ModelCompat, SimEnv } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
-import { evalHref } from "../envs"
+import { evalHref } from "../lib"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
 function compatStatus({ issues, usable }: ModelCompat): { tone: Tone; label: string; detail?: string } {

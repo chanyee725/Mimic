@@ -21,8 +21,7 @@ import type { Rig } from "@/domain/rig"
 import type { CompatIssue, Randomization, SimEnv, SimGpu } from "@/domain/simulation"
 import type { Task } from "@/domain/task"
 
-import { RANDOMIZATION } from "../lib"
-import { NEW_EVAL_DEFAULTS, envOptions, initialSelection, modelSpec, usableEnvId, type EnvOption } from "../new-eval"
+import { NEW_EVAL_DEFAULTS, RANDOMIZATION, envOptions, initialSelection, modelSpec, usableEnvId, type EnvOption } from "../lib"
 import { EnvPicker } from "./env-picker"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 
@@ -90,7 +89,7 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
     if (!model || !selected) return
     start.mutate(
       { modelId: model.id, envId: selected.env.id, episodes, seedStart, maxSeconds, randomization },
-      { onSuccess: (job) => navigate(`/simulation/${job.id}`) },
+      { onSuccess: (job) => navigate(`/evaluate/sim/${job.id}`) },
     )
   }
 
@@ -124,7 +123,7 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
         <div className="grid gap-1.5">
           <div className="flex h-5 items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground">Environment</span>
-            <LinkButton to="/simulation?view=environments" variant="ghost" size="xs" className="text-muted-foreground">
+            <LinkButton to="/environments" variant="ghost" size="xs" className="text-muted-foreground">
               Manage
             </LinkButton>
           </div>

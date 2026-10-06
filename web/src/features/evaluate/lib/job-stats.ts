@@ -1,7 +1,7 @@
 import type { SimEnv, SimEpisode, SimEpisodeResult, SimJob } from "@/domain/simulation"
 import { plural } from "@/lib/format"
 
-import { RANDOMIZATION } from "./lib"
+import { RANDOMIZATION } from "./sim"
 
 export type ResultFilter = "all" | SimEpisodeResult
 

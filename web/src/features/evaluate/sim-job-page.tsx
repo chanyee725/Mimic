@@ -17,13 +17,13 @@ import { RolloutViewer } from "./components/rollout-viewer"
 import { SimJobConfig } from "./components/sim-job-config"
 import { SimJobActions, SimJobTitle } from "./components/sim-job-header"
 import { SimVsReal } from "./components/sim-vs-real"
-import { avgSeconds, jobDescription } from "./job-stats"
+import { avgSeconds, jobDescription } from "./lib"
 import { simPct } from "./lib"
 
 export function SimJobPage() {
   const { jobId = "" } = useParams()
   const query = useSimJob(jobId)
-  if (query.error instanceof ApiError && query.error.status === 404) return <Navigate to="/simulation" replace />
+  if (query.error instanceof ApiError && query.error.status === 404) return <Navigate to="/evaluate?target=sim" replace />
   if (!query.data)
     return (
       <Page fit title={jobId} description="Simulation evaluation">
