@@ -118,7 +118,7 @@ export function ModelDetail({ model: m }: { model: Model }) {
           <DetailList rows={details} bordered />
         </section>
 
-        <div className="grid content-start gap-4">
+        <div className="grid min-w-0 content-start gap-4">
           <ModelEvaluations model={m} />
           {/* Unmounted while deleting so the list refetch does not ask for the files of a deleted model */}
           {del.isIdle || del.isError ? <ModelFiles modelId={m.id} /> : null}
