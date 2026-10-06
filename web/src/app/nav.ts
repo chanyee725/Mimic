@@ -31,8 +31,6 @@ export const NAV: NavGroup[] = [
     label: "Collect",
     items: [
       { to: "/", label: "Dashboard", icon: LuLayoutDashboard },
-      { to: "/rigs", label: "Rigs", icon: LuCable },
-      { to: "/environments", label: "Environments", icon: LuBox },
       { to: "/tasks", label: "Tasks", icon: LuListChecks, badge: "tasks" },
       { to: "/capture", label: "Capture", icon: LuRadioTower, badge: "rec" },
     ],
@@ -55,7 +53,11 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
-    label: "System",
-    items: [{ to: "/settings", label: "Settings", icon: LuSlidersHorizontal }],
+    label: "Station",
+    items: [
+      { to: "/rigs", label: "Rigs", icon: LuCable },
+      { to: "/environments", label: "Environments", icon: LuBox },
+      { to: "/settings", label: "Settings", icon: LuSlidersHorizontal },
+    ],
   },
 ]
