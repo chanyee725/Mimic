@@ -54,9 +54,6 @@ export function RunControls({
         </StatusDot>
         <span className="font-mono text-2xl font-medium tabular-nums">{formatClock(elapsed / 1000)}</span>
       </div>
-      {loading && (
-        <p className="text-xs text-muted-foreground">모델을 GPU 에 올리고 로봇에 연결하는 중입니다. 처음 한 번은 10초 정도 걸립니다.</p>
-      )}
       {phase === "judging" && error && <p className="text-[13px] text-bad">{error}</p>}
       {phase === "judging" && (
         <p className="text-xs text-muted-foreground">팔은 지금 자세를 유지합니다. 판정하면 토크가 꺼지니 팔을 받치세요.</p>

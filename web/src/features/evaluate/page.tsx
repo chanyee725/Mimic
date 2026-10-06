@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
@@ -19,7 +18,6 @@ import { useTrainingConfig } from "@/api/training"
 import type { Model } from "@/domain/model"
 import { useLiveSamples } from "@/hooks/use-live-samples"
 import { formatClock } from "@/lib/format"
-import { cn } from "@/lib/utils"
 
 import { ModelField } from "./components/model-field"
 import { ErrorNote, LoadingNote, QueryNote } from "@/components/common/query-state"
@@ -126,15 +124,12 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
               disabled={!idle}
               onChange={(e) => edit({ instruction: e.target.value })}
             />
-            <span className="text-xs text-muted-foreground">학습한 label 과 다른 문장도 넣어 볼 수 있습니다.</span>
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-[13px]">
             <Label htmlFor="e-speed" className="grid gap-0.5 font-normal">
               Speed limit
-              <span className={cn("text-xs", speedValid ? "text-muted-foreground" : "text-bad")}>
-                {speedValid ? "서보 최고 속도 대비 %, 비우면 제한 없음" : "0 초과 100 이하로 넣거나 비우세요."}
-              </span>
+              {!speedValid && <span className="text-xs text-bad">0 초과 100 이하로 넣거나 비우세요.</span>}
             </Label>
             <span className="flex items-center gap-2">
               <Input
@@ -149,11 +144,6 @@ function EvaluateView({ model, onModelChange }: { model: Model; onModelChange: (
               />
               <span className="text-xs text-muted-foreground">%</span>
             </span>
-            <Label htmlFor="e-rec" className="grid gap-0.5 font-normal">
-              Record trials as MCAP
-              <span className="text-xs text-muted-foreground">아직 준비 중입니다.</span>
-            </Label>
-            <Switch id="e-rec" checked={false} disabled />
           </div>
 
           <RunControls
