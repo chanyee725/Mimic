@@ -12,6 +12,7 @@ import {
   LuTrash2,
   LuTrendingDown,
 } from "react-icons/lu"
+import { SiHuggingface } from "react-icons/si"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -67,8 +68,8 @@ export function ModelDetail({ model: m }: { model: Model }) {
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <Button variant="outline" size="sm" disabled={!!m.hubRepo || push.isPending} onClick={() => push.mutate({ id: m.id })}>
-            <LuCloudUpload />
-            {m.hubRepo ? "On HF Hub" : push.isPending ? "Pushing…" : "Push to HF Hub"}
+            {m.hubRepo ? <SiHuggingface /> : <LuCloudUpload />}
+            {m.hubRepo ? "Pushed" : push.isPending ? "Pushing…" : "Push to HF Hub"}
           </Button>
           <Button variant="outline" size="sm" disabled={download.isPending} onClick={() => download.mutate()}>
             <LuDownload />

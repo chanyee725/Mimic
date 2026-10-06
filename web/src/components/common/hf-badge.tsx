@@ -2,18 +2,15 @@ import { SiHuggingface } from "react-icons/si"
 
 import { cn } from "@/lib/utils"
 
-/** Marks items uploaded to HF Hub: yellow Hugging Face logo on black */
+/** Marks items uploaded to HF Hub: the yellow Hugging Face logo on a small black square */
 export function HfBadge({ className, title = "On HF Hub" }: { className?: string; title?: string }) {
   return (
     <span
       title={title}
-      className={cn(
-        "inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-black py-0.5 pr-1.5 pl-1 text-[10px] leading-none font-semibold text-white",
-        className,
-      )}
+      aria-label={title}
+      className={cn("inline-grid size-4 shrink-0 place-items-center rounded-[4px] bg-black", className)}
     >
       <SiHuggingface className="size-3 text-[#FFD21E]" aria-hidden />
-      HF
     </span>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { LuArrowRightLeft, LuClock, LuCloudUpload, LuCpu, LuFilm, LuHardDrive, LuListVideo, LuRotateCcw, LuTrash2 } from "react-icons/lu"
+import { SiHuggingface } from "react-icons/si"
 
 import { Button } from "@/components/ui/button"
 import { LinkButton } from "@/components/common/link-button"
@@ -87,14 +88,8 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
               disabled={push.isPending || dataset.status !== "ready" || dataset.hub.pushed}
               onClick={() => push.mutate({ repoId: dataset.repoId, private: dataset.hub.private })}
             >
-              <LuCloudUpload />
-              {dataset.hub.pushed
-                ? dataset.hub.private
-                  ? "On HF Hub (private)"
-                  : "On HF Hub"
-                : push.isPending
-                  ? "Pushing…"
-                  : "Push to HF Hub"}
+              {dataset.hub.pushed ? <SiHuggingface /> : <LuCloudUpload />}
+              {dataset.hub.pushed ? "Pushed" : push.isPending ? "Pushing…" : "Push to HF Hub"}
             </Button>
             {dataset.kind === "lerobot" ? (
               <LinkButton to="/training" size="sm" disabled={dataset.status !== "ready"}>
