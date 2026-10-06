@@ -4,8 +4,7 @@ import { LuHardDrive } from "react-icons/lu"
 
 import { HfBadge } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
-import { SearchInput } from "@/components/common/search-input"
-import { Segmented } from "@/components/common/segmented"
+import { SearchFilter } from "@/components/common/search-filter"
 import { successRate, type Model } from "@/domain/model"
 import { formatPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -42,17 +41,13 @@ export function ModelList({
         </span>
       }
     >
-      <SearchInput
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
+      <SearchFilter
+        search={query}
+        onSearch={setQuery}
         placeholder="Search models or tasks"
-        aria-label="Search models"
-      />
-      <Segmented
-        label="Location"
-        fill
-        value={filter}
-        onChange={setFilter}
+        filterLabel="Location"
+        filter={filter}
+        onFilter={setFilter}
         options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: list.filter(f.fits).length }))}
       />
 

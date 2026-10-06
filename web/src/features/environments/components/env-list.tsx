@@ -1,8 +1,7 @@
 import { useState } from "react"
 
 import { Panel } from "@/components/layout/page-layout"
-import { SearchInput } from "@/components/common/search-input"
-import { Segmented } from "@/components/common/segmented"
+import { SearchFilter } from "@/components/common/search-filter"
 import { EnvThumb } from "@/components/robot/env-thumb"
 import { useRigs } from "@/api/rigs"
 import { useSimConfig } from "@/api/simulation"
@@ -50,18 +49,13 @@ export function EnvList({
       <p className="-mt-1 truncate px-2 font-mono text-xs text-muted-foreground" title={envsDir}>
         {envsDir ?? "…"}
       </p>
-      <SearchInput
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+      <SearchFilter
+        search={search}
+        onSearch={setSearch}
         placeholder="Search environments"
-        aria-label="Search environments"
-      />
-      <Segmented
-        label="Rig"
-        fill
-        className="overflow-x-auto"
-        value={rig}
-        onChange={onRigChange}
+        filterLabel="Rig"
+        filter={rig}
+        onFilter={onRigChange}
         options={[
           { value: "all", label: "All", count: envs.length },
           ...rigIds.map((id) => ({ value: id, label: rigLabel(id, rigs), count: count(id) })),
