@@ -3,13 +3,11 @@
 import os
 import platform
 import shutil
-import socket
-import time
 from importlib import metadata
 from pathlib import Path
 
 from app.configs.config import config
-from app.schemas.settings import ConnTestResult, Disk, DiskPart, VersionRow
+from app.schemas.settings import Disk, DiskPart, VersionRow
 
 MB = 1024**2
 GB = 1024**3
@@ -81,17 +79,3 @@ def versions() -> list[VersionRow]:
     rows += [VersionRow(k=label, v=_version(dist)) for label, dist in PACKAGES]
     rows.append(VersionRow(k="lerobot", v=_version("lerobot")))
     return rows
-
-
-def tcp_check(url: str, timeout_s: float) -> ConnTestResult:
-    """Opens a TCP connection to host:port (scheme optional) and reports the connect time."""
-    host, _, port = url.split("://")[-1].rstrip("/").rpartition(":")
-    if not host or not port.isdigit():
-        return ConnTestResult(state="error", detail=f"'{url}' is not host:port")
-    start = time.perf_counter()
-    try:
-        with socket.create_connection((host, int(port)), timeout=timeout_s):
-            pass
-    except OSError as e:
-        return ConnTestResult(state="error", detail=f"{url}: {e.strerror or e}")
-    return ConnTestResult(state="ok", latency_ms=round((time.perf_counter() - start) * 1000))
