@@ -12,10 +12,10 @@ from pathlib import Path
 from app.core.errors import ApiError, not_found
 from app.core.events import bus
 from app.schemas.common import Page, paginate
-from app.models.rigs import RigKind
 from app.models.recordings import (
     Recording,
     RecordingCheck,
+    RecordingKind,
     RecordingOrder,
     RecordingReview,
     RecordingSource,
@@ -87,7 +87,7 @@ def page_recordings(
     limit: int,
     cursor: str | None,
     order: RecordingOrder = "newest",
-    kind: RigKind | None = None,
+    kind: RecordingKind | None = None,
 ) -> Page[Recording]:
     rows = [
         r

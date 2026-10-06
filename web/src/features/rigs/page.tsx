@@ -22,15 +22,13 @@ export function RigsPage() {
 
   const rigs = rigsQuery.data ?? []
   const count = (n: number) => (rigsQuery.data ? n : "—")
-  // A sim rig shares the real leader arm: count each device once
-  const unique = (ids: (r: (typeof rigs)[number]) => string[]) => new Set(rigs.flatMap(ids)).size
 
   // Devices are only plugged in over USB for testing, so show registered counts from the rig config instead of connection state
   const stats = [
     { label: "Rigs", value: count(rigs.length), icon: LuBoxes },
-    { label: "Robots", value: count(unique((r) => r.robots)), icon: LuBot },
-    { label: "Devices", value: count(unique((r) => r.devices)), icon: LuCable },
-    { label: "Cameras", value: count(unique((r) => r.cameras.map((c) => c.id))), icon: LuCamera },
+    { label: "Robots", value: count(rigs.reduce((n, r) => n + r.robots.length, 0)), icon: LuBot },
+    { label: "Devices", value: count(rigs.reduce((n, r) => n + r.devices.length, 0)), icon: LuCable },
+    { label: "Cameras", value: count(rigs.reduce((n, r) => n + r.cameras.length, 0)), icon: LuCamera },
   ]
 
   return (
@@ -53,14 +51,7 @@ export function RigsPage() {
             <LuRefreshCw />
             Rescan ports
           </Button>
-          {/* A sim rig's follower runs in Isaac Sim: teleoperation waits for the Isaac Sim bridge */}
-          <Button
-            variant="outline"
-            size="lg"
-            disabled={!rig || rig.kind === "sim"}
-            title={rig?.kind === "sim" ? "Isaac Sim 연결 전입니다" : undefined}
-            onClick={() => setTeleop(true)}
-          >
+          <Button variant="outline" size="lg" disabled={!rig} onClick={() => setTeleop(true)}>
             <LuGamepad2 />
             Test teleoperation
           </Button>

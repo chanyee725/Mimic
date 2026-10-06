@@ -1,6 +1,7 @@
 # Tasks and sessions
 
-A task defines what to record (instruction, rig, cameras, rates, episode counts, subtasks). Web: `api/tasks.ts`, `api/sessions.ts`.
+A task defines what to record (instruction, rig, cameras, rates, episode counts, subtasks) and where: on the real rig,
+or in an Isaac Sim environment (`envId`, the **Isaac Sim** tag on the Tasks page). Web: `api/tasks.ts`, `api/sessions.ts`.
 
 ## Types
 
@@ -16,6 +17,7 @@ Task = {
   variants: string[]
   tags: string[]
   rigId: string
+  envId: string | null       // Isaac Sim environment (simulation.md); null = real task
   cameras: string[]          // rig camera keys recorded for this task
   actionHz: number           // one of the rig's actionHzOptions
   videoFps: number           // one of the rig's videoFpsOptions
@@ -57,9 +59,15 @@ Session = { id: string; taskId: string; operator: string | null; episodes: numbe
 | GET | `/sessions?taskId=` | | `Session[]` derived from recordings (newest first) | `listSessions()` |
 
 Validation: `rigId` must exist; `cameras` ⊆ rig camera keys; `actionHz` ∈ rig `actionHzOptions`; `videoFps` ∈ rig `videoFpsOptions`;
-subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
+`envId`, when set, must be a
+registered environment (`/sim/envs`) compatible with the task: its cameras include the task `cameras` and its `action_dim`
+equals the rig's joint count (else 422 on `envId`); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
 `cameras` and `outcomes` non-empty. Rule failures return `422` with `details.errors = [{ loc: ["body", field, ...], msg }]`.
 `updatedBy` comes from the `X-Operator` header (pseudonymous ID matching `^OP-\d{2}$`, else 422), default `OP-01`.
+
+An Isaac Sim task keeps the rig: its joints, cameras and rates define the data, the real leader arm drives the simulated
+follower, and recordings carry the environment as `simEnv` ([recordings.md](recordings.md)). Capture on it answers 503
+until the Isaac Sim bridge exists ([capture.md](capture.md)).
 
 Events: `task.created` / `task.updated` (data `Task`), `task.deleted` (data `{ id }`).
 
@@ -71,6 +79,7 @@ name: Stack two blocks
 label: stack the blue block on top of the red block
 tags: [pick-place, tabletop]
 rig: so101-kit
+env: pick-red-cube                                 # optional: Isaac Sim task; omit for the real rig
 cameras: [top, wrist]
 rates: { action_hz: 60, video_fps: 30 }
 episode: { target: 50, duration_s: 30, reset_s: 10, countdown_s: 3 }

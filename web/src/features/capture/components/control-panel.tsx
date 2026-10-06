@@ -25,7 +25,7 @@ export function ControlPanel({
   ep: CaptureControls
   /** Names of required devices that are not connected */
   offline: string[]
-  /** Isaac Sim environment when the task's rig is a sim rig */
+  /** The task's Isaac Sim environment, if it runs in one */
   simEnv: string | null
   onSelectTask: (id: string) => void
   taskError: Error | null
@@ -46,7 +46,7 @@ export function ControlPanel({
         </div>
       </div>
 
-      <TeleopRow rigId={task.rigId} locked={ep.phase !== "idle"} simEnv={simEnv} />
+      <TeleopRow rigId={task.rigId} locked={ep.phase !== "idle"} />
 
       <RecordingStatus
         task={task}
@@ -71,9 +71,9 @@ export function ControlPanel({
   )
 }
 
-/** Why a new episode can't start: a sim rig (Isaac Sim not connected), the task's target is reached, or rig devices are offline */
+/** Why a new episode can't start: an Isaac Sim task (not connected yet), the task's target is reached, or rig devices are offline */
 function startBlockedNote(task: Task, offline: string[], simEnv: string | null): React.ReactNode | null {
-  if (simEnv) return <>Isaac Sim 연결 전이라 이 Task({simEnv}) 는 아직 녹화할 수 없습니다.</>
+  if (simEnv) return <>Isaac Sim 연결 전이라 {simEnv} 환경 Task 는 아직 녹화할 수 없습니다.</>
   if (targetReached(task))
     return (
       <>

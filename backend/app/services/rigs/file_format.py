@@ -1,7 +1,4 @@
-"""Rig file format (config/rigs/<id>.yaml): robot / device / cameras / rates, mapped to Rig.
-
-A rig with a `sim: { env: <env-id> }` section is simulated: its robots and cameras live in that
-Isaac Sim environment (no ports), while its leader arms are real devices on the station."""
+"""Rig file format (config/rigs/<id>.yaml): robot / device / cameras / rates, mapped to Rig."""
 
 import json
 import re
@@ -29,7 +26,7 @@ class RobotSpec(_Spec):
     id: str
     type: str
     name: str
-    port: str = ""  # none for a simulated robot
+    port: str
     joints: list[str] = Field(min_length=1)
     calibration_id: str | None = None  # LeRobot id (calibration file name); defaults to id
 
@@ -46,7 +43,7 @@ class CameraSpec(_Spec):
     key: str
     id: str | None = None  # device id; defaults to the key
     name: str
-    port: str = ""  # none for a simulated camera
+    port: str
     resolution: str  # normalized to "640×480"
     fps: PositiveInt | None = None  # defaults to rates.video_fps
     default_on: bool = True
@@ -86,14 +83,9 @@ class Rates(_Spec):
         return self
 
 
-class SimSpec(_Spec):
-    env: str = Field(min_length=1)  # Isaac Sim environment id (folder under VLA_SIM_ENVS_DIR)
-
-
 class RigFile(_Spec):
     id: str
     name: str
-    sim: SimSpec | None = None
     robots: list[RobotSpec] = Field(min_length=1)
     devices: list[DeviceSpec] = []
     cameras: list[CameraSpec] = []
@@ -136,13 +128,6 @@ class RigFile(_Spec):
     @property
     def joints(self) -> list[str]:
         return [j for r in self.robots for j in r.joints]
-
-    @property
-    def simulated_ids(self) -> set[str]:
-        """Devices that live in Isaac Sim: a sim rig's robots and cameras."""
-        if self.sim is None:
-            return set()
-        return {*(r.id for r in self.robots), *(c.device_id for c in self.cameras)}
 
 
 def _with(body: Any, field: str, value: str) -> Any:
@@ -241,8 +226,6 @@ def to_rig(spec: RigFile) -> Rig:
     return Rig(
         id=spec.id,
         name=spec.name,
-        kind="sim" if spec.sim else "real",
-        env_id=spec.sim.env if spec.sim else None,
         master=label([d.name for d in spec.devices]),
         slave=label([r.name for r in spec.robots]),
         robots=[r.id for r in spec.robots],
@@ -270,7 +253,6 @@ def declared_devices(spec: RigFile) -> list[Device]:
     """Every device the file declares, not connected (no drivers yet): measured rates null, no stats."""
     n = len(spec.robots[0].joints)
     hz = float(spec.rates.action_hz)
-    sim = spec.simulated_ids
 
     def dev(i: str, name: str, kind: str, port: str, stream: DeviceStream, note: str) -> Device:
         cal = Calibration(done=False, note=note)
@@ -283,7 +265,6 @@ def declared_devices(spec: RigFile) -> list[Device]:
             calibration=cal,
             streams=[stream],
             stats=[],
-            simulated=i in sim,
         )
 
     out = [
@@ -359,16 +340,8 @@ def _stream(key: str, shape: str, hz: float, unit: str) -> DeviceStream:
 def to_doc(spec: RigFile) -> dict[str, Any]:
     """Singular robot / device when there is exactly one, else maps keyed by id."""
     doc: dict[str, Any] = {"id": spec.id, "name": spec.name}
-    if spec.sim:
-        doc["sim"] = {"env": spec.sim.env}
-    sim = spec.simulated_ids
-
-    def port(i: str, value: str) -> dict[str, str]:
-        return {} if i in sim and not value else {"port": value}
-
     robots = [
-        {"id": r.id, "type": r.type, "name": r.name}
-        | port(r.id, r.port)
+        {"id": r.id, "type": r.type, "name": r.name, "port": r.port}
         | ({"calibration_id": r.calibration_id} if r.calibration_id else {})
         | {"joints": r.joints}
         for r in spec.robots
@@ -385,9 +358,9 @@ def to_doc(spec: RigFile) -> dict[str, Any]:
             doc[many] = {i.pop("id"): i for i in items}
     doc["cameras"] = {
         c.key: ({"id": c.id} if c.id and c.id != c.key else {})
-        | {"name": c.name}
-        | port(c.device_id, c.port)
         | {
+            "name": c.name,
+            "port": c.port,
             "resolution": c.resolution.replace("×", "x"),
             "fps": c.fps,
             "default_on": c.default_on,

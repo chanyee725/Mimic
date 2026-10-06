@@ -144,7 +144,7 @@ def build_episode(
         source="capture",
         task_id=task.id,
         rig_id=rig.id,
-        sim_env=rig.env_id,
+        sim_env=task.env_id,
         episode=s.episode,
         recorded_at=to_iso(s.recording_at),
         duration_s=duration,

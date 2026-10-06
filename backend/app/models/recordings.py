@@ -10,6 +10,7 @@ from app.models.tasks import Outcome
 TopicKind = Literal["action", "state", "video", "label", "glove", "other"]
 RecordingReview = Literal["pending", "accepted", "rejected"]
 RecordingSource = Literal["capture", "external"]
+RecordingKind = Literal["real", "sim"]  # sim: recorded for an Isaac Sim task (simEnv set)
 RecordingOrder = Literal["newest", "episode"]  # list order: recordedAt desc, or episode number asc
 
 

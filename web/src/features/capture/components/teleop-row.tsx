@@ -4,25 +4,12 @@ import { StatusDot } from "@/components/common/status-dot"
 import { useStartTeleop, useStopTeleop, useTeleopStatus } from "@/api/rigs"
 
 /** Teleop (leader → follower) status of the rig, with Start / Stop. Capture start also starts it */
-export function TeleopRow({ rigId, locked, simEnv }: { rigId: string; locked: boolean; simEnv: string | null }) {
+export function TeleopRow({ rigId, locked }: { rigId: string; locked: boolean }) {
   const status = useTeleopStatus(rigId)
   const start = useStartTeleop()
   const stop = useStopTeleop()
   const state = status.data
   const running = !!state?.running
-
-  // A sim rig's follower runs in Isaac Sim: its teleop waits for the Isaac Sim bridge
-  if (simEnv)
-    return (
-      <div className="flex items-center justify-between gap-3">
-        <StatusDot tone="muted" className="text-[13px]">
-          Isaac Sim · {simEnv}
-        </StatusDot>
-        <Button variant="outline" size="xs" disabled>
-          Start teleop
-        </Button>
-      </div>
-    )
 
   return (
     <div className="grid gap-1.5">

@@ -2,7 +2,7 @@
 import { type InfiniteData, useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
 
 import type { Recording, RecordingReview, RecordingSamples, RecordingSource, SampleTopic } from "@/domain/recording"
-import type { RigKind } from "@/domain/rig"
+import type { TaskWorld } from "@/domain/task"
 
 import { API_BASE, ApiError, api, type Page } from "./client"
 import { qk, queryClient } from "./query"
@@ -12,7 +12,7 @@ export type RecordingFilter = {
   review?: RecordingReview
   source?: RecordingSource
   /** Episodes recorded on a real or an Isaac Sim rig */
-  kind?: RigKind
+  kind?: TaskWorld
   /** newest first (default), or lowest episode number first */
   order?: "newest" | "episode"
 }

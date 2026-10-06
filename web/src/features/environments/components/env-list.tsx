@@ -53,7 +53,7 @@ export function EnvList({
   const envs = query.data ?? []
   const shown = envs
     .filter(ENV_FILTERS.find((f) => f.value === filter)!.fits)
-    .filter((e) => !q || e.name.toLowerCase().includes(q) || e.id.includes(q) || (e.taskId ?? "").includes(q))
+    .filter((e) => !q || e.name.toLowerCase().includes(q) || e.id.includes(q))
 
   return (
     <Panel
@@ -73,7 +73,7 @@ export function EnvList({
       <SearchInput
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search environments or tasks"
+        placeholder="Search environments"
         aria-label="Search environments"
       />
       <Segmented
@@ -93,7 +93,7 @@ export function EnvList({
           {shown.map((e) => {
             const on = e.id === selected
             const state = ENV_STATE[e.state]
-            const task = e.taskId ? tasks.find((t) => t.id === e.taskId) : undefined
+            const used = tasks.filter((t) => t.envId === e.id).length
             return (
               <li key={e.id}>
                 <button
@@ -112,7 +112,8 @@ export function EnvList({
                     </StatusDot>
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    <span className="font-mono">{e.id}</span>, {task?.name ?? e.taskId ?? "No task"}
+                    <span className="font-mono">{e.id}</span>
+                    {used > 0 && `, ${plural(used, "task")}`}
                   </span>
                   <span className="flex items-center gap-2 text-[11px] text-muted-foreground/80">
                     <span>{e.cameras.join(", ")}</span>

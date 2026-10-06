@@ -1,13 +1,10 @@
-import { useState } from "react"
-
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { Segmented } from "@/components/common/segmented"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
 import { useRigs } from "@/api/rigs"
-import { RIG_KIND_LABEL, rigDefaults, type RigKind } from "@/domain/rig"
+import { rigDefaults } from "@/domain/rig"
 import type { Task } from "@/domain/task"
 
 import { rateOptions } from "../lib"
@@ -15,6 +12,7 @@ import { Field } from "./field"
 import { Info } from "./info"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { SimpleSelect } from "./simple-select"
+import { TaskWorldSection } from "./task-world"
 import { UnitInput } from "./unit-input"
 
 type Props = {
@@ -25,11 +23,6 @@ type Props = {
 export function TaskDefinition({ task, onChange }: Props) {
   const rigs = useRigs()
   const rig = rigs.data?.find((r) => r.id === task.rigId)
-  // Real or Isaac Sim: picking a kind switches to its first rig; a kind without rigs stays selectable
-  const [pickedKind, setPickedKind] = useState<RigKind>()
-  const kind = pickedKind ?? rig?.kind ?? "real"
-  const kindRigs = rigs.data?.filter((r) => r.kind === kind) ?? []
-  const shown = rig?.kind === kind ? rig : undefined
 
   return (
     <SettingsGroup className="-mx-5 rounded-none border-x-0 border-b-0">
@@ -62,96 +55,68 @@ export function TaskDefinition({ task, onChange }: Props) {
           <LoadingNote />
         ) : rigs.data.length === 0 ? (
           <p className="text-[13px] text-muted-foreground">등록된 Rig 가 없습니다. config/rigs 에 rig 파일을 추가하세요.</p>
+        ) : !rig ? (
+          <p className="text-[13px] text-bad">Rig &quot;{task.rigId}&quot; 를 찾을 수 없습니다.</p>
         ) : (
           <>
             {/* Changing the rig also loads its master/slave, rate and camera defaults. The label repeats the section title, so it is hidden */}
-            <div className="flex items-center gap-2">
-              <Segmented
-                label="Rig kind"
-                role="radiogroup"
-                size="md"
-                value={kind}
-                onChange={(k) => {
-                  setPickedKind(k)
-                  const first = rigs.data.find((r) => r.kind === k)
-                  if (first && first.id !== rig?.id) onChange(rigDefaults(first))
+            <div>
+              <Label htmlFor="t-rig" className="sr-only">
+                Rig
+              </Label>
+              <SimpleSelect
+                id="t-rig"
+                value={rig.id}
+                options={rigs.data.map((r) => ({ value: r.id, label: r.name }))}
+                onChange={(id) => {
+                  const next = rigs.data.find((r) => r.id === id)
+                  if (next) onChange(rigDefaults(next))
                 }}
-                options={(["real", "sim"] as const).map((k) => ({
-                  value: k,
-                  label: RIG_KIND_LABEL[k],
-                  count: rigs.data.filter((r) => r.kind === k).length,
-                }))}
               />
-              {kindRigs.length > 0 && (
-                <div className="min-w-0 flex-1">
-                  <Label htmlFor="t-rig" className="sr-only">
-                    Rig
-                  </Label>
-                  <SimpleSelect
-                    id="t-rig"
-                    value={shown?.id ?? ""}
-                    options={kindRigs.map((r) => ({ value: r.id, label: r.envId ? `${r.name} · ${r.envId}` : r.name }))}
-                    onChange={(id) => {
-                      const next = rigs.data.find((r) => r.id === id)
-                      if (next) onChange(rigDefaults(next))
-                    }}
-                  />
-                </div>
-              )}
             </div>
-            {kindRigs.length === 0 && (
-              <p className="text-[13px] text-muted-foreground">
-                {kind === "sim"
-                  ? "Isaac Sim Rig 가 없습니다. config/rigs 에 sim: { env: <환경 id> } 를 가진 rig 파일을 추가하세요."
-                  : "실제 Rig 가 없습니다. config/rigs 에 rig 파일을 추가하세요."}
-              </p>
-            )}
-            {!rig && <p className="text-[13px] text-bad">Rig &quot;{task.rigId}&quot; 를 찾을 수 없습니다.</p>}
-            {shown && (
-              <>
-                <div className="grid gap-x-4 gap-y-3 rounded-md bg-muted/50 px-3 py-2.5 @md:grid-cols-3">
-                  <Info label="Master">{shown.master}</Info>
-                  <Info label="Slave">{shown.slave}</Info>
-                  <Info label="Target rate">
-                    {shown.targetHz.action} Hz · {shown.targetHz.video} fps
-                  </Info>
-                </div>
-                <div className="grid gap-1.5">
-                  <span className="text-[13px] font-medium">
-                    Action space <span className="font-normal text-muted-foreground">· {shown.joints.length} DoF</span>
-                  </span>
-                  <span className="text-xs leading-relaxed text-muted-foreground">{shown.joints.join(" · ")}</span>
-                </div>
-                <div className="grid gap-1.5">
-                  <span className="text-[13px] font-medium">Cameras</span>
-                  <div className="divide-y rounded-md border">
-                    {shown.cameras.map((c) => {
-                      const on = task.cameras.includes(c.key)
-                      return (
-                        <div key={c.key} className="flex items-center gap-3 px-3 py-2.5">
-                          <div className="grid min-w-0 flex-1 gap-0.5">
-                            <span className="text-sm">{c.name}</span>
-                            <span className="truncate text-xs text-muted-foreground">
-                              {c.feature} · {c.resolution} @{c.fps}
-                            </span>
-                          </div>
-                          <Switch
-                            aria-label={c.name}
-                            checked={on}
-                            onCheckedChange={(checked) =>
-                              onChange({ cameras: checked ? [...task.cameras, c.key] : task.cameras.filter((k) => k !== c.key) })
-                            }
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
+            <div className="grid gap-x-4 gap-y-3 rounded-md bg-muted/50 px-3 py-2.5 @md:grid-cols-3">
+              <Info label="Master">{rig.master}</Info>
+              <Info label="Slave">{rig.slave}</Info>
+              <Info label="Target rate">
+                {rig.targetHz.action} Hz · {rig.targetHz.video} fps
+              </Info>
+            </div>
+            <div className="grid gap-1.5">
+              <span className="text-[13px] font-medium">
+                Action space <span className="font-normal text-muted-foreground">· {rig.joints.length} DoF</span>
+              </span>
+              <span className="text-xs leading-relaxed text-muted-foreground">{rig.joints.join(" · ")}</span>
+            </div>
+            <div className="grid gap-1.5">
+              <span className="text-[13px] font-medium">Cameras</span>
+              <div className="divide-y rounded-md border">
+                {rig.cameras.map((c) => {
+                  const on = task.cameras.includes(c.key)
+                  return (
+                    <div key={c.key} className="flex items-center gap-3 px-3 py-2.5">
+                      <div className="grid min-w-0 flex-1 gap-0.5">
+                        <span className="text-sm">{c.name}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {c.feature} · {c.resolution} @{c.fps}
+                        </span>
+                      </div>
+                      <Switch
+                        aria-label={c.name}
+                        checked={on}
+                        onCheckedChange={(checked) =>
+                          onChange({ cameras: checked ? [...task.cameras, c.key] : task.cameras.filter((k) => k !== c.key) })
+                        }
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </>
         )}
       </SettingsSection>
+
+      <TaskWorldSection task={task} rig={rig} onChange={onChange} />
 
       <SettingsSection title="Recording">
         <div className="grid gap-3 @lg:grid-cols-3">

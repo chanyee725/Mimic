@@ -28,10 +28,7 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
   const sessions = useSessions()
   // REC follows the capture phase, not the task picked in Capture (that stays set after recording ends)
   const recTaskId = capturingTaskId(useCaptureState().data)
-  const rigs = useRigs().data
-  // New tasks start on the first real rig
-  const rig = rigs?.find((r) => r.kind === "real") ?? rigs?.[0]
-  const simRigs = new Set(rigs?.filter((r) => r.kind === "sim").map((r) => r.id))
+  const rig = useRigs().data?.[0]
   const create = useCreateTask()
 
   const allTasks = tasksQuery.data ?? []
@@ -106,7 +103,7 @@ export function TaskList({ selectedId }: { selectedId: string | undefined }) {
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{t.instruction}</p>
                   <p className="truncate text-[11px] text-muted-foreground/80 tabular-nums">
-                    {simRigs.has(t.rigId) && "Isaac Sim · "}
+                    {t.envId && `Isaac Sim · ${t.envId} · `}
                     {t.collected}/{t.targetEpisodes} · {plural(stats.sessions, "session")} · success{" "}
                     {stats.success === null ? "—" : `${stats.success}%`}
                   </p>

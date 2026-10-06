@@ -1,8 +1,6 @@
 import type { UseQueryResult } from "@tanstack/react-query"
 import { LuPlugZap } from "react-icons/lu"
 
-import { Link } from "react-router-dom"
-
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Panel } from "@/components/layout/page-layout"
@@ -46,22 +44,10 @@ export function RigDevices({
   return (
     <Panel
       className="@container"
-      title={
-        <span className="flex min-w-0 items-baseline gap-2">
-          <span className="truncate">{rig.name}</span>
-          {rig.kind === "sim" && (
-            <Link
-              to="/environments"
-              className="truncate text-[13px] font-normal text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              Isaac Sim · {rig.envId}
-            </Link>
-          )}
-        </span>
-      }
+      title={rig.name}
       action={
         <div className="flex items-center gap-3">
-          <span className="text-[13px] whitespace-nowrap text-muted-foreground tabular-nums">
+          <span className="text-[13px] text-muted-foreground tabular-nums">
             {rig.joints.length} DoF · {rig.targetHz.action} Hz · {rig.targetHz.video} fps
           </span>
           {/* Runs once when the rig is first shown; this reruns it */}

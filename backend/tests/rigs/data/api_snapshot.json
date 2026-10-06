@@ -3,8 +3,6 @@
     {
       "id": "so101-kit",
       "name": "SO-101 Kit",
-      "kind": "real",
-      "envId": null,
       "master": "SO-101 Leader",
       "slave": "SO-101 Follower",
       "robots": [
@@ -57,8 +55,6 @@
     {
       "id": "so101-bimanual-kit",
       "name": "SO-101 Bimanual Kit",
-      "kind": "real",
-      "envId": null,
       "master": "SO-101 Leader ×2",
       "slave": "SO-101 Follower ×2",
       "robots": [
@@ -147,8 +143,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "follower",
@@ -170,8 +165,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "top",
@@ -193,8 +187,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "wrist",
@@ -216,8 +209,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "bi-leader-l",
@@ -239,8 +231,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "bi-leader-r",
@@ -262,8 +253,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "bi-follower-l",
@@ -285,8 +275,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "bi-follower-r",
@@ -308,8 +297,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "bi-cam-top",
@@ -331,8 +319,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "bi-cam-wrist-l",
@@ -354,8 +341,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     },
     {
       "id": "bi-cam-wrist-r",
@@ -377,8 +363,7 @@
         }
       ],
       "stats": [],
-      "check": null,
-      "simulated": false
+      "check": null
     }
   ]
 }
