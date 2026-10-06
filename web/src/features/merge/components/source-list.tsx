@@ -8,7 +8,8 @@ import { HfBadge } from "@/components/common/hf-badge"
 import { LinkButton } from "@/components/common/link-button"
 import { QueryNote } from "@/components/common/query-state"
 import { SearchInput } from "@/components/common/search-input"
-import type { Dataset } from "@/domain/dataset"
+import { WorldMarks } from "@/components/robot/world-mark"
+import { datasetWorlds, type Dataset } from "@/domain/dataset"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -78,6 +79,7 @@ export function SourceList({
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className={cn("truncate text-[13px]", on && "font-medium")}>{d.repoId}</span>
                     {d.hub.pushed && <HfBadge />}
+                    <WorldMarks worlds={datasetWorlds(d)} className="ml-auto" />
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground tabular-nums">
                     {d.taskId}, {d.fps} fps, {plural(d.episodeCount, "episode")}

@@ -6,9 +6,10 @@ import { Page, Panel } from "@/components/layout/page-layout"
 import { EmptyState } from "@/components/common/empty-state"
 import { Segmented } from "@/components/common/segmented"
 import { TaskPicker } from "@/components/pickers/task-picker"
+import { WorldMark } from "@/components/robot/world-mark"
 import { useImportRecording } from "@/api/recordings"
 import { useTasks } from "@/api/tasks"
-import { TASK_WORLD_LABEL, type TaskWorld } from "@/domain/task"
+import type { TaskWorld } from "@/domain/task"
 
 import { ErrorNote, QueryNote } from "@/components/common/query-state"
 import { ReviewWorkspace } from "./components/review-workspace"
@@ -38,8 +39,8 @@ export function ReviewPage() {
             onChange={setKind}
             options={[
               { value: "all", label: "All" },
-              { value: "real", label: TASK_WORLD_LABEL.real },
-              { value: "sim", label: TASK_WORLD_LABEL.sim },
+              { value: "real", label: <WorldMark world="real" label /> },
+              { value: "sim", label: <WorldMark world="sim" label /> },
             ]}
           />
           {importRec.data && !importRec.isPending && (

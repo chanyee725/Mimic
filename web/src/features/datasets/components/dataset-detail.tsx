@@ -12,7 +12,8 @@ import { StatusDot } from "@/components/common/status-dot"
 import { useDataset, useDatasetEpisodes, useDeleteDataset, usePushDataset } from "@/api/datasets"
 import { useRig } from "@/api/rigs"
 import { useTask } from "@/api/tasks"
-import { MIXED_TASK, type Dataset } from "@/domain/dataset"
+import { WorldMarks } from "@/components/robot/world-mark"
+import { MIXED_TASK, datasetWorlds, type Dataset } from "@/domain/dataset"
 import { formatDateTime, formatLength, formatSize, plural } from "@/lib/format"
 
 import { STATUS } from "../lib"
@@ -64,6 +65,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
                 {status.label}
               </StatusDot>
               {dataset.hub.pushed && <HfBadge title={dataset.hub.private ? "On HF Hub (private)" : "On HF Hub"} />}
+              <WorldMarks worlds={datasetWorlds(dataset)} />
             </div>
             <p className="truncate text-[13px] text-muted-foreground">{mixed ? "Mixed tasks" : (task?.instruction ?? dataset.taskId)}</p>
             {!!dataset.sources?.length && (
