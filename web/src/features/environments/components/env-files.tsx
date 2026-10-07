@@ -2,7 +2,7 @@ import type { SimEnv } from "@/domain/simulation"
 
 import { formatKB } from "../lib"
 
-/** Files of a folder environment (scene USD and its sub-assets) */
+/** Files of a folder environment (env.py and its own files) */
 export function EnvFiles({ env }: { env: SimEnv }) {
   return (
     <section className="grid content-start gap-2">
