@@ -90,7 +90,10 @@ Progress: `dataset.updated` events (`progress`, `status`, `error`). Deleting emi
 - `q` matches `repoId` or `taskId` (case-insensitive substring).
 - Push uploads in a background thread (`huggingface_hub`, HF token from `.env`) to `<namespace>/<name>`, where namespace
   is Settings → Hugging Face namespace, else the token's user (`<namespace>/<local namespace>-<name>` when the local
-  namespace differs, so `local/pick` and `team/pick` never share a repo); a pulled dataset keeps its repo. Any failure,
+  namespace differs, so `local/pick` and `team/pick` never share a repo); a pulled dataset keeps its repo. A namespace
+  set in Settings must be the token's user or one of its organizations (checked with `whoami` before anything is
+  created; 403 naming the user otherwise). The default namespace is empty (= the token's user). A refusal from the Hub
+  is reported with its own reason (`Hugging Face refused the request: …`, 403; other failures 502 with the reason). Any failure,
   the namespace lookup included, clears `pushing` and sets `error`. It creates the repo
   (`private` from the body), uploads the whole folder (`station.yaml` included, hidden files skipped) and re-points the
   `v3.0` tag lerobot looks for. Done: `hub` `{ pushed: true, private, repo }` is written to `station.yaml`; failure:

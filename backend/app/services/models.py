@@ -134,9 +134,10 @@ def secret_set(name: str) -> bool:
 
 
 def default_repo(task_id: str) -> str:
-    return (
-        f"{settings.get_settings().integrations.hf.namespace}/smolvla_{task_id.replace('-', '_')}"
-    )
+    """<hf namespace>/smolvla_<task>; the namespace is the settings one or the token's user."""
+    from app.services import datasets  # datasets → training → models: import late
+
+    return f"{datasets.hf_namespace(datasets.hf_token())}/smolvla_{task_id.replace('-', '_')}"
 
 
 def download(model_id: str):
