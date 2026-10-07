@@ -1,0 +1,70 @@
+#usda 1.0
+(
+    defaultPrim = "table"
+    doc = """Static table: 1.2 x 0.8 m top, surface at z = 0.75 m. Origin at the floor, centred."""
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "table" (
+    kind = "component"
+)
+{
+    def Cube "top" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.62, 0.48, 0.34)]
+        double3 xformOp:translate = (0, 0, 0.73)
+        float3 xformOp:scale = (1.2, 0.8, 0.04)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+
+    def Xform "legs"
+    {
+        def Cube "leg_fl" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.35, 0.35, 0.35)]
+            double3 xformOp:translate = (0.55, 0.35, 0.355)
+            float3 xformOp:scale = (0.05, 0.05, 0.71)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        def Cube "leg_fr" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.35, 0.35, 0.35)]
+            double3 xformOp:translate = (-0.55, 0.35, 0.355)
+            float3 xformOp:scale = (0.05, 0.05, 0.71)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        def Cube "leg_bl" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.35, 0.35, 0.35)]
+            double3 xformOp:translate = (0.55, -0.35, 0.355)
+            float3 xformOp:scale = (0.05, 0.05, 0.71)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        def Cube "leg_br" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.35, 0.35, 0.35)]
+            double3 xformOp:translate = (-0.55, -0.35, 0.355)
+            float3 xformOp:scale = (0.05, 0.05, 0.71)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+    }
+}
