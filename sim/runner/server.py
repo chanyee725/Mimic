@@ -10,8 +10,9 @@ API (JSON):
   POST /app/start  {"display", "device"}  start the app ("window" | "headless", physics "gpu" | "cpu",
                                    default gpu); restarts it when either changes
   POST /app/stop                   stop the app
-  POST /scene?env=<id>&scene=<file>[&display=…&device=…]  body: tar.gz of the environment (folder files, or the single
-                                   stage file); opens <file> (default scene.usd), starting the app
+  POST /scene?env=<id>&scene=<file>[&display=…&device=…]  body: tar.gz laid out like data/sims
+                                   (envs/<env>…, robot/…); opens <file>, a path in it (default
+                                   scene.usd), starting the app
                                    first when it is not running
 AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "device", "pid", "scene",
             "error"}

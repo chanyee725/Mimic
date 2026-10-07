@@ -14,7 +14,7 @@ TASK = "stack-two-blocks"
 def envs(tmp_path, monkeypatch):
     d = tmp_path / "envs"
     shutil.copytree(FIXTURES / "envs", d)
-    monkeypatch.setattr(config, "sim_envs_dir", d)
+    monkeypatch.setattr(config, "sim_dir", tmp_path)
     simulation.reset()
     add_tasks(TASK)
     yield d

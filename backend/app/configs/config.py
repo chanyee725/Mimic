@@ -18,31 +18,41 @@ class Config(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     station_id: str = "Station 01"
     timezone: str = "Asia/Seoul"
-    # Folder scanned for Isaac Sim environments (USD stages); unset = <data_dir>/envs
-    sim_envs_dir: Path | None = None
+    # Isaac Sim assets: envs/ (scanned stages) and robot/ (robot USDs they reference); unset = <data_dir>/sims
+    sim_dir: Path | None = None
     # Station setup, committed: rigs/, settings/, calibration/ (hand-set, edited on Rigs / Settings)
     config_dir: Path = REPO_ROOT / "config"
-    # Station data: tasks/ (YAML), recordings/, datasets/, models/, envs/ (Isaac Sim stages)
+    # Station data: tasks/ (YAML), recordings/, datasets/, models/, sims/ (Isaac Sim USDs)
     data_dir: Path = REPO_ROOT / "data"
     # Real devices (Rigs connection test / calibration): "lerobot", or "none" to never touch hardware
     device_driver: str = "lerobot"
     # .env holding the secrets (HF_TOKEN, RUNPOD_API_KEY, …); settings edits it
     env_file_path: Path = ENV_FILE
 
-    @field_validator("sim_envs_dir", "config_dir", "data_dir", "env_file_path")
+    @field_validator("sim_dir", "config_dir", "data_dir", "env_file_path")
     @classmethod
     def _from_repo_root(cls, v: Path) -> Path:
-        # "~" expands; relative paths (e.g. VLA_SIM_ENVS_DIR=data/envs) start at the repo root
+        # "~" expands; relative paths (e.g. VLA_SIM_DIR=data/sims) start at the repo root
         if v is None:
             return None
         v = Path(v).expanduser()
         return v if v.is_absolute() else REPO_ROOT / v
 
     @model_validator(mode="after")
-    def _envs_under_data(self) -> "Config":
-        if self.sim_envs_dir is None:
-            self.sim_envs_dir = self.data_dir / "envs"
+    def _sims_under_data(self) -> "Config":
+        if self.sim_dir is None:
+            self.sim_dir = self.data_dir / "sims"
         return self
+
+    @property
+    def sim_envs_dir(self) -> Path:
+        """Scanned for environments: one stage file or folder each (rig folders allowed)."""
+        return self.sim_dir / "envs"
+
+    @property
+    def sim_robot_dir(self) -> Path:
+        """Robot USDs shared by the stages (referenced as ../…/robot/<file>), never scanned."""
+        return self.sim_dir / "robot"
 
     # Everything the station records or builds lives under the data folder
     @property
