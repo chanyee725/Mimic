@@ -14,9 +14,11 @@ credentials*.json
 *.mcap
 *.bag
 *.db3
-# data/: station data (tasks, recordings, datasets, models, Isaac Sim envs) — never committed.
+# data/: station data (tasks, recordings, datasets, models) — never committed, except data/sims/
+# (Isaac Sim environment scripts, robot tags and robot USDs), which is shared through git.
 # Station setup (rigs, settings, calibration) lives in config/ and is committed.
-/data/
+/data/*
+!/data/sims/
 /raw/
 /datasets/
 /outputs/
