@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { LuCircle, LuUpload } from "react-icons/lu"
+import { LuCircle, LuTrash2, LuUpload } from "react-icons/lu"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,12 +9,13 @@ import { Panel } from "@/components/layout/page-layout"
 import { LinkButton } from "@/components/common/link-button"
 import { StatusDot } from "@/components/common/status-dot"
 import { ApiError } from "@/api/client"
-import { useDuplicateTask, useTask, useTaskYaml, useUpdateTask } from "@/api/tasks"
+import { useDeleteTask, useDuplicateTask, useTask, useTaskYaml, useUpdateTask } from "@/api/tasks"
 import type { Task } from "@/domain/task"
 import { taskInput } from "@/domain/task"
 import { formatDateTime } from "@/lib/format"
 
 import { errorText, isDirty, STATUS } from "../lib"
+import { DeleteTaskDialog } from "./delete-task-dialog"
 import { ImportYamlDialog } from "./import-yaml-dialog"
 import { ErrorNote, LoadingNote } from "@/components/common/query-state"
 import { TaskDefinition } from "./task-definition"
@@ -43,7 +44,9 @@ function TaskEditor({ base }: { base: Task }) {
   const [conflict, setConflict] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const save = useUpdateTask()
+  const del = useDeleteTask()
   const duplicate = useDuplicateTask()
   const yaml = useTaskYaml(base.id)
 
@@ -128,6 +131,19 @@ function TaskEditor({ base }: { base: Task }) {
             <LuCircle className="size-2.5 fill-current" />
             Start capture
           </LinkButton>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Delete task"
+            title="Delete task"
+            className="text-bad hover:text-bad"
+            onClick={() => {
+              del.reset()
+              setDeleting(true)
+            }}
+          >
+            <LuTrash2 />
+          </Button>
         </div>
       </div>
 
@@ -180,6 +196,21 @@ function TaskEditor({ base }: { base: Task }) {
         }
       />
       <ImportYamlDialog open={importing} onOpenChange={setImporting} onImported={(t) => navigate(`/tasks/${t.id}`)} />
+      <DeleteTaskDialog
+        open={deleting}
+        onOpenChange={setDeleting}
+        taskId={base.id}
+        pending={del.isPending}
+        error={del.error}
+        onConfirm={() =>
+          del.mutate(base.id, {
+            onSuccess: () => {
+              setDeleting(false)
+              navigate("/tasks")
+            },
+          })
+        }
+      />
     </Panel>
   )
 }
