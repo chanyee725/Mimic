@@ -16,7 +16,6 @@ from app.utils.time import to_iso
 class Session:
     task: Task
     rig: Rig
-    operator: str
     episode: int
     armed_at: datetime  # Start pressed; recording begins after the countdown
     marks: list[tuple[int, float]] = field(default_factory=list)  # (subtask index, seconds)
@@ -128,7 +127,6 @@ def build_episode(
             "task_id": task.id,
             "rig_id": rig.id,
             "episode": str(s.episode),
-            "operator": s.operator,
             "outcome": outcome,
         },
     )

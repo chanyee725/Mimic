@@ -17,7 +17,7 @@ def fixture_tasks(request):
 @pytest.fixture
 def new_task(client):
     body = copy.deepcopy(client.get(f"/tasks/{TASK}").json())
-    for k in ("collected", "version", "updatedAt", "updatedBy"):
+    for k in ("collected", "version", "updatedAt"):
         body.pop(k)
     body.update(id="fold-towel", name="Fold towel", status="draft")
     return body
@@ -56,15 +56,11 @@ def test_get_task(client):
 
 
 def test_create_task(client, new_task):
-    r = client.post("/tasks", json=new_task, headers={"X-Operator": "OP-02"})
+    r = client.post("/tasks", json=new_task)
     assert r.status_code == 201
     t = r.json()
-    assert (t["version"], t["collected"], t["updatedBy"]) == (1, 0, "OP-02")
+    assert (t["version"], t["collected"]) == (1, 0) and "updatedBy" not in t
     assert client.get("/tasks/fold-towel").status_code == 200
-
-
-def test_create_task_default_operator(client, new_task):
-    assert client.post("/tasks", json=new_task).json()["updatedBy"] == "OP-01"
 
 
 def test_create_task_existing_id(client, new_task):
@@ -91,22 +87,15 @@ def test_create_task_rig_rules(client, new_task, patch, field):
 def test_create_task_schema_errors(client, new_task):
     assert client.post("/tasks", json={**new_task, "id": "Bad Id"}).status_code == 422
     assert client.post("/tasks", json={**new_task, "targetEpisodes": 0}).status_code == 422
-    r = client.post("/tasks", json=new_task, headers={"X-Operator": "alice"})
-    assert r.status_code == 422
 
 
 def test_update_task(client):
     body = client.get(f"/tasks/{TASK}").json()
     body["name"] = "Stack blocks"
-    r = client.put(f"/tasks/{TASK}", json=body, headers={"X-Operator": "OP-03"})
+    r = client.put(f"/tasks/{TASK}", json=body)
     assert r.status_code == 200
     t = r.json()
-    assert (t["name"], t["version"], t["updatedBy"], t["collected"]) == (
-        "Stack blocks",
-        2,
-        "OP-03",
-        0,
-    )
+    assert (t["name"], t["version"], t["collected"]) == ("Stack blocks", 2, 0)
 
 
 def test_update_task_stale_version(client):

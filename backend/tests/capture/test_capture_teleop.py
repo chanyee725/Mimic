@@ -16,7 +16,7 @@ from tests.conftest import add_tasks, connect_devices
 from tests.support import FakeDriver
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
-START = {"taskId": "stack-two-blocks", "operator": "OP-01"}
+START = {"taskId": "stack-two-blocks"}
 
 
 @pytest.fixture(autouse=True)

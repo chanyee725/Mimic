@@ -72,6 +72,6 @@ cd web && nvm use && npm install && npm run dev
 
 ## 데이터 · 개인정보
 
-- 작업자는 가명 ID(`OP-01` 형식)로만 기록합니다. 실명 · 이메일 등 개인정보는 코드 · 데이터 · 커밋에 넣지 않습니다.
+- 작업자(오퍼레이터) 개념은 없습니다. 스테이션 하나는 한 사람이 수집한 데이터입니다. 실명 · 이메일 등 개인정보는 코드 · 데이터 · 커밋에 넣지 않습니다.
 - 녹화 파일(MCAP), 데이터셋, checkpoint 는 `data/` 에만 두고 저장소에 올리지 않습니다. API 키(HF · RunPod · Slack)는 저장소 루트의 `.env` 에만 보관합니다 (`.gitignore` 참고).
 - 환경변수 접두어는 예전 이름을 이어 `VLA_*` 를 그대로 씁니다 (`VLA_CONFIG_DIR`, `VLA_DATA_DIR` 등, `.env.example` 참고).

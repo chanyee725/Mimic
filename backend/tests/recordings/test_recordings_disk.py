@@ -14,7 +14,7 @@ from app.services.recordings import disk
 from app.utils import time
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
-START = {"taskId": "stack-two-blocks", "operator": "OP-01"}
+START = {"taskId": "stack-two-blocks"}
 MAGIC = b"\x89MCAP0\r\n"
 REC_ID = "stack-two-blocks-1"
 
@@ -88,7 +88,6 @@ def test_save_writes_mcap_and_sidecar(client, clock, raw):
         "task_id": "stack-two-blocks",
         "rig_id": "so101-kit",
         "episode": "1",
-        "operator": "OP-01",
         "outcome": "partial",
     }
     assert [t["name"] for t in rec["topics"]] == list(counts)
