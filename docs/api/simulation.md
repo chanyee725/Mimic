@@ -10,7 +10,7 @@ Isaac Sim 5.1.0 runs on the station or on a remote sim server (see **Isaac Sim s
 
 An environment is a **USD stage**: no manifest, no success script, no ready / invalid state. To add one, copy a
 `.usd` / `.usda` / `.usdc` / `.usdz` file (or a folder holding one with its assets) into the environments folder
-(`VLA_SIM_ENVS_DIR` in `.env` or the environment, default `sim/envs`, empty in this repo), then **Rescan**. Web:
+(`VLA_SIM_ENVS_DIR` in `.env` or the environment, default `data/envs` — under the git-ignored data folder), then **Rescan**. Web:
 `api/simulation.ts`; environments are managed on the **Environments** page (rescan, open in Isaac Sim, delete), tasks pick one, and sim evaluation runs as the **Isaac Sim** target of Evaluate (`/evaluate?target=sim`, job page
 `/evaluate/sim/<jobId>`).
 
@@ -20,7 +20,7 @@ job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message"
 ## Environments
 
 ```
-sim/envs/
+data/envs/
   table.usda              a top-level stage file: id "table" (usable with any rig)
   table.png               its thumbnail (same stem)
   kitchen/                a folder: id "kitchen"
@@ -112,7 +112,7 @@ Live: `sim.envs` (`{ envs }` after a rescan or delete), `sim.updated` (status, c
   detached, so it outlives backend reloads and is found again by its port; `POST /sim/runner/stop` stops only the app.
   Its log and the received environments live in `~/.cache/mimic-sim/`.
 - `remote`: the server runs on a sim server (`sim/.venv/bin/python sim/runner/server.py --host 0.0.0.0 --port 8211`) and the
-  backend calls `url`. Opening an environment sends its folder (or its single stage file) as tar.gz, so the server needs no copy of `sim/envs`.
+  backend calls `url`. Opening an environment sends its folder (or its single stage file) as tar.gz, so the server needs no copy of `data/envs`.
 
 `display` (`window` | `headless`) is used when the app starts; starting with the other display restarts the app.
 

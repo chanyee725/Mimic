@@ -2,7 +2,7 @@ import type { IsaacDevice, IsaacDisplay, IsaacMode } from "./settings"
 
 /**
  * An Isaac Sim environment: a USD file the user imported or dropped into the environments directory
- * (`VLA_SIM_ENVS_DIR`, default sim/envs). A folder with a scene USD and its sub-assets also counts.
+ * (`VLA_SIM_ENVS_DIR`, default data/envs). A folder with a scene USD and its sub-assets also counts.
  */
 export type SimEnvFile = { path: string; sizeKB: number }
 
@@ -16,7 +16,7 @@ export type SimEnv = {
   scene: string
   sizeKB: number
   files: SimEnvFile[]
-  /** Rig folder it sits in (sim/envs/<rig-id>/); null = top level, usable with any rig */
+  /** Rig folder it sits in (data/envs/<rig-id>/); null = top level, usable with any rig */
   rigId: string | null
   /** A same-name image is served at /sim/envs/{id}/thumbnail */
   thumbnail: boolean
