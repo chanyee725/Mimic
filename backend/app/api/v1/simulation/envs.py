@@ -1,10 +1,11 @@
-"""Isaac Sim environments: USD stages scanned from the environments folder, deleted."""
+"""Isaac Sim environments: Python scripts scanned from the environments folder, robot tags,
+deleted; the robot USDs they can be tagged with."""
 
 from fastapi import APIRouter, Response
 from fastapi.responses import FileResponse
 
-from app.models.simulation import SimEnv
-from app.schemas.simulation import RescanResult
+from app.models.simulation import SimEnv, SimRobot
+from app.schemas.simulation import RescanResult, SimEnvPatch
 from app.services import simulation as service
 
 router = APIRouter()
@@ -24,6 +25,16 @@ def rescan():
 @router.get("/envs/{env_id}", response_model=SimEnv)
 def get_env(env_id: str):
     return service.get_env(env_id)
+
+
+@router.patch("/envs/{env_id}", response_model=SimEnv)
+def patch_env(env_id: str, body: SimEnvPatch):
+    return service.set_robots(env_id, body.robots)
+
+
+@router.get("/robots", response_model=list[SimRobot])
+def list_robots():
+    return service.list_robots()
 
 
 @router.get("/envs/{env_id}/thumbnail", response_class=FileResponse)

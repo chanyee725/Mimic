@@ -59,7 +59,7 @@ Session = { id: string; taskId: string; episodes: number; accepted: number;
 
 Validation: `rigId` must exist; `cameras` ⊆ rig camera keys; `actionHz` ∈ rig `actionHzOptions`; `videoFps` ∈ rig `videoFpsOptions`;
 `envId`, when set, must be a
-registered environment (`/sim/envs`, a USD stage; else 422 on `envId` "unknown environment") whose `rigId` is null or the task's rig (else 422 "environment '<id>' belongs to rig '<rig>'"); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
+registered environment (`/sim/envs`, an environment script; else 422 on `envId` "unknown environment") whose robot tags fit the task's rig (`rigIds`, [simulation.md](simulation.md); else 422 "environment '<id>' is for <robots>, not rig '<rig>'"); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
 `cameras` and `outcomes` non-empty. Rule failures return `422` with `details.errors = [{ loc: ["body", field, ...], msg }]`.
 
 An Isaac Sim task keeps the rig: its joints, cameras and rates define the data, the real leader arm drives the simulated

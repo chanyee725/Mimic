@@ -3,38 +3,37 @@ import { useState } from "react"
 import { Panel } from "@/components/layout/page-layout"
 import { SearchFilter } from "@/components/common/search-filter"
 import { EnvThumb } from "@/components/robot/env-thumb"
-import { useRigs } from "@/api/rigs"
-import { useSimConfig } from "@/api/simulation"
+import { useSimConfig, useSimRobots } from "@/api/simulation"
 import { useTasks } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
 import { plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-import { ANY_RIG, formatKB, rigLabel, rigOf, type RigFilter } from "../lib"
+import { formatKB, matchesRobot, robotsLabel, UNTAGGED, type RobotFilter } from "../lib"
 
-/** Left-hand list of the environments in the environments folder, filtered by rig */
+/** Left-hand list of the environments in the environments folder, filtered by robot tag */
 export function EnvList({
   envs,
   selected,
   onSelect,
-  rig,
-  onRigChange,
+  robot,
+  onRobotChange,
 }: {
   envs: SimEnv[]
   selected?: string
   onSelect: (id: string) => void
-  rig: RigFilter
-  onRigChange: (rig: RigFilter) => void
+  robot: RobotFilter
+  onRobotChange: (robot: RobotFilter) => void
 }) {
   const [search, setSearch] = useState("")
   const envsDir = useSimConfig().data?.envsDir
   const tasks = useTasks().data ?? []
-  const rigs = useRigs().data ?? []
+  const robots = useSimRobots().data ?? []
   const q = search.trim().toLowerCase()
-  const shown = envs.filter((e) => (rig === "all" || rigOf(e) === rig) && (!q || e.name.toLowerCase().includes(q) || e.id.includes(q)))
-  const count = (r: string) => envs.filter((e) => rigOf(e) === r).length
-  // Rig folders found on disk that no rig file declares still get a tab
-  const rigIds = [...new Set([...rigs.map((r) => r.id), ...envs.flatMap((e) => (e.rigId ? [e.rigId] : []))])]
+  const shown = envs.filter((e) => matchesRobot(e, robot) && (!q || e.name.toLowerCase().includes(q) || e.id.includes(q)))
+  const count = (r: RobotFilter) => envs.filter((e) => matchesRobot(e, r)).length
+  // Tags whose robot USD is gone still get an option
+  const robotIds = [...new Set([...robots.map((r) => r.id), ...envs.flatMap((e) => e.robots)])].sort()
 
   return (
     <Panel
@@ -53,13 +52,13 @@ export function EnvList({
         search={search}
         onSearch={setSearch}
         placeholder="Search environments"
-        filterLabel="Rig"
-        filter={rig}
-        onFilter={onRigChange}
+        filterLabel="Robot"
+        filter={robot}
+        onFilter={onRobotChange}
         options={[
           { value: "all", label: "All", count: envs.length },
-          ...rigIds.map((id) => ({ value: id, label: rigLabel(id, rigs), count: count(id) })),
-          { value: ANY_RIG, label: "Any rig", count: count(ANY_RIG) },
+          ...robotIds.map((id) => ({ value: id, label: id, count: count(id) })),
+          { value: UNTAGGED, label: "Untagged", count: count(UNTAGGED) },
         ]}
       />
       <ul className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
@@ -81,10 +80,10 @@ export function EnvList({
                 <span className="grid min-w-0 flex-1 gap-0.5">
                   <span className={cn("truncate text-[13px]", on ? "font-medium" : "font-normal")}>{e.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    <span className="font-mono">{e.scene}</span>, {formatKB(e.sizeKB)}
+                    <span className="font-mono">{e.script}</span>, {formatKB(e.sizeKB)}
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground/80">
-                    {rigLabel(e.rigId, rigs)}
+                    {robotsLabel(e)}
                     {used > 0 && ` · ${plural(used, "task")}`}
                   </span>
                 </span>

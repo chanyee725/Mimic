@@ -44,7 +44,7 @@ export function TaskWorldSection({ task, onChange }: { task: Task; onChange: (pa
             <SimpleSelect
               id="t-env"
               value={task.envId ?? ""}
-              options={list.map((e) => ({ value: e.id, label: `${e.name} · ${e.scene}` }))}
+              options={list.map((e) => ({ value: e.id, label: `${e.name} · ${e.script}` }))}
               onChange={(envId) => onChange({ envId })}
             />
           </div>

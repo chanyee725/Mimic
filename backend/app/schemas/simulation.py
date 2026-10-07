@@ -12,6 +12,10 @@ class RescanResult(CamelModel):
     envs: list[SimEnv]
 
 
+class SimEnvPatch(CamelModel):
+    robots: list[str]
+
+
 class SimJobCreate(CamelModel):
     model_id: str
     env_id: str
