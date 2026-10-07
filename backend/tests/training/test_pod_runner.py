@@ -66,7 +66,7 @@ def runner(tmp_path):
             "install": False,
             "venv": str(venv),
             "datasetRoot": str(tmp_path / "ds"),
-            "modelRepo": "op-01/smolvla_test_job_001",
+            "modelRepo": "user-a/smolvla_test_job_001",
             "trainArgs": ["--dataset.root={dataset_root}"],
             "capHours": 0,
             "terminateOnFinish": True,

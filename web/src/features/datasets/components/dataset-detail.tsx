@@ -5,7 +5,7 @@ import { SiHuggingface } from "react-icons/si"
 import { Button } from "@/components/ui/button"
 import { LinkButton } from "@/components/common/link-button"
 import { EmptyState } from "@/components/common/empty-state"
-import { HfBadge } from "@/components/common/hf-badge"
+import { HfBadge, PUSHED_BUTTON } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { ProgressBar } from "@/components/common/progress-bar"
 import { StatStrip } from "@/components/common/stat-strip"
@@ -16,6 +16,7 @@ import { useTasks } from "@/api/tasks"
 import { WorldMarks } from "@/components/robot/world-mark"
 import { MIXED_TASK, datasetWorlds, type Dataset } from "@/domain/dataset"
 import { formatDateTime, formatLength, formatSize, plural } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 import { datasetStatus } from "../lib"
 import { DatasetThumb } from "./dataset-thumb"
@@ -87,10 +88,11 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
             <Button
               variant="outline"
               size="sm"
+              className={cn(dataset.hub.pushed && PUSHED_BUTTON)}
               disabled={pushing || dataset.status !== "ready" || dataset.hub.pushed}
               onClick={() => push.mutate({ repoId: dataset.repoId, private: dataset.hub.private })}
             >
-              {dataset.hub.pushed ? <SiHuggingface /> : <LuCloudUpload />}
+              {dataset.hub.pushed ? <SiHuggingface className="text-[#FFD21E]" /> : <LuCloudUpload />}
               {dataset.hub.pushed ? "Pushed" : pushing ? "Pushing…" : "Push to HF Hub"}
             </Button>
             {dataset.kind === "lerobot" ? (

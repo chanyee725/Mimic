@@ -507,46 +507,46 @@ def upload(client, fake_hub, local: str, remote: str):
 
 
 def test_pull(client, recs, fake_hub, events):
-    upload(client, fake_hub, "local/stack", "op-01/stack")
-    r = client.post("/datasets/pull", json={"repoId": "op-01/stack"})
+    upload(client, fake_hub, "local/stack", "user-a/stack")
+    r = client.post("/datasets/pull", json={"repoId": "user-a/stack"})
     assert r.status_code == 202, r.text
     body = r.json()
     assert body["status"] == "converting" and body["progress"] == 0
-    assert body["hub"]["pulled"] is True and body["hub"]["repo"] == "op-01/stack"
+    assert body["hub"]["pulled"] is True and body["hub"]["repo"] == "user-a/stack"
     assert body["episodeCount"] == 3 and body["fps"] == 30
-    ds = service.wait("op-01/stack")
+    ds = service.wait("user-a/stack")
     assert ds.status == "ready" and ds.task_id == TASK  # from the uploaded station.yaml
-    assert info("op-01/stack")["total_episodes"] == 3
-    assert not (service.folder("op-01/stack") / ".cache").exists()
-    assert client.get("/datasets/op-01/stack/episodes").json()["items"][0]["frames"] > 0
+    assert info("user-a/stack")["total_episodes"] == 3
+    assert not (service.folder("user-a/stack") / ".cache").exists()
+    assert client.get("/datasets/user-a/stack/episodes").json()["items"][0]["frames"] > 0
     assert any(e["type"] == "dataset.updated" and e["data"]["status"] == "ready" for e in events())
     service.reset()
-    assert client.get("/datasets/op-01/stack").json()["hub"]["pulled"] is True
-    r = client.post("/datasets/pull", json={"repoId": "op-01/stack"})
+    assert client.get("/datasets/user-a/stack").json()["hub"]["pulled"] is True
+    r = client.post("/datasets/pull", json={"repoId": "user-a/stack"})
     assert r.status_code == 409
 
 
 def test_pull_without_station_yaml(client, recs, fake_hub):
-    upload(client, fake_hub, "local/stack", "op-01/plain")
-    (fake_hub / "op-01/plain/station.yaml").unlink()
-    client.post("/datasets/pull", json={"repoId": "op-01/plain"})
-    ds = service.wait("op-01/plain")
+    upload(client, fake_hub, "local/stack", "user-a/plain")
+    (fake_hub / "user-a/plain/station.yaml").unlink()
+    client.post("/datasets/pull", json={"repoId": "user-a/plain"})
+    ds = service.wait("user-a/plain")
     assert ds.status == "ready" and ds.task_id == "unknown" and ds.rig_id == "so101-kit"
 
 
 def test_pull_errors(client, recs, fake_hub):
     r = client.post("/datasets/pull", json={"repoId": "nope"})
     assert r.status_code == 422
-    r = client.post("/datasets/pull", json={"repoId": "op-01/missing"})
+    r = client.post("/datasets/pull", json={"repoId": "user-a/missing"})
     assert r.status_code == 404 and "not found on the Hub" in r.json()["error"]["message"]
-    (fake_hub / "op-01/empty").mkdir(parents=True)
-    (fake_hub / "op-01/empty/README.md").write_text("hi")
-    r = client.post("/datasets/pull", json={"repoId": "op-01/empty"})
+    (fake_hub / "user-a/empty").mkdir(parents=True)
+    (fake_hub / "user-a/empty/README.md").write_text("hi")
+    r = client.post("/datasets/pull", json={"repoId": "user-a/empty"})
     assert r.status_code == 422 and "meta/info.json" in r.json()["error"]["message"]
-    upload(client, fake_hub, "local/stack", "op-01/old")
-    path = fake_hub / "op-01/old/meta/info.json"
+    upload(client, fake_hub, "local/stack", "user-a/old")
+    path = fake_hub / "user-a/old/meta/info.json"
     path.write_text(json.dumps({**json.loads(path.read_text()), "codebase_version": "v2.1"}))
-    r = client.post("/datasets/pull", json={"repoId": "op-01/old"})
+    r = client.post("/datasets/pull", json={"repoId": "user-a/old"})
     assert r.status_code == 422 and "v2.1" in r.json()["error"]["message"]
     assert client.get("/datasets").json() == []
 
@@ -558,7 +558,7 @@ def test_push_namespace_must_be_writable(client, recs, monkeypatch):
     convert(client, "local/stack")
     monkeypatch.setattr(hub, "_token", lambda: "hf_test")
     monkeypatch.setattr(hub, "upload_folder", lambda *a: None)
-    monkeypatch.setattr(hub, "whoami", lambda token: ("op-01", ["team-a"]))
+    monkeypatch.setattr(hub, "whoami", lambda token: ("user-a", ["team-a"]))
     settings.patch_section(
         "integrations", {"version": settings.get_settings().version, "hf": {"namespace": "vla-lab"}}
     )
@@ -578,8 +578,8 @@ def test_push_empty_namespace_uses_the_token_user(client, recs, monkeypatch):
     convert(client, "local/stack")
     monkeypatch.setattr(hub, "_token", lambda: "hf_test")
     monkeypatch.setattr(hub, "upload_folder", lambda *a: None)
-    monkeypatch.setattr(hub, "whoami", lambda token: ("op-01", []))
-    assert service.upload("local/stack") == "op-01/local-stack"
+    monkeypatch.setattr(hub, "whoami", lambda token: ("user-a", []))
+    assert service.upload("local/stack") == "user-a/local-stack"
 
 
 def test_push_shows_why_the_hub_refused(client, recs, monkeypatch):

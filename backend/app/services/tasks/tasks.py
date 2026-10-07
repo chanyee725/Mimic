@@ -129,14 +129,14 @@ def _store(task: Task, event: str) -> Task:
 # --- writes -----------------------------------------------------------------
 
 
-def create_task(body: TaskInput, operator: str) -> Task:
+def create_task(body: TaskInput) -> Task:
     _check(body)
     _ensure_new(body.id)
-    task = Task(**body.model_dump(), version=1, updated_at=now_iso(), updated_by=operator)
+    task = Task(**body.model_dump(), version=1, updated_at=now_iso())
     return _store(task, "task.created")
 
 
-def update_task(task_id: str, body: TaskUpdate, operator: str) -> Task:
+def update_task(task_id: str, body: TaskUpdate) -> Task:
     cur = require_task(task_id)
     if body.id is not None and body.id != task_id:
         raise ApiError(422, "Task id is immutable", {"errors": [{"loc": ["body", "id"]}]})
@@ -152,13 +152,12 @@ def update_task(task_id: str, body: TaskUpdate, operator: str) -> Task:
             **body.model_dump(exclude={"id", "version"}),
             "version": cur.version + 1,
             "updated_at": now_iso(),
-            "updated_by": operator,
         }
     )
     return _store(task, "task.updated")
 
 
-def duplicate_task(task_id: str, body: TaskDuplicate, operator: str) -> Task:
+def duplicate_task(task_id: str, body: TaskDuplicate) -> Task:
     src = require_task(task_id)
     _ensure_new(body.id)
     task = src.model_copy(
@@ -169,7 +168,6 @@ def duplicate_task(task_id: str, body: TaskDuplicate, operator: str) -> Task:
             "collected": 0,
             "version": 1,
             "updated_at": now_iso(),
-            "updated_by": operator,
         }
     )
     return _store(task, "task.created")
@@ -189,13 +187,13 @@ def task_yaml(task_id: str) -> str:
     return yaml_io.dump(require_task(task_id))
 
 
-def import_task(text: str, operator: str) -> Task:
+def import_task(text: str) -> Task:
     body, lines = yaml_io.parse(text)
     found = problems(body)
     if found:
         raise ApiError(422, "Task YAML is invalid", {"errors": yaml_io.errors_at(lines, found)})
     _ensure_new(body.id)
-    task = Task(**body.model_dump(), version=1, updated_at=now_iso(), updated_by=operator)
+    task = Task(**body.model_dump(), version=1, updated_at=now_iso())
     return _store(task, "task.created")
 
 

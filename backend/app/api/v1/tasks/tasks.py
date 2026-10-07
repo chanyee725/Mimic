@@ -1,17 +1,13 @@
 """Task definitions: CRUD, YAML import / export, duplicate."""
 
-from typing import Annotated
-
-from fastapi import APIRouter, Header, Request, Response
+from fastapi import APIRouter, Request, Response
 
 from app.models.tasks import Task, TaskStatus
-from app.schemas.tasks import OPERATOR_ID, TaskDuplicate, TaskInput, TaskUpdate
+from app.schemas.tasks import TaskDuplicate, TaskInput, TaskUpdate
 from app.services import tasks as service
 
 router = APIRouter()
 
-# Pseudonymous operator making the change
-Operator = Annotated[str, Header(alias="X-Operator", pattern=OPERATOR_ID)]
 YAML = "text/yaml"
 
 
@@ -21,8 +17,8 @@ def list_tasks(status: TaskStatus | None = None):
 
 
 @router.post("/tasks", response_model=Task, status_code=201)
-def create_task(body: TaskInput, x_operator: Operator = "OP-01"):
-    return service.create_task(body, x_operator)
+def create_task(body: TaskInput):
+    return service.create_task(body)
 
 
 @router.post(
@@ -33,9 +29,9 @@ def create_task(body: TaskInput, x_operator: Operator = "OP-01"):
         "requestBody": {"required": True, "content": {YAML: {"schema": {"type": "string"}}}}
     },
 )
-async def import_task(request: Request, x_operator: Operator = "OP-01"):
+async def import_task(request: Request):
     text = (await request.body()).decode("utf-8", errors="replace")
-    return service.import_task(text, x_operator)
+    return service.import_task(text)
 
 
 @router.get("/tasks/{task_id}", response_model=Task)
@@ -44,13 +40,13 @@ def get_task(task_id: str):
 
 
 @router.put("/tasks/{task_id}", response_model=Task)
-def update_task(task_id: str, body: TaskUpdate, x_operator: Operator = "OP-01"):
-    return service.update_task(task_id, body, x_operator)
+def update_task(task_id: str, body: TaskUpdate):
+    return service.update_task(task_id, body)
 
 
 @router.post("/tasks/{task_id}/duplicate", response_model=Task, status_code=201)
-def duplicate_task(task_id: str, body: TaskDuplicate, x_operator: Operator = "OP-01"):
-    return service.duplicate_task(task_id, body, x_operator)
+def duplicate_task(task_id: str, body: TaskDuplicate):
+    return service.duplicate_task(task_id, body)
 
 
 @router.delete("/tasks/{task_id}", status_code=204)

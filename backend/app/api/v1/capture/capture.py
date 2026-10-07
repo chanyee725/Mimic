@@ -17,7 +17,7 @@ def get_state():
 
 @router.post("/start", response_model=CaptureState)
 def start(body: StartBody):
-    return service.start(body.task_id, body.operator)
+    return service.start(body.task_id)
 
 
 @router.post("/subtask", response_model=CaptureState)

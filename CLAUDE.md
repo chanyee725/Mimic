@@ -21,7 +21,7 @@ Guidance for working in this repository.
 
 ## Privacy
 
-- Operators are pseudonymous IDs (`OP-01`). Never put real names, emails or account handles in code, mock data, commits or docs.
+- There are no operators or user accounts: a station is one person's own collection (no `OP-01` ids, no "updated by"). Never put real names, emails or account handles in code, mock data, commits or docs.
 - API keys and tokens show only their last 4 characters in the UI and are stored only in the repo-root `.env` on the backend (git-ignored) — never in browser storage, YAML files or commits.
 
 ## Git

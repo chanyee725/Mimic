@@ -10,7 +10,6 @@ CapturePhase = "idle" | "countdown" | "recording" | "review"
 CaptureState = {
   phase: CapturePhase
   taskId: string | null          // when idle: the task of the last saved / discarded episode
-  operator: string | null        // pseudonymous ID matching ^OP-\d{2,}$
   episodeId: string | null       // recording being written, "<taskId>-<episode>"
   startedAt: string | null       // when recording begins (after the countdown)
   elapsedS: number               // 0 during the countdown, frozen in review
@@ -24,7 +23,7 @@ CaptureState = {
 | Method | Path | Body | Returns | UI |
 | --- | --- | --- | --- | --- |
 | GET | `/capture/state` | | `CaptureState` | Capture load |
-| POST | `/capture/start` | `{ taskId, operator }` | `CaptureState` (countdown → recording); 404 unknown task; 409 if not idle; 503 `Isaac Sim teleoperation is not connected yet` for an Isaac Sim task (`envId` set, [tasks.md](tasks.md)); 503 if a rig device is off (`details.devices` = their ids); starts the rig's teleoperation when it is not running (its 409 / 503 apply, see [rigs.md](rigs.md)) | Space |
+| POST | `/capture/start` | `{ taskId }` | `CaptureState` (countdown → recording); 404 unknown task; 409 if not idle; 503 `Isaac Sim teleoperation is not connected yet` for an Isaac Sim task (`envId` set, [tasks.md](tasks.md)); 503 if a rig device is off (`details.devices` = their ids); starts the rig's teleoperation when it is not running (its 409 / 503 apply, see [rigs.md](rigs.md)) | Space |
 | POST | `/capture/subtask` | `{ index }` | `CaptureState` (writes a `/labels/subtask` event at the current time); 409 unless recording; 422 index out of range | 1–4 |
 | POST | `/capture/stop` | | `CaptureState` (phase review); 409 unless recording | Space |
 | POST | `/capture/save` | `{ outcome: Outcome }` | `201 Recording` (review "pending"); phase idle; 409 unless recording / review | → / F / P |

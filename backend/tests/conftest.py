@@ -112,7 +112,7 @@ def record_episode(client, task_id: str = "stack-two-blocks", outcome: str = "su
     """Records and saves one episode through the capture API (devices must be connected)."""
     from app.services.capture import session
 
-    r = client.post("/capture/start", json={"taskId": task_id, "operator": "OP-01"})
+    r = client.post("/capture/start", json={"taskId": task_id})
     assert r.status_code == 200, r.text
     # Jump past the countdown, into the recording
     t = session._session.recording_at + timedelta(seconds=2)

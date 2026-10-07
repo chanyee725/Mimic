@@ -5,8 +5,6 @@ from pydantic import Field
 from app.models.tasks import SLUG, TaskFields
 from app.schemas.common import CamelModel
 
-OPERATOR_ID = r"^OP-\d{2}$"
-
 
 class TaskInput(TaskFields):
     id: str = Field(pattern=SLUG)

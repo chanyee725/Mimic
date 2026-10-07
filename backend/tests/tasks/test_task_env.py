@@ -25,7 +25,7 @@ def envs(tmp_path, monkeypatch):
 @pytest.fixture
 def sim_task(client):
     body = copy.deepcopy(client.get(f"/tasks/{TASK}").json())
-    for k in ("collected", "version", "updatedAt", "updatedBy"):
+    for k in ("collected", "version", "updatedAt"):
         body.pop(k)
     return body | {"id": "sim-stack", "name": "Sim stack", "envId": "table"}
 
@@ -65,7 +65,7 @@ def test_rig_folder_env_must_match_the_task_rig(client, sim_task, envs):
 
 def test_capture_refuses_isaac_sim_tasks(client, sim_task):
     client.post("/tasks", json=sim_task)
-    r = client.post("/capture/start", json={"taskId": "sim-stack", "operator": "OP-01"})
+    r = client.post("/capture/start", json={"taskId": "sim-stack"})
     assert r.status_code == 503 and "not connected" in r.json()["error"]["message"]
 
 

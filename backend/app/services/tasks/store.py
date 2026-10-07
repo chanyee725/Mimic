@@ -28,7 +28,6 @@ def dumps(task: Task) -> str:
         "meta": {
             "version": task.version,
             "updated_at": task.updated_at,
-            "updated_by": task.updated_by,
         }
     }
     return yaml_io.dump(task) + storage.dumps(meta)
@@ -61,7 +60,6 @@ def loads(text: str) -> Task:
         **body.model_dump(),
         version=meta.get("version", 1),
         updated_at=_when(meta.get("updated_at", "1970-01-01T00:00:00+00:00")),
-        updated_by=meta.get("updated_by", "OP-01"),
     )
 
 
