@@ -1,10 +1,13 @@
+import io
 import socket
 import sys
+import tarfile
 import time
 from pathlib import Path
 
 import pytest
 
+from app.configs.config import config
 from app.services import settings
 from app.services.simulation import runner
 
@@ -86,6 +89,16 @@ def test_settings_test_reports_the_server(client):
     assert r["state"] == "ok" and r["latencyMs"] is not None
     assert settings.get_settings().connection.isaac.state == "ok"
     client.post("/sim/runner/stop")
+
+
+def test_archive_carries_the_shared_robot_folder(envs_dir):
+    robot = config.sim_robot_dir
+    robot.mkdir()
+    (robot / "arm.usd").write_text("#usda 1.0\n")
+    archive = runner._archive(envs_dir / "drawer")
+    names = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz").getnames()
+    assert "robot/arm.usd" in names
+    assert all(n.startswith(("envs/drawer/", "robot/")) for n in names)
 
 
 def test_unknown_env_is_not_opened(client):

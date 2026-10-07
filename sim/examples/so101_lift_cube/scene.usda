@@ -2,7 +2,8 @@
 (
     defaultPrim = "World"
     doc = """SO-101 follower on a table with a cube to lift (LeIsaac lift_cube layout).
-Assets come from LeIsaac releases (Apache-2.0); scripts/fetch-sim-example.sh puts them next to this file."""
+Assets come from LeIsaac releases (Apache-2.0); scripts/fetch-sim-example.sh puts the table next to
+this file (data/sims/envs/so101-kit/so101_lift_cube/) and the robot in data/sims/robot/."""
     metersPerUnit = 1
     upAxis = "Z"
 )
@@ -37,7 +38,7 @@ def Xform "World"
 
     # Facing the cube: LeIsaac LiftCubeEnvCfg init_state pos (0.35, -0.64, 0.01), 180° about Z
     def Xform "Robot" (
-        prepend references = @./robot/so101_follower.usd@
+        prepend references = @../../../robot/so101_follower.usd@
     )
     {
         double3 xformOp:translate = (0.35, -0.64, 0.01)

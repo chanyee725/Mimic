@@ -56,7 +56,7 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 - Migration: an old `data/settings.yaml` is split into the part files when `config/settings/` does not exist yet, then deleted.
   An old `data/secrets.yaml` is copied into `.env` (keys not already set) and deleted. The dropped `station.yaml`,
   `training.yaml` and `storage.yaml` part files are deleted, and stale secret entries in part files are removed on load.
-- The simulation environments folder comes from `VLA_SIM_ENVS_DIR` (default `data/envs`), not from settings.
+- The simulation environments folder is `envs/` under `VLA_SIM_DIR` (default `data/sims`), not from settings.
 - Disk, shortcuts and versions are not stored.
 
 ## Endpoints

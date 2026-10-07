@@ -3,15 +3,17 @@
 # Assets: LeIsaac releases (LightwheelAI, Apache-2.0) — robot USD + table-with-cube scene;
 # the stage that places them is sim/examples/so101_lift_cube/scene.usda.
 #
-#   scripts/fetch-sim-example.sh            into data/envs/so101-kit/so101_lift_cube
+#   scripts/fetch-sim-example.sh            into data/sims/envs/so101-kit/so101_lift_cube
+#                                           (robot: data/sims/robot/so101_follower.usd)
 #   scripts/fetch-sim-example.sh --force    replace an existing copy
-#   VLA_SIM_ENVS_DIR=/path scripts/...      another environments folder
+#   VLA_SIM_DIR=/path scripts/...           another sim folder
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENVS="${VLA_SIM_ENVS_DIR:-${VLA_DATA_DIR:-data}/envs}"
-case "$ENVS" in /*) ;; *) ENVS="$ROOT/$ENVS" ;; esac
-DEST="$ENVS/so101-kit/so101_lift_cube"
+SIMS="${VLA_SIM_DIR:-${VLA_DATA_DIR:-data}/sims}"
+case "$SIMS" in /*) ;; *) SIMS="$ROOT/$SIMS" ;; esac
+DEST="$SIMS/envs/so101-kit/so101_lift_cube"
+ROBOT="$SIMS/robot/so101_follower.usd"
 EXAMPLE="$ROOT/sim/examples/so101_lift_cube"
 BASE="https://github.com/LightwheelAI/leisaac/releases/download"
 ROBOT_URL="$BASE/v0.1.0/so101_follower.usd"
@@ -47,13 +49,14 @@ fetch "$ROBOT_URL" "$ROBOT_SHA" "$TMP/so101_follower.usd"
 fetch "$SCENE_URL" "$SCENE_SHA" "$TMP/table_with_cube.zip"
 
 STAGE="$TMP/so101_lift_cube"
-mkdir -p "$STAGE/robot"
+mkdir -p "$STAGE"
 python3 -I -m zipfile -e "$TMP/table_with_cube.zip" "$STAGE"
-mv "$TMP/so101_follower.usd" "$STAGE/robot/"
 cp "$EXAMPLE/scene.usda" "$EXAMPLE/README.md" "$STAGE/"
 cp "$STAGE/table_with_cube/.thumbs/256x256/scene.usd.png" "$STAGE/thumbnail.png"
 
 mkdir -p "$(dirname "$DEST")"
 rm -rf "$DEST"
 mv "$STAGE" "$DEST"
+mkdir -p "$(dirname "$ROBOT")"
+mv "$TMP/so101_follower.usd" "$ROBOT"
 echo "ready: $DEST — Rescan on the Environments page"

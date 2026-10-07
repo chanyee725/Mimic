@@ -1,8 +1,8 @@
 """Isaac Sim server: started here on 127.0.0.1 (local) or a sim server reached by URL (remote).
 
 The server (sim/runner/server.py) fronts one Isaac Sim app process that runs with a window or
-headless. Opening an environment sends its folder as tar.gz, so a remote server needs no copy of
-data/envs. A local server is detached: it outlives backend reloads and is found again by port.
+headless. Opening an environment sends its folder and the shared robot/ folder as tar.gz, so a
+remote server needs no copy of data/sims. A local server is detached: it outlives backend reloads and is found again by port.
 """
 
 import io
@@ -16,7 +16,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from app.configs.config import REPO_ROOT
+from app.configs.config import REPO_ROOT, config
 from app.core.errors import ApiError
 from app.models.settings import IsaacSettings
 from app.models.simulation import SimRunner, SimRunnerApp
@@ -148,15 +148,20 @@ def stop() -> SimRunner:
     return status()
 
 
+def _files(path: Path) -> list[Path]:
+    if path.is_file():
+        return [path]
+    return [p for p in sorted(path.rglob("*")) if p.is_file() and "__pycache__" not in p.parts]
+
+
 def _archive(path: Path) -> bytes:
-    """The folder's files (or the single stage file) as tar.gz."""
+    """The environment (folder or single stage file) and the shared robot/ folder as tar.gz,
+    laid out as under the sim folder (envs/…, robot/…) so relative references still resolve."""
+    root = config.sim_dir
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-        if path.is_file():
-            tar.add(path, arcname=path.name)
-        for p in sorted(path.rglob("*")) if path.is_dir() else []:
-            if p.is_file() and "__pycache__" not in p.parts:
-                tar.add(p, arcname=str(p.relative_to(path)))
+        for p in _files(path) + _files(config.sim_robot_dir):
+            tar.add(p, arcname=str(p.relative_to(root)))
     if buf.tell() > MAX_ENV_BYTES:
         raise ApiError(422, f"Environment folder is larger than {MAX_ENV_BYTES >> 20} MB")
     return buf.getvalue()
@@ -165,11 +170,18 @@ def _archive(path: Path) -> bytes:
 def open_env(env_id: str, display: str | None = None) -> SimRunner:
     """Sends the environment to the server, which opens its stage (starting the app if needed)."""
     env = get_env(env_id)
-    body = _archive(Path(env.path))
+    path = Path(env.path)
+    body = _archive(path)
     _ensure_server()
     s = _settings()
+    scene = path.relative_to(config.sim_dir) / (env.scene if path.is_dir() else "")
     query = urllib.parse.urlencode(
-        {"env": env_id, "scene": env.scene, "display": display or s.display, "device": s.device}
+        {
+            "env": env_id,
+            "scene": scene.as_posix(),
+            "display": display or s.display,
+            "device": s.device,
+        }
     )
     _request(f"/scene?{query}", body, "application/gzip")
     return status()

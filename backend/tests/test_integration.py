@@ -14,26 +14,29 @@ def test_capture_save_counts_toward_task(client, task, record):
 
 
 def test_sim_envs_dir_comes_from_config(client, tmp_path, monkeypatch):
-    # VLA_SIM_ENVS_DIR is the only source; a rescan picks up the new stage
-    monkeypatch.setattr(config, "sim_envs_dir", tmp_path)
-    (tmp_path / "solo.usd").write_text("#usda 1.0\n")
+    # VLA_SIM_DIR is the only source; a rescan picks up the new stage under envs/
+    monkeypatch.setattr(config, "sim_dir", tmp_path)
+    (tmp_path / "envs").mkdir()
+    (tmp_path / "envs" / "solo.usd").write_text("#usda 1.0\n")
     assert client.post("/sim/envs/rescan").status_code == 200
-    assert client.get("/sim/config").json()["envsDir"] == str(tmp_path)
+    assert client.get("/sim/config").json()["envsDir"] == str(tmp_path / "envs")
     assert [e["id"] for e in client.get("/sim/envs").json()] == ["solo"]
 
 
-def test_sim_envs_dir_defaults_under_data(monkeypatch):
-    monkeypatch.delenv("VLA_SIM_ENVS_DIR", raising=False)
+def test_sim_dir_defaults_under_data(monkeypatch):
+    monkeypatch.delenv("VLA_SIM_DIR", raising=False)
     monkeypatch.setenv("VLA_DATA_DIR", "station/data")
-    assert Config(_env_file=None).sim_envs_dir == REPO_ROOT / "station" / "data" / "envs"
+    c = Config(_env_file=None)
+    assert c.sim_envs_dir == REPO_ROOT / "station" / "data" / "sims" / "envs"
+    assert c.sim_robot_dir == REPO_ROOT / "station" / "data" / "sims" / "robot"
 
 
 def test_config_paths_start_at_repo_root(monkeypatch):
-    monkeypatch.setenv("VLA_SIM_ENVS_DIR", "sim/envs")
+    monkeypatch.setenv("VLA_SIM_DIR", "station/sims")
     monkeypatch.setenv("VLA_DATA_DIR", "~/vla-data")
     monkeypatch.setenv("VLA_CONFIG_DIR", "station/config")
     c = Config()
-    assert c.sim_envs_dir == REPO_ROOT / "sim" / "envs"
+    assert c.sim_envs_dir == REPO_ROOT / "station" / "sims" / "envs"
     assert c.data_dir == Path("~/vla-data").expanduser()
     assert c.config_dir == REPO_ROOT / "station" / "config"
     assert c.calibration_dir == c.config_dir / "calibration"

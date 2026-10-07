@@ -15,7 +15,7 @@ def envs_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Copy of the fixture environments; state reset before and after each test."""
     d = tmp_path / "envs"
     shutil.copytree(FIXTURE_ENVS, d)
-    monkeypatch.setattr(config, "sim_envs_dir", d)
+    monkeypatch.setattr(config, "sim_dir", tmp_path)
     service.reset()
     yield d
     monkeypatch.undo()
