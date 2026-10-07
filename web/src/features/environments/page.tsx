@@ -16,7 +16,7 @@ export function EnvironmentsPage() {
     <Page
       fit
       title="Environments"
-      description="환경 폴더에 넣어 둔 USD 파일 목록입니다. Task 와 Evaluate 에서 고릅니다."
+      description="환경 폴더에 넣어 둔 환경 스크립트 목록입니다. Task 와 Evaluate 에서 고릅니다."
       actions={
         <Button variant="outline" size="sm" disabled={rescan.isPending} onClick={() => rescan.mutate()}>
           <LuRefreshCw className={cn(rescan.isPending && "animate-spin")} />

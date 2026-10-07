@@ -1,14 +1,15 @@
-"""Isaac Sim app started by server.py: opens scenes on request (evaluation comes later).
+"""Isaac Sim app started by server.py: builds environments on request (evaluation comes later).
 
 Runs with the Python that has isaacsim installed (sim/.venv). Commands arrive on a small
 HTTP port that only server.py talks to; USD work runs on the main loop between app updates.
 
-  GET  /state              {"scene": path | null, "error": str | null}
-  POST /open {"path"}      open a stage
+  GET  /state                 {"scene": path | null, "error": str | null}
+  POST /open {"path", "root", "robot"}  build a new stage from the environment script at path;
+                              root is the sim folder it came from (robot/ is looked up there),
+                              robot the one scene.robot() places (scene.py)
 
 --device gpu (default) simulates on GPU 0: PhysX GPU dynamics and broadphase are turned on in
-every PhysicsScene of an opened stage (one is added when the stage has none), in the session
-layer so the environment's files stay untouched; --device cpu keeps PhysX on the CPU.
+every PhysicsScene of a built stage, in the session layer; --device cpu keeps PhysX on the CPU.
 Rendering is always on the NVIDIA GPU. A window app also enables the physics UI extensions
 (Physics Inspector for moving joints, physics menus and properties).
 """
@@ -16,8 +17,11 @@ Rendering is always on the NVIDIA GPU. A window app also enables the physics UI 
 import argparse
 import json
 import queue
+import sys
 import threading
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 p = argparse.ArgumentParser()
 p.add_argument("--port", type=int, required=True)
@@ -46,6 +50,9 @@ import carb  # noqa: E402
 import omni.usd  # noqa: E402
 from pxr import PhysxSchema, Usd, UsdPhysics  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scene as env_scene  # noqa: E402
+
 carb.settings.get_settings().set_int("/physics/cudaDevice", 0 if GPU else -1)
 
 state = {"scene": None, "error": None}
@@ -71,7 +78,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != "/open":
             return self._send(404, {})
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
-        commands.put(("open", body.get("path")))
+        commands.put(("open", body.get("path"), body.get("root"), body.get("robot") or None))
         self._send(202, dict(state))
 
 
@@ -80,10 +87,7 @@ def use_physics_device(stage) -> None:
     prev = stage.GetEditTarget()
     stage.SetEditTarget(Usd.EditTarget(stage.GetSessionLayer()))
     try:
-        scenes = [p for p in stage.Traverse() if p.IsA(UsdPhysics.Scene)]
-        if not scenes:
-            scenes = [UsdPhysics.Scene.Define(stage, "/physicsScene").GetPrim()]
-        for prim in scenes:
+        for prim in [p for p in stage.Traverse() if p.IsA(UsdPhysics.Scene)]:
             api = PhysxSchema.PhysxSceneAPI.Apply(prim)
             api.CreateEnableGPUDynamicsAttr().Set(GPU)
             api.CreateBroadphaseTypeAttr().Set("GPU" if GPU else "MBP")
@@ -98,12 +102,17 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 while app.is_running():
     app.update()
     while not commands.empty():
-        kind, path = commands.get()
+        kind, path, root, robot = commands.get()
         if kind == "open":
-            ok = omni.usd.get_context().open_stage(path)
-            if ok:
-                use_physics_device(omni.usd.get_context().get_stage())
-            state.update(scene=path if ok else None, error=None if ok else f"Could not open {path}")
+            context = omni.usd.get_context()
+            try:
+                context.new_stage()
+                env_scene.build(context.get_stage(), Path(path), Path(root), robot)
+                use_physics_device(context.get_stage())
+                state.update(scene=path, error=None)
+            except Exception as e:  # the user's script: report it, keep the app up
+                traceback.print_exc()
+                state.update(scene=None, error=f"Could not build {Path(path).name}: {e}")
 
 server.shutdown()
 app.close()

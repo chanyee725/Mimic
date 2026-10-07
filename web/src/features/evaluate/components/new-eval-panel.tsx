@@ -113,7 +113,7 @@ function NewEvalForm({ data, initialEnvId, initialModelId }: { data: FormData; i
           </div>
           {envs.length === 0 ? (
             <EmptyState className="px-4">
-              {data.envs.length === 0 ? "환경 폴더에 USD 파일이 없습니다." : "이 모델의 Rig 에서 쓸 수 있는 환경이 없습니다."}
+              {data.envs.length === 0 ? "환경 폴더에 환경 스크립트가 없습니다." : "이 모델의 Rig 에서 쓸 수 있는 환경이 없습니다."}
             </EmptyState>
           ) : (
             <EnvPicker envs={envs} value={selected?.id} onChange={setEnvId} />

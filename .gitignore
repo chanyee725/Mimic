@@ -14,9 +14,11 @@ credentials*.json
 *.mcap
 *.bag
 *.db3
-# data/: what the web produces (tasks, recordings, datasets, models) — station data, never committed.
+# data/: station data (tasks, recordings, datasets, models) — never committed, except data/sims/
+# (Isaac Sim environment scripts, robot tags and robot USDs), which is shared through git.
 # Station setup (rigs, settings, calibration) lives in config/ and is committed.
-/data/
+/data/*
+!/data/sims/
 /raw/
 /datasets/
 /outputs/
@@ -88,5 +90,3 @@ Thumbs.db
 *.log
 logs/
 
-# Example environment downloaded by scripts/fetch-sim-example.sh
-sim/envs/so101-kit/so101_lift_cube/

@@ -5,6 +5,7 @@ import yaml
 from app.configs.config import config
 from app.services import tasks
 from tests.conftest import FIXTURES, add_tasks
+from tests.support import write_sim_robots
 
 
 def test_list_envs(client, envs_dir: Path):
@@ -12,30 +13,57 @@ def test_list_envs(client, envs_dir: Path):
     assert [e["id"] for e in envs] == ["arm-table", "drawer", "kitchen", "table"]
     drawer = envs[1]
     assert drawer["path"] == str((envs_dir / "drawer").resolve())
-    assert drawer["scene"] == "scene.usda"
+    assert drawer["script"] == "env.py"
     assert [f["path"] for f in drawer["files"]] == [
         "assets/handle.usda",
-        "scene.usda",
+        "env.py",
         "thumbnail.png",
     ]
-    assert drawer["rigId"] is None and drawer["thumbnail"]
+    assert drawer["robots"] == [] and drawer["thumbnail"]
+    assert drawer["rigIds"] == ["so101-bimanual-kit", "so101-kit"]  # untagged: any rig
     assert set(drawer) == {
         "id",
         "name",
         "path",
-        "scene",
+        "script",
         "sizeKB",
         "files",
         "registeredAt",
         "updatedAt",
-        "rigId",
+        "robots",
+        "rigIds",
         "thumbnail",
     }
-    # Under a rig folder: only for that rig, thumbnail beside the stage
+    # A top-level script with its thumbnail beside it
     arm = envs[0]
-    assert arm["rigId"] == "so101-kit" and arm["scene"] == "arm-table.usda" and arm["thumbnail"]
-    assert arm["path"] == str((envs_dir / "so101-kit" / "arm-table.usda").resolve())
+    assert arm["script"] == "arm-table.py" and arm["thumbnail"]
+    assert arm["path"] == str((envs_dir / "arm-table.py").resolve())
     assert not envs[3]["thumbnail"]
+
+
+def test_robot_tags(client, tmp_path: Path):
+    assert client.get("/sim/robots").json() == []
+    write_sim_robots("so101_follower", "koch_follower")
+    robots = client.get("/sim/robots").json()
+    assert [r["id"] for r in robots] == ["koch_follower", "so101_follower"]
+
+    r = client.patch("/sim/envs/table", json={"robots": ["so101_follower"]})
+    assert r.status_code == 200, r.text
+    assert r.json()["robots"] == ["so101_follower"]
+    assert r.json()["rigIds"] == ["so101-bimanual-kit", "so101-kit"]
+    assert yaml.safe_load((tmp_path / "envs.yaml").read_text()) == {
+        "table": {"robots": ["so101_follower"]}
+    }
+    # A robot no rig has: fits no rig
+    body = client.patch("/sim/envs/table", json={"robots": ["koch_follower"]}).json()
+    assert body["rigIds"] == []
+    # Tags survive a rescan; unknown robots are refused; [] clears them
+    assert client.post("/sim/envs/rescan").json()["envs"][3]["robots"] == ["koch_follower"]
+    r = client.patch("/sim/envs/table", json={"robots": ["nope"]})
+    assert r.status_code == 422 and r.json()["error"]["details"]["robots"] == ["nope"]
+    assert client.patch("/sim/envs/table", json={"robots": []}).json()["robots"] == []
+    assert yaml.safe_load((tmp_path / "envs.yaml").read_text()) == {}
+    assert client.patch("/sim/envs/nope", json={"robots": []}).status_code == 404
 
 
 def test_thumbnail(client):
@@ -48,15 +76,15 @@ def test_thumbnail(client):
 
 
 def test_get_env(client):
-    assert client.get("/sim/envs/table").json()["scene"] == "table.usda"
+    assert client.get("/sim/envs/table").json()["script"] == "table.py"
     r = client.get("/sim/envs/nope")
     assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"
 
 
 def test_rescan_picks_up_changes(client, envs_dir: Path, events):
     registered = client.get("/sim/envs/table").json()["registeredAt"]
-    (envs_dir / "garage.usdc").write_text("#usda 1.0\n")
-    (envs_dir / "kitchen.usd").unlink()
+    (envs_dir / "garage.py").write_text('def build(scene):\n    scene.add("table")\n')
+    (envs_dir / "kitchen.py").unlink()
     assert client.get("/sim/envs/garage").status_code == 404  # not before a rescan
 
     body = client.post("/sim/envs/rescan").json()
@@ -73,7 +101,7 @@ def test_delete_env(client, envs_dir: Path):
     assert client.delete("/sim/envs/drawer").status_code == 204
     assert not (envs_dir / "drawer").exists()
     assert client.delete("/sim/envs/kitchen").status_code == 204
-    assert not (envs_dir / "kitchen.usd").exists()
+    assert not (envs_dir / "kitchen.py").exists()
     assert [e["id"] for e in client.get("/sim/envs").json()] == ["arm-table", "table"]
     assert client.delete("/sim/envs/nope").status_code == 404
 
@@ -88,7 +116,7 @@ def test_delete_refused_while_a_task_uses_it(client, envs_dir: Path):
     tasks.reset()
     r = client.delete("/sim/envs/table")
     assert r.status_code == 409 and r.json()["error"]["details"]["tasks"] == ["sim-stack"]
-    assert (envs_dir / "table.usda").exists()
+    assert (envs_dir / "table.py").exists()
 
 
 def test_compat_route_is_gone(client):

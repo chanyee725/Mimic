@@ -1,4 +1,4 @@
-// Simulation: Isaac Sim environments (USD files) and evaluation jobs. Spec: docs/api/simulation.md
+// Simulation: Isaac Sim environments (Python scripts) and evaluation jobs. Spec: docs/api/simulation.md
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
 
 import type {
@@ -10,6 +10,7 @@ import type {
   SimJob,
   SimJobCreate,
   SimJobStatus,
+  SimRobot,
   SimRunner,
 } from "@/domain/simulation"
 import type { IsaacDisplay } from "@/domain/settings"
@@ -33,6 +34,16 @@ export const useSimEnv = (id: string | undefined) =>
 export const useRescanEnvs = () =>
   useMutation({
     mutationFn: () => api.post<RescanResult>("/sim/envs/rescan"),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
+  })
+
+/** Robot USDs an environment can be tagged with */
+export const useSimRobots = () => useQuery({ queryKey: [...qk.sim, "robots"], queryFn: () => api.get<SimRobot[]>("/sim/robots") })
+
+/** Replaces the environment's robot tags (saved in data/sims/envs.yaml) */
+export const useSetEnvRobots = () =>
+  useMutation({
+    mutationFn: ({ id, robots }: { id: string; robots: string[] }) => api.patch<SimEnv>(`/sim/envs/${encodeURIComponent(id)}`, { robots }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
   })
 
@@ -99,6 +110,6 @@ export const useStartSimRunner = () =>
 
 export const useStopSimRunner = () => useMutation({ mutationFn: () => api.post<SimRunner>("/sim/runner/stop"), onSuccess: onRunner })
 
-/** Sends the environment to the server and opens its scene (starts the app when needed) */
+/** Sends the environment to the server, which builds its stage (starts the app when needed) */
 export const useOpenSimEnv = () =>
   useMutation({ mutationFn: (envId: string) => api.post<SimRunner>(`/sim/envs/${envId}/open`), onSuccess: onRunner })

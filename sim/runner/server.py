@@ -10,8 +10,10 @@ API (JSON):
   POST /app/start  {"display", "device"}  start the app ("window" | "headless", physics "gpu" | "cpu",
                                    default gpu); restarts it when either changes
   POST /app/stop                   stop the app
-  POST /scene?env=<id>&scene=<file>[&display=…&device=…]  body: tar.gz of the environment (folder files, or the single
-                                   stage file); opens <file> (default scene.usd), starting the app
+  POST /scene?env=<id>&script=<file>[&robot=…&display=…&device=…]  body: tar.gz laid out like
+                                   data/sims (envs/<env>…, robot/…); builds the stage from <file>, a
+                                   path in it (default env.py), with <robot> as the robot scene.robot()
+                                   places, starting the app
                                    first when it is not running
 AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "device", "pid", "scene",
             "error"}
@@ -35,7 +37,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = 1
+VERSION = 2
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")
@@ -76,7 +78,7 @@ class App:
         self.device: str | None = None
         self.ready = False
         self.scene: str | None = None
-        self.pending: tuple[str, str] | None = None  # (env id, scene path)
+        self.pending: tuple[str, str, str, str] | None = None  # (env id, script, sim folder, robot)
         self.error: str | None = None
         self.log = cache / "app.log"
 
@@ -89,14 +91,23 @@ class App:
             else:
                 state = "running" if self.ready else "starting"
             pid = self.proc.pid if self.proc and state in ("starting", "running") else None
-            return {
-                "state": state,
-                "display": self.display,
-                "device": self.device,
-                "pid": pid,
-                "scene": self.scene if state == "running" else None,
-                "error": self.error,
-            }
+            scene, error = (self.scene if state == "running" else None), self.error
+        if state == "running" and error is None:
+            # A failing environment script is reported by the app
+            try:
+                error = _get(f"http://127.0.0.1:{self.port}/state", timeout=0.5).get("error")
+            except OSError:
+                pass
+            if error:
+                scene = None
+        return {
+            "state": state,
+            "display": self.display,
+            "device": self.device,
+            "pid": pid,
+            "scene": scene,
+            "error": error,
+        }
 
     def start(self, display: str, device: str = "gpu") -> None:
         with self.lock:
@@ -159,21 +170,22 @@ class App:
         env_id: str,
         archive: bytes,
         display: str,
-        scene_name: str = "scene.usd",
+        script_name: str = "env.py",
         device: str = "gpu",
+        robot: str = "",
     ) -> None:
         folder = self.cache / "scenes" / env_id
         shutil.rmtree(folder, ignore_errors=True)
         folder.mkdir(parents=True)
         with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as tar:
             tar.extractall(folder, filter="data")
-        scene = (folder / scene_name).resolve()
-        if not scene.is_relative_to(folder.resolve()):
-            raise ValueError("the scene path leaves the environment")
-        if not scene.is_file():
-            raise ValueError(f"the environment has no {scene_name}")
+        script = (folder / script_name).resolve()
+        if not script.is_relative_to(folder.resolve()):
+            raise ValueError("the script path leaves the environment")
+        if not script.is_file():
+            raise ValueError(f"the environment has no {script_name}")
         with self.lock:
-            self.pending = (env_id, str(scene))
+            self.pending = (env_id, str(script), str(folder), robot)
             running = self.proc and self.proc.poll() is None
             if not running or (self.display, self.device) != (display, device):
                 self.start(display, device)  # (re)start: the app takes the device at launch
@@ -183,10 +195,11 @@ class App:
     def _send_pending(self) -> None:
         if not self.pending:
             return
-        env_id, path = self.pending
+        env_id, path, root, robot = self.pending
         self.pending = None
         try:
-            _post(f"http://127.0.0.1:{self.port}/open", {"path": path})
+            body = {"path": path, "root": root, "robot": robot}
+            _post(f"http://127.0.0.1:{self.port}/open", body)
             self.scene = env_id
         except OSError as e:
             self.error = f"Could not open {env_id}: {e}"
@@ -236,11 +249,12 @@ def make_handler(app: App):
                     query = parse_qs(url.query)
                     env_id = query.get("env", [""])[0]
                     display = query.get("display", ["window"])[0]
-                    scene = query.get("scene", ["scene.usd"])[0]
+                    script = query.get("script", ["env.py"])[0]
                     device = query.get("device", ["gpu"])[0]
+                    robot = query.get("robot", [""])[0]
                     if not ENV_ID.match(env_id) or display not in DISPLAYS or device not in DEVICES:
                         return self._send(422, {"error": "invalid env id, display or device"})
-                    app.open_scene(env_id, self._body(), display, scene, device)
+                    app.open_scene(env_id, self._body(), display, script, device, robot)
                 else:
                     return self._send(404, {"error": "not found"})
             except (ValueError, tarfile.TarError, OSError) as e:
