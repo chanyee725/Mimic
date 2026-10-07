@@ -39,7 +39,7 @@ Disk = { totalGB: number; parts: { key: "raw" | "datasets" | "models" | "other";
 - A save rewrites only the files whose content changed.
 - There is no storage section. Two folders, both relative to the repo root unless absolute:
   - config folder (`VLA_CONFIG_DIR`, default `config`, committed): `rigs/`, `settings/`, `calibration/` — the station's setup.
-  - data folder (`VLA_DATA_DIR`, default `data`, git-ignored): what the web produces — `tasks/`, `recordings/` (MCAP +
+  - data folder (`VLA_DATA_DIR`, default `data`, git-ignored except `sims/`): what the web produces — `tasks/`, `recordings/` (MCAP +
     sidecars), `datasets/`, `models/`. The backend config exposes them as `config.recordings_dir`, `config.datasets_dir`
     and `config.models_dir`.
 - Secrets live in the repo-root `.env` (`config.env_file_path`; git-ignored, mode 0600) under the names other tools read:

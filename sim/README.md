@@ -15,11 +15,13 @@ sim/
     tray/          16 × 12 cm 트레이, 벽 3 cm (놓을 곳, 고정)
   examples/envs/   예제 환경 스크립트 (lift_cube.py)
 
-data/sims/         스테이션 데이터 (git 밖, `VLA_SIM_DIR` 로 옮김)
+data/sims/         시뮬레이션 데이터 (git 에 올림, `VLA_SIM_DIR` 로 옮김)
   envs/            환경 스크립트: <env-id>.py, 또는 <env-id>/env.py + 그 환경만 쓰는 파일
   envs.yaml        환경별 로봇 태그 (Environments 화면에서 편집)
   robot/           로봇 USD: <robot-id>.usd 또는 <robot-id>/<robot-id>.usd
 ```
+
+`data/` 는 git 에 올리지 않지만 `data/sims/` 만은 예외로 저장소에 함께 올립니다. `so101_follower.usd` 는 LightwheelAI 가 배포한 파일입니다 (Apache License 2.0).
 
 ## 설치
 
@@ -66,12 +68,7 @@ def build(scene):
 - `scene.add(asset, pos, yaw, name, scale, color)`: `sim/assets/<asset>/` 를 `/World/<name>` 에 놓습니다. `color=(r, g, b)` (0~1) 로 색을 바꿉니다.
 - `scene.robot(pos, yaw)`: 환경의 로봇 태그 중 첫 번째 로봇을 `/World/Robot` 에 놓고, base 를 고정 관절로 바닥에 묶어 Play 해도 넘어지지 않습니다. 태그가 없으면 오류가 납니다.
 - `scene.stage` 는 `pxr` 스테이지라 그 밖의 것은 직접 만들 수 있습니다.
-- 예제로 시작하려면 로봇 USD 를 받고 예제 스크립트를 복사한 뒤 **Rescan** 합니다.
-
-  ```sh
-  scripts/fetch-sim-robot.sh                        # data/sims/robot/so101_follower.usd (23 MB)
-  cp sim/examples/envs/lift_cube.py data/sims/envs/
-  ```
+- 저장소에 `lift_cube` 환경과 `so101_follower` 로봇(태그 포함)이 들어 있습니다. 로봇 USD 를 다시 받으려면 `scripts/fetch-sim-robot.sh --force` 를 씁니다.
 
 - **로봇 태그:** Environments 화면의 **Robots** 에서 `data/sims/robot/` 의 로봇을 체크합니다 (`data/sims/envs.yaml` 에 저장). 로봇 id 는 LeRobot 팔로워 타입 이름(예: `so101_follower`)으로 둡니다. 태그가 있으면 팔로워가 모두 태그된 로봇인 Rig 의 Task 와 모델에서만 쓰고, 태그가 없으면 모든 Rig 에서 씁니다.
 - 새 로봇은 `data/sims/robot/<robot-id>.usd` 에 USD 를 넣으면 태그 목록에 나타납니다. URDF 에서 만든 USD 에 꺼진 `root_joint` 가 있어도 상관없습니다 (Mimic 이 따로 고정 관절을 붙입니다).

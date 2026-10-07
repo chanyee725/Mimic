@@ -12,7 +12,7 @@ An environment is a **Python script** whose `build(scene)` lays out the stage fr
 and places the robot (`sim/runner/scene.py`, example `sim/examples/envs/`): no manifest, no success script, no
 ready / invalid state. Which robots it is for is a **robot tag** set on the Environments page (`<sim folder>/envs.yaml`).
 To add one, copy a `<id>.py` file (or a folder holding `env.py`) into the environments folder
-(`envs/` in the sim folder: `VLA_SIM_DIR` in `.env` or the environment, default `data/sims` — under the git-ignored data folder), then **Rescan**. Web:
+(`envs/` in the sim folder: `VLA_SIM_DIR` in `.env` or the environment, default `data/sims` — the one part of the data folder committed to git), then **Rescan**. Web:
 `api/simulation.ts`; environments are managed on the **Environments** page (rescan, open in Isaac Sim, delete), tasks pick one, and sim evaluation runs as the **Isaac Sim** target of Evaluate (`/evaluate?target=sim`, job page
 `/evaluate/sim/<jobId>`).
 
