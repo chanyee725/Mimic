@@ -2,7 +2,7 @@
   "SETTINGS": {
     "integrations": {
       "hf": {
-        "namespace": "vla-lab",
+        "namespace": "",
         "privateByDefault": true,
         "state": "unknown"
       },

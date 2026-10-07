@@ -45,7 +45,7 @@ def keys(value):
 def test_seed_writes_part_files():
     assert sorted(p.name for p in storage.list_yaml("settings")) == PART_FILES
     assert not storage.exists("settings.yaml")
-    assert read_part("huggingface") == {"namespace": "vla-lab", "private_by_default": True}
+    assert read_part("huggingface") == {"namespace": "", "private_by_default": True}
     assert not storage.exists("settings/storage.yaml")  # dropped: paths follow the data folder
     assert {"key", "label", "on"} <= set(read_part("notifications")["events"][0])
 
@@ -163,7 +163,7 @@ def test_missing_part_file_is_reseeded(client):
     client.patch("/settings/connection", json={"version": 1, "isaac": {"port": 8300}})
     part("huggingface").unlink()
     service.reset()
-    assert read_part("huggingface")["namespace"] == "vla-lab"
+    assert read_part("huggingface")["namespace"] == ""
     assert read_part("connection")["isaac"]["port"] == 8300
 
 
@@ -225,7 +225,7 @@ def test_legacy_file_ignored_when_folder_exists():
     storage.write("settings.yaml", {"integrations": {"hf": {"namespace": "old"}}})
     service.reset()
     assert storage.exists("settings.yaml")
-    assert read_part("huggingface")["namespace"] == "vla-lab"
+    assert read_part("huggingface")["namespace"] == ""
 
 
 def test_obsolete_part_files_are_removed():

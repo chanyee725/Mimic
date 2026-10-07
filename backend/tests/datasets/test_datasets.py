@@ -549,3 +549,58 @@ def test_pull_errors(client, recs, fake_hub):
     r = client.post("/datasets/pull", json={"repoId": "op-01/old"})
     assert r.status_code == 422 and "v2.1" in r.json()["error"]["message"]
     assert client.get("/datasets").json() == []
+
+
+def test_push_namespace_must_be_writable(client, recs, monkeypatch):
+    from app.services import settings
+    from app.services.datasets import hub
+
+    convert(client, "local/stack")
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+    monkeypatch.setattr(hub, "upload_folder", lambda *a: None)
+    monkeypatch.setattr(hub, "whoami", lambda token: ("op-01", ["team-a"]))
+    settings.patch_section(
+        "integrations", {"version": settings.get_settings().version, "hf": {"namespace": "vla-lab"}}
+    )
+    with pytest.raises(Exception, match="cannot upload to 'vla-lab'"):
+        service.upload("local/stack")
+    h = service.require("local/stack").hub
+    assert h.pushing is False and "Clear the namespace" in h.error
+    settings.patch_section(
+        "integrations", {"version": settings.get_settings().version, "hf": {"namespace": "team-a"}}
+    )  # an org of the user
+    assert service.upload("local/stack") == "team-a/local-stack"
+
+
+def test_push_empty_namespace_uses_the_token_user(client, recs, monkeypatch):
+    from app.services.datasets import hub
+
+    convert(client, "local/stack")
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+    monkeypatch.setattr(hub, "upload_folder", lambda *a: None)
+    monkeypatch.setattr(hub, "whoami", lambda token: ("op-01", []))
+    assert service.upload("local/stack") == "op-01/local-stack"
+
+
+def test_push_shows_why_the_hub_refused(client, recs, monkeypatch):
+    import httpx
+    from huggingface_hub.errors import HfHubHTTPError
+
+    from app.services.datasets import hub
+
+    convert(client, "local/stack")
+    monkeypatch.setattr(hub, "_token", lambda: "hf_test")
+
+    def refuse(*a):
+        resp = httpx.Response(403, request=httpx.Request("POST", "https://huggingface.co"))
+        raise HfHubHTTPError(
+            "(Request ID: Root=1-abc)\n\n403 Forbidden: You don't have the rights to create a"
+            ' dataset under the namespace "vla-lab".',
+            response=resp,
+        )
+
+    monkeypatch.setattr(hub, "upload_folder", refuse)
+    with pytest.raises(Exception):
+        service.upload("local/stack")
+    err = service.require("local/stack").hub.error
+    assert err.startswith("Hugging Face refused the request:") and "rights to create" in err

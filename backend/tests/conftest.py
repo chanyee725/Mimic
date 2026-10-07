@@ -145,3 +145,11 @@ def _no_runpod(monkeypatch):
 
     monkeypatch.setattr(runpod_api, "_call", offline)
     monkeypatch.setattr(training_config, "_volumes", (0.0, []))
+
+
+@pytest.fixture(autouse=True)
+def _no_hf_whoami(monkeypatch):
+    """Tests never ask the Hub who the token is: the token's user is "vla-lab", no orgs."""
+    from app.services.datasets import hub
+
+    monkeypatch.setattr(hub, "whoami", lambda token: ("vla-lab", []))
