@@ -15,5 +15,5 @@ export function HfBadge({ className, title = "On HF Hub" }: { className?: string
   )
 }
 
-/** Push button once uploaded: black with white text (the icon inside is the yellow HF logo), not dimmed though disabled */
-export const PUSHED_BUTTON = "border-black bg-black text-white hover:bg-black hover:text-white disabled:opacity-100"
+/** Push button once uploaded: black with white text (the icon inside is the yellow HF logo), not dimmed when disabled */
+export const PUSHED_BUTTON = "border-black bg-black text-white hover:bg-black/85 hover:text-white disabled:opacity-100"
