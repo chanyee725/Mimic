@@ -10,9 +10,6 @@ export const PHASE: Record<CapturePhase, { label: string; className: string }> =
   review: { label: "REVIEW", className: "bg-warn-muted text-warn" },
 }
 
-/** The station's single operator (pseudonymous ID), sent with every capture start */
-export const STATION_OPERATOR = "OP-01"
-
 /** Device types a capture episode needs; the backend refuses to start (503) while any of them is off */
 const REQUIRED: DeviceType[] = ["robot", "teleop", "camera"]
 

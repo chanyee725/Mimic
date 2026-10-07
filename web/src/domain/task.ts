@@ -28,7 +28,6 @@ export type Task = {
   collected: number // read-only: accepted + pending capture episodes
   version: number // read-only, +1 on every update
   updatedAt: string // read-only, ISO 8601
-  updatedBy: string // read-only, pseudonymous operator ID only (never store PII)
 }
 
 /** Where a task runs: the real robot, or the Isaac Sim environment in envId */
@@ -40,14 +39,14 @@ export const TASK_WORLD_LABEL: Record<TaskWorld, string> = { real: "Real", sim: 
 export const taskWorld = (task: Pick<Task, "envId">): TaskWorld => (task.envId ? "sim" : "real")
 
 /** Body of POST /tasks (create) */
-export type TaskInput = Omit<Task, "collected" | "version" | "updatedAt" | "updatedBy">
+export type TaskInput = Omit<Task, "collected" | "version" | "updatedAt">
 
 /** Body of PUT /tasks/{id}: the edited fields plus the version they were based on */
 export type TaskUpdate = Omit<TaskInput, "id"> & { id?: string; version: number }
 
 /** Strip the read-only fields of a task, e.g. to start an edit draft */
 export function taskInput(task: Task): TaskInput {
-  const { collected: _c, version: _v, updatedAt: _a, updatedBy: _b, ...input } = task
+  const { collected: _c, version: _v, updatedAt: _a, ...input } = task
   return input
 }
 

@@ -20,7 +20,7 @@ const setState = (s: CaptureState) => queryClient.setQueryData(stateKey, s)
 /** Transition mutations; each one writes the returned state into the cache */
 export function useCaptureActions() {
   const start = useMutation({
-    mutationFn: (body: { taskId: string; operator: string }) => api.post<CaptureState>("/capture/start", body),
+    mutationFn: (body: { taskId: string }) => api.post<CaptureState>("/capture/start", body),
     // Start also starts the rig's teleop when it is off
     onSuccess: (st: CaptureState) => {
       setState(st)
