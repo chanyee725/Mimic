@@ -22,6 +22,12 @@ def test_sim_envs_dir_comes_from_config(client, tmp_path, monkeypatch):
     assert [e["id"] for e in client.get("/sim/envs").json()] == ["solo"]
 
 
+def test_sim_envs_dir_defaults_under_data(monkeypatch):
+    monkeypatch.delenv("VLA_SIM_ENVS_DIR", raising=False)
+    monkeypatch.setenv("VLA_DATA_DIR", "station/data")
+    assert Config(_env_file=None).sim_envs_dir == REPO_ROOT / "station" / "data" / "envs"
+
+
 def test_config_paths_start_at_repo_root(monkeypatch):
     monkeypatch.setenv("VLA_SIM_ENVS_DIR", "sim/envs")
     monkeypatch.setenv("VLA_DATA_DIR", "~/vla-data")

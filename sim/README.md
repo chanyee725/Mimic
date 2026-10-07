@@ -46,18 +46,17 @@ Environments 화면에서 환경을 고르고 **Open in Isaac Sim** 을 누르�
 예제로 시작하려면 SO-101 이 테이블 위 큐브를 마주 보는 장면을 받으세요 ([examples/so101_lift_cube](examples/so101_lift_cube/README.md), LeIsaac 에셋, Apache-2.0).
 
 ```sh
-scripts/fetch-sim-example.sh     # sim/envs/so101-kit/so101_lift_cube/ (약 28 MB)
+scripts/fetch-sim-example.sh     # data/envs/so101-kit/so101_lift_cube/ (약 28 MB)
 ```
 
 - 환경은 USD 장면 하나입니다. 매니페스트(`env.yaml`)나 성공 판정 스크립트는 없습니다.
-- `.usd` / `.usda` / `.usdc` / `.usdz` 파일을 `envs/` 에 직접 복사한 뒤 Environments 화면에서 **Rescan** 하면 목록에 나타납니다 (id 는 파일 이름).
-- 하위 asset 이 있는 장면은 `envs/<env-id>/` 폴더에 `scene.usd` 와 asset 을 넣고 **Rescan** 합니다.
-- `_` 나 `.` 로 시작하는 파일과 폴더는 스캔하지 않습니다. 폴더 위치는 환경 변수 `VLA_SIM_ENVS_DIR` (기본값 `sim/envs`).
+- `.usd` / `.usda` / `.usdc` / `.usdz` 파일을 환경 폴더(`data/envs/`)에 직접 복사한 뒤 Environments 화면에서 **Rescan** 하면 목록에 나타납니다 (id 는 파일 이름).
+- 하위 asset 이 있는 장면은 `data/envs/<env-id>/` 폴더에 `scene.usd` 와 asset 을 넣고 **Rescan** 합니다.
+- `_` 나 `.` 로 시작하는 파일과 폴더는 스캔하지 않습니다. 폴더 위치는 환경 변수 `VLA_SIM_ENVS_DIR` (기본값 `data/envs`, 데이터 폴더 아래라 git 에 올라가지 않습니다).
 - Task 가 쓰고 있는 환경은 지울 수 없습니다.
-- Rig 별로 나누려면 `envs/<rig-id>/` 폴더(예: `envs/so101-kit/`)에 넣습니다. 그 환경은 해당 Rig 의 Task 와 모델에만 쓸 수 있고, 최상위에 둔 환경은 모든 Rig 에서 씁니다.
+- Rig 별로 나누려면 `data/envs/<rig-id>/` 폴더(예: `data/envs/so101-kit/`)에 넣습니다. 그 환경은 해당 Rig 의 Task 와 모델에만 쓸 수 있고, 최상위에 둔 환경은 모든 Rig 에서 씁니다.
 - 썸네일: USD 파일 옆에 같은 이름의 이미지(`table.usda` → `table.png`, jpg / webp 도 가능)를 두거나, 폴더 환경이면 안에 `thumbnail.png` 를 둡니다.
 - 스캔 규칙과 서버 API: [docs/api/simulation.md](../docs/api/simulation.md)
-- USD 파일이 커지면 Git LFS 로 관리합니다.
 
 ## Task 환경 선택 (데이터 수집)
 

@@ -3,13 +3,13 @@
 # Assets: LeIsaac releases (LightwheelAI, Apache-2.0) — robot USD + table-with-cube scene;
 # the stage that places them is sim/examples/so101_lift_cube/scene.usda.
 #
-#   scripts/fetch-sim-example.sh            into sim/envs/so101-kit/so101_lift_cube
+#   scripts/fetch-sim-example.sh            into data/envs/so101-kit/so101_lift_cube
 #   scripts/fetch-sim-example.sh --force    replace an existing copy
 #   VLA_SIM_ENVS_DIR=/path scripts/...      another environments folder
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENVS="${VLA_SIM_ENVS_DIR:-sim/envs}"
+ENVS="${VLA_SIM_ENVS_DIR:-${VLA_DATA_DIR:-data}/envs}"
 case "$ENVS" in /*) ;; *) ENVS="$ROOT/$ENVS" ;; esac
 DEST="$ENVS/so101-kit/so101_lift_cube"
 EXAMPLE="$ROOT/sim/examples/so101_lift_cube"

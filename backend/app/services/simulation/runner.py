@@ -2,7 +2,7 @@
 
 The server (sim/runner/server.py) fronts one Isaac Sim app process that runs with a window or
 headless. Opening an environment sends its folder as tar.gz, so a remote server needs no copy of
-sim/envs. A local server is detached: it outlives backend reloads and is found again by port.
+data/envs. A local server is detached: it outlives backend reloads and is found again by port.
 """
 
 import io

@@ -3,7 +3,7 @@
 SO-101 팔로워가 테이블 위 빨간 큐브를 마주 보는 예제 환경입니다. 배치는 [LeIsaac](https://github.com/LightwheelAI/leisaac) 의 `lift_cube` 태스크를 따릅니다.
 
 ```sh
-scripts/fetch-sim-example.sh     # sim/envs/so101-kit/so101_lift_cube/ 에 받기
+scripts/fetch-sim-example.sh     # data/envs/so101-kit/so101_lift_cube/ 에 받기
 ```
 
 받은 뒤 Environments 화면에서 **Rescan** 하면 `so101-kit` Rig 전용 환경으로 나타납니다.
