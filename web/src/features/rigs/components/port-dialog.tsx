@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils"
 export function PortDialog({ device, open, onOpenChange }: { device: Device; open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={portKind(device) === "video" ? "sm:max-w-2xl" : "sm:max-w-xl"}>
+      {/* One shrinkable column: a long by-id path must not widen the dialog past its edge */}
+      <DialogContent className={cn("grid-cols-[minmax(0,1fr)]", portKind(device) === "video" ? "sm:max-w-2xl" : "sm:max-w-xl")}>
         {/* Mounted only while open: previews hold their cameras */}
         {open && <PortPicker device={device} onDone={() => onOpenChange(false)} />}
       </DialogContent>
@@ -47,12 +48,12 @@ function PortPicker({ device, onDone }: { device: Device; onDone: () => void }) 
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex items-center justify-between gap-3 text-[13px]">
-        <span className="min-w-0 truncate text-muted-foreground" title={device.port}>
+      <div className="flex min-w-0 items-start justify-between gap-3 text-[13px]">
+        <span className="min-w-0 pt-1 break-all text-muted-foreground" title={device.port}>
           Current:{" "}
           {current ? `${current.device} · ${current.label || "USB device"}` : <span className="text-warn">{device.port} (not found)</span>}
         </span>
-        <Button variant="outline" size="sm" disabled={portsQuery.isFetching} onClick={() => void portsQuery.refetch()}>
+        <Button variant="outline" size="sm" className="shrink-0" disabled={portsQuery.isFetching} onClick={() => void portsQuery.refetch()}>
           <LuRefreshCw />
           Rescan
         </Button>
