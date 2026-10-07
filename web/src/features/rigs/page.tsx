@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { LuBot, LuBoxes, LuCable, LuCamera, LuGamepad2, LuPlus, LuRefreshCw } from "react-icons/lu"
+import { LuBot, LuBoxes, LuCable, LuCamera, LuGamepad2, LuRefreshCw } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Page, Panel } from "@/components/layout/page-layout"
@@ -54,10 +54,6 @@ export function RigsPage() {
           <Button variant="outline" size="lg" disabled={!rig} onClick={() => setTeleop(true)}>
             <LuGamepad2 />
             Test teleoperation
-          </Button>
-          <Button size="lg" disabled title="Rig 설정은 v1 에서 읽기 전용입니다">
-            <LuPlus />
-            Add device
           </Button>
         </>
       }

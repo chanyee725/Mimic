@@ -112,7 +112,7 @@ def record_episode(client, task_id: str = "stack-two-blocks", outcome: str = "su
     """Records and saves one episode through the capture API (devices must be connected)."""
     from app.services.capture import session
 
-    r = client.post("/capture/start", json={"taskId": task_id, "operator": "OP-01"})
+    r = client.post("/capture/start", json={"taskId": task_id})
     assert r.status_code == 200, r.text
     # Jump past the countdown, into the recording
     t = session._session.recording_at + timedelta(seconds=2)
@@ -145,3 +145,11 @@ def _no_runpod(monkeypatch):
 
     monkeypatch.setattr(runpod_api, "_call", offline)
     monkeypatch.setattr(training_config, "_volumes", (0.0, []))
+
+
+@pytest.fixture(autouse=True)
+def _no_hf_whoami(monkeypatch):
+    """Tests never ask the Hub who the token is: the token's user is "vla-lab", no orgs."""
+    from app.services.datasets import hub
+
+    monkeypatch.setattr(hub, "whoami", lambda token: ("vla-lab", []))

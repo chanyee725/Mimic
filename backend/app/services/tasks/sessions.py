@@ -27,7 +27,6 @@ def from_recordings(recs: list[Recording]) -> list[Session]:
             Session(
                 id=f"{task_id}-{day}",
                 task_id=task_id,
-                operator=None,  # recordings do not carry the operator yet
                 episodes=n,
                 accepted=sum(r.review == "accepted" for r in rows),
                 success_pct=_pct(sum(r.outcome == "success" for r in rows), n),

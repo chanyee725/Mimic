@@ -34,13 +34,12 @@ Task = {
   collected: number          // read-only: the task's recordings that are not rejected (accepted + pending), counted live
   version: number            // read-only, +1 on every update
   updatedAt: string          // read-only, ISO
-  updatedBy: string          // read-only, operator ID
 }
 
-TaskInput = Task without collected / version / updatedAt / updatedBy
+TaskInput = Task without collected / version / updatedAt
 
 SessionStatus = "review" | "reviewed"   // review: some episodes are still pending
-Session = { id: string; taskId: string; operator: string | null; episodes: number; accepted: number;
+Session = { id: string; taskId: string; episodes: number; accepted: number;
             successPct: number; failPct: number; status: SessionStatus; date: string }
 ```
 
@@ -62,7 +61,6 @@ Validation: `rigId` must exist; `cameras` ⊆ rig camera keys; `actionHz` ∈ ri
 `envId`, when set, must be a
 registered environment (`/sim/envs`, a USD stage; else 422 on `envId` "unknown environment") whose `rigId` is null or the task's rig (else 422 "environment '<id>' belongs to rig '<rig>'"); subtask keys unique; outcome values unique; `id` is a slug (`^[a-z0-9][a-z0-9-]{0,63}$`); `targetEpisodes` ≥ 1, `durationS` > 0,
 `cameras` and `outcomes` non-empty. Rule failures return `422` with `details.errors = [{ loc: ["body", field, ...], msg }]`.
-`updatedBy` comes from the `X-Operator` header (pseudonymous ID matching `^OP-\d{2}$`, else 422), default `OP-01`.
 
 An Isaac Sim task keeps the rig: its joints, cameras and rates define the data, the real leader arm drives the simulated
 follower, and recordings carry the environment as `simEnv` ([recordings.md](recordings.md)). Capture on it answers 503
@@ -101,7 +99,7 @@ output:
 ### Storage
 
 Each task is one file, `data/tasks/<task-id>.yaml` (`config.data_dir`, git-ignored): the Task YAML above plus a trailing
-`meta:` block with `version`, `updated_at` and `updated_by`. Create / update / duplicate / import rewrite the file; delete
+`meta:` block with `version` and `updated_at` (an `updated_by` left in old files is ignored and dropped on the next save). Create / update / duplicate / import rewrite the file; delete
 removes it. On startup the folder is loaded (hand edits apply; a broken file is logged and skipped; `task_id` inside the file
 wins over the file name, and the file is renamed). There are no seeds: a missing or empty folder means no tasks.
 `POST /tasks/import` ignores `meta` (version restarts at 1); `GET /tasks/{id}/yaml` does not emit it.
@@ -113,9 +111,9 @@ not `rejected`, so it follows saves, reviews and deletes without changing `versi
 
 Sessions are not stored: recordings are grouped by task and station day (`recordedAt` in the station time zone).
 `id = "<taskId>-<YYYY-MM-DD>"`, `episodes` = recordings, `accepted` = review accepted, `successPct` / `failPct` = share of
-outcomes `success` / `fail` (one decimal), `status` = `review` while any episode is pending, else `reviewed`, `operator` =
-`null` (recordings do not carry the operator yet). No recordings → `[]`.
+outcomes `success` / `fail` (one decimal), `status` = `review` while any episode is pending, else `reviewed`. No recordings → `[]`.
 
 ## Changes from the web mocks
 
-`updatedAt` becomes ISO 8601. `Session.operator` is nullable and `SessionStatus` is `"review" | "reviewed"`.
+`updatedAt` becomes ISO 8601 and `SessionStatus` is `"review" | "reviewed"`. Operators (`updatedBy`, `Session.operator`,
+`X-Operator`) are gone: a station is one person's collection.

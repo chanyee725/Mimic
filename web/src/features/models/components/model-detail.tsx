@@ -19,13 +19,14 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from "@/components/ui/input"
 import { Panel } from "@/components/layout/page-layout"
 import { DetailList } from "@/components/common/detail-list"
-import { HfBadge } from "@/components/common/hf-badge"
+import { HfBadge, PUSHED_BUTTON } from "@/components/common/hf-badge"
 import { LinkButton } from "@/components/common/link-button"
 import { StatStrip } from "@/components/common/stat-strip"
 import { modelDownloadUrl, useDeleteModel, usePushModel, useRenameModel } from "@/api/models"
 import { useTrainingConfig } from "@/api/training"
 import { successRate, type Model } from "@/domain/model"
 import { formatDateTime, formatPct, formatSize, plural } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 import { downloadFile } from "../lib"
 import { ModelEvaluations } from "./model-evaluations"
@@ -67,8 +68,14 @@ export function ModelDetail({ model: m }: { model: Model }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <Button variant="outline" size="sm" disabled={!!m.hubRepo || push.isPending} onClick={() => push.mutate({ id: m.id })}>
-            {m.hubRepo ? <SiHuggingface /> : <LuCloudUpload />}
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(m.hubRepo && PUSHED_BUTTON)}
+            disabled={!!m.hubRepo || push.isPending}
+            onClick={() => push.mutate({ id: m.id })}
+          >
+            {m.hubRepo ? <SiHuggingface className="text-[#FFD21E]" /> : <LuCloudUpload />}
             {m.hubRepo ? "Pushed" : push.isPending ? "Pushing…" : "Push to HF Hub"}
           </Button>
           <Button variant="outline" size="sm" disabled={download.isPending} onClick={() => download.mutate()}>

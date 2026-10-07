@@ -10,7 +10,6 @@ CapturePhase = Literal["idle", "countdown", "recording", "review"]
 class CaptureState(CamelModel):
     phase: CapturePhase
     task_id: str | None = None
-    operator: str | None = None
     episode_id: str | None = None
     started_at: str | None = None
     elapsed_s: float = 0

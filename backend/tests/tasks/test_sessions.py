@@ -26,7 +26,6 @@ def test_sessions_from_recordings(client, record):
     assert stack == {
         "id": f"stack-two-blocks-{day}",
         "taskId": "stack-two-blocks",
-        "operator": None,
         "episodes": 3,
         "accepted": 0,
         "successPct": 66.7,

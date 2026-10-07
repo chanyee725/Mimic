@@ -6,8 +6,6 @@ export type CaptureState = {
   phase: CapturePhase
   /** When idle: the task of the last saved / discarded episode */
   taskId: string | null
-  /** Pseudonymous operator ID (OP-01) */
-  operator: string | null
   /** Recording being written, "<taskId>-<episode>" */
   episodeId: string | null
   /** ISO time recording began (after the countdown) */

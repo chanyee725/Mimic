@@ -70,8 +70,10 @@ def upload_folder(folder: Path, repo: str, private: bool, token: str) -> None:
     api.create_tag(repo, tag=lr.CODEBASE_VERSION, repo_type="dataset")
 
 
-def whoami(token: str) -> str:
-    return HfApi(token=token).whoami()["name"]
+def whoami(token: str) -> tuple[str, list[str]]:
+    """The token's user and the organizations it belongs to."""
+    me = HfApi(token=token).whoami()
+    return me["name"], [o["name"] for o in me.get("orgs") or [] if o.get("name")]
 
 
 # --- push ---
@@ -85,14 +87,24 @@ def require_token() -> str:
 
 
 def namespace(token: str) -> str:
-    """Settings → Hugging Face namespace, else the token's user."""
+    """Settings → Hugging Face namespace, else the token's user. A namespace that is neither the
+    user nor one of its organizations is refused up front (HF would answer 403 on create)."""
     ns = settings.get_settings().integrations.hf.namespace.strip()
-    if ns:
-        return ns
     try:
-        return whoami(token)
+        user, orgs = whoami(token)
     except (HfHubHTTPError, OSError) as e:
         raise _hub_error("whoami", e) from e
+    if not ns:
+        return user
+    if ns != user and ns not in orgs:
+        raise ApiError(
+            403,
+            f"The Hugging Face token cannot upload to '{ns}': it is not your account ({user}) or"
+            f" one of your organizations. Clear the namespace in Settings → Integrations to upload"
+            f" to {user}, or use a token of a member of '{ns}'.",
+            {"namespace": ns, "user": user},
+        )
+    return ns
 
 
 def hub_repo(ds: Dataset, token: str) -> str:
@@ -183,7 +195,21 @@ def _hub_error(repo_id: str, e: Exception) -> ApiError:
         return ApiError(
             404, f"Dataset '{repo_id}' was not found on the Hub{hint}", {"repoId": repo_id}
         )
-    return ApiError(502, "Hugging Face Hub request failed", {"reason": str(e)})
+    status = getattr(getattr(e, "response", None), "status_code", None)
+    reason = _server_message(e)
+    if status in (401, 403):
+        return ApiError(403, f"Hugging Face refused the request: {reason}", {"repoId": repo_id})
+    return ApiError(502, f"Hugging Face Hub request failed: {reason}", {"repoId": repo_id})
+
+
+def _server_message(e: Exception) -> str:
+    """HF's own explanation (e.g. "You don't have the rights to create a dataset under …"),
+    without the request id line huggingface_hub puts first."""
+    msg = getattr(e, "server_message", None) or str(e)
+    lines = [ln.strip() for ln in msg.splitlines() if ln.strip()]
+    lines = [ln for ln in lines if not ln.startswith("(Request ID")] or lines
+    text = lines[1] if len(lines) > 1 and lines[0][:3].isdigit() else (lines[0] if lines else "")
+    return text[:300] or type(e).__name__
 
 
 def _read_remote_info(repo_id: str, token: str | None) -> dict[str, Any]:

@@ -58,7 +58,8 @@ version returns `409 conflict` with the current document in `details.current`.
 
 ## Privacy
 
-Operators are pseudonymous IDs (`OP-01`). The API never accepts or returns real names or emails.
+There are no operators or user accounts: a station is one person's collection. The API never accepts or returns real
+names or emails.
 Secrets (tokens, keys, webhooks) are write-only: responses carry `{ "set": true, "last4": "3kQz" }` only.
 
 ## Auth

@@ -1,11 +1,22 @@
 import { useState } from "react"
-import { LuArrowRightLeft, LuClock, LuCloudUpload, LuCpu, LuFilm, LuHardDrive, LuListVideo, LuRotateCcw, LuTrash2 } from "react-icons/lu"
+import {
+  LuArrowRightLeft,
+  LuClock,
+  LuCloudUpload,
+  LuCpu,
+  LuExternalLink,
+  LuFilm,
+  LuHardDrive,
+  LuListVideo,
+  LuRotateCcw,
+  LuTrash2,
+} from "react-icons/lu"
 import { SiHuggingface } from "react-icons/si"
 
 import { Button } from "@/components/ui/button"
 import { LinkButton } from "@/components/common/link-button"
 import { EmptyState } from "@/components/common/empty-state"
-import { HfBadge } from "@/components/common/hf-badge"
+import { HfBadge, PUSHED_BUTTON } from "@/components/common/hf-badge"
 import { Panel } from "@/components/layout/page-layout"
 import { ProgressBar } from "@/components/common/progress-bar"
 import { StatStrip } from "@/components/common/stat-strip"
@@ -52,6 +63,7 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
   const status = datasetStatus(dataset)
 
   const push = usePushDataset()
+  const hubUrl = dataset.hub.pushed && dataset.hub.repo ? `https://huggingface.co/datasets/${dataset.hub.repo}` : null
   const pushing = push.isPending || dataset.hub.pushing
   const del = useDeleteDataset()
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -84,15 +96,31 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
         </div>
         <div className="grid shrink-0 justify-items-end gap-1.5">
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pushing || dataset.status !== "ready" || dataset.hub.pushed}
-              onClick={() => push.mutate({ repoId: dataset.repoId, private: dataset.hub.private })}
-            >
-              {dataset.hub.pushed ? <SiHuggingface /> : <LuCloudUpload />}
-              {dataset.hub.pushed ? "Pushed" : pushing ? "Pushing…" : "Push to HF Hub"}
-            </Button>
+            {hubUrl ? (
+              // Once pushed, the button opens the dataset on the Hub
+              <Button
+                nativeButton={false}
+                variant="outline"
+                size="sm"
+                className={PUSHED_BUTTON}
+                title={`Open ${dataset.hub.repo} on Hugging Face`}
+                render={<a href={hubUrl} target="_blank" rel="noreferrer" />}
+              >
+                <SiHuggingface className="text-[#FFD21E]" />
+                Pushed
+                <LuExternalLink className="opacity-70" />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pushing || dataset.status !== "ready"}
+                onClick={() => push.mutate({ repoId: dataset.repoId, private: dataset.hub.private })}
+              >
+                <LuCloudUpload />
+                {pushing ? "Pushing…" : "Push to HF Hub"}
+              </Button>
+            )}
             {dataset.kind === "lerobot" ? (
               <LinkButton to="/training" size="sm" disabled={dataset.status !== "ready"}>
                 <LuCpu />
@@ -118,14 +146,15 @@ function DatasetView({ dataset, onDeleted }: { dataset: Dataset; onDeleted: () =
               <LuTrash2 />
             </Button>
           </div>
-          {dataset.hub.pushed && dataset.hub.repo && (
+          {hubUrl && (
             <a
-              href={`https://huggingface.co/datasets/${dataset.hub.repo}`}
+              href={hubUrl}
               target="_blank"
               rel="noreferrer"
-              className="max-w-96 truncate text-xs text-muted-foreground hover:text-foreground hover:underline"
+              className="inline-flex max-w-96 items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
             >
-              {dataset.hub.repo}
+              <span className="truncate">{dataset.hub.repo}</span>
+              <LuExternalLink className="size-3 shrink-0" aria-hidden />
             </a>
           )}
           <ErrorNote error={push.error ?? (dataset.hub.pushing ? null : dataset.hub.error)} className="max-w-96" />

@@ -56,7 +56,6 @@ class Task(TaskFields):
     collected: int = 0  # computed from recordings, never stored
     version: int = 1
     updated_at: str
-    updated_by: str
 
 
 class Session(CamelModel):
@@ -64,7 +63,6 @@ class Session(CamelModel):
 
     id: str
     task_id: str
-    operator: str | None
     episodes: int
     accepted: int
     success_pct: float
