@@ -17,7 +17,7 @@ def test_sim_envs_dir_comes_from_config(client, tmp_path, monkeypatch):
     # VLA_SIM_DIR is the only source; a rescan picks up the new stage under envs/
     monkeypatch.setattr(config, "sim_dir", tmp_path)
     (tmp_path / "envs").mkdir()
-    (tmp_path / "envs" / "solo.usd").write_text("#usda 1.0\n")
+    (tmp_path / "envs" / "solo.py").write_text('def build(scene):\n    scene.add("table")\n')
     assert client.post("/sim/envs/rescan").status_code == 200
     assert client.get("/sim/config").json()["envsDir"] == str(tmp_path / "envs")
     assert [e["id"] for e in client.get("/sim/envs").json()] == ["solo"]

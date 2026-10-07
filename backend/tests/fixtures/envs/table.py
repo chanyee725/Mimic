@@ -1,8 +1,2 @@
-#usda 1.0
-(
-    defaultPrim = "World"
-)
-
-def Xform "World"
-{
-}
+def build(scene):
+    scene.add("table")

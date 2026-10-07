@@ -1,8 +1,9 @@
 """Isaac Sim server: started here on 127.0.0.1 (local) or a sim server reached by URL (remote).
 
 The server (sim/runner/server.py) fronts one Isaac Sim app process that runs with a window or
-headless. Opening an environment sends its folder and the shared robot/ folder as tar.gz, so a
-remote server needs no copy of data/sims. A local server is detached: it outlives backend reloads and is found again by port.
+headless. Opening an environment sends its script and its robot's USD as tar.gz, so a remote
+server needs no copy of data/sims. A local server is detached: it outlives backend reloads
+and is found again by port.
 """
 
 import io
@@ -22,7 +23,7 @@ from app.models.settings import IsaacSettings
 from app.models.simulation import SimRunner, SimRunnerApp
 from app.schemas.settings import ConnTestResult
 from app.services.settings import get_settings
-from app.services.simulation.envs import get_env
+from app.services.simulation.envs import get_env, robot_path
 
 SERVER_SCRIPT = REPO_ROOT / "sim" / "runner" / "server.py"
 # Overridden in tests (a fake app instead of Isaac Sim, a temp cache)
@@ -154,13 +155,15 @@ def _files(path: Path) -> list[Path]:
     return [p for p in sorted(path.rglob("*")) if p.is_file() and "__pycache__" not in p.parts]
 
 
-def _archive(path: Path) -> bytes:
-    """The environment (folder or single stage file) and the shared robot/ folder as tar.gz,
-    laid out as under the sim folder (envs/…, robot/…) so relative references still resolve."""
+def _archive(path: Path, robot: Path | None = None) -> bytes:
+    """The environment (folder or single script) and the robot's USD (its folder when it has
+    one) as tar.gz, laid out as under the sim folder (envs/…, robot/…)."""
     root = config.sim_dir
+    if robot is not None and robot.parent != config.sim_robot_dir:
+        robot = robot.parent
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-        for p in _files(path) + _files(config.sim_robot_dir):
+        for p in _files(path) + (_files(robot) if robot else []):
             tar.add(p, arcname=str(p.relative_to(root)))
     if buf.tell() > MAX_ENV_BYTES:
         raise ApiError(422, f"Environment folder is larger than {MAX_ENV_BYTES >> 20} MB")
@@ -168,17 +171,23 @@ def _archive(path: Path) -> bytes:
 
 
 def open_env(env_id: str, display: str | None = None) -> SimRunner:
-    """Sends the environment to the server, which opens its stage (starting the app if needed)."""
+    """Sends the environment to the server, which builds its stage (starting the app if needed).
+    The robot placed is its first robot tag (none when untagged)."""
     env = get_env(env_id)
     path = Path(env.path)
-    body = _archive(path)
+    robot = env.robots[0] if env.robots else ""
+    robot_file = robot_path(robot) if robot else None
+    if robot and robot_file is None:
+        raise ApiError(422, f"Robot '{robot}' has no USD under {config.sim_robot_dir}")
+    body = _archive(path, robot_file)
     _ensure_server()
     s = _settings()
-    scene = path.relative_to(config.sim_dir) / (env.scene if path.is_dir() else "")
+    script = path.relative_to(config.sim_dir) / (env.script if path.is_dir() else "")
     query = urllib.parse.urlencode(
         {
             "env": env_id,
-            "scene": scene.as_posix(),
+            "script": script.as_posix(),
+            "robot": robot,
             "display": display or s.display,
             "device": s.device,
         }
