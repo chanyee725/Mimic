@@ -31,3 +31,19 @@ export const formatJoint = (name: string, value: number | null) =>
 export const JOG_DEG_S = 30
 export const JOG_SLOW_DEG_S = 8
 export const JOG_RESEND_MS = 150
+
+/** TCP jog speeds in the tool frame: translation (m/s) and, with Shift, rotation (deg/s) */
+export const TCP_LIN_M_S = 0.05
+export const TCP_ROT_DEG_S = 20
+
+/** TCP jog key → twist axis (0–2 = X/Y/Z) and direction */
+export const TCP_KEYS: Record<string, { axis: number; dir: number }> = {
+  i: { axis: 0, dir: 1 },
+  k: { axis: 0, dir: -1 },
+  j: { axis: 1, dir: 1 },
+  l: { axis: 1, dir: -1 },
+  u: { axis: 2, dir: 1 },
+  o: { axis: 2, dir: -1 },
+}
+
+export type JogMode = "tcp" | "joint"

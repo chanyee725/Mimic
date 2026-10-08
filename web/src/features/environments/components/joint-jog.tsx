@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 import { useJogKeys } from "../hooks/use-jog-keys"
 
-export function KeyboardJog({ session }: { session: SimTeleop }) {
+export function JointJog({ session }: { session: SimTeleop }) {
   const names = session.joints.map((j) => j.name)
   const running = session.state === "running"
   const jog = useJogKeys(names, running)

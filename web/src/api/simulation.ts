@@ -9,6 +9,7 @@ import type {
   SimEnv,
   SimEpisode,
   SimEpisodeResult,
+  SimJog,
   SimJob,
   SimJobCreate,
   SimJobStatus,
@@ -164,8 +165,8 @@ export const useCaptureLeaderRest = () =>
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
   })
 
-/** Keyboard teleoperation: joints to move now (degrees per second); {} stops. Fire and forget, resent while keys are held */
-export const sendSimJog = (velocities: Record<string, number>) => api.put("/sim/teleop/jog", { velocities }).catch(() => undefined)
+/** Keyboard teleoperation: joint speeds or a TCP twist to move with now. Fire and forget, resent while keys are held */
+export const sendSimJog = (body: SimJog) => api.put("/sim/teleop/jog", body).catch(() => undefined)
 
 export const useStopSimTeleop = () =>
   useMutation({

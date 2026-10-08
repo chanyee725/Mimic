@@ -18,13 +18,13 @@ export function useJogKeys(joints: string[], enabled: boolean) {
     const h = { joint, dir, slow }
     heldRef.current = h
     setHeld(h)
-    void sendSimJog({ [joint]: dir * (slow ? JOG_SLOW_DEG_S : JOG_DEG_S) })
+    void sendSimJog({ velocities: { [joint]: dir * (slow ? JOG_SLOW_DEG_S : JOG_DEG_S) } })
   }
   const release = () => {
     if (!heldRef.current) return
     heldRef.current = null
     setHeld(null)
-    void sendSimJog({})
+    void sendSimJog({ velocities: {} })
   }
 
   const live = useRef({ joints, index, enabled, press, release })
@@ -62,7 +62,7 @@ export function useJogKeys(joints: string[], enabled: boolean) {
   useEffect(() => {
     if (!held) return
     const t = window.setInterval(
-      () => void sendSimJog({ [held.joint]: held.dir * (held.slow ? JOG_SLOW_DEG_S : JOG_DEG_S) }),
+      () => void sendSimJog({ velocities: { [held.joint]: held.dir * (held.slow ? JOG_SLOW_DEG_S : JOG_DEG_S) } }),
       JOG_RESEND_MS,
     )
     return () => window.clearInterval(t)
