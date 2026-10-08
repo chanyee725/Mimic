@@ -94,6 +94,18 @@ export const useStopSimJob = () => useMutation({ mutationFn: (id: string) => api
 /** Thumbnail image of an environment (404 when it has none) */
 export const simEnvThumbnailUrl = (id: string) => `${API_BASE}/sim/envs/${encodeURIComponent(id)}/thumbnail`
 
+/** glTF binary (Y-up, meters) of a robot or tool USD; 422 when it has no mesh or conversion fails */
+export const simAssetModelUrl = (kind: SimAssetKind, id: string) => `${API_BASE}/sim/${kind}s/${encodeURIComponent(id)}/model.glb`
+
+/** The model as bytes for the 3D preview. The first request converts the USD (up to ~30 s), so no retries */
+export const useSimAssetModel = (kind: SimAssetKind, id: string, updatedAt: string) =>
+  useQuery({
+    queryKey: [...qk.sim, "model", kind, id, updatedAt],
+    queryFn: () => api.getBuffer(simAssetModelUrl(kind, id)),
+    staleTime: Infinity,
+    retry: false,
+  })
+
 /** Rollout video of one episode (501 until Isaac Sim is connected) */
 export const simEpisodeVideoUrl = (jobId: string, index: number, camera: string) =>
   `${API_BASE}/sim/jobs/${encodeURIComponent(jobId)}/episodes/${index}/video/${encodeURIComponent(camera)}`
