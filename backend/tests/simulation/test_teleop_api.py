@@ -133,6 +133,16 @@ def test_keyboard_jogs_any_robot(client, fake):
     b = {j["name"]: j["value"] for j in client.get("/sim/teleop").json()["joints"]}["joint2"]
     assert a == b and a > 1 and moved["deviceId"] == "keyboard"
 
+    # TCP: only for a robot with robot.yaml tcp
+    assert client.put("/sim/teleop/jog", json={"twist": [0.05, 0, 0, 0, 0, 0]}).status_code == 422
+    from app.configs.config import config
+
+    (config.sim_robots_dir / "arm.yaml").write_text("tcp:\n  link: link2\n")
+    assert client.put("/sim/teleop/jog", json={"twist": [9, 0, 0, 0, 0, 0]}).status_code == 204
+    tcp = _wait(client, lambda b: b["tcp"] and b["tcp"][0] > 0.02)["tcp"]
+    assert tcp[1:] == [0.0] * 5  # capped at 0.25 m/s, x only
+    assert client.get("/sim/robots").json()[0]["tcp"] == "link2"
+
     assert client.delete("/sim/teleop").status_code == 204
     assert client.put("/sim/teleop/jog", json={"velocities": {}}).status_code == 404
     client.post("/sim/runner/stop")

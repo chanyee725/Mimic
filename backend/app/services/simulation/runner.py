@@ -40,7 +40,7 @@ SERVER_START_S = 10.0
 MAX_ENV_BYTES = 512 * 1024 * 1024
 PREVIEW_SCRIPT = "preview.py"
 # Servers older than this lack /joints jog or /state joints (teleoperation); a local one is restarted
-JOINTS_VERSION = 4
+JOINTS_VERSION = 5
 # A tool stands this high above the floor when opened alone (m)
 TOOL_PREVIEW_Z = 0.3
 # Relative asset paths in text USD layers: @./x.usd@, @../tools/hand/hand.usda@
@@ -347,10 +347,13 @@ def send_joints(targets: dict[str, float], percent: list[str], play: bool = Fals
     _request("/joints", json.dumps(body).encode())
 
 
-def send_jog(velocities: dict[str, float], play: bool = False) -> None:
-    """Keyboard teleoperation: move these joints at degrees per second (the app stops them at the
-    limits, and when no command comes for a moment)."""
-    _request("/joints", json.dumps({"jog": velocities, "play": play}).encode())
+def send_jog(
+    velocities: dict[str, float], twist: list[float] | None = None, play: bool = False
+) -> None:
+    """Keyboard teleoperation: move these joints at degrees per second, or the TCP by twist (its
+    own frame; m/s, deg/s). The app stops at the limits, and when no command comes for a moment."""
+    body = {"twist": twist} if twist else {"jog": velocities}
+    _request("/joints", json.dumps(body | {"play": play}).encode())
 
 
 def check() -> ConnTestResult:

@@ -21,7 +21,7 @@ def teleop_state():
 
 @router.put("/teleop/jog", status_code=204)
 def jog(body: SimJog):
-    service.teleop.set_jog(body.velocities)
+    service.teleop.set_jog(body.velocities, body.twist)
     return Response(status_code=204)
 
 

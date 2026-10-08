@@ -44,6 +44,8 @@ export type SimAsset = {
   initialPose: Record<string, number> | null
   /** Robots: what a leader reads in initialPose (robot.yaml leader.rest); teleoperation sends initialPose + (reading − rest) */
   leaderRest: Record<string, number> | null
+  /** Robots: link the tool center point rides on (robot.yaml tcp.link); null = no TCP jog */
+  tcp: string | null
 }
 
 export type SimAssetKind = "robot" | "tool"
@@ -69,6 +71,8 @@ export type SimTeleop = {
   error: string | null
   startedAt: string
   joints: SimTeleopJoint[]
+  /** Keyboard sessions: live TCP pose [x, y, z (m, world), roll, pitch, yaw (deg)]; null when unknown */
+  tcp: number[] | null
 }
 
 /** POST /sim/teleop body; display defaults to the Connection setting */
@@ -76,6 +80,12 @@ export type SimTeleopCreate = { robotId: string; deviceId: string; display?: Isa
 
 /** Device id of keyboard teleoperation: jog any robot's joints from the page (no leader arm) */
 export const SIM_KEYBOARD = "keyboard"
+
+/**
+ * PUT /sim/teleop/jog body. velocities: joint → deg/s ({} stops);
+ * twist: [vx, vy, vz, wx, wy, wz] in the TCP (tool) frame, m/s and deg/s (all zeros stops)
+ */
+export type SimJog = { velocities: Record<string, number> } | { twist: number[] }
 
 export const isSimTeleopActive = (t: SimTeleop | null | undefined) => t?.state === "starting" || t?.state === "running"
 

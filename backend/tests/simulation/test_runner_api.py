@@ -216,5 +216,5 @@ def test_an_outdated_local_server_is_restarted(client, local_server, monkeypatch
     client.post("/sim/runner/start")
     [new] = runner._local_server_pids(settings.get_settings().connection.isaac.port)
     assert new != old and client.get("/sim/runner").json()["reachable"]
-    monkeypatch.setattr(runner, "JOINTS_VERSION", 4)
+    monkeypatch.setattr(runner, "JOINTS_VERSION", 5)
     client.post("/sim/runner/stop")

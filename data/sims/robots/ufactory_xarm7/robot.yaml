@@ -11,3 +11,8 @@ initial_pose:
   joint6: 0
   joint7: 9.6
 percent: []
+# Keyboard TCP jog: the flange (tool0) on link7; the arm joints move, not the hand's
+tcp:
+  link: link7
+  offset: [0, 0, 0]
+  joints: [joint1, joint2, joint3, joint4, joint5, joint6, joint7]
