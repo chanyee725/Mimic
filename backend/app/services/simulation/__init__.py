@@ -1,7 +1,7 @@
-"""Simulation: environment scripts (envs, scanner), evaluation jobs (jobs) and the Isaac Sim server
-(runner)."""
+"""Simulation: environment scripts (envs, scanner), evaluation jobs (jobs), the Isaac Sim server
+(runner) and robot / tool previews (preview)."""
 
-from app.services.simulation import envs, jobs, runner, teleop
+from app.services.simulation import envs, jobs, preview, runner, teleop
 from app.services.simulation.envs import (
     delete_env,
     find_env,
@@ -28,6 +28,7 @@ from app.services.simulation.jobs import (
     sim_config,
     stop_job,
 )
+from app.services.simulation.preview import model as preview_model
 
 __all__ = [
     "ACTIVE",
@@ -44,6 +45,7 @@ __all__ = [
     "list_robots",
     "list_tools",
     "page_episodes",
+    "preview_model",
     "reset",
     "rescan",
     "rig_problem",

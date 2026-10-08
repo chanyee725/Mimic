@@ -10,6 +10,7 @@ import { simAssetScene, type SimAsset, type SimAssetKind, type SimEnv } from "@/
 import { formatDateTime } from "@/lib/format"
 
 import { formatKB } from "../lib"
+import { AssetPreview } from "./asset-preview"
 import { EnvFiles } from "./env-files"
 import { IsaacStatus } from "./isaac-status"
 import { TeleopDialog } from "./teleop-dialog"
@@ -83,6 +84,7 @@ export function AssetDetail({ kind, asset, envs }: { kind: SimAssetKind; asset: 
         <DetailList rows={details} bordered />
       </section>
       <EnvFiles files={asset.files} />
+      <AssetPreview key={`${kind}/${asset.id}`} kind={kind} asset={asset} />
       {/* Mounted only while open so every opening starts with a fresh connection test */}
       {teleop && <TeleopDialog kind={kind} asset={asset} open onOpenChange={setTeleop} />}
     </Panel>

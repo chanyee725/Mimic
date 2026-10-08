@@ -28,6 +28,20 @@ function url(path: string, query?: Query) {
   return `${API_BASE}${path}${qs ? `?${qs}` : ""}`
 }
 
+async function throwIfFailed(res: Response) {
+  if (res.ok) return
+  const err = await res.json().catch(() => null)
+  const e = err?.error
+  throw new ApiError(res.status, e?.code ?? "error", e?.message ?? res.statusText, e?.details ?? {})
+}
+
+/** GET a binary body from a full URL (e.g. a glTF model) with the same error handling as JSON requests */
+async function getBuffer(href: string): Promise<ArrayBuffer> {
+  const res = await fetch(href)
+  await throwIfFailed(res)
+  return res.arrayBuffer()
+}
+
 async function request<T>(method: string, path: string, body?: unknown, query?: Query): Promise<T> {
   const isText = typeof body === "string"
   const res = await fetch(url(path, query), {
@@ -35,11 +49,7 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
     headers: body === undefined ? undefined : { "Content-Type": isText ? "text/yaml" : "application/json" },
     body: body === undefined ? undefined : isText ? body : JSON.stringify(body),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => null)
-    const e = err?.error
-    throw new ApiError(res.status, e?.code ?? "error", e?.message ?? res.statusText, e?.details ?? {})
-  }
+  await throwIfFailed(res)
   if (res.status === 204) return undefined as T
   const type = res.headers.get("content-type") ?? ""
   // The SPA's index.html means /api isn't reaching the backend (dev proxy missing or backend down)
@@ -51,6 +61,7 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
 
 export const api = {
   get: <T>(path: string, query?: Query) => request<T>("GET", path, undefined, query),
+  getBuffer,
   post: <T>(path: string, body?: unknown, query?: Query) => request<T>("POST", path, body ?? {}, query),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),

@@ -114,6 +114,8 @@ SimJob = {
 | PATCH | `/sim/envs/{id}` | `{ robots: string[] }` | `SimEnv` with the new tags (`[]` clears them); 404 if unknown, 422 with `details.robots` for a robot not under `robots/` | Robots checkboxes |
 | GET | `/sim/robots` | | `SimAsset[]` by id | Robots checkboxes, Robots tab |
 | GET | `/sim/tools` | | `SimAsset[]` by id (tools/) | Tools tab |
+| GET | `/sim/robots/{id}/model.glb` | | `model/gltf-binary`: static 3D preview of the robot (see below); 404 unknown id, 422 when the USD has no visible mesh or fails to convert | Robots tab: 3D preview |
+| GET | `/sim/tools/{id}/model.glb` | | the same for a tool | Tools tab: 3D preview |
 | GET | `/sim/envs/{id}/thumbnail` | | the image (`image/png`, `image/jpeg`, `image/webp`); 404 when the env is unknown or has none | Environment thumbnail |
 | POST | `/sim/envs/rescan` | | `{ dir: string; scannedAt: string; envs: SimEnv[] }` | Rescan |
 | DELETE | `/sim/envs/{id}` | | 204; deletes the file or folder. 404 if unknown; 409 with `details.tasks` while a task's `envId` uses it | Delete |
@@ -131,6 +133,12 @@ Notes:
   `maxSeconds` 40, `randomization` `"low"`. A valid request then gets 503 until the runner exists.
 - One job holds the GPU at a time (`/sim/config` `gpu.busyBy`). When the running job ends (done, failed, stopped), the oldest
   queued job starts.
+- `model.glb` (`app.services.simulation.preview`, `usd-core`): the composed stage of the root USD (with the robots / tools it
+  references), meshes that are visible and of purpose `default` / `render` only — collision meshes are `guide` in these assets —
+  fan-triangulated, identical points welded, world transforms baked, in metres and turned Z-up → Y-up. One material per colour
+  (`displayColor`, else UsdPreviewSurface `diffuseColor`, else OmniPBR `diffuse_color_constant` × `diffuse_tint` from the shader or
+  its `.mdl`, else grey); no normals or textures, so shade it flat (`flatShading`). Cached as
+  `<data>/cache/sim-models/<kind>-<id>-<hash>.glb`, keyed by the sizes and mtimes of every file it composes from.
 - Episode video is `501 not_implemented` until Isaac Sim is connected; unknown job / episode index is 404, and so is a camera that is not one of the model's task cameras.
 
 Live: `sim.envs` (`{ envs }` after a rescan or delete), `sim.updated` (status, counts, eta) and `sim.episode` (each finished episode) events; live Isaac Sim view over WebRTC.

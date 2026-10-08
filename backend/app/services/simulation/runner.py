@@ -237,7 +237,7 @@ def _referenced_assets(files: list[Path]) -> set[Path]:
     return found
 
 
-def _usd_files(usd: Path) -> list[Path]:
+def usd_files(usd: Path) -> list[Path]:
     """A robot or tool with every robots/<x> or tools/<x> its text layers reference by relative
     path (e.g. an arm and a hand composed into one robot), recursively; nothing outside the sim
     folder."""
@@ -262,7 +262,7 @@ def _archive(path: Path | None, robot: Path | None = None, script: str | None = 
     root = config.sim_dir
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-        for p in (_files(path) if path else []) + (_usd_files(robot) if robot else []):
+        for p in (_files(path) if path else []) + (usd_files(robot) if robot else []):
             tar.add(p, arcname=str(p.relative_to(root)))
         if script is not None:
             data = script.encode()
