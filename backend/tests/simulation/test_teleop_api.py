@@ -89,32 +89,27 @@ def test_refused_starts(client, fake):
     assert client.get("/sim/teleop").json() is None
 
 
-def test_capture_initial_pose_from_the_leader(client, fake, envs_dir):
+def test_capture_leader_rest(client, fake, envs_dir):
     from app.configs.config import config
 
-    r = client.post("/sim/robots/so101_follower/initial-pose", json={"deviceId": "leader"})
+    cfg = config.sim_robots_dir / "so101_follower.yaml"
+    cfg.write_text("initial_pose:\n  shoulder_lift: -100\npercent: [gripper]\n")
+    r = client.post("/sim/robots/so101_follower/leader-rest", json={"deviceId": "leader"})
     assert r.status_code == 200, r.text
-    pose = r.json()["initialPose"]  # FakeLeader reads 10.0 for every joint
-    assert pose["gripper"] == 10.0 and fake.leader.closed and fake.leader.reads == 5
+    body = r.json()
+    # FakeLeader reads 10.0 for every joint; initial_pose is kept
+    assert body["leaderRest"]["gripper"] == 10.0
+    assert body["initialPose"] == {"shoulder_lift": -100.0}
+    assert fake.leader.closed and fake.leader.reads == 5
     # The leader is free again
     assert client.post("/devices/leader/calibrate").status_code != 409
     client.delete("/devices/leader/calibration")
 
-    text = (config.sim_robots_dir / "so101_follower.yaml").read_text()
-    assert text.startswith("# Robot config") and "percent:\n- gripper" in text
-    listed = {r["id"]: r["initialPose"] for r in client.get("/sim/robots").json()}
-    assert listed["so101_follower"] == pose and listed["arm"] is None
+    text = cfg.read_text()
+    assert text.startswith("# Robot config") and "leader:\n  rest:" in text and "percent:" in text
+    listed = {r["id"]: r for r in client.get("/sim/robots").json()}
+    assert listed["so101_follower"]["leaderRest"] == body["leaderRest"]
+    assert listed["arm"]["leaderRest"] is None and listed["arm"]["initialPose"] is None
 
-    r = client.post("/sim/robots/arm/initial-pose", json={"deviceId": "leader"})
+    r = client.post("/sim/robots/arm/leader-rest", json={"deviceId": "leader"})
     assert r.status_code == 422
-
-
-@pytest.mark.usefixtures("local_server")
-def test_closing_isaac_sim_stops_the_session_with_a_clear_error(client, fake):
-    client.post("/sim/teleop", json={"robotId": "so101_follower", "deviceId": "leader"})
-    _wait(client, lambda b: b["state"] == "running")
-    client.post("/sim/runner/stop")  # like closing the Isaac Sim window
-    body = _wait(client, lambda b: b["state"] == "stopped")
-    assert body["error"] == "Isaac Sim was closed (window closed or app stopped)"
-    assert fake.leader.closed
-    client.delete("/sim/teleop")

@@ -53,6 +53,7 @@ class Scene:
         self.sim_dir = sim_dir
         self.robot_name = robot
         self.robot_path: str | None = None
+        self.leader_offsets: dict[str, float] = {}  # leader reading → joint value (robot.yaml)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
         UsdGeom.SetStageMetersPerUnit(stage, 1.0)
         world = UsdGeom.Xform.Define(stage, "/World")
@@ -106,7 +107,9 @@ class Scene:
             raise ValueError("no robot: tag the environment with one on the Environments page")
         prim = self._articulation("/World/Robot", self.sim_dir / "robots", name, pos, yaw)
         self.robot_path = str(prim.GetPath())
-        pose, percent = initial_pose(_usd_file(self.sim_dir / "robots", name))
+        usd = _usd_file(self.sim_dir / "robots", name)
+        self.leader_offsets = leader_offsets(usd)
+        pose, percent = initial_pose(usd)
         if pose:
             Drives(self.stage, self.robot_path).start_at(pose, percent)
         return prim
@@ -177,6 +180,10 @@ def robot_config(usd: Path) -> Path:
     return usd.parent / "robot.yaml" if usd.parent.name == usd.stem else usd.with_suffix(".yaml")
 
 
+def _floats(d) -> dict[str, float]:
+    return {str(k): float(v) for k, v in (d or {}).items()}
+
+
 def initial_pose(usd: Path) -> tuple[dict[str, float], tuple[str, ...]]:
     """initial_pose (joint name → degrees) and its percent joints (0–100 over the limits) from
     the robot's config; empty without one."""
@@ -184,8 +191,19 @@ def initial_pose(usd: Path) -> tuple[dict[str, float], tuple[str, ...]]:
     if not path.is_file():
         return {}, ()
     doc = yaml.safe_load(path.read_text()) or {}
-    pose = {str(k): float(v) for k, v in (doc.get("initial_pose") or {}).items()}
-    return pose, tuple(doc.get("percent") or ())
+    return _floats(doc.get("initial_pose")), tuple(doc.get("percent") or ())
+
+
+def leader_offsets(usd: Path) -> dict[str, float]:
+    """What to add to a leader reading to get the robot's joint value: the leader reads
+    leader.rest while the robot is in initial_pose (a LeRobot leader reads 0° at the pose it was
+    calibrated in, which need not be the USD's zero)."""
+    path = robot_config(usd)
+    if not path.is_file():
+        return {}
+    doc = yaml.safe_load(path.read_text()) or {}
+    pose, rest = _floats(doc.get("initial_pose")), _floats((doc.get("leader") or {}).get("rest"))
+    return {j: pose.get(j, 0.0) - v for j, v in rest.items()}
 
 
 class Drives:
@@ -195,6 +213,7 @@ class Drives:
     def __init__(self, stage: Usd.Stage, root: str = "/World/Robot"):
         self.drives: dict[str, tuple[UsdPhysics.DriveAPI, float | None, float | None]] = {}
         self.kinds: dict[str, str] = {}  # "angular" | "linear"
+        self.offsets: dict[str, float] = {}  # added to a leader reading (scene.leader_offsets)
         prim = stage.GetPrimAtPath(root)
         if not prim:
             return

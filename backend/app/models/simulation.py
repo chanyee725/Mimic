@@ -47,6 +47,8 @@ class SimAsset(CamelModel):
     teleop: list[str] = []  # leader types that can drive it (so101_follower ← so101_leader)
     # robots: start pose from <id>/robot.yaml (joint → degrees; percent joints 0–100), null when unset
     initial_pose: dict[str, float] | None = None
+    # robots: what a leader reads in initial_pose (robot.yaml leader.rest), null when unset
+    leader_rest: dict[str, float] | None = None
 
 
 class SimGpu(CamelModel):
