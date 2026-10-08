@@ -75,6 +75,7 @@ class SimRunnerApp(CamelModel):
     pid: int | None = None
     scene: str | None = None  # id of the open environment
     error: str | None = None
+    joints: dict[str, float] | None = None  # drive target per joint of the open robot (degrees)
 
 
 class SimRunner(CamelModel):

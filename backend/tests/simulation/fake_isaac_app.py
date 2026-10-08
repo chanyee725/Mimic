@@ -9,7 +9,7 @@ p.add_argument("--port", type=int, required=True)
 p.add_argument("--headless", action="store_true")
 p.add_argument("--device", choices=("gpu", "cpu"), default="gpu")
 args = p.parse_args()
-state = {"scene": None, "error": None}
+state = {"scene": None, "error": None, "joints": None}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -29,11 +29,14 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)))
         if self.path == "/joints":
-            state["joints"] = body
+            if "jog" in body:  # keyboard: move the targets by one 1/30 s step
+                for j, v in body["jog"].items():
+                    state["joints"][j] = state["joints"].get(j, 0.0) + v / 30
             return self._send(202, state)
         with open(body["path"]) as f:  # the extracted scene must be readable
             f.read()
         state["scene"] = body["path"]
+        state["joints"] = {"joint1": 0.0, "joint2": 0.0}  # a two-joint robot
         self._send(202, state)
 
 

@@ -245,6 +245,20 @@ class Drives:
                 applied.append(name)
         return applied
 
+    def targets(self) -> dict[str, float]:
+        """Present drive target per joint (degrees)."""
+        return {n: float(d.GetTargetPositionAttr().Get() or 0.0) for n, (d, _, _) in self.drives.items()}
+
+    def jog(self, velocities: dict[str, float], dt: float) -> None:
+        """Moves drive targets by velocity × dt (degrees per second), stopping at the limits."""
+        for name, v in velocities.items():
+            if name in self.drives and v:
+                drive, lo, hi = self.drives[name]
+                value = float(drive.GetTargetPositionAttr().Get() or 0.0) + v * dt
+                if lo is not None and hi is not None:
+                    value = max(lo, min(hi, value))
+                drive.GetTargetPositionAttr().Set(value)
+
     def start_at(self, pose: dict[str, float], percent: tuple[str, ...] = ()) -> list[str]:
         """Initial joint state (PhysicsJointStateAPI) and drive target, so the robot starts and
         holds there when Play starts."""

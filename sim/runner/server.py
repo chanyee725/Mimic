@@ -15,10 +15,11 @@ API (JSON):
                                    path in it (default env.py), with <robot> as the robot scene.robot()
                                    places, starting the app
                                    first when it is not running
-  POST /joints {"targets", "percent", "play"}  teleoperation: forwarded to the app (app.py); 409
+  POST /joints {"targets", "percent", "play"} or {"jog", "play"}  teleoperation: forwarded to the
+                                   app (app.py); 409
                                    while the app is not running
 AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "device", "pid", "scene",
-            "error"}
+            "error", "joints": {joint: drive target in degrees} | null}
 """
 
 import argparse
@@ -39,7 +40,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = 3
+VERSION = 4
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")
@@ -94,14 +95,16 @@ class App:
                 state = "running" if self.ready else "starting"
             pid = self.proc.pid if self.proc and state in ("starting", "running") else None
             scene, error = (self.scene if state == "running" else None), self.error
+        joints = None
         if state == "running" and error is None:
-            # A failing environment script is reported by the app
+            # A failing environment script is reported by the app; joints: the robot's drive targets
             try:
-                error = _get(f"http://127.0.0.1:{self.port}/state", timeout=0.5).get("error")
+                app_state = _get(f"http://127.0.0.1:{self.port}/state", timeout=0.5)
+                error, joints = app_state.get("error"), app_state.get("joints")
             except OSError:
                 pass
             if error:
-                scene = None
+                scene, joints = None, None
         return {
             "state": state,
             "display": self.display,
@@ -109,6 +112,7 @@ class App:
             "pid": pid,
             "scene": scene,
             "error": error,
+            "joints": joints,
         }
 
     def start(self, display: str, device: str = "gpu") -> None:
