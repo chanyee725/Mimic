@@ -6,7 +6,7 @@ import { StatusDot, type Tone } from "@/components/common/status-dot"
 import { useSimRunner, useStopSimRunner } from "@/api/simulation"
 import type { SimRunner } from "@/domain/simulation"
 
-function describe(r: SimRunner, envId: string): { tone: Tone; text: string } {
+function describe(r: SimRunner, scene: string): { tone: Tone; text: string } {
   const where = r.mode === "local" ? "this station" : r.url
   if (!r.reachable) {
     return r.mode === "local" ? { tone: "muted", text: "Isaac Sim off" } : { tone: "bad", text: `Isaac Sim server unreachable (${r.url})` }
@@ -15,16 +15,16 @@ function describe(r: SimRunner, envId: string): { tone: Tone; text: string } {
   if (!app || app.state === "stopped") return { tone: "muted", text: `Isaac Sim stopped, ${where}` }
   if (app.state === "exited") return { tone: "bad", text: app.error ?? "Isaac Sim exited" }
   if (app.state === "starting") return { tone: "info", text: `Isaac Sim starting (${app.display}), ${where}…` }
-  const scene = app.scene === envId ? "this environment is open" : app.scene ? `${app.scene} is open` : "no scene open"
-  return { tone: "ok", text: `Isaac Sim running (${app.display}), ${scene}` }
+  const open = app.scene === scene ? "this one is open" : app.scene ? `${app.scene} is open` : "no scene open"
+  return { tone: "ok", text: `Isaac Sim running (${app.display}), ${open}` }
 }
 
-/** Isaac Sim server and app state for the environment detail, with Stop while the app runs */
-export function IsaacStatus({ envId }: { envId: string }) {
+/** Isaac Sim server and app state for a detail panel (scene: the env id, or robot-<id> / tool-<id>), with Stop while the app runs */
+export function IsaacStatus({ scene }: { scene: string }) {
   const runner = useSimRunner()
   const stop = useStopSimRunner()
   if (!runner.data) return <ErrorNote error={runner.error} onRetry={() => void runner.refetch()} />
-  const { tone, text } = describe(runner.data, envId)
+  const { tone, text } = describe(runner.data, scene)
   const active = runner.data.app?.state === "starting" || runner.data.app?.state === "running"
 
   return (
