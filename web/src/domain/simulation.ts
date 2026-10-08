@@ -42,6 +42,8 @@ export type SimAsset = {
   teleop: string[]
   /** Robots: start pose from <id>/robot.yaml (joint → degrees; gripper 0–100); null when unset */
   initialPose: Record<string, number> | null
+  /** Robots: what a leader reads in initialPose (robot.yaml leader.rest); teleoperation sends initialPose + (reading − rest) */
+  leaderRest: Record<string, number> | null
 }
 
 export type SimAssetKind = "robot" | "tool"

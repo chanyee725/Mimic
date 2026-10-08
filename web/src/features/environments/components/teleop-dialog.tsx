@@ -80,8 +80,8 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
 
           {supported && (
             <p className="text-xs text-muted-foreground">
-              Save initial pose 는 지금 리더 팔의 자세를 이 로봇의 초기 자세(robot.yaml)로 저장합니다. 다음에 로봇을 열 때부터 그 자세로
-              시작합니다.
+              Align leader 는 리더 팔을 이 로봇의 초기 자세(SO-101 은 접힌 자세)와 같은 자세에 두고 누릅니다. 그때 읽은 값을 기준으로 리더
+              각도를 시뮬레이션 각도에 맞춥니다 (robot.yaml leader.rest). 다음 Start 부터 적용됩니다.
             </p>
           )}
           {flow.captured && (
@@ -101,7 +101,7 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
           {supported && (
             <Button variant="outline" className="sm:mr-auto" disabled={!flow.canCapture} onClick={flow.capture}>
               <LuBookmark />
-              {flow.capturing ? "Saving…" : "Save initial pose"}
+              {flow.capturing ? "Saving…" : "Align leader"}
             </Button>
           )}
           <Button variant="outline" onClick={close}>

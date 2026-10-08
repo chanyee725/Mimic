@@ -156,11 +156,11 @@ export const useStartSimTeleop = () =>
   })
 
 /** Disconnects the leader; the Isaac Sim scene stays open. 404 when none */
-/** The leader's present position becomes the robot's initial pose (written to its robot.yaml) */
-export const useCaptureInitialPose = () =>
+/** The leader, held in the robot's initial pose, is read and saved as its rest (robot.yaml leader.rest) */
+export const useCaptureLeaderRest = () =>
   useMutation({
     mutationFn: ({ robotId, deviceId }: { robotId: string; deviceId: string }) =>
-      api.post<SimAsset>(`/sim/robots/${encodeURIComponent(robotId)}/initial-pose`, { deviceId }),
+      api.post<SimAsset>(`/sim/robots/${encodeURIComponent(robotId)}/leader-rest`, { deviceId }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
   })
 
