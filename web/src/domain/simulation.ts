@@ -40,6 +40,8 @@ export type SimAsset = {
   updatedAt: string
   /** Leader device types (LeRobot, e.g. so101_leader) that can drive it; [] = none, always [] for tools */
   teleop: string[]
+  /** Robots: start pose from <id>/robot.yaml (joint → degrees; gripper 0–100); null when unset */
+  initialPose: Record<string, number> | null
 }
 
 export type SimAssetKind = "robot" | "tool"
