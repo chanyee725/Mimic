@@ -64,6 +64,7 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
                 {flow.leaders.length > 0 && (
                   <LeaderPicker
                     leaders={flow.leaders}
+                    fits={flow.fits}
                     value={flow.leader?.id}
                     onChange={flow.pick}
                     disabled={flow.starting}

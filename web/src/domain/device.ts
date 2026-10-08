@@ -14,6 +14,8 @@ export type Device = {
   id: string
   name: string
   type: DeviceType
+  /** LeRobot type from the rig file (so101_leader, …); null for cameras */
+  driver: string | null
   port: string
   health: Health
   calibration: { done: boolean; note: string }

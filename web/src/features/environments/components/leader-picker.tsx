@@ -10,6 +10,7 @@ import { HEALTH_TONE } from "../lib"
 /** Leader arms to pick from, with the connection test of the picked one */
 export function LeaderPicker({
   leaders,
+  fits,
   value,
   onChange,
   disabled,
@@ -18,6 +19,8 @@ export function LeaderPicker({
   onTest,
 }: {
   leaders: Device[]
+  /** Whether a leader can drive the robot; the others are listed but cannot be picked */
+  fits: (d: Device) => boolean
   value: string | undefined
   onChange: (id: string) => void
   disabled: boolean
@@ -31,13 +34,15 @@ export function LeaderPicker({
       <ul className="grid gap-0.5 rounded-md border p-1" role="radiogroup" aria-label="Leader device">
         {leaders.map((d) => {
           const on = d.id === value
+          const ok = fits(d)
           return (
             <li key={d.id}>
               <button
                 type="button"
                 role="radio"
                 aria-checked={on}
-                disabled={disabled}
+                disabled={disabled || !ok}
+                title={ok ? undefined : `${d.driver ?? "알 수 없는 장치"} 는 이 로봇을 움직일 수 없습니다.`}
                 onClick={() => onChange(d.id)}
                 className={cn(
                   "grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-accent/60 disabled:pointer-events-none disabled:opacity-60",
@@ -47,7 +52,7 @@ export function LeaderPicker({
                 <span className="grid min-w-0">
                   <span className={cn("truncate", on && "font-medium")}>{d.name}</span>
                   <span className="truncate font-mono text-xs text-muted-foreground">
-                    {d.id} · {d.port || "no port"}
+                    {d.id} · {d.driver ?? "unknown"} · {d.port || "no port"}
                   </span>
                 </span>
                 <StatusDot tone={HEALTH_TONE[d.health]} className="text-xs text-muted-foreground capitalize">
@@ -60,7 +65,12 @@ export function LeaderPicker({
       </ul>
 
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-        <Button variant="outline" size="sm" disabled={disabled || testing || !value} onClick={onTest}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled || testing || !value || !leaders.some((d) => d.id === value && fits(d))}
+          onClick={onTest}
+        >
           <LuPlugZap />
           {testing ? "Testing…" : "Test connection"}
         </Button>

@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { useDevices, useTestDevice } from "@/api/devices"
 import { useSimTeleop, useStartSimTeleop, useStopSimTeleop } from "@/api/simulation"
-import type { DeviceCheck } from "@/domain/device"
+import type { Device, DeviceCheck } from "@/domain/device"
 import { isSimTeleopActive, type SimAsset } from "@/domain/simulation"
 
 /**
@@ -12,8 +12,10 @@ import { isSimTeleopActive, type SimAsset } from "@/domain/simulation"
 export function useTeleopFlow(robot: SimAsset, open: boolean) {
   const devices = useDevices()
   const leaders = (devices.data ?? []).filter((d) => d.type === "teleop")
+  // A leader drives the robot when its LeRobot type is one the robot lists (so101_leader → so101_follower)
+  const fits = (d: Device) => d.driver !== null && robot.teleop.includes(d.driver)
   const [picked, setPicked] = useState<string>()
-  const leader = leaders.find((d) => d.id === picked) ?? leaders[0]
+  const leader = leaders.find((d) => d.id === picked) ?? leaders.find(fits) ?? leaders[0]
 
   const test = useTestDevice()
   // Results of the tests run in this dialog, by device id
@@ -30,12 +32,13 @@ export function useTeleopFlow(robot: SimAsset, open: boolean) {
   // A running session for another robot blocks Start; only Stop is offered for it
   const other = active && current?.robotId !== robot.id ? current : null
 
-  const canStart = !!leader && check?.ok === true && robot.teleop.length > 0 && !active && !start.isPending
+  const canStart = !!leader && fits(leader) && check?.ok === true && !active && !start.isPending
 
   return {
     devices,
     leaders,
     leader,
+    fits,
     pick: setPicked,
     test,
     testing: test.isPending && test.variables === leader?.id,
