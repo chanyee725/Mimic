@@ -18,10 +18,52 @@ sim/
 data/sims/         시뮬레이션 데이터 (git 에 올림, `VLA_SIM_DIR` 로 옮김)
   envs/            환경 스크립트: <env-id>.py, 또는 <env-id>/env.py + 그 환경만 쓰는 파일
   envs.yaml        환경별 로봇 태그 (Environments 화면에서 편집)
-  robot/           로봇 USD: <robot-id>.usd 또는 <robot-id>/<robot-id>.usd
+  robots/          로봇 팔 USD: <robot-id>.usd 또는 <robot-id>/<robot-id>.usd (+ 그 로봇이 쓰는 하위 파일)
+    so101_follower.usd
+    xarm7/         UFactory xArm7 (7축, 그리퍼 없이)
+  tools/           엔드 이펙터 USD (로봇 손, 그리퍼): 같은 규칙. 아직 장면에 놓는 기능은 없습니다
+    inspire_rh56bfx/  Inspire 로봇 손 (6 자유도, 관절 12개, 오른손)
 ```
 
-`data/` 는 git 에 올리지 않지만 `data/sims/` 만은 예외로 저장소에 함께 올립니다. `so101_follower.usd` 는 LightwheelAI 가 배포한 파일입니다 (Apache License 2.0).
+`data/` 는 git 에 올리지 않지만 `data/sims/` 만은 예외로 저장소에 함께 올립니다. 로봇 / 도구 파일의 출처는 아래와 같습니다.
+
+| 파일 | 출처 |
+|---|---|
+| `robots/so101_follower.usd` | LightwheelAI 배포 파일 (Apache License 2.0) |
+| `robots/xarm7/` | NVIDIA Isaac Sim 5.1 에셋 `Robots/Ufactory/xarm7` — 기본 그리퍼 variant 를 `None` 으로 바꿔 팔만 씁니다 |
+| `tools/inspire_rh56bfx/` | NVIDIA Isaac Sim 6.0 에셋 `Samples/Rigging/Inspire/module_5_end-checkpoint_3` (리깅 튜토리얼의 완성본). Inspire RH56 계열 손 모델로, 정확한 세부 모델(BFX / DFX)은 원본에 적혀 있지 않습니다 |
+
+## 장면이 만들어지는 흐름
+
+환경 스크립트는 **무엇을 어디에 놓을지만** 적습니다. 로봇이 무엇인지는 스크립트가 아니라 환경의 로봇 태그가 정하고, 실제 장면 조립은 `sim/runner/` 가 합니다.
+
+```
+Environments 화면 · Open in Isaac Sim
+  │
+  ▼  backend  app/services/simulation/runner.py
+  │    환경 스크립트(폴더면 폴더 전체) + 첫 번째 태그 로봇 USD(폴더면 폴더 전체)를
+  │    data/sims 구조 그대로 tar.gz 로 묶어 POST /scene?env=…&script=…&robot=…
+  ▼
+sim/runner/server.py   (스테이션 127.0.0.1:8211 또는 원격 서버, 표준 라이브러리만)
+  │    ~/.cache/mimic-sim/scenes/<env>/ 에 풀고, Isaac Sim 앱(app.py)을 자식 프로세스로 띄움
+  │    앱이 준비되면 POST /open {path, root, robot}
+  ▼
+sim/runner/app.py      (SimulationApp, window / headless, PhysX GPU / CPU)
+  │    새 stage 를 만들고 scene.build(stage, 스크립트, root, robot) 호출 → 물리 장치 설정
+  ▼
+sim/runner/scene.py    (pxr 만 사용)
+       Scene: /World, 물리 장면(중력), 조명, 바닥을 만든 뒤 스크립트의 build(scene) 실행
+       scene.add(...)   → sim/assets/<name>/<name>.usda 를 참조로 배치
+       scene.robot(...) → <root>/robots/<robot>.usd 를 /World/Robot 에 참조로 배치하고 _pin()
+```
+
+`_pin()` 은 로봇을 놓은 자리에 고정합니다.
+
+1. 로봇 파일에 들어 있는 PhysicsScene 을 끕니다 (장면에는 하나만 둡니다).
+2. 월드에 붙은 로봇 파일 자체의 관절(예: xArm7 의 켜진 `root_joint`)을 끕니다. 이 관절은 월드 좌표에 고정돼 있어서, 두면 스크립트가 정한 위치와 상관없이 원점으로 끌려갑니다.
+3. articulation root 를 로봇 Xform(`/World/Robot`)으로 옮기고, base 를 지금 자세 그대로 월드에 묶는 고정 관절 `mimic_fixed_base` 를 붙입니다. 그래서 Play 해도 로봇이 넘어지지 않습니다.
+
+리더 팔로 시뮬레이션 팔로워를 움직이는 브리지와 평가 루프는 아직 없습니다. 지금은 장면을 열고 Physics Inspector 로 관절을 움직여 보는 데까지입니다.
 
 ## 설치
 
@@ -70,8 +112,9 @@ def build(scene):
 - `scene.stage` 는 `pxr` 스테이지라 그 밖의 것은 직접 만들 수 있습니다.
 - 저장소에 `lift_cube` 환경과 `so101_follower` 로봇(태그 포함)이 들어 있습니다. 로봇 USD 를 다시 받으려면 `scripts/fetch-sim-robot.sh --force` 를 씁니다.
 
-- **로봇 태그:** Environments 화면의 **Robots** 에서 `data/sims/robot/` 의 로봇을 체크합니다 (`data/sims/envs.yaml` 에 저장). 로봇 id 는 LeRobot 팔로워 타입 이름(예: `so101_follower`)으로 둡니다. 태그가 있으면 팔로워가 모두 태그된 로봇인 Rig 의 Task 와 모델에서만 쓰고, 태그가 없으면 모든 Rig 에서 씁니다.
-- 새 로봇은 `data/sims/robot/<robot-id>.usd` 에 USD 를 넣으면 태그 목록에 나타납니다. URDF 에서 만든 USD 에 꺼진 `root_joint` 가 있어도 상관없습니다 (Mimic 이 따로 고정 관절을 붙입니다).
+- **로봇 태그:** Environments 화면의 **Robots** 에서 `data/sims/robots/` 의 로봇을 체크합니다 (`data/sims/envs.yaml` 에 저장). 로봇 id 는 LeRobot 팔로워 타입 이름(예: `so101_follower`)으로 둡니다. 태그가 있으면 팔로워가 모두 태그된 로봇인 Rig 의 Task 와 모델에서만 쓰고, 태그가 없으면 모든 Rig 에서 씁니다.
+- 새 로봇은 `data/sims/robots/<robot-id>.usd` (하위 파일이 있으면 `<robot-id>/<robot-id>.usd`) 에 USD 를 넣으면 태그 목록에 나타납니다. USD 에 `root_joint` 가 켜져 있든 꺼져 있든 상관없습니다 (Mimic 이 끄고 따로 고정 관절을 붙입니다).
+- 로봇 손이나 그리퍼는 `data/sims/tools/` 에 같은 규칙으로 둡니다. 아직 스캔하거나 장면에 놓지는 않습니다 (팔 끝에 붙이는 `scene.tool()` 은 다음 단계).
 - `_` 나 `.` 로 시작하는 파일과 폴더는 스캔하지 않습니다. 폴더 위치는 환경 변수 `VLA_SIM_DIR` (기본값 `data/sims`).
 - Task 가 쓰고 있는 환경은 지울 수 없습니다.
 - 썸네일: 스크립트 옆에 같은 이름의 이미지(`lift_cube.py` → `lift_cube.png`, jpg / webp 도 가능)를 두거나, 폴더 환경이면 안에 `thumbnail.png` 를 둡니다.
