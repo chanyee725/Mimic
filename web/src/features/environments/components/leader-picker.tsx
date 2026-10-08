@@ -1,0 +1,77 @@
+import { LuPlugZap } from "react-icons/lu"
+
+import { Button } from "@/components/ui/button"
+import { StatusDot } from "@/components/common/status-dot"
+import type { Device, DeviceCheck } from "@/domain/device"
+import { cn } from "@/lib/utils"
+
+import { HEALTH_TONE } from "../lib"
+
+/** Leader arms to pick from, with the connection test of the picked one */
+export function LeaderPicker({
+  leaders,
+  value,
+  onChange,
+  disabled,
+  testing,
+  check,
+  onTest,
+}: {
+  leaders: Device[]
+  value: string | undefined
+  onChange: (id: string) => void
+  disabled: boolean
+  testing: boolean
+  /** Result of the test run in this dialog for the picked leader */
+  check: DeviceCheck | undefined
+  onTest: () => void
+}) {
+  return (
+    <div className="grid gap-2">
+      <ul className="grid gap-0.5 rounded-md border p-1" role="radiogroup" aria-label="Leader device">
+        {leaders.map((d) => {
+          const on = d.id === value
+          return (
+            <li key={d.id}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={on}
+                disabled={disabled}
+                onClick={() => onChange(d.id)}
+                className={cn(
+                  "grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-accent/60 disabled:pointer-events-none disabled:opacity-60",
+                  on && "bg-accent hover:bg-accent",
+                )}
+              >
+                <span className="grid min-w-0">
+                  <span className={cn("truncate", on && "font-medium")}>{d.name}</span>
+                  <span className="truncate font-mono text-xs text-muted-foreground">
+                    {d.id} · {d.port || "no port"}
+                  </span>
+                </span>
+                <StatusDot tone={HEALTH_TONE[d.health]} className="text-xs text-muted-foreground capitalize">
+                  {d.health}
+                </StatusDot>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <Button variant="outline" size="sm" disabled={disabled || testing || !value} onClick={onTest}>
+          <LuPlugZap />
+          {testing ? "Testing…" : "Test connection"}
+        </Button>
+        {check ? (
+          <StatusDot tone={check.ok ? "ok" : "bad"} className="min-w-0 text-[13px] text-muted-foreground">
+            <span className="min-w-0 [overflow-wrap:anywhere]">{check.message || (check.ok ? "Connected" : "Failed")}</span>
+          </StatusDot>
+        ) : (
+          <span className="text-xs text-muted-foreground">연결 테스트에 성공해야 시작할 수 있습니다.</span>
+        )}
+      </div>
+    </div>
+  )
+}
