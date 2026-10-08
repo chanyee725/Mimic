@@ -71,7 +71,6 @@ def _snapshot() -> CaptureState:
     return CaptureState(
         phase=phase,
         task_id=s.task.id,
-        operator=s.operator,
         episode_id=f"{s.task.id}-{s.episode}",
         started_at=to_iso(s.recording_at, ms=True),
         elapsed_s=round(elapsed, 3),
@@ -141,19 +140,17 @@ def _release(s: Session | None) -> None:
     s.cameras = {}
 
 
-def _arm(task: Task, rig: Rig, operator: str, episode: int) -> None:
+def _arm(task: Task, rig: Rig, episode: int) -> None:
     """A new episode session; the task's cameras record from now (released by the caller)."""
     global _session
     keep_s = task.countdown_s + task.duration_s + CAMERA_MARGIN_S
     cams = record_cameras(rig.id, list(task.cameras), keep_s)
-    _session = Session(
-        task=task, rig=rig, operator=operator, episode=episode, armed_at=now(), cameras=cams
-    )
+    _session = Session(task=task, rig=rig, episode=episode, armed_at=now(), cameras=cams)
     if task.subtasks:
         _session.marks.append((0, 0.0))
 
 
-def start(task_id: str, operator: str) -> CaptureState:
+def start(task_id: str) -> CaptureState:
     _require_phase("idle")
     task = get_task(task_id)
     if task is None:
@@ -175,7 +172,7 @@ def start(task_id: str, operator: str) -> CaptureState:
     # The leader drives the follower while recording; it keeps running between episodes so the
     # follower never drops (Stop it from the Rigs page)
     ensure_teleop(rig.id)
-    _arm(task, rig, operator, _next_episode(task))
+    _arm(task, rig, _next_episode(task))
     return _publish()
 
 
@@ -203,7 +200,7 @@ def rerecord() -> CaptureState:
     s = _session
     assert s is not None
     _release(s)
-    _arm(s.task, s.rig, s.operator, s.episode)
+    _arm(s.task, s.rig, s.episode)
     return _publish()
 
 

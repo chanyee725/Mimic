@@ -23,7 +23,7 @@ def _doc(task_id):
 
 def _new_body(client, task_id, name):
     body = client.get(f"/tasks/{TASK}").json()
-    for k in ("collected", "version", "updatedAt", "updatedBy"):
+    for k in ("collected", "version", "updatedAt"):
         body.pop(k)
     return body | {"id": task_id, "name": name}
 
@@ -40,11 +40,7 @@ def test_create_writes_file(client):
     doc = _doc("fold-towel")
     assert doc["task_id"] == "fold-towel" and doc["name"] == "Fold towel"
     assert list(doc)[-1] == "meta"
-    assert doc["meta"] == {
-        "version": 1,
-        "updated_at": r.json()["updatedAt"],
-        "updated_by": "OP-01",
-    }
+    assert doc["meta"] == {"version": 1, "updated_at": r.json()["updatedAt"]}
 
 
 def test_meta_round_trip():
@@ -57,11 +53,11 @@ def test_update_duplicate_delete_on_disk(client):
     add_tasks()
     body = client.get(f"/tasks/{TASK}").json()
     body["name"] = "Stack blocks"
-    r = client.put(f"/tasks/{TASK}", json=body, headers={"X-Operator": "OP-03"})
+    r = client.put(f"/tasks/{TASK}", json=body)
     assert r.status_code == 200
     doc = _doc(TASK)
     assert doc["name"] == "Stack blocks"
-    assert (doc["meta"]["version"], doc["meta"]["updated_by"]) == (2, "OP-03")
+    assert doc["meta"]["version"] == 2 and "updated_by" not in doc["meta"]
     assert "collected" not in doc["meta"]
 
     r = client.post(f"/tasks/{TASK}/duplicate", json={"id": "stack-copy", "name": "Copy"})

@@ -11,11 +11,36 @@ type Section = { id: string; label: string; icon: IconType; render: () => React.
 
 /** Settings sections, in left-nav order; an unknown `?section=` falls back to the first */
 export const SECTIONS: Section[] = [
-  { id: "integrations", label: "Integrations", icon: LuPlug, render: () => <IntegrationsSection /> },
-  { id: "isaac", label: "Isaac Sim", icon: LuBox, render: () => <IsaacSection /> },
-  { id: "notifications", label: "Notifications", icon: LuBell, render: () => <NotificationsSection /> },
-  { id: "shortcuts", label: "Shortcuts", icon: LuKeyboard, render: () => <ShortcutsSection /> },
-  { id: "about", label: "About", icon: LuInfo, render: () => <AboutSection /> },
+  {
+    id: "integrations",
+    label: "Integrations",
+    icon: LuPlug,
+    render: () => <IntegrationsSection />,
+  },
+  {
+    id: "isaac",
+    label: "Isaac Sim",
+    icon: LuBox,
+    render: () => <IsaacSection />,
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    icon: LuBell,
+    render: () => <NotificationsSection />,
+  },
+  {
+    id: "shortcuts",
+    label: "Shortcuts",
+    icon: LuKeyboard,
+    render: () => <ShortcutsSection />,
+  },
+  {
+    id: "about",
+    label: "About",
+    icon: LuInfo,
+    render: () => <AboutSection />,
+  },
 ]
 
 /** Old `?section=` ids that still open their section */

@@ -60,7 +60,7 @@ export function CapturePage() {
     setCurrent.mutate(id)
   }
 
-  // The operator holds the leader arm with both hands, so keyboard / foot pedal input is the default
+  // Both hands are on the leader arm while recording, so keyboard / foot pedal input is the default
   useHotkeys((e) => {
     if (e.code === "Space") {
       ep.toggle()

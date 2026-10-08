@@ -17,7 +17,7 @@ def test_empty_start(client):
             and d["calibration"]["done"] is (d["type"] == "camera")
         )
         assert all(s["measuredHz"] is None for s in d["streams"])
-    r = client.post("/capture/start", json={"taskId": "stack-two-blocks", "operator": "OP-01"})
+    r = client.post("/capture/start", json={"taskId": "stack-two-blocks"})
     assert r.status_code == 404  # no such task
     # Loading wrote nothing but the settings part files (config folder); the data folder stays empty
     assert sorted(p.name for p in config.config_dir.iterdir()) == ["rigs", "settings"]

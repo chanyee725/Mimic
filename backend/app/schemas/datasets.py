@@ -33,6 +33,10 @@ class PushBody(CamelModel):
     private: bool = True
 
 
+class PullBody(CamelModel):
+    repo_id: str = Field(pattern=REPO_ID)
+
+
 class MergeSource(CamelModel):
     repo_id: str
     episodes: int

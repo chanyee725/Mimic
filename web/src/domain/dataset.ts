@@ -20,6 +20,16 @@ export type DatasetEpisode = {
   frames: number
 }
 
+/** HF Hub state: pulled = downloaded from the Hub; repo = where it was pushed / pulled from; pushing = upload running */
+export type DatasetHub = {
+  pushed: boolean
+  private: boolean
+  pulled: boolean
+  repo: string | null
+  pushing: boolean
+  error: string | null
+}
+
 export type Dataset = {
   kind: DatasetKind
   repoId: string
@@ -34,7 +44,7 @@ export type Dataset = {
   /** ISO 8601 */
   createdAt: string
   sizeGB: number
-  hub: { pushed: boolean; private: boolean }
+  hub: DatasetHub
   features: DatasetFeature[]
   episodeCount: number
   /** repoIds this dataset was merged from (merged datasets only) */

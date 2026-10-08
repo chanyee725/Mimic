@@ -64,7 +64,7 @@ def create_job(body: SimJobCreate) -> SimJob:
             raise ApiError(422, f"Environment '{body.env_id}' does not exist")
         task = get_task(model.task_id)
         if problem := rig_problem(env, task.rig_id if task else None):
-            raise ApiError(422, problem, {"envId": env.id, "rigId": env.rig_id})
+            raise ApiError(422, problem, {"envId": env.id, "robots": env.robots})
     raise ApiError(503, NOT_CONNECTED, {"envId": env.id, "modelId": model.id})
 
 

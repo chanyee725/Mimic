@@ -1,12 +1,16 @@
+import io
 import socket
 import sys
+import tarfile
 import time
 from pathlib import Path
 
 import pytest
 
+from app.configs.config import config
 from app.services import settings
 from app.services.simulation import runner
+from tests.support import write_sim_robots
 
 FAKE_APP = Path(__file__).parent / "fake_isaac_app.py"
 
@@ -60,7 +64,7 @@ def test_open_env_starts_server_and_app(client):
     assert r.json()["reachable"] is True
     body = _wait_app(client, "running")
     assert body["app"]["scene"] == "drawer" and body["app"]["display"] == "headless"
-    # A top-level stage file is sent alone and opened by its name
+    # A top-level script is sent alone and built by its name
     assert client.post("/sim/envs/kitchen/open").status_code == 200
     deadline = time.monotonic() + 15
     while client.get("/sim/runner").json()["app"]["scene"] != "kitchen":
@@ -88,6 +92,22 @@ def test_settings_test_reports_the_server(client):
     client.post("/sim/runner/stop")
 
 
+def test_archive_carries_the_tagged_robot(envs_dir):
+    write_sim_robots("arm", "other")
+    archive = runner._archive(envs_dir / "drawer", config.sim_robots_dir / "arm.usda")
+    names = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz").getnames()
+    assert "robots/arm.usda" in names and "robots/other.usda" not in names
+    assert all(n.startswith(("envs/drawer/", "robots/")) for n in names)
+
+
+def test_open_needs_the_tagged_robot_usd(client):
+    write_sim_robots("arm")
+    client.patch("/sim/envs/table", json={"robots": ["arm"]})
+    (config.sim_robots_dir / "arm.usda").unlink()
+    r = client.post("/sim/envs/table/open")
+    assert r.status_code == 422 and "has no USD" in r.json()["error"]["message"]
+
+
 def test_unknown_env_is_not_opened(client):
     assert client.post("/sim/envs/nope/open").status_code == 404
 
@@ -109,3 +129,13 @@ def test_remote_needs_url(client):
         json={"version": settings.get_settings().version, "isaac": {"mode": "remote", "url": ""}},
     )
     assert r.status_code == 422
+
+
+def test_physics_device_defaults_to_gpu_and_restarts_on_change(client, local_server):
+    body = client.post("/sim/runner/start").json()
+    assert body["device"] == "gpu" and body["app"]["device"] == "gpu"
+    pid = body["app"]["pid"]
+    _isaac(device="cpu")
+    body = client.post("/sim/runner/start").json()
+    assert body["device"] == "cpu" and body["app"]["device"] == "cpu"
+    assert body["app"]["pid"] != pid  # the app takes the device at launch

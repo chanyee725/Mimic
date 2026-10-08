@@ -5,7 +5,7 @@ import { simEnvThumbnailUrl } from "@/api/simulation"
 import type { SimEnv } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
-/** Thumbnail of an Isaac Sim environment (same-name image next to its USD); a box icon when it has none */
+/** Thumbnail of an Isaac Sim environment (same-name image next to its script); a box icon when it has none */
 export function EnvThumb({ env, className }: { env: SimEnv; className?: string }) {
   const [failed, setFailed] = useState(false)
   const show = !failed && !!env.thumbnail

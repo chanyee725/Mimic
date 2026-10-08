@@ -11,8 +11,12 @@ export function SettingsPage() {
   const current = SECTIONS.find((s) => s.id === (SECTION_ALIASES[id] ?? id)) ?? SECTIONS[0]
 
   return (
-    <Page fit title="Settings" description="계정 연결, Isaac Sim, 알림을 설정합니다.">
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
+    // Centred both ways, form-width, no page header: the section list names where you are.
+    // The list and the form are centred together and share their top edge; a section taller than
+    // the screen takes the full height and scrolls. Lifted 10px above true centre (reads as centred).
+    <Page fit className="mx-auto w-full max-w-4xl">
+      <h1 className="sr-only">Settings</h1>
+      <div className="grid min-h-0 grid-cols-1 gap-4 lg:my-auto lg:max-h-full lg:-translate-y-2.5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
         <Panel className="h-fit p-2">
           <nav aria-label="Settings sections">
             <ul className="grid gap-0.5">
@@ -40,10 +44,9 @@ export function SettingsPage() {
         </Panel>
 
         {/* Keying by section discards in-progress edits when the section changes */}
-        <div key={current.id} className="grid min-h-0 content-start gap-3 overflow-y-auto pb-1">
-          <h2 className="text-lg font-semibold">{current.label}</h2>
-          <div className="max-w-3xl">{current.render()}</div>
-        </div>
+        <section key={current.id} className="grid min-h-0 content-start overflow-y-auto pb-1" aria-label={current.label}>
+          {current.render()}
+        </section>
       </div>
     </Page>
   )

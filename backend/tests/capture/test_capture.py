@@ -10,7 +10,7 @@ from app.utils import time
 from tests.conftest import add_tasks, connect_devices
 
 T0 = datetime(2026, 10, 3, 10, 0, 0, tzinfo=ZoneInfo("Asia/Seoul"))
-START = {"taskId": "stack-two-blocks", "operator": "OP-01"}
+START = {"taskId": "stack-two-blocks"}
 
 
 class FakeClock:
@@ -71,7 +71,7 @@ def test_idle_state(client):
 def test_start_countdown_then_recording(client, clock, events):
     st = client.post("/capture/start", json=START).json()
     assert st["phase"] == "countdown" and st["taskId"] == "stack-two-blocks"
-    assert st["operator"] == "OP-01" and st["nextEpisode"] == 1
+    assert "operator" not in st and st["nextEpisode"] == 1
     assert st["episodeId"] == "stack-two-blocks-1" and st["subtaskIndex"] == 0
     assert st["startedAt"] == "2026-10-03T10:00:03.000+09:00"
     assert types(events) == ["capture.state"]
@@ -82,8 +82,6 @@ def test_start_countdown_then_recording(client, clock, events):
 
 def test_start_errors(client):
     assert client.post("/capture/start", json={**START, "taskId": "nope"}).status_code == 404
-    bad_op = client.post("/capture/start", json={**START, "operator": "Jane Doe"})
-    assert bad_op.status_code == 422
     client.post("/capture/start", json=START)
     r = client.post("/capture/start", json=START)
     assert r.status_code == 409 and r.json()["error"]["details"]["phase"] == "countdown"

@@ -1,16 +1,24 @@
-"""Environment registry: USD stages copied into the environments dir by hand; scan and delete."""
+"""Environment registry: Python scripts copied into the environments dir by hand; scan, robot tags
+(<sim folder>/envs.yaml, edited from the web) and delete."""
 
 import shutil
 import threading
 from pathlib import Path
 
 from app.configs.config import config
-from app.core.errors import conflict, not_found
+from app.core import storage
+from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.models.simulation import SimEnv
+from app.models.simulation import SimEnv, SimRobot
 from app.schemas.simulation import RescanResult
-from app.services.rigs import list_rigs
-from app.services.simulation.scanner import IMAGE_TYPES, scan_envs, thumbnail_file
+from app.services.rigs import list_rigs, robot_types
+from app.services.simulation.scanner import (
+    IMAGE_TYPES,
+    robot_file,
+    scan_envs,
+    scan_robots,
+    thumbnail_file,
+)
 from app.services.tasks import list_tasks
 from app.utils.time import now_iso
 
@@ -20,6 +28,26 @@ _first_seen: dict[str, str] = {}
 _envs: dict[str, SimEnv] = {}
 
 
+def _tags_path() -> Path:
+    return config.sim_dir / "envs.yaml"
+
+
+def _read_tags() -> dict[str, dict]:
+    """envs.yaml: {<env id>: {robots: [<robot id>, …]}}."""
+    doc = storage.read_file(_tags_path())
+    return doc if isinstance(doc, dict) else {}
+
+
+def _write_tags(tags: dict[str, dict]) -> None:
+    storage.write_file(_tags_path(), storage.dumps(dict(sorted(tags.items()))))
+
+
+def fits(robots: list[str], rig_id: str) -> bool:
+    """Untagged fits any rig; else every follower of the rig must be a tagged robot."""
+    types = robot_types(rig_id)
+    return not robots or (bool(types) and all(t in robots for t in types))
+
+
 def reset() -> None:
     with lock:
         _first_seen.clear()
@@ -27,7 +55,16 @@ def reset() -> None:
 
 
 def _scan() -> list[SimEnv]:
-    envs = scan_envs(config.sim_envs_dir, _first_seen, {r.id for r in list_rigs()})
+    tags = _read_tags()
+    rig_ids = [r.id for r in list_rigs()]
+    envs = []
+    for e in scan_envs(config.sim_envs_dir, _first_seen):
+        robots = [str(r) for r in (tags.get(e.id) or {}).get("robots") or []]
+        envs.append(
+            e.model_copy(
+                update={"robots": robots, "rig_ids": [r for r in rig_ids if fits(robots, r)]}
+            )
+        )
     for e in envs:
         _first_seen.setdefault(e.id, e.registered_at)
     _envs.clear()
@@ -54,6 +91,14 @@ def get_env(env_id: str) -> SimEnv:
     return env
 
 
+def list_robots() -> list[SimRobot]:
+    return scan_robots(config.sim_robots_dir)
+
+
+def robot_path(robot_id: str) -> Path | None:
+    return robot_file(config.sim_robots_dir, robot_id)
+
+
 def thumbnail(env_id: str) -> tuple[Path, str]:
     """The env's image and its media type; 404 when it has none."""
     path = thumbnail_file(Path(get_env(env_id).path))
@@ -63,10 +108,28 @@ def thumbnail(env_id: str) -> tuple[Path, str]:
 
 
 def rig_problem(env: SimEnv, rig_id: str | None) -> str | None:
-    """An env under a rig folder only fits that rig."""
-    if env.rig_id is not None and env.rig_id != rig_id:
-        return f"environment '{env.id}' belongs to rig '{env.rig_id}'"
-    return None
+    """A tagged env only fits rigs whose followers are among its robots."""
+    if rig_id is None or not env.robots or rig_id in env.rig_ids:
+        return None
+    return f"environment '{env.id}' is for {', '.join(env.robots)}, not rig '{rig_id}'"
+
+
+def set_robots(env_id: str, robots: list[str]) -> SimEnv:
+    """Replaces the env's robot tags; each must be a robot under the robots folder."""
+    with lock:
+        get_env(env_id)
+        known = {r.id for r in list_robots()}
+        if unknown := [r for r in robots if r not in known]:
+            raise ApiError(422, f"Unknown robot: {', '.join(unknown)}", {"robots": unknown})
+        tags = _read_tags()
+        if robots:
+            tags[env_id] = {**(tags.get(env_id) or {}), "robots": list(dict.fromkeys(robots))}
+        else:
+            tags.pop(env_id, None)
+        _write_tags(tags)
+        envs = _scan()
+    _publish(envs)
+    return _envs[env_id]
 
 
 def rescan() -> RescanResult:
@@ -77,7 +140,7 @@ def rescan() -> RescanResult:
 
 
 def delete_env(env_id: str) -> None:
-    """Deletes the stage file or folder; refused while a task uses the environment."""
+    """Deletes the script or folder and its tags; refused while a task uses the environment."""
     with lock:
         env = get_env(env_id)
         users = [t.id for t in list_tasks() if t.env_id == env_id]
@@ -88,5 +151,8 @@ def delete_env(env_id: str) -> None:
             shutil.rmtree(path)
         else:
             path.unlink(missing_ok=True)
+        tags = _read_tags()
+        if tags.pop(env_id, None) is not None:
+            _write_tags(tags)
         envs = _scan()
     _publish(envs)

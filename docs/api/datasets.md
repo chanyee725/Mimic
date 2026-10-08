@@ -17,7 +17,9 @@ Dataset = {
   status: DatasetStatus; progress?: number | null // 0–99 while converting / merging, null otherwise
   error?: string | null                          // when failed
   createdAt: string; sizeGB: number              // sizeGB: files on disk (0 while converting)
-  hub: { pushed: boolean; private: boolean }
+  hub: { pushed: boolean; private: boolean; pulled: boolean     // pulled: downloaded from the Hub (Pull)
+         repo: string | null                                    // Hub repo pushed to / pulled from
+         pushing: boolean; error: string | null }               // upload running; last upload error (not stored)
   features: DatasetFeature[]
   episodeCount: number
   sources?: string[] | null                      // merged datasets: the repoIds it was made from; null for converted ones
@@ -50,7 +52,8 @@ MergePreview = {
 | GET | `/datasets/{repoId}` | | `Dataset` (`repoId` is URL-encoded, e.g. `local%2Fstack_two_blocks`) | Datasets detail |
 | GET | `/datasets/{repoId}/episodes?limit=&cursor=` | | `Page<DatasetEpisode>` (empty while converting) | Datasets episodes |
 | GET | `/datasets/{repoId}/thumbnail` | | `image/jpeg`: first frame of the first episode of the first video feature (made once, cached as `meta/thumbnail.jpg`); 404 when the dataset has no video feature; 409 while it is not ready | Dataset thumbnail |
-| POST | `/datasets/{repoId}/push` | `{ private: boolean }` | `202 Dataset`; 409 unless status ready; 424 if HF token missing | Push to HF Hub |
+| POST | `/datasets/pull` | `{ repoId }` (Hub repo, also the local repoId) | `202 Dataset` (converting, `hub.pulled`); 409 if repoId exists locally; 404 if not on the Hub; 403 if gated; 422 if not LeRobot v3.0; 502 on Hub errors | Pull from Hub |
+| POST | `/datasets/{repoId}/push` | `{ private: boolean }` | `202 Dataset` with `hub.pushing`; 409 unless status ready or while already pushing; 424 if HF token missing | Push to HF Hub |
 | DELETE | `/datasets/{repoId}` | | `204` (removes the folder; cancels a running conversion / merge) | Delete |
 
 Progress: `dataset.updated` events (`progress`, `status`, `error`). Deleting emits `dataset.deleted` with `{ repoId }`.
@@ -84,7 +87,24 @@ Progress: `dataset.updated` events (`progress`, `status`, `error`). Deleting emi
 - The merged dataset copies episodes in source order: `episode_index` 0…n-1, `index` 0…frames-1, tasks and subtasks
   unioned (first-seen order) with `task_index` / `subtask_index` remapped. `taskId` = the common task, or `"mixed"` when the
   sources come from different tasks. Episode `source` keeps the original recording file.
-- `q` matches `repoId` or `taskId` (case-insensitive substring). Push only records `hub` in `station.yaml` (no upload yet).
+- `q` matches `repoId` or `taskId` (case-insensitive substring).
+- Push uploads in a background thread (`huggingface_hub`, HF token from `.env`) to `<namespace>/<name>`, where namespace
+  is Settings → Hugging Face namespace, else the token's user (`<namespace>/<local namespace>-<name>` when the local
+  namespace differs, so `local/pick` and `team/pick` never share a repo); a pulled dataset keeps its repo. A namespace
+  set in Settings must be the token's user or one of its organizations (checked with `whoami` before anything is
+  created; 403 naming the user otherwise). The default namespace is empty (= the token's user). A refusal from the Hub
+  is reported with its own reason (`Hugging Face refused the request: …`, 403; other failures 502 with the reason). Any failure,
+  the namespace lookup included, clears `pushing` and sets `error`. It creates the repo
+  (`private` from the body), uploads the whole folder (`station.yaml` included, hidden files skipped) and re-points the
+  `v3.0` tag lerobot looks for. Done: `hub` `{ pushed: true, private, repo }` is written to `station.yaml`; failure:
+  `hub.error` (not stored). Both publish `dataset.updated`. RunPod jobs push the same way before renting a pod (skipped
+  when already pushed).
+- Pull downloads a Hub dataset repo (`huggingface_hub`, HF token from `.env` when set — needed for private repos).
+  `meta/info.json` is fetched first, so a missing repo or a non-v3.0 dataset fails the request; the response already has
+  `fps`, `features`, `episodeCount` and `rigId` (`robot_type`). The other files download in the background into the
+  partial folder (progress by bytes, `dataset.updated`), `.gitattributes` skipped. The repo's `station.yaml` is kept
+  when it has one (task, notes, episode sources); otherwise `taskId` is `"unknown"`. `hub` becomes
+  `{ pushed: true, private: <repo visibility>, pulled: true }`. Delete cancels a running pull.
 
 ## Storage
 

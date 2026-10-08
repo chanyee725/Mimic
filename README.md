@@ -19,9 +19,9 @@ Rigs ─▶ Capture ─▶ Review ─▶ Convert ─▶ Datasets (─▶ Merge) 
 | Capture | leader 가 follower 를 움직이는 동안 action · state(60 Hz)와 카메라(30 fps)를 에피소드마다 MCAP 하나로 녹화. 화면에 실시간 영상 · 관절 그래프 | 실제 장치로 동작 |
 | Review | MCAP 을 영상 · 관절 그래프와 함께 재생하며 Accept / Reject / Delete | 동작 |
 | Convert | Task 의 승인된 에피소드를 LeRobot v3.0 데이터셋으로 변환 (카메라 영상 포함, action 을 카메라 fps 로 맞춤) | 동작 |
-| Datasets | LeRobot 데이터셋과 원본 MCAP 묶음 관리, 썸네일, HF Hub 업로드 | 업로드는 준비 중 |
+| Datasets | LeRobot 데이터셋과 원본 MCAP 묶음 관리, 썸네일, HF Hub 업로드 · 내려받기(Pull) | 동작 |
 | Merge | fps · feature · Rig 가 같은 데이터셋 여러 개를 하나로 합침 (영상 포함, 에피소드 · index 번호를 다시 매김) | 동작 |
-| Training | SmolVLA 를 로컬 GPU 또는 RunPod 에서 학습, step 마다 loss · GPU 지표 확인 | 준비 중 |
+| Training | SmolVLA 를 로컬 GPU 또는 RunPod 에서 학습, step 마다 loss · GPU 지표 확인. RunPod 은 데이터셋을 HF Hub 에 올린 뒤 pod 를 빌려 학습하고, 체크포인트를 내려받은 다음 pod 를 끔 | 로컬 GPU · RunPod 동작 |
 | Models | 남길 checkpoint 를 모델로 저장 · 관리 | 목록 · 관리만 (학습기 연동 전) |
 | Evaluate | 모델을 실제 로봇에 올려 지시문을 주고 성공률 기록 | 준비 중 |
 | Simulation | Isaac Sim 5.1.0 (이 스테이션 또는 시뮬레이션 서버) 에서 환경 열기 · 자동 평가 | 환경 열기 동작, 평가 준비 중 |
@@ -72,6 +72,6 @@ cd web && nvm use && npm install && npm run dev
 
 ## 데이터 · 개인정보
 
-- 작업자는 가명 ID(`OP-01` 형식)로만 기록합니다. 실명 · 이메일 등 개인정보는 코드 · 데이터 · 커밋에 넣지 않습니다.
+- 작업자(오퍼레이터) 개념은 없습니다. 스테이션 하나는 한 사람이 수집한 데이터입니다. 실명 · 이메일 등 개인정보는 코드 · 데이터 · 커밋에 넣지 않습니다.
 - 녹화 파일(MCAP), 데이터셋, checkpoint 는 `data/` 에만 두고 저장소에 올리지 않습니다. API 키(HF · RunPod · Slack)는 저장소 루트의 `.env` 에만 보관합니다 (`.gitignore` 참고).
 - 환경변수 접두어는 예전 이름을 이어 `VLA_*` 를 그대로 씁니다 (`VLA_CONFIG_DIR`, `VLA_DATA_DIR` 등, `.env.example` 참고).

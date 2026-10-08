@@ -1,8 +1,9 @@
 """Isaac Sim server: started here on 127.0.0.1 (local) or a sim server reached by URL (remote).
 
 The server (sim/runner/server.py) fronts one Isaac Sim app process that runs with a window or
-headless. Opening an environment sends its folder as tar.gz, so a remote server needs no copy of
-sim/envs. A local server is detached: it outlives backend reloads and is found again by port.
+headless. Opening an environment sends its script and its robot's USD as tar.gz, so a remote
+server needs no copy of data/sims. A local server is detached: it outlives backend reloads
+and is found again by port.
 """
 
 import io
@@ -16,13 +17,13 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from app.configs.config import REPO_ROOT
+from app.configs.config import REPO_ROOT, config
 from app.core.errors import ApiError
 from app.models.settings import IsaacSettings
 from app.models.simulation import SimRunner, SimRunnerApp
 from app.schemas.settings import ConnTestResult
 from app.services.settings import get_settings
-from app.services.simulation.envs import get_env
+from app.services.simulation.envs import get_env, robot_path
 
 SERVER_SCRIPT = REPO_ROOT / "sim" / "runner" / "server.py"
 # Overridden in tests (a fake app instead of Isaac Sim, a temp cache)
@@ -125,13 +126,20 @@ def status() -> SimRunner:
     health = _health()
     app = SimRunnerApp.model_validate(health["app"]) if health else None
     return SimRunner(
-        mode=s.mode, display=s.display, url=base_url(s), reachable=health is not None, app=app
+        mode=s.mode,
+        display=s.display,
+        device=s.device,
+        url=base_url(s),
+        reachable=health is not None,
+        app=app,
     )
 
 
 def start(display: str | None = None) -> SimRunner:
     _ensure_server()
-    _request("/app/start", json.dumps({"display": display or _settings().display}).encode())
+    s = _settings()
+    body = {"display": display or s.display, "device": s.device}
+    _request("/app/start", json.dumps(body).encode())
     return status()
 
 
@@ -141,27 +149,49 @@ def stop() -> SimRunner:
     return status()
 
 
-def _archive(path: Path) -> bytes:
-    """The folder's files (or the single stage file) as tar.gz."""
+def _files(path: Path) -> list[Path]:
+    if path.is_file():
+        return [path]
+    return [p for p in sorted(path.rglob("*")) if p.is_file() and "__pycache__" not in p.parts]
+
+
+def _archive(path: Path, robot: Path | None = None) -> bytes:
+    """The environment (folder or single script) and the robot's USD (its folder when it has
+    one) as tar.gz, laid out as under the sim folder (envs/…, robots/…)."""
+    root = config.sim_dir
+    if robot is not None and robot.parent != config.sim_robots_dir:
+        robot = robot.parent
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-        if path.is_file():
-            tar.add(path, arcname=path.name)
-        for p in sorted(path.rglob("*")) if path.is_dir() else []:
-            if p.is_file() and "__pycache__" not in p.parts:
-                tar.add(p, arcname=str(p.relative_to(path)))
+        for p in _files(path) + (_files(robot) if robot else []):
+            tar.add(p, arcname=str(p.relative_to(root)))
     if buf.tell() > MAX_ENV_BYTES:
         raise ApiError(422, f"Environment folder is larger than {MAX_ENV_BYTES >> 20} MB")
     return buf.getvalue()
 
 
 def open_env(env_id: str, display: str | None = None) -> SimRunner:
-    """Sends the environment to the server, which opens its stage (starting the app if needed)."""
+    """Sends the environment to the server, which builds its stage (starting the app if needed).
+    The robot placed is its first robot tag (none when untagged)."""
     env = get_env(env_id)
-    body = _archive(Path(env.path))
+    path = Path(env.path)
+    robot = env.robots[0] if env.robots else ""
+    robot_file = robot_path(robot) if robot else None
+    if robot and robot_file is None:
+        raise ApiError(422, f"Robot '{robot}' has no USD under {config.sim_robots_dir}")
+    body = _archive(path, robot_file)
     _ensure_server()
-    display = display or _settings().display
-    query = urllib.parse.urlencode({"env": env_id, "scene": env.scene, "display": display})
+    s = _settings()
+    script = path.relative_to(config.sim_dir) / (env.script if path.is_dir() else "")
+    query = urllib.parse.urlencode(
+        {
+            "env": env_id,
+            "script": script.as_posix(),
+            "robot": robot,
+            "display": display or s.display,
+            "device": s.device,
+        }
+    )
     _request(f"/scene?{query}", body, "application/gzip")
     return status()
 

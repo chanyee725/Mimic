@@ -1,8 +1,8 @@
-import type { IsaacDisplay, IsaacMode } from "./settings"
+import type { IsaacDevice, IsaacDisplay, IsaacMode } from "./settings"
 
 /**
- * An Isaac Sim environment: a USD file the user imported or dropped into the environments directory
- * (`VLA_SIM_ENVS_DIR`, default sim/envs). A folder with a scene USD and its sub-assets also counts.
+ * An Isaac Sim environment: a Python script whose build(scene) lays out the stage, dropped into the environments
+ * directory (envs/ under `VLA_SIM_DIR`, default data/sims/envs). A folder with env.py and its own files also counts.
  */
 export type SimEnvFile = { path: string; sizeKB: number }
 
@@ -12,20 +12,25 @@ export type SimEnv = {
   name: string
   /** Absolute file or folder on the station */
   path: string
-  /** Scene USD, relative to the folder (the file name for a single file) */
-  scene: string
+  /** env.py for a folder, the file name for a single script */
+  script: string
   sizeKB: number
   files: SimEnvFile[]
-  /** Rig folder it sits in (sim/envs/<rig-id>/); null = top level, usable with any rig */
-  rigId: string | null
+  /** Robot tags (robot USDs under data/sims/robots/, kept in data/sims/envs.yaml); [] = untagged, fits any rig */
+  robots: string[]
+  /** Configured rigs whose followers are all tagged robots (every rig when untagged) */
+  rigIds: string[]
   /** A same-name image is served at /sim/envs/{id}/thumbnail */
   thumbnail: boolean
   registeredAt: string
   updatedAt: string
 }
 
-/** An environment is usable by a rig when it sits in that rig's folder or at the top level (older responses omit rigId) */
-export const envFitsRig = (env: Pick<SimEnv, "rigId">, rigId: string | undefined) => !env.rigId || env.rigId === rigId
+/** A robot USD under data/sims/robots/, named after the LeRobot type it simulates (e.g. so101_follower) */
+export type SimRobot = { id: string; path: string }
+
+/** An environment is usable by a rig when the backend lists the rig as fitting its robot tags */
+export const envFitsRig = (env: Pick<SimEnv, "rigIds">, rigId: string | undefined) => !rigId || env.rigIds.includes(rigId)
 
 /** GPU Isaac Sim runs on; busyBy is the sim job holding it */
 export type SimGpu = { id: string; name: string; vram: string; busyBy?: string }
@@ -40,13 +45,21 @@ export type SimAppState = "stopped" | "starting" | "running" | "exited"
 export type SimRunnerApp = {
   state: SimAppState
   display: IsaacDisplay | null
+  device: IsaacDevice | null
   pid: number | null
   scene: string | null
   error: string | null
 }
 
 /** Isaac Sim server; app is null when the server is not reachable */
-export type SimRunner = { mode: IsaacMode; display: IsaacDisplay; url: string; reachable: boolean; app: SimRunnerApp | null }
+export type SimRunner = {
+  mode: IsaacMode
+  display: IsaacDisplay
+  device: IsaacDevice
+  url: string
+  reachable: boolean
+  app: SimRunnerApp | null
+}
 
 export type RescanResult = { dir: string; scannedAt: string; envs: SimEnv[] }
 

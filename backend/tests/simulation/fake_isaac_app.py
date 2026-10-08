@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 p = argparse.ArgumentParser()
 p.add_argument("--port", type=int, required=True)
 p.add_argument("--headless", action="store_true")
+p.add_argument("--device", choices=("gpu", "cpu"), default="gpu")
 args = p.parse_args()
 state = {"scene": None, "error": None}
 

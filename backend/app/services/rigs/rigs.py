@@ -113,6 +113,12 @@ def get_rig(rig_id: str) -> Rig | None:
     return _rigs.get(rig_id)
 
 
+def robot_types(rig_id: str) -> list[str]:
+    """LeRobot types of the rig's follower arms (e.g. so101_follower); [] for an unknown rig."""
+    spec = _specs.get(rig_id)
+    return [r.type for r in spec.robots] if spec else []
+
+
 def list_devices() -> list[Device]:
     return [_live(d) for d in _devices.values()]
 

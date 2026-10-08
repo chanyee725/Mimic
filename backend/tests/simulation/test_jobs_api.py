@@ -3,7 +3,7 @@
 import pytest
 
 from app.utils import gpu
-from tests.support import write_model
+from tests.support import write_model, write_sim_robots
 
 NEW = {
     "modelId": "m-stack",
@@ -47,13 +47,13 @@ def test_create_unknown_ids(client):
     assert r.status_code == 422 and "nope" in r.json()["error"]["message"]
 
 
-def test_create_checks_the_env_rig(client, envs_dir):
-    (envs_dir / "so101-bimanual-kit").mkdir()
-    (envs_dir / "so101-bimanual-kit" / "duo.usda").write_text("#usda 1.0\n")
-    client.post("/sim/envs/rescan")
+def test_create_checks_the_env_robots(client):
+    write_sim_robots("so101_follower", "koch_follower")
+    client.patch("/sim/envs/arm-table", json={"robots": ["so101_follower"]})
+    client.patch("/sim/envs/kitchen", json={"robots": ["koch_follower"]})
     assert client.post("/sim/jobs", json={**NEW, "envId": "arm-table"}).status_code == 503
-    r = client.post("/sim/jobs", json={**NEW, "envId": "duo"})
-    assert r.status_code == 422 and "belongs to rig 'so101-bimanual-kit'" in r.text
+    r = client.post("/sim/jobs", json={**NEW, "envId": "kitchen"})
+    assert r.status_code == 422 and "is for koch_follower" in r.text
 
 
 def test_create_bad_body(client):

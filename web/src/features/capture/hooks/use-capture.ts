@@ -4,8 +4,6 @@ import { useCaptureActions, useCaptureState } from "@/api/capture"
 import { captureElapsedS, countdownLeftS, type CaptureState } from "@/domain/capture"
 import type { Outcome, Task } from "@/domain/task"
 
-import { STATION_OPERATOR } from "../lib"
-
 /** Re-renders every 100 ms during the countdown and recording so the timers tick between server events */
 function useLiveClock(state: CaptureState | undefined, maxS: number) {
   const ticking = state?.phase === "countdown" || state?.phase === "recording"
@@ -63,7 +61,7 @@ export function useCapture(task: Task | undefined, { startBlocked = false }: { s
     run(() => {
       if (phase === "recording") actions.stop.mutate()
       else if (phase === "review") actions.rerecord.mutate()
-      else if (phase === "idle" && task && !startBlocked) actions.start.mutate({ taskId: task.id, operator: STATION_OPERATOR })
+      else if (phase === "idle" && task && !startBlocked) actions.start.mutate({ taskId: task.id })
     })
   const save = (outcome: Outcome) =>
     run(() => {

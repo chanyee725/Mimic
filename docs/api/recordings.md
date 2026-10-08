@@ -75,7 +75,7 @@ committed). Each one is an MCAP plus a YAML sidecar next to it — the sidecar i
 
 - Capture MCAP: JSON channels `/action` and `/observation/state` (`{"position": [deg per joint]}`, channel metadata
   `joints`) at the task's action rate, `/subtask` (`{"name", "start_s", "end_s"}`) at each span start, and one metadata
-  record `episode` (`source`, `recording_id`, `task_id`, `rig_id`, `episode`, `operator`, `outcome`). Each recorded camera
+  record `episode` (`source`, `recording_id`, `task_id`, `rig_id`, `episode`, `outcome`; older files may also carry `operator`, which is ignored). Each recorded camera
   adds `/cam_<key>/image` (protobuf `foxglove.CompressedImage`: `timestamp`, `frame_id` = key, `format` "jpeg", `data`;
   channel metadata `camera`), the camera's JPEG frames as captured. `topics` lists exactly the channels in the file (video
   rows: `kind` "video", `rateHz` = frames / duration, `messages` = frames) and `sizeMB` is the file size. `drops` are the

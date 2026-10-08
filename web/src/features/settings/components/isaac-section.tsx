@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Segmented } from "@/components/common/segmented"
 import { SettingsGroup, SettingsSection } from "@/components/common/settings-section"
-import type { IsaacDisplay, IsaacMode, IsaacSettings } from "@/domain/settings"
+import type { IsaacDevice, IsaacDisplay, IsaacMode, IsaacSettings } from "@/domain/settings"
 
 import { useSettingsDraft } from "../hooks/use-draft"
 import { ConnStatus } from "./conn-status"
@@ -18,6 +18,11 @@ const DISPLAYS = [
   { value: "window", label: "Window" },
   { value: "headless", label: "Headless" },
 ] as const satisfies readonly { value: IsaacDisplay; label: string }[]
+
+const DEVICES = [
+  { value: "gpu", label: "GPU" },
+  { value: "cpu", label: "CPU" },
+] as const satisfies readonly { value: IsaacDevice; label: string }[]
 
 /** Isaac Sim server: where it runs and how the app shows (settings section `connection.isaac`) */
 export function IsaacSection() {
@@ -53,6 +58,17 @@ export function IsaacSection() {
             value={value.display}
             onChange={(v) => set("display", v)}
             options={DISPLAYS}
+          />
+        </SettingRow>
+        <SettingRow label="Physics" hint="물리 연산(PhysX) 장치. 바꾸면 Isaac Sim 이 다시 시작됩니다">
+          <Segmented
+            label="Isaac Sim physics device"
+            role="radiogroup"
+            fill
+            size="md"
+            value={value.device}
+            onChange={(v) => set("device", v)}
+            options={DEVICES}
           />
         </SettingRow>
         {value.mode === "local" ? (

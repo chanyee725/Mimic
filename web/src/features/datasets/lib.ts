@@ -1,10 +1,17 @@
 import type { Tone } from "@/components/common/status-dot"
-import type { DatasetKind, DatasetStatus } from "@/domain/dataset"
+import type { Dataset, DatasetKind, DatasetStatus } from "@/domain/dataset"
 
 export const STATUS: Record<DatasetStatus, { tone: Tone; label: string }> = {
   ready: { tone: "ok", label: "Ready" },
   converting: { tone: "info", label: "Converting" },
   failed: { tone: "bad", label: "Failed" },
+}
+
+/** Status shown for a dataset; a running or failed Pull reads as a download */
+export function datasetStatus(d: Pick<Dataset, "status" | "hub">): { tone: Tone; label: string } {
+  if (d.hub.pulled && d.status === "converting") return { tone: "info", label: "Downloading" }
+  if (d.hub.pulled && d.status === "failed") return { tone: "bad", label: "Download failed" }
+  return STATUS[d.status]
 }
 
 export type Filter = "all" | DatasetKind

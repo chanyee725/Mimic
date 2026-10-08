@@ -69,7 +69,7 @@ export function EnvPicker({ envs, value, onChange }: { envs: SimEnv[]; value?: s
             <EnvThumb env={env} className="w-12" />
             <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5">
               <span className="truncate font-medium">{env.name}</span>
-              <span className="truncate font-mono text-xs text-muted-foreground">{env.scene}</span>
+              <span className="truncate font-mono text-xs text-muted-foreground">{env.script}</span>
             </span>
           </button>
         )

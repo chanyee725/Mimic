@@ -21,7 +21,7 @@ API 키 원문은 저장소 루트의 `.env` 에 둡니다 (git 에서 제외, �
 | `HF_TOKEN` | Hugging Face 업로드 (huggingface_hub 도 그대로 사용) |
 | `RUNPOD_API_KEY` | RunPod 학습 |
 | `SLACK_WEBHOOK_URL` | Slack 알림 |
-| `VLA_CONFIG_DIR` · `VLA_DATA_DIR` · `VLA_SIM_ENVS_DIR` · `VLA_TIMEZONE` … | 백엔드 설정 (`app/configs/config.py`, 상대 경로는 저장소 루트 기준) |
+| `VLA_CONFIG_DIR` · `VLA_DATA_DIR` · `VLA_SIM_DIR` · `VLA_TIMEZONE` … | 백엔드 설정 (`app/configs/config.py`, 상대 경로는 저장소 루트 기준) |
 
 같은 이름의 환경 변수가 있으면 `.env` 보다 우선합니다. API 응답에는 끝 4자리만 나갑니다. 예전 `data/secrets.yaml` 이 있으면 시작할 때 `.env` 로 옮기고(이미 있는 키는 유지) 지웁니다. 테스트는 임시 `.env` 만 씁니다.
 

@@ -78,12 +78,17 @@ def test_secret_write_leaves_part_files_alone(client):
 
 
 def test_env_var_overrides_file(client, monkeypatch):
+    from app.services.training import runpod_api
+
+    calls = []
+    monkeypatch.setattr(runpod_api, "_call", lambda *a, **k: calls.append(a) or [])
     config.env_file_path.write_text("RUNPOD_API_KEY=from-file-1111\n")
     monkeypatch.setenv("RUNPOD_API_KEY", "from-env-2222")
     service.reset()
     key = client.get("/settings").json()["integrations"]["runpod"]["apiKey"]
     assert key == {"set": True, "last4": "2222"}
-    assert client.post("/settings/test/runpod").json()["state"] == "ok"
+    r = client.post("/settings/test/runpod").json()
+    assert r["state"] == "ok" and calls == [("GET", "/networkvolumes")]
 
 
 def test_migrates_secrets_yaml(client):

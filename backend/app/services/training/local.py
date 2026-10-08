@@ -93,6 +93,8 @@ class Run:
     stopping: bool = False
     stop_at: float | None = None
     published: float = 0.0
+    remote: bool = False  # a RunPod job: remote.py feeds train.log and reports GPU use in util
+    util: float | None = None
 
 
 _runs: dict[str, Run] = {}
@@ -311,6 +313,15 @@ def _read(run: Run) -> None:
             _line(run, line)
 
 
+def follow(run: Run, final: bool = False) -> None:
+    """Parses what was appended to train.log since the last call (remote.py); `final` also
+    takes the last line without a newline."""
+    _read(run)
+    if final and run.partial.strip():
+        _line(run, run.partial)
+        run.partial = ""
+
+
 def _line(run: Run, line: str) -> None:
     job = run.job
     run.tail.append(line)
@@ -328,7 +339,7 @@ def _line(run: Run, line: str) -> None:
             run.loss = raw if run.loss is None else run.loss + LOSS_SMOOTHING * (raw - run.loss)
             values["loss"] = round(run.loss, 4)
         if run.logged > run.known:
-            util = gpu.utilization(run.gpu_index)
+            util = run.util if run.remote else gpu.utilization(run.gpu_index)
             if util is not None:
                 values["gpu_util"] = util
             _append_sample(job.id, step, values)

@@ -15,8 +15,9 @@ import { useTasks } from "@/api/tasks"
 import type { SimEnv } from "@/domain/simulation"
 import { formatDateTime } from "@/lib/format"
 
-import { evalHref, formatKB, rigLabel } from "../lib"
+import { evalHref, formatKB } from "../lib"
 import { EnvFiles } from "./env-files"
+import { EnvRobots } from "./env-robots"
 import { IsaacStatus } from "./isaac-status"
 
 /** Tasks named in a 409 from DELETE (details.tasks), appended to the message */
@@ -26,7 +27,7 @@ function deleteError(error: unknown) {
   return Array.isArray(tasks) && tasks.length ? `${error.message} (${tasks.join(", ")})` : error
 }
 
-/** Right-hand environment detail: scene, tasks using it, files and actions */
+/** Right-hand environment detail: script, robot tags, tasks using it, files and actions */
 export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => void }) {
   // Tasks recorded in this environment (picked under World on the Tasks page)
   const tasks = (useTasks().data ?? []).filter((t) => t.envId === env.id)
@@ -35,8 +36,15 @@ export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => vo
   const remove = useDeleteSimEnv()
   const [confirming, setConfirming] = useState(false)
   const details = [
-    { k: "Rig", v: rigLabel(env.rigId, rigs) },
-    { k: "Scene", v: <span className="font-mono">{env.scene}</span> },
+    {
+      k: "Rigs",
+      v: env.rigIds.length ? (
+        env.rigIds.map((id) => rigs.find((r) => r.id === id)?.name ?? id).join(", ")
+      ) : (
+        <span className="text-muted-foreground">None</span>
+      ),
+    },
+    { k: "Script", v: <span className="font-mono">{env.script}</span> },
     { k: "Size", v: formatKB(env.sizeKB) },
     {
       k: "Tasks",
@@ -119,6 +127,7 @@ export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => vo
         <ErrorNote error={deleteError(remove.error)} />
       </div>
 
+      <EnvRobots env={env} />
       <section className="grid content-start gap-2">
         <h3 className="text-sm font-semibold">Details</h3>
         <DetailList rows={details} bordered />

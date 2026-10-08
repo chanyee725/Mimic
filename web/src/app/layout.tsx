@@ -21,12 +21,16 @@ import { useCaptureState } from "@/api/capture"
 import { useServerEvents } from "@/api/events"
 import { useTasks } from "@/api/tasks"
 import { isCapturing } from "@/domain/capture"
+import { cn } from "@/lib/utils"
 
 import { EventToasts } from "./event-toasts"
 
-// Light sidebar: regular weight and thin icons, only the active item is emphasised
+// Light sidebar: regular weight and thin icons, only the active item is emphasised.
+// 14px items on 36px rows match the pages' 14px base text (Panel titles, descriptions)
 const NAV_ITEM_CLASS =
-  "text-[13px] font-normal text-sidebar-foreground/75 data-active:font-medium data-active:text-sidebar-foreground [&_svg]:size-[15px] [&_svg]:stroke-[1.75]"
+  "h-9 text-sm font-normal text-sidebar-foreground/80 data-active:font-medium data-active:text-sidebar-foreground [&_svg]:size-4 [&_svg]:stroke-[1.75]"
+// Badges sit in the middle of the 36px rows (the shadcn default is centred on 32px)
+const NAV_BADGE_CLASS = "peer-data-[size=default]/menu-button:top-2"
 
 function isActive(pathname: string, to: string) {
   return to === "/" ? pathname === "/" : pathname.startsWith(to)
@@ -36,13 +40,17 @@ function isActive(pathname: string, to: string) {
 function RecBadge() {
   const { data } = useCaptureState()
   if (!data || !isCapturing(data)) return null
-  return <SidebarMenuBadge className="rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad">REC</SidebarMenuBadge>
+  return (
+    <SidebarMenuBadge className={cn(NAV_BADGE_CLASS, "rounded-sm bg-bad-muted px-1.5 text-[10px] font-medium tracking-wide text-bad")}>
+      REC
+    </SidebarMenuBadge>
+  )
 }
 
 function TaskCountBadge() {
   const { data } = useTasks()
   if (!data) return null
-  return <SidebarMenuBadge className="font-mono font-normal text-muted-foreground">{data.length}</SidebarMenuBadge>
+  return <SidebarMenuBadge className={cn(NAV_BADGE_CLASS, "font-mono font-normal text-muted-foreground")}>{data.length}</SidebarMenuBadge>
 }
 
 function NavBadge({ badge }: { badge: NavItem["badge"] }) {
@@ -61,7 +69,7 @@ function AppSidebar() {
           <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<NavLink to="/" />}>
-                <span className="truncate font-medium tracking-tight">{APP_NAME}</span>
+                <span className="truncate text-[15px] font-semibold tracking-tight">{APP_NAME}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -72,7 +80,7 @@ function AppSidebar() {
       <SidebarContent>
         {NAV.map((group) => (
           <SidebarGroup key={group.label}>
-            <SidebarGroupLabel className="text-[11px] font-normal text-muted-foreground">{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (

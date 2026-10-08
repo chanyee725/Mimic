@@ -13,7 +13,7 @@ export const NEW_EVAL_DEFAULTS: { episodes: number; seedStart: number; maxSecond
 /** The Isaac Sim environment the model's task was recorded in, if any */
 export const taskEnvId = (model: Model | undefined, tasks: Task[]) => tasks.find((t) => t.id === model?.taskId)?.envId ?? undefined
 
-/** Environments usable by the rig of the model's task (its rig folder or the top level) */
+/** Environments usable by the rig of the model's task (its robot tags fit the rig, or untagged) */
 export const usableEnvs = (envs: SimEnv[], model: Model | undefined, tasks: Task[]) =>
   envs.filter((e) => envFitsRig(e, tasks.find((t) => t.id === model?.taskId)?.rigId))
 

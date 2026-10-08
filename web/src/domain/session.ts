@@ -5,7 +5,6 @@ export type SessionStatus = "review" | "reviewed"
 export type Session = {
   id: string
   taskId: string
-  operator: string | null // pseudonymous ID
   episodes: number
   accepted: number
   successPct: number // 1 decimal

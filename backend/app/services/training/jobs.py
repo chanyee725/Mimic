@@ -1,8 +1,9 @@
-"""Training jobs: local lerobot-train runs (local.py) kept as folders under config.training_dir.
+"""Training jobs kept as folders under config.training_dir: local lerobot-train runs (local.py)
+and RunPod pods (remote.py).
 
-Each job folder holds job.yaml (the TrainJob plus the trainer's pid), train.log, metrics.jsonl
-and lerobot's output/. A job waits (queued) while its GPU runs another one. RunPod has no
-trainer yet, so a RunPod job is refused (503).
+Each job folder holds job.yaml (the TrainJob plus the trainer's pid, or the RunPod extras),
+train.log, metrics.jsonl and lerobot's output/. A local job waits (queued) while its GPU runs
+another one; a RunPod job gets its own pod at once.
 """
 
 import logging
@@ -33,7 +34,7 @@ from app.schemas.training import (
 )
 from app.services import datasets, models
 from app.services.training import config as cfg
-from app.services.training import local, params
+from app.services.training import local, params, remote
 from app.services.training.plan import Plan
 from app.utils import gpu
 from app.utils.ids import next_seq_id, slugify
@@ -43,7 +44,6 @@ log = logging.getLogger(__name__)
 
 ACTIVE = ("running", "queued")
 SERIES = ("loss_raw", "loss", "grad_norm", "lr", "update_s", "data_s", "gpu_util", "gpu_mem")
-RUNPOD_NOT_CONNECTED = "RunPod trainer is not connected yet"
 JOB_FILE = "job.yaml"
 
 _jobs: dict[str, TrainJob] = {}
@@ -54,6 +54,7 @@ _lock = threading.RLock()
 def reset() -> None:
     """Reloads the job folders; running trainers are followed again, queued jobs start in turn."""
     local.reset()
+    remote.reset()
     local.configure(local.Callbacks(save=_save, updated=_publish, metric=_metric, finished=_next))
     with _lock:
         _jobs.clear()
@@ -65,16 +66,26 @@ def reset() -> None:
                 continue
             try:
                 pid, index = raw.pop("pid", None), int(raw.pop("gpu_index", 0))
+                extra = raw.pop("remote", None)
                 job = TrainJob.model_validate(raw)
             except (ValidationError, ValueError) as e:
                 log.warning("%s is not a usable training job, skipping it: %s", d, e)
                 continue
             _jobs[job.id], _gpu_index[job.id] = job, index
-            if job.status == "running" and not local.reattach(job, pid, index, _log_freq(job)):
-                job.status, job.eta_s, job.steps_per_s = "failed", None, None
+            if job.status not in ACTIVE:
+                continue
+            if job.compute == "runpod":
+                followed = remote.reattach(job, extra)
+            else:
+                followed = job.status == "queued" or local.reattach(job, pid, index, _log_freq(job))
+            if not followed:
+                job.status, job.eta_s, job.steps_per_s, job.phase = "failed", None, None, None
                 job.error = "Trainer stopped while the backend was down"
+                if job.compute == "runpod":
+                    _terminate_orphan(job)  # nothing follows its pod any more: stop the billing
                 _save(job)
-        for g in {_gpu_index[j.id] for j in _jobs.values() if j.status == "queued"}:
+        queued = [j for j in _jobs.values() if j.status == "queued" and j.compute == "local"]
+        for g in {_gpu_index[j.id] for j in queued}:
             _start_next(g)
 
 
@@ -84,6 +95,8 @@ def reset() -> None:
 def _save(job: TrainJob) -> None:
     data = job.model_dump(mode="json", by_alias=False)
     data["pid"], data["gpu_index"] = local.pid_of(job.id), _gpu_index.get(job.id, 0)
+    if job.compute == "runpod":
+        data["remote"] = remote.extras(job.id)
     try:
         storage.write_file(local.job_dir(job.id) / JOB_FILE, storage.dumps(data))
     except OSError as e:
@@ -145,8 +158,15 @@ def get_config() -> TrainingConfig:
 # Jobs
 
 
+def _view(job: TrainJob) -> TrainJob:
+    """The job as served: an idle pod's idleForS is counted now."""
+    if job.pod_state and job.pod_state.state == "idle":
+        job.pod_state.idle_for_s = remote.idle_for(job)
+    return job
+
+
 def list_jobs(status: str | None = None) -> list[TrainJob]:
-    items = [j for j in list(_jobs.values()) if status is None or j.status == status]
+    items = [_view(j) for j in list(_jobs.values()) if status is None or j.status == status]
     # Newest first: queued jobs have not started yet, so they lead
     return sorted(items, key=lambda j: (j.started_at or "9999", j.id), reverse=True)
 
@@ -155,7 +175,7 @@ def get_job(job_id: str) -> TrainJob:
     job = _jobs.get(job_id)
     if job is None:
         raise not_found("Training job", job_id)
-    return job
+    return _view(job)
 
 
 def _run_paths(job: TrainJob) -> dict[str, str]:
@@ -190,10 +210,11 @@ def preview(body: JobCreate) -> CommandPreview:
 
 
 def create_job(body: JobCreate) -> TrainJob:
-    """Local: starts lerobot-train, or queues the job while its GPU is busy. RunPod: 503."""
+    """Local: starts lerobot-train, or queues the job while its GPU is busy. RunPod: rents a pod
+    (remote.py); 424 when the RunPod key or the HF token is missing."""
     plan = Plan(body, local_gpus())
-    if body.compute != "local":
-        raise ApiError(503, RUNPOD_NOT_CONNECTED, {"compute": body.compute})
+    # Keys and the HF namespace (a network call) are checked before the lock is taken
+    namespace = remote.preflight() if body.compute == "runpod" else None
     ds = datasets.get_dataset(body.dataset)
     steps = int(body.overrides.get("steps", params.DEFAULTS["steps"]))
     batch = int(body.overrides.get("batch_size", params.DEFAULTS["batch_size"]))
@@ -204,7 +225,7 @@ def create_job(body: JobCreate) -> TrainJob:
             policy=cfg.policy(),
             dataset=body.dataset,
             task_id=ds.task_id if ds else "",
-            compute="local",
+            compute=body.compute,
             gpu=plan.gpu_name,
             status="queued",
             step=0,
@@ -214,12 +235,39 @@ def create_job(body: JobCreate) -> TrainJob:
             epochs=math.ceil(steps * batch / frames) if frames else 0,
             overrides=body.overrides,
         )
-        _jobs[job.id], _gpu_index[job.id] = job, plan.gpu_index
-        _save(job)
-        if _local_busy(plan.gpu_name) is None:
-            _start(job)
+        if body.compute == "runpod":
+            _start_remote(job, plan, namespace or "")
+        else:
+            _jobs[job.id], _gpu_index[job.id] = job, plan.gpu_index
+            _save(job)
+            if _local_busy(plan.gpu_name) is None:
+                _start(job)
     _publish(job)
     return job
+
+
+def _start_remote(job: TrainJob, plan: Plan, namespace: str) -> None:
+    o = plan.options or cfg.runpod_defaults()
+    rate = plan.rate or 0.0
+    job.status, job.started_at, job.phase = "running", now_iso(), "pushing dataset"
+    job.price_per_hr, job.cost_usd = round(rate, 4), 0.0
+    remote.register(job, o, cfg.runpod_cap_hours(o, rate) if rate else o.max_hours, namespace)
+    _jobs[job.id] = job
+    _save(job)  # job.yaml (with the runner token) exists before the thread can end the job
+    remote.launch(job.id)
+
+
+def _terminate_orphan(job: TrainJob) -> None:
+    """Terminates the pod of a RunPod job nothing follows (best effort; the error is noted)."""
+    if not job.pod or (job.pod_state and job.pod_state.state == "terminated"):
+        return
+    try:
+        remote.terminate(job)
+    except ApiError as e:
+        log.warning("Could not terminate pod %s of %s: %s", job.pod, job.id, e.message)
+        job.error = f"{job.error}; pod {job.pod} could not be terminated: {e.message}"
+        return
+    job.pod_state = PodState(state="terminated", auto_terminate=True, since=now_iso())
 
 
 def _existing_ids() -> list[str]:
@@ -264,8 +312,13 @@ def stop_job(job_id: str) -> TrainJob:
     if job.status == "running" and local.is_running(job_id):
         local.stop(job_id)
         return job
+    if job.status == "running" and remote.stop(job_id):
+        return job  # stopped once the pod reports it
     job.status, job.eta_s, job.steps_per_s = "stopped", None, None
-    if job.pod_state and job.pod_state.state == "running":
+    if job.compute == "runpod":
+        job.phase = None
+        _terminate_orphan(job)
+    elif job.pod_state and job.pod_state.state == "running":
         state = "terminated" if job.pod_state.auto_terminate else "idle"
         job.pod_state = PodState(
             state=state, auto_terminate=job.pod_state.auto_terminate, since=now_iso()
@@ -283,10 +336,12 @@ def terminate_pod(job_id: str) -> TrainJob:
         raise conflict(f"Pod of job '{job_id}' is already terminated")
     if job.status in ACTIVE:
         raise conflict(f"Job '{job_id}' is still active; stop it first")
+    remote.terminate(job)
     job.pod_state = PodState(
         state="terminated", auto_terminate=job.pod_state.auto_terminate, since=now_iso()
     )
-    bus.publish("training.updated", job)
+    _save(job)
+    _publish(job)
     return job
 
 

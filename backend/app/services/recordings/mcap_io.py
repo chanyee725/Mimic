@@ -4,7 +4,7 @@ Channels: /action and /observation/state ({"position": [deg per joint]}) at the 
 rate, /subtask ({"name", "start_s", "end_s"}) at each span start, and /cam_<key>/image per
 recorded camera (protobuf foxglove.CompressedImage, JPEG, as the camera delivered it). Log
 times are nanoseconds since the epoch, starting at the recording start. One metadata record
-("episode") holds the task id, episode, operator and outcome.
+("episode") holds the task id, episode and outcome.
 """
 
 import bisect
