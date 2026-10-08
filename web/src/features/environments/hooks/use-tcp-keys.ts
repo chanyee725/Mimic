@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { sendSimJog } from "@/api/simulation"
 import { isTypingTarget } from "@/hooks/use-hotkeys"
 
-import { JOG_RESEND_MS, TCP_KEYS, TCP_LIN_M_S, TCP_ROT_DEG_S } from "../lib"
+import { JOG_RESEND_MS, physicalKey, TCP_KEYS, TCP_LIN_M_S, TCP_ROT_DEG_S } from "../lib"
 
 /** Held keys and whether Shift turns them into rotations */
 export type TcpHeld = { keys: string[]; rotate: boolean }
@@ -43,7 +43,7 @@ export function useTcpKeys(enabled: boolean) {
     stopRef.current = stop
     const down = (e: KeyboardEvent) => {
       if (!enabledRef.current || isTypingTarget(e.target)) return
-      const key = e.key.toLowerCase()
+      const key = physicalKey(e)
       const { keys } = heldRef.current
       if (key === "shift") return update({ keys, rotate: true })
       if (!Object.hasOwn(TCP_KEYS, key)) return
@@ -51,7 +51,7 @@ export function useTcpKeys(enabled: boolean) {
       update({ keys: keys.includes(key) ? keys : [...keys, key], rotate: e.shiftKey })
     }
     const up = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase()
+      const key = physicalKey(e)
       const { keys } = heldRef.current
       if (key === "shift") update({ keys, rotate: false })
       else if (Object.hasOwn(TCP_KEYS, key)) update({ keys: keys.filter((k) => k !== key), rotate: e.shiftKey })

@@ -47,3 +47,7 @@ export const TCP_KEYS: Record<string, { axis: number; dir: number }> = {
 }
 
 export type JogMode = "tcp" | "joint"
+
+/** The key's place on the keyboard ("i", "shift", "arrowup"), so a Korean IME (which turns I into ㅑ) still jogs */
+export const physicalKey = (e: KeyboardEvent) =>
+  e.code.startsWith("Key") ? e.code.slice(3).toLowerCase() : e.code.startsWith("Shift") ? "shift" : e.code.toLowerCase()

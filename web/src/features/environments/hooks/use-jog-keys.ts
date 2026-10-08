@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { sendSimJog } from "@/api/simulation"
 import { isTypingTarget } from "@/hooks/use-hotkeys"
 
-import { JOG_DEG_S, JOG_RESEND_MS, JOG_SLOW_DEG_S } from "../lib"
+import { JOG_DEG_S, JOG_RESEND_MS, JOG_SLOW_DEG_S, physicalKey } from "../lib"
 
 type Held = { joint: string; dir: number; slow: boolean }
 
@@ -36,7 +36,7 @@ export function useJogKeys(joints: string[], enabled: boolean) {
     const down = (e: KeyboardEvent) => {
       const { joints, index, enabled, press } = live.current
       if (!enabled || !joints.length || isTypingTarget(e.target)) return
-      const key = e.key.toLowerCase()
+      const key = physicalKey(e)
       if (key === "arrowup" || key === "w") setSelected((i) => Math.max(0, Math.min(i, joints.length - 1) - 1))
       else if (key === "arrowdown" || key === "s") setSelected((i) => Math.min(joints.length - 1, i + 1))
       else if (key === "arrowleft" || key === "a" || key === "arrowright" || key === "d") {
@@ -45,7 +45,7 @@ export function useJogKeys(joints: string[], enabled: boolean) {
       e.preventDefault()
     }
     const up = (e: KeyboardEvent) => {
-      if (["arrowleft", "arrowright", "a", "d"].includes(e.key.toLowerCase())) live.current.release()
+      if (["arrowleft", "arrowright", "a", "d"].includes(physicalKey(e))) live.current.release()
     }
     const blur = () => live.current.release()
     window.addEventListener("keydown", down)
