@@ -53,6 +53,7 @@ class Scene:
         self.sim_dir = sim_dir
         self.robot_name = robot
         self.robot_path: str | None = None
+        self.tool_paths: list[str] = []
         self.leader_offsets: dict[str, float] = {}  # leader reading → joint value (robot.yaml)
         self.tcp: dict | None = None  # robot.yaml tcp (keyboard TCP jog)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
@@ -120,7 +121,14 @@ class Scene:
         """References an end effector (tools/<name>, e.g. a robot hand) at /World/<name>, its base
         pinned where it stands. To mount one on an arm, compose a
         robot with scripts/compose-sim-robot.py."""
-        return self._articulation(self._free_path(name), self.sim_dir / "tools", name, pos, yaw)
+        prim = self._articulation(self._free_path(name), self.sim_dir / "tools", name, pos, yaw)
+        self.tool_paths.append(str(prim.GetPath()))
+        return prim
+
+    @property
+    def teleop_path(self) -> str | None:
+        """What teleoperation drives: the robot, else the first tool (a tool opened alone)."""
+        return self.robot_path or (self.tool_paths[0] if self.tool_paths else None)
 
     def _articulation(self, path: str, folder: Path, name: str, pos, yaw: float) -> Usd.Prim:
         prim = self.stage.DefinePrim(path, "Xform")
@@ -239,6 +247,9 @@ class Drives:
                 ("linear", UsdPhysics.PrismaticJoint),
             ):
                 if p.IsA(joint_type) and p.HasAPI(UsdPhysics.DriveAPI, kind):
+                    # A drive without stiffness is passive (a hand's coupled finger segments)
+                    if not UsdPhysics.DriveAPI(p, kind).GetStiffnessAttr().Get():
+                        continue
                     j = joint_type(p)
                     lo, hi = j.GetLowerLimitAttr().Get(), j.GetUpperLimitAttr().Get()
                     self.drives[p.GetName()] = (UsdPhysics.DriveAPI(p, kind), lo, hi)

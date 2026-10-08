@@ -17,8 +17,9 @@ class SimEnvPatch(CamelModel):
 
 
 class SimTeleopStart(CamelModel):
-    robot_id: str
+    robot_id: str  # the robot, or the tool with kind "tool"
     device_id: str
+    kind: Literal["robot", "tool"] = "robot"
     display: Literal["window", "headless"] | None = None
 
 

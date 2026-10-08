@@ -59,10 +59,12 @@ export type SimTeleopState = "starting" | "running" | "stopped"
 export type SimTeleopJoint = { name: string; value: number | null }
 
 /**
- * Teleoperation of a robot opened alone in Isaac Sim by a real leader arm (GET / POST / DELETE /sim/teleop).
- * starting: waiting for Isaac Sim to open the robot (the first launch can take minutes); stopped: ended, see error
+ * Teleoperation of a robot or tool opened alone in Isaac Sim by a real leader arm or the keyboard (GET / POST / DELETE /sim/teleop).
+ * starting: waiting for Isaac Sim to open the asset (the first launch can take minutes); stopped: ended, see error
  */
 export type SimTeleop = {
+  kind: SimAssetKind
+  /** Robot or tool id, by kind */
   robotId: string
   deviceId: string
   state: SimTeleopState
@@ -75,10 +77,10 @@ export type SimTeleop = {
   tcp: number[] | null
 }
 
-/** POST /sim/teleop body; display defaults to the Connection setting */
-export type SimTeleopCreate = { robotId: string; deviceId: string; display?: IsaacDisplay }
+/** POST /sim/teleop body; kind defaults to robot, a tool takes only the keyboard; display defaults to the Connection setting */
+export type SimTeleopCreate = { robotId: string; deviceId: string; kind?: SimAssetKind; display?: IsaacDisplay }
 
-/** Device id of keyboard teleoperation: jog any robot's joints from the page (no leader arm) */
+/** Device id of keyboard teleoperation: jog any robot's or tool's joints from the page (no leader arm) */
 export const SIM_KEYBOARD = "keyboard"
 
 /**

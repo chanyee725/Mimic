@@ -146,3 +146,27 @@ def test_keyboard_jogs_any_robot(client, fake):
     assert client.delete("/sim/teleop").status_code == 204
     assert client.put("/sim/teleop/jog", json={"velocities": {}}).status_code == 404
     client.post("/sim/runner/stop")
+
+
+@pytest.mark.usefixtures("local_server")
+def test_keyboard_jogs_a_tool(client, fake):
+    from tests.support import write_sim_tool
+
+    write_sim_tool("hand")
+
+    def start(device, kind="tool", tool="hand"):
+        return client.post("/sim/teleop", json={"robotId": tool, "deviceId": device, "kind": kind})
+
+    assert start("keyboard", tool="nope").status_code == 404
+    assert start("leader").status_code == 422
+    r = start("keyboard")
+    assert r.status_code == 201, r.text
+    body = _wait(client, lambda b: b["state"] == "running" and b["joints"])
+    assert body["kind"] == "tool"
+    assert client.get("/sim/runner").json()["app"]["scene"] == "tool-hand"
+    assert client.put("/sim/teleop/jog", json={"velocities": {"joint1": 30}}).status_code == 204
+    _wait(client, lambda b: {j["name"]: j["value"] for j in b["joints"]}["joint1"] > 0.5)
+    # A tool has no TCP
+    assert client.put("/sim/teleop/jog", json={"twist": [0.05, 0, 0, 0, 0, 0]}).status_code == 422
+    client.delete("/sim/teleop")
+    client.post("/sim/runner/stop")

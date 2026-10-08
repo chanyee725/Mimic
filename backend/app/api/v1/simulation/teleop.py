@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.post("/teleop", response_model=SimTeleop, status_code=201)
 def start_teleop(body: SimTeleopStart):
-    return service.teleop.start(body.robot_id, body.device_id, body.display)
+    return service.teleop.start(body.robot_id, body.device_id, body.display, body.kind)
 
 
 @router.get("/teleop", response_model=SimTeleop | None)

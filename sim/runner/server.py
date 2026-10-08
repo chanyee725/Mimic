@@ -41,7 +41,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = 7
+VERSION = 8
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")

@@ -179,7 +179,7 @@ while app.is_running():
                 context.new_stage()
                 built = env_scene.build(context.get_stage(), Path(path), Path(root), robot)
                 use_physics_device(context.get_stage())
-                drives = env_scene.Drives(context.get_stage())
+                drives = env_scene.Drives(context.get_stage(), built.teleop_path or "/World/Robot")
                 drives.offsets = built.leader_offsets
                 tcp = TcpJog(**built.tcp) if built.tcp else None
                 state.update(scene=path, error=None)

@@ -21,7 +21,13 @@ from app.models.simulation import SimAsset, SimTeleop, SimTeleopJoint
 from app.services import rigs
 from app.services.rigs.driver import LeaderLink
 from app.services.simulation import runner
-from app.services.simulation.envs import get_robot, leader_types, robot_path, set_leader_rest
+from app.services.simulation.envs import (
+    get_robot,
+    leader_types,
+    robot_path,
+    set_leader_rest,
+    tool_path,
+)
 from app.utils.time import now_iso
 
 log = logging.getLogger(__name__)
@@ -39,10 +45,11 @@ SEND_FAIL_S = 5.0  # a session stops after sending fails this long (the app stil
 
 @dataclass
 class _Session:
-    robot_id: str
+    robot_id: str  # the robot or tool id
     device_id: str
     link: LeaderLink | None  # None for the keyboard
     started_at: str
+    kind: str = "robot"  # or "tool"
     state: str = "starting"
     hz: float | None = None
     error: str | None = None
@@ -69,10 +76,19 @@ def state() -> SimTeleop | None:
     return _view(s) if s else None
 
 
-def start(robot_id: str, device_id: str, display: str | None = None) -> SimTeleop:
+def start(
+    robot_id: str, device_id: str, display: str | None = None, kind: str = "robot"
+) -> SimTeleop:
+    """Opens the robot (or tool) alone and drives it with a leader or the keyboard; a tool takes
+    only the keyboard until a glove device exists."""
     global _session
     keyboard = device_id == KEYBOARD
-    if keyboard:
+    if kind == "tool":
+        if tool_path(robot_id) is None:
+            raise not_found("Tool", robot_id)
+        if not keyboard:
+            raise ApiError(422, "A tool is driven with the keyboard")
+    elif keyboard:
         if robot_path(robot_id) is None:
             raise not_found("Robot", robot_id)
     else:
@@ -90,13 +106,15 @@ def start(robot_id: str, device_id: str, display: str | None = None) -> SimTeleo
             )
         link = None if keyboard else rigs.open_leader(device_id)
         try:
-            runner.open_asset("robot", robot_id, display)
+            runner.open_asset(kind, robot_id, display)
         except BaseException:
             if link is not None:
                 link.close()
                 rigs.release_leader(device_id)
             raise
-        s = _Session(robot_id=robot_id, device_id=device_id, link=link, started_at=now_iso())
+        s = _Session(
+            robot_id=robot_id, device_id=device_id, link=link, started_at=now_iso(), kind=kind
+        )
         _session = s
     s.thread = threading.Thread(target=_loop, args=(s,), daemon=True)
     s.thread.start()
@@ -112,7 +130,7 @@ def set_jog(velocities: dict[str, float] | None = None, twist: list[float] | Non
     if s.state != "running":
         raise conflict(f"Teleoperation is {s.state}")
     if twist is not None:
-        if get_robot(s.robot_id).tcp is None:
+        if s.kind != "robot" or get_robot(s.robot_id).tcp is None:
             raise ApiError(422, f"Robot '{s.robot_id}' has no TCP (robot.yaml tcp)")
         caps = [MAX_TWIST[0]] * 3 + [MAX_TWIST[1]] * 3
         s.twist = [max(-c, min(c, float(v))) for v, c in zip(twist, caps)]
@@ -201,7 +219,7 @@ def _scene_ready(s: _Session) -> bool:
         return False
     if app.state == "exited" or app.error:
         raise RuntimeError(app.error or "Isaac Sim exited")
-    return app.state == "running" and app.scene == runner.scene_id("robot", s.robot_id)
+    return app.state == "running" and app.scene == runner.scene_id(s.kind, s.robot_id)
 
 
 def _app_gone() -> str | None:
@@ -273,6 +291,7 @@ def _view(s: _Session) -> SimTeleop:
     names = list(getattr(s.link, "joints", None) or s.values)
     return SimTeleop(
         robot_id=s.robot_id,
+        kind=s.kind,
         device_id=s.device_id,
         state=s.state,
         hz=s.hz if s.state == "running" else None,
