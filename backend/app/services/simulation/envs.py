@@ -98,11 +98,59 @@ def leader_types(robot_id: str) -> list[str]:
     return [robot_id.removesuffix("_follower") + "_leader"]
 
 
+def robot_config(usd: Path) -> Path:
+    """A robot's config next to its USD (same rule as sim/runner/scene.py): <id>/robot.yaml for a
+    folder robot, else <id>.yaml."""
+    return usd.parent / "robot.yaml" if usd.parent.name == usd.stem else usd.with_suffix(".yaml")
+
+
+def _initial_pose(usd: Path) -> dict[str, float] | None:
+    doc = storage.read_file(robot_config(usd)) or {}
+    pose = doc.get("initial_pose") if isinstance(doc, dict) else None
+    return {str(k): float(v) for k, v in pose.items()} if isinstance(pose, dict) else None
+
+
 def list_robots() -> list[SimAsset]:
     return [
-        r.model_copy(update={"teleop": leader_types(r.id)})
+        r.model_copy(
+            update={"teleop": leader_types(r.id), "initial_pose": _initial_pose(Path(r.path))}
+        )
         for r in scan_robots(config.sim_robots_dir)
     ]
+
+
+def get_robot(robot_id: str) -> SimAsset:
+    robot = next((r for r in list_robots() if r.id == robot_id), None)
+    if robot is None:
+        raise not_found("Robot", robot_id)
+    return robot
+
+
+CONFIG_HEADER = (
+    "# Robot config, read by sim/runner/scene.py when the robot is placed.\n"
+    "# initial_pose: joint → degrees the robot starts and holds in when Play starts;\n"
+    "# joints under percent take 0–100 over their limits (a LeRobot gripper).\n"
+)
+
+
+def set_initial_pose(
+    robot_id: str, pose: dict[str, float], percent: list[str], source: str
+) -> SimAsset:
+    """Writes the robot's initial pose into its config, keeping the config's other keys."""
+    usd = robot_path(robot_id)
+    if usd is None:
+        raise not_found("Robot", robot_id)
+    path = robot_config(usd)
+    doc = storage.read_file(path)
+    doc = doc if isinstance(doc, dict) else {}
+    doc.update(
+        initial_pose={k: round(v, 2) for k, v in pose.items()},
+        percent=percent,
+        captured_from=source,
+        captured_at=now_iso(),
+    )
+    storage.write_file(path, CONFIG_HEADER + storage.dumps(doc))
+    return get_robot(robot_id)
 
 
 def robot_path(robot_id: str) -> Path | None:

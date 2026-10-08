@@ -87,3 +87,23 @@ def test_refused_starts(client, fake):
     # A follower is not a leader
     assert start("so101_follower", "follower").status_code == 422
     assert client.get("/sim/teleop").json() is None
+
+
+def test_capture_initial_pose_from_the_leader(client, fake, envs_dir):
+    from app.configs.config import config
+
+    r = client.post("/sim/robots/so101_follower/initial-pose", json={"deviceId": "leader"})
+    assert r.status_code == 200, r.text
+    pose = r.json()["initialPose"]  # FakeLeader reads 10.0 for every joint
+    assert pose["gripper"] == 10.0 and fake.leader.closed and fake.leader.reads == 5
+    # The leader is free again
+    assert client.post("/devices/leader/calibrate").status_code != 409
+    client.delete("/devices/leader/calibration")
+
+    text = (config.sim_robots_dir / "so101_follower.yaml").read_text()
+    assert text.startswith("# Robot config") and "percent:\n- gripper" in text
+    listed = {r["id"]: r["initialPose"] for r in client.get("/sim/robots").json()}
+    assert listed["so101_follower"] == pose and listed["arm"] is None
+
+    r = client.post("/sim/robots/arm/initial-pose", json={"deviceId": "leader"})
+    assert r.status_code == 422

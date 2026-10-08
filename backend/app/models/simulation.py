@@ -45,6 +45,8 @@ class SimAsset(CamelModel):
     files: list[SimEnvFile] = []  # relative to the asset folder (the file name for a single file)
     updated_at: str
     teleop: list[str] = []  # leader types that can drive it (so101_follower ← so101_leader)
+    # robots: start pose from <id>/robot.yaml (joint → degrees; percent joints 0–100), null when unset
+    initial_pose: dict[str, float] | None = None
 
 
 class SimGpu(CamelModel):

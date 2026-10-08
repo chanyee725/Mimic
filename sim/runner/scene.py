@@ -11,14 +11,17 @@ Assets come from sim/assets/<name>/<name>.usd[a] (origin at their bottom, centre
 not named in the script: it is the environment's robot tag (Environments page), loaded from the
 sim folder's robots/<name>.usd[a]; scene.robot_name says which one. The robot is pinned to the world with a fixed joint, so
 it stands when Play starts. scene.tool(<name>) places an end effector from tools/<name> the same
-way. Units are metres, Z up, yaw in degrees about Z. pxr only, so the
+way. A robot's robots/<name>/robot.yaml (initial_pose) sets the joints it starts and holds in.
+Units are metres, Z up, yaw in degrees about Z. pxr only, so the
 same code builds a stage with usd-core outside Isaac Sim.
 """
 
 import importlib.util
 from pathlib import Path
 
-from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics
+import yaml
+
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdPhysics
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 USD_EXTS = (".usd", ".usda", ".usdc")
@@ -103,6 +106,9 @@ class Scene:
             raise ValueError("no robot: tag the environment with one on the Environments page")
         prim = self._articulation("/World/Robot", self.sim_dir / "robots", name, pos, yaw)
         self.robot_path = str(prim.GetPath())
+        pose, percent = initial_pose(_usd_file(self.sim_dir / "robots", name))
+        if pose:
+            Drives(self.stage, self.robot_path).start_at(pose, percent)
         return prim
 
     def tool(self, name: str, pos=(0, 0, 0), yaw: float = 0) -> Usd.Prim:
@@ -166,12 +172,29 @@ def build(stage: Usd.Stage, script: Path, sim_dir: Path, robot: str | None = Non
     return scene
 
 
+def robot_config(usd: Path) -> Path:
+    """A robot's config next to its USD: <id>/robot.yaml for a folder robot, else <id>.yaml."""
+    return usd.parent / "robot.yaml" if usd.parent.name == usd.stem else usd.with_suffix(".yaml")
+
+
+def initial_pose(usd: Path) -> tuple[dict[str, float], tuple[str, ...]]:
+    """initial_pose (joint name → degrees) and its percent joints (0–100 over the limits) from
+    the robot's config; empty without one."""
+    path = robot_config(usd)
+    if not path.is_file():
+        return {}, ()
+    doc = yaml.safe_load(path.read_text()) or {}
+    pose = {str(k): float(v) for k, v in (doc.get("initial_pose") or {}).items()}
+    return pose, tuple(doc.get("percent") or ())
+
+
 class Drives:
     """Joint drives of the placed robot by joint name, for teleoperation: targets in degrees
     (metres for a prismatic joint); a joint listed as percent takes 0–100 over its limits."""
 
     def __init__(self, stage: Usd.Stage, root: str = "/World/Robot"):
         self.drives: dict[str, tuple[UsdPhysics.DriveAPI, float | None, float | None]] = {}
+        self.kinds: dict[str, str] = {}  # "angular" | "linear"
         prim = stage.GetPrimAtPath(root)
         if not prim:
             return
@@ -184,19 +207,39 @@ class Drives:
                     j = joint_type(p)
                     lo, hi = j.GetLowerLimitAttr().Get(), j.GetUpperLimitAttr().Get()
                     self.drives[p.GetName()] = (UsdPhysics.DriveAPI(p, kind), lo, hi)
+                    self.kinds[p.GetName()] = kind
+
+    def _value(self, name: str, value: float, percent: tuple[str, ...]) -> float:
+        _, lo, hi = self.drives[name]
+        if name in percent and lo is not None and hi is not None:
+            value = lo + max(0.0, min(100.0, value)) / 100 * (hi - lo)
+        if lo is not None and hi is not None:
+            value = max(lo, min(hi, value))
+        return float(value)
 
     def set(self, targets: dict[str, float], percent: tuple[str, ...] = ()) -> list[str]:
         """Sets the drive targets it knows (clamped to the limits); returns the names applied."""
         applied = []
         for name, value in targets.items():
-            entry = self.drives.get(name)
-            if entry is None:
-                continue
-            drive, lo, hi = entry
-            if name in percent and lo is not None and hi is not None:
-                value = lo + max(0.0, min(100.0, value)) / 100 * (hi - lo)
-            if lo is not None and hi is not None:
-                value = max(lo, min(hi, value))
-            drive.GetTargetPositionAttr().Set(float(value))
-            applied.append(name)
+            if name in self.drives:
+                self.drives[name][0].GetTargetPositionAttr().Set(self._value(name, value, percent))
+                applied.append(name)
+        return applied
+
+    def start_at(self, pose: dict[str, float], percent: tuple[str, ...] = ()) -> list[str]:
+        """Initial joint state (PhysicsJointStateAPI) and drive target, so the robot starts and
+        holds there when Play starts."""
+        applied = self.set(pose, percent)
+        for name in applied:
+            drive = self.drives[name][0]
+            prim, kind = drive.GetPrim(), self.kinds[name]
+            schema = f"PhysicsJointStateAPI:{kind}"
+            if schema not in prim.GetAppliedSchemas():
+                prim.AddAppliedSchema(schema)
+            value = drive.GetTargetPositionAttr().Get()
+            for attr, v in (("position", value), ("velocity", 0.0)):
+                a = prim.GetAttribute(f"state:{kind}:physics:{attr}")
+                if not a:
+                    a = prim.CreateAttribute(f"state:{kind}:physics:{attr}", Sdf.ValueTypeNames.Float)
+                a.Set(float(v))
         return applied
