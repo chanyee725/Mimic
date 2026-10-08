@@ -176,7 +176,7 @@ leaving the folder is refused). Assets come from the server's own `sim/assets/`.
 `POST /open {path, root, robot}` on a private port only the server uses; an exception in the script is kept as `app.error` (the
 app keeps running). `POST /joints {targets, percent, play}` (teleoperation) is forwarded to the app, which keeps only the newest
 command and applies it on its main loop (`scene.Drives`: drive targets by joint name, degrees; a `percent` joint takes 0–100 over its
-limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 7 (6 integrated jogs over at most 0.1 s per frame, 5 forwarded `/joints` synchronously, 4 had no TCP twist, 3 no `jog` / `/state` joints, 2 no `/joints`); `/joints` is queued and forwarded to the app by a thread, newest first: in local mode the
+limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 8 (7 drove a tool's passive joints and only robots, 6 integrated jogs over at most 0.1 s per frame, 5 forwarded `/joints` synchronously, 4 had no TCP twist, 3 no `jog` / `/state` joints, 2 no `/joints`); `/joints` is queued and forwarded to the app by a thread, newest first: in local mode the
 backend stops an older server it finds on the port (by its `server.py --port` process) and starts a new one; a remote one is refused
 by teleoperation with 409.
 
@@ -197,7 +197,8 @@ Joints match by name: a robot named `X_follower` (its USD joints named after the
 
 ```ts
 SimTeleop = {
-  robotId: string; deviceId: string
+  robotId: string; deviceId: string            // robotId: the robot or tool id
+  kind: "robot" | "tool"
   state: "starting" | "running" | "stopped"   // starting: waiting for Isaac Sim to open the robot; stopped: ended with error
   hz: number | null; targetHz: number          // measured / target send rate (30)
   error: string | null
@@ -208,7 +209,7 @@ SimTeleop = {
 
 | Method | Path | Body | Returns | Web |
 | --- | --- | --- | --- | --- |
-| POST | `/sim/teleop` | `{ robotId, deviceId, display? }` | `201 SimTeleop`; 404 unknown robot / device; 422 not a leader, or its type is not in the robot's `teleop` (`details.teleop`); 409 the device is busy, a session runs, or the server is older than version 3; 503 LeRobot unavailable or the port fails | Teleoperation dialog: Start |
+| POST | `/sim/teleop` | `{ robotId, deviceId, kind?, display? }` | `201 SimTeleop`; `kind` `"tool"` opens a tool alone (`robotId` = the tool id) and takes only the keyboard (422 otherwise); 404 unknown robot / device; 422 not a leader, or its type is not in the robot's `teleop` (`details.teleop`); 409 the device is busy, a session runs, or the server is older than version 3; 503 LeRobot unavailable or the port fails | Teleoperation dialog: Start |
 | GET | `/sim/teleop` | | `SimTeleop`, or `null` when there is none | Teleoperation dialog (polled) |
 | PUT | `/sim/teleop/jog` | `{ velocities: Record<string, number> }` or `{ twist: [vx, vy, vz, wx, wy, wz] }` | 204: keyboard session only — joints to move now in degrees per second (capped at 120; `{}` stops), or the TCP twist in its own (tool0) frame in m/s and deg/s (capped at 0.25 / 90; zeros stop; 422 when the robot has no `tcp`); the page resends while keys are held and speeds older than 0.5 s drop to zero. 404 without a keyboard session, 409 while it is starting | Keyboard jog |
 | DELETE | `/sim/teleop` | | 204; 404 when there is none | Stop |
@@ -221,7 +222,8 @@ becomes each joint's initial state (`PhysicsJointStateAPI`) and drive target, so
 zero, so teleoperation drives each joint to `initial_pose + (reading - rest)` (`scene.leader_offsets`, applied by the app).
 The capture keeps the file's other keys. It travels with the robot folder to the server.
 
-Keyboard: `deviceId: "keyboard"` drives any robot without a leader. The loop sends `{jog}` to the server's `/joints` at 30 Hz; the app
+Keyboard: `deviceId: "keyboard"` drives any robot without a leader, and a tool opened alone (`kind: "tool"`, e.g. a robot hand until a
+glove device exists). Drives without stiffness (a hand's coupled finger segments) are passive and left out of `joints`. The loop sends `{jog}` to the server's `/joints` at 30 Hz; the app
 moves the drive targets at those speeds (stopping at the joint limits) and reports them in `/state` `joints`, which `SimTeleop.joints`
 shows (degrees) and `SimRunnerApp.joints` carries. A twist goes to `/joints` as `{twist}`: the app turns it into joint speeds by damped
 least squares on the PhysX Jacobian of the TCP link (`sim/runner/tcp.py`, robot.yaml `tcp: {link, offset, joints}`) and reports the

@@ -134,7 +134,8 @@ def build(scene):
     rest: {shoulder_pan: -0.92, shoulder_lift: -0.04, elbow_flex: -0.26, wrist_flex: 62.11, wrist_roll: 4.18, gripper: 0.63}
   ```
 - **Teleoperation:** Robots 탭의 **Teleoperation** 은 리더 장치를 고르는 창을 띄웁니다. 연결 테스트에 성공하면 Start 로 로봇을 열고, 리더 팔의 관절값을 30 Hz 로 Isaac Sim 에 보내 움직입니다 (타임라인은 자동으로 Play). 관절은 이름으로 맞추므로 `X_follower` 로봇은 `X_leader` 장치(예: `so101_leader` → `so101_follower`)로만 움직이고, gripper 는 0~100 % 를 관절 범위에 맞춥니다. Stop 은 리더 연결만 끊고 장면은 둡니다. 실행 중인 리더는 보정이나 Rig 텔레오퍼레이션에 쓸 수 없습니다.
-- **Keyboard:** 맞는 리더 장치가 없는 로봇(xArm7 등)은 Teleoperation 창에서 **Keyboard** 를 고르고 Start 합니다.
+- **Keyboard:** 맞는 리더 장치가 없는 로봇(xArm7 등)은 Teleoperation 창에서 **Keyboard** 를 고르고 Start 합니다. Tools 탭의 도구(Inspire 손)도 Teleoperation 으로 혼자 열어 Joint 모드로 손가락 관절을 움직일 수 있습니다 (나중에 장갑을 리더 장치로 연결). 구동력(stiffness)이 없는 수동 관절은 목록에 나오지 않습니다.
+- 키보드 입력은 브라우저 창이 포커스를 가지고 있어야 들어옵니다. Start 후 Isaac Sim 창이 뜨면 웹의 Teleoperation 창을 한 번 클릭하세요.
   - **TCP 모드** (robot.yaml 에 `tcp` 가 있을 때 기본): 툴(tool0) 좌표계 기준으로 I/K = ±X, J/L = ±Y, U/O = ±Z 이동(0.05 m/s), Shift 를 함께 누르면 같은 축으로 회전(20°/s). 여러 키를 함께 누르면 합쳐집니다.
   - **Joint 모드**: ↑/↓ (W/S) 로 관절을 고르고 ←/→ (A/D) 를 누르고 있는 동안 움직이며, Shift 는 천천히(8°/s, 기본 30°/s). 표의 −/+ 버튼을 눌러도 됩니다. 둘 다 관절 한계에서 멈춥니다.
   - TCP 는 `robot.yaml` 의 `tcp: {link, offset, joints}` 로 정합니다 (xArm7 은 link7 의 플랜지, IK 는 팔 관절 7개만 움직임). 앱이 PhysX 야코비안으로 툴 속도를 관절 속도로 바꿉니다 (`sim/runner/tcp.py`).
