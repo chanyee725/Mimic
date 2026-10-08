@@ -2,7 +2,6 @@ import { LuBookmark, LuPlay, LuSquare } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { EmptyState } from "@/components/common/empty-state"
 import { ErrorNote, QueryNote } from "@/components/common/query-state"
 import { StatusDot } from "@/components/common/status-dot"
 import { simAssetScene, type SimAsset } from "@/domain/simulation"
@@ -18,6 +17,7 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
   const { current, active, other } = flow
   // A finished session stays visible (with its error) until the next start
   const shown = current && (active || current.robotId === robot.id) ? current : null
+  // Leader types that drive this robot; the keyboard drives any robot
   const supported = robot.teleop.length > 0
 
   const close = () => {
@@ -34,8 +34,8 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
             Teleoperation · <span className="font-mono">{robot.id}</span>
           </DialogTitle>
           <DialogDescription>
-            실제 리더 팔로 Isaac Sim 에 연 이 로봇을 움직입니다. 연결할 리더 장치를 고르고 연결 테스트에 성공하면 시작합니다. 창을 닫아도
-            계속 실행되며, Stop 하면 리더 연결만 끊고 Isaac Sim 장면은 열어 둡니다.
+            실제 리더 팔이나 키보드로 Isaac Sim 에 연 이 로봇을 움직입니다. 리더 팔은 연결 테스트에 성공하면 시작합니다. 창을 닫아도 계속
+            실행되며, Stop 하면 연결만 끊고 Isaac Sim 장면은 열어 둡니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -49,33 +49,26 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
           )}
           {shown && <TeleopSession session={shown} />}
 
-          {!supported ? (
-            <EmptyState className="py-6">이 로봇을 움직일 리더 장치 종류가 없습니다.</EmptyState>
-          ) : (
-            !active && (
-              <section className="grid gap-2">
-                <h3 className="flex items-baseline justify-between gap-3 text-sm font-semibold">
-                  Leader
-                  <span className="font-mono text-xs font-normal text-muted-foreground">{robot.teleop.join(", ")}</span>
-                </h3>
-                <QueryNote query={flow.devices} />
-                {flow.devices.data && flow.leaders.length === 0 && (
-                  <EmptyState className="py-6">등록된 리더 장치가 없습니다. Rig 설정 파일에 리더 장치를 추가하세요.</EmptyState>
-                )}
-                {flow.leaders.length > 0 && (
-                  <LeaderPicker
-                    leaders={flow.leaders}
-                    fits={flow.fits}
-                    value={flow.leader?.id}
-                    onChange={flow.pick}
-                    disabled={flow.starting}
-                    testing={flow.testing}
-                    check={flow.check}
-                    onTest={() => flow.leader && flow.runTest(flow.leader.id)}
-                  />
-                )}
-              </section>
-            )
+          {!active && (
+            <section className="grid gap-2">
+              <h3 className="flex items-baseline justify-between gap-3 text-sm font-semibold">
+                Leader
+                <span className="font-mono text-xs font-normal text-muted-foreground">{["keyboard", ...robot.teleop].join(", ")}</span>
+              </h3>
+              <QueryNote query={flow.devices} />
+              <LeaderPicker
+                leaders={flow.leaders}
+                fits={flow.fits}
+                keyboard={flow.keyboard}
+                value={flow.leader?.id}
+                onChange={flow.pick}
+                disabled={flow.starting}
+                testing={flow.testing}
+                check={flow.check}
+                onTest={() => flow.leader && flow.runTest(flow.leader.id)}
+              />
+              {!supported && <p className="text-xs text-muted-foreground">이 로봇을 움직일 리더 장치 종류가 없어 키보드로 움직입니다.</p>}
+            </section>
           )}
 
           {supported && (
@@ -113,12 +106,10 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
               {flow.stopping ? "Stopping…" : "Stop"}
             </Button>
           ) : (
-            supported && (
-              <Button disabled={!flow.canStart} onClick={flow.start}>
-                <LuPlay />
-                {flow.starting ? "Starting…" : "Start"}
-              </Button>
-            )
+            <Button disabled={!flow.canStart} onClick={flow.start}>
+              <LuPlay />
+              {flow.starting ? "Starting…" : "Start"}
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>

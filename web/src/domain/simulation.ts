@@ -74,6 +74,9 @@ export type SimTeleop = {
 /** POST /sim/teleop body; display defaults to the Connection setting */
 export type SimTeleopCreate = { robotId: string; deviceId: string; display?: IsaacDisplay }
 
+/** Device id of keyboard teleoperation: jog any robot's joints from the page (no leader arm) */
+export const SIM_KEYBOARD = "keyboard"
+
 export const isSimTeleopActive = (t: SimTeleop | null | undefined) => t?.state === "starting" || t?.state === "running"
 
 /** An environment is usable by a rig when the backend lists the rig as fitting its robot tags */
@@ -96,6 +99,8 @@ export type SimRunnerApp = {
   pid: number | null
   scene: string | null
   error: string | null
+  /** Drive target per joint of the open robot (degrees) */
+  joints: Record<string, number> | null
 }
 
 /** Isaac Sim server; app is null when the server is not reachable */

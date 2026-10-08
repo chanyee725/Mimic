@@ -164,6 +164,9 @@ export const useCaptureLeaderRest = () =>
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
   })
 
+/** Keyboard teleoperation: joints to move now (degrees per second); {} stops. Fire and forget, resent while keys are held */
+export const sendSimJog = (velocities: Record<string, number>) => api.put("/sim/teleop/jog", { velocities }).catch(() => undefined)
+
 export const useStopSimTeleop = () =>
   useMutation({
     mutationFn: () => api.delete("/sim/teleop"),

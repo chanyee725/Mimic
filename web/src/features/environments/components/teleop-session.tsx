@@ -1,9 +1,10 @@
 import { StatusDot } from "@/components/common/status-dot"
-import type { SimTeleop } from "@/domain/simulation"
+import { SIM_KEYBOARD, type SimTeleop } from "@/domain/simulation"
 
 import { formatJoint, TELEOP_STATE } from "../lib"
+import { KeyboardJog } from "./keyboard-jog"
 
-/** Live sim teleoperation: state, loop rate and the leader's joint values */
+/** Live sim teleoperation: state, loop rate and the leader's joint values (the keyboard jog panel for the keyboard) */
 export function TeleopSession({ session }: { session: SimTeleop }) {
   const { tone, label } = TELEOP_STATE[session.state]
   return (
@@ -20,24 +21,26 @@ export function TeleopSession({ session }: { session: SimTeleop }) {
         <p className="text-xs text-muted-foreground">Isaac Sim 이 로봇을 여는 중입니다. 처음 실행하면 몇 분 걸릴 수 있습니다.</p>
       )}
       {session.error && <p className="text-[13px] [overflow-wrap:anywhere] text-bad">{session.error}</p>}
-      {session.joints.length > 0 && (
-        <table className="w-full text-[13px] tabular-nums">
-          <thead className="text-xs text-muted-foreground">
-            <tr>
-              <th className="py-1.5 text-left font-normal">Joint</th>
-              <th className="w-28 py-1.5 text-right font-normal">Leader</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {session.joints.map((j) => (
-              <tr key={j.name}>
-                <td className="py-1.5">{j.name}</td>
-                <td className="py-1.5 text-right">{formatJoint(j.name, j.value)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {session.deviceId === SIM_KEYBOARD
+        ? session.joints.length > 0 && <KeyboardJog session={session} />
+        : session.joints.length > 0 && (
+            <table className="w-full text-[13px] tabular-nums">
+              <thead className="text-xs text-muted-foreground">
+                <tr>
+                  <th className="py-1.5 text-left font-normal">Joint</th>
+                  <th className="w-28 py-1.5 text-right font-normal">Leader</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {session.joints.map((j) => (
+                  <tr key={j.name}>
+                    <td className="py-1.5">{j.name}</td>
+                    <td className="py-1.5 text-right">{formatJoint(j.name, j.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
     </div>
   )
 }
