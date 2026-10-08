@@ -20,7 +20,7 @@ data/sims/         시뮬레이션 데이터 (git 에 올림, `VLA_SIM_DIR` 로 
   envs.yaml        환경별 로봇 태그 (Environments 화면에서 편집)
   robots/          로봇 팔 USD: <robot-id>.usd 또는 <robot-id>/<robot-id>.usd (+ 그 로봇이 쓰는 하위 파일)
     so101_follower/  SO-101 팔로워 (5축 + 그리퍼)
-    xarm7/         UFactory xArm7 (7축, 그리퍼 없이)
+    ufactory_xarm7/  UFactory xArm7 (7축, 그리퍼 없이)
   tools/           엔드 이펙터 USD (로봇 손, 그리퍼): 같은 규칙. scene.tool(<id>) 로 놓습니다 (팔에 붙이는 건 아직)
     inspire_rh56bfx/  Inspire 로봇 손 (6 자유도, 관절 12개, 오른손)
 ```
@@ -30,7 +30,7 @@ data/sims/         시뮬레이션 데이터 (git 에 올림, `VLA_SIM_DIR` 로 
 | 파일 | 출처 |
 |---|---|
 | `robots/so101_follower/` | LightwheelAI 배포 파일 (Apache License 2.0) |
-| `robots/xarm7/` | NVIDIA Isaac Sim 5.1 에셋 `Robots/Ufactory/xarm7` — 기본 그리퍼 variant 를 `None` 으로 바꿔 팔만 씁니다 |
+| `robots/ufactory_xarm7/` | NVIDIA Isaac Sim 5.1 에셋 `Robots/Ufactory/xarm7` — 기본 그리퍼 variant 를 `None` 으로 바꿔 팔만 씁니다 |
 | `tools/inspire_rh56bfx/` | NVIDIA Isaac Sim 6.0 에셋 `Samples/Rigging/Inspire/module_5_end-checkpoint_3` (리깅 튜토리얼의 완성본). Inspire RH56 계열 손 모델로, 정확한 세부 모델(BFX / DFX)은 원본에 적혀 있지 않습니다 |
 
 ## 장면이 만들어지는 흐름
