@@ -2,7 +2,7 @@
 # Download the SO-101 follower robot USD into the sim folder's robots/ (data/sims/robots/).
 # Source: the so101_follower.usd LightwheelAI publishes (Apache-2.0), checked by SHA-256.
 #
-#   scripts/fetch-sim-robot.sh            into data/sims/robots/so101_follower.usd
+#   scripts/fetch-sim-robot.sh            into data/sims/robots/so101_follower/so101_follower.usd
 #   scripts/fetch-sim-robot.sh --force    replace an existing copy
 #   VLA_SIM_DIR=/path scripts/...         another sim folder
 set -euo pipefail
@@ -10,7 +10,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SIMS="${VLA_SIM_DIR:-${VLA_DATA_DIR:-data}/sims}"
 case "$SIMS" in /*) ;; *) SIMS="$ROOT/$SIMS" ;; esac
-DEST="$SIMS/robots/so101_follower.usd"
+DEST="$SIMS/robots/so101_follower/so101_follower.usd"
 URL="https://github.com/LightwheelAI/leisaac/releases/download/v0.1.0/so101_follower.usd"
 SHA="64a877c3b82cdc4a48ab8a1f321a2dd3ef7c55d4b10bce222b58c530d978ae58"
 
