@@ -175,7 +175,7 @@ leaving the folder is refused). Assets come from the server's own `sim/assets/`.
 `POST /open {path, root, robot}` on a private port only the server uses; an exception in the script is kept as `app.error` (the
 app keeps running). `POST /joints {targets, percent, play}` (teleoperation) is forwarded to the app, which keeps only the newest
 command and applies it on its main loop (`scene.Drives`: drive targets by joint name, degrees; a `percent` joint takes 0–100 over its
-limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 3 (2 had no `/joints`): in local mode the
+limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 4 (3 had no `jog` / `/state` joints, 2 no `/joints`): in local mode the
 backend stops an older server it finds on the port (by its `server.py --port` process) and starts a new one; a remote one is refused
 by teleoperation with 409.
 
@@ -209,6 +209,7 @@ SimTeleop = {
 | --- | --- | --- | --- | --- |
 | POST | `/sim/teleop` | `{ robotId, deviceId, display? }` | `201 SimTeleop`; 404 unknown robot / device; 422 not a leader, or its type is not in the robot's `teleop` (`details.teleop`); 409 the device is busy, a session runs, or the server is older than version 3; 503 LeRobot unavailable or the port fails | Teleoperation dialog: Start |
 | GET | `/sim/teleop` | | `SimTeleop`, or `null` when there is none | Teleoperation dialog (polled) |
+| PUT | `/sim/teleop/jog` | `{ velocities: Record<string, number> }` | 204: keyboard session only — joints to move now in degrees per second (capped at 120; `{}` stops); the page resends while keys are held and speeds older than 0.5 s drop to zero. 404 without a keyboard session, 409 while it is starting | Keyboard jog |
 | DELETE | `/sim/teleop` | | 204; 404 when there is none | Stop |
 | POST | `/sim/robots/{id}/leader-rest` | `{ deviceId }` | `SimAsset` with the new `leaderRest`: the leader, held in the robot's initial pose, is read (median of 5 reads, or the running session's last values when that leader drives the simulation) and saved as `leader.rest`; same 404 / 422 / 409 / 503 as Start | Teleoperation dialog: Align leader |
 
@@ -218,6 +219,10 @@ becomes each joint's initial state (`PhysicsJointStateAPI`) and drive target, so
 `leader.rest` is what a leader reads in that same pose: a LeRobot leader reads 0° at the pose it was calibrated in, not at the USD
 zero, so teleoperation drives each joint to `initial_pose + (reading - rest)` (`scene.leader_offsets`, applied by the app).
 The capture keeps the file's other keys. It travels with the robot folder to the server.
+
+Keyboard: `deviceId: "keyboard"` drives any robot without a leader. The loop sends `{jog}` to the server's `/joints` at 30 Hz; the app
+moves the drive targets at those speeds (stopping at the joint limits) and reports them in `/state` `joints`, which `SimTeleop.joints`
+shows (degrees) and `SimRunnerApp.joints` carries.
 
 `SimAsset.teleop` (robots): leader types that can drive it (`["so101_leader"]` for `so101_follower`, `[]` otherwise).
 
