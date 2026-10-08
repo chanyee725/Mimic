@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from . import envs, config, jobs, runner, teleop
+from . import envs, config, jobs, preview, runner, teleop
 
 PREFIX = "/sim"
 
@@ -10,5 +10,6 @@ router = APIRouter(tags=["simulation"])
 router.include_router(envs.router, prefix=PREFIX)
 router.include_router(config.router, prefix=PREFIX)
 router.include_router(jobs.router, prefix=PREFIX)
+router.include_router(preview.router, prefix=PREFIX)
 router.include_router(runner.router, prefix=PREFIX)
 router.include_router(teleop.router, prefix=PREFIX)
