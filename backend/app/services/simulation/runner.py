@@ -40,7 +40,7 @@ SERVER_START_S = 10.0
 MAX_ENV_BYTES = 512 * 1024 * 1024
 PREVIEW_SCRIPT = "preview.py"
 # Servers older than this lack /joints jog or /state joints (teleoperation); a local one is restarted
-JOINTS_VERSION = 5
+JOINTS_VERSION = 7
 # A tool stands this high above the floor when opened alone (m)
 TOOL_PREVIEW_Z = 0.3
 # Relative asset paths in text USD layers: @./x.usd@, @../tools/hand/hand.usda@

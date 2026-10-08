@@ -41,7 +41,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = 5
+VERSION = 7
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")
@@ -85,6 +85,11 @@ class App:
         self.pending: tuple[str, str, str, str] | None = None  # (env id, script, sim folder, robot)
         self.error: str | None = None
         self.log = cache / "app.log"
+        # Teleoperation: the newest command waits here for the forwarder thread, so a busy app
+        # (a window rendering, a first CUDA call) never blocks or times out the backend
+        self.joints_body: dict | None = None
+        self.joints_ready = threading.Event()
+        threading.Thread(target=self._forward_joints, daemon=True).start()
 
     def state(self) -> dict:
         with self.lock:
@@ -202,14 +207,28 @@ class App:
                 self._send_pending()
 
     def send_joints(self, body: dict) -> bool:
-        """Forwards a teleoperation command to the app; False while it is not ready."""
+        """Queues a teleoperation command for the app (the newest replaces an unsent one);
+        False while the app is not ready."""
         with self.lock:
             ready = self.ready and self.proc is not None and self.proc.poll() is None
-            port = self.port
-        if not ready:
-            return False
-        _post(f"http://127.0.0.1:{port}/joints", body, timeout=1.0)
-        return True
+            if ready:
+                self.joints_body = body
+        if ready:
+            self.joints_ready.set()
+        return ready
+
+    def _forward_joints(self) -> None:
+        while True:
+            self.joints_ready.wait()
+            with self.lock:
+                body, self.joints_body, port = self.joints_body, None, self.port
+                self.joints_ready.clear()
+            if body is None:
+                continue
+            try:
+                _post(f"http://127.0.0.1:{port}/joints", body, timeout=5.0)
+            except OSError:
+                pass  # the app is busy or gone; the next command (or state()) tells
 
     def _send_pending(self) -> None:
         if not self.pending:
