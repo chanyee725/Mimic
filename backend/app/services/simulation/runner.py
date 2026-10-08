@@ -2,7 +2,8 @@
 
 The server (sim/runner/server.py) fronts one Isaac Sim app process that runs with a window or
 headless. Opening an environment sends its script and its robot's USD as tar.gz, so a remote
-server needs no copy of data/sims. A local server is detached: it outlives backend reloads
+server needs no copy of data/sims. A robot or tool opens alone the same way, with a generated
+script that places just it. A local server is detached: it outlives backend reloads
 and is found again by port.
 """
 
@@ -18,12 +19,12 @@ import urllib.request
 from pathlib import Path
 
 from app.configs.config import REPO_ROOT, config
-from app.core.errors import ApiError
+from app.core.errors import ApiError, not_found
 from app.models.settings import IsaacSettings
 from app.models.simulation import SimRunner, SimRunnerApp
 from app.schemas.settings import ConnTestResult
 from app.services.settings import get_settings
-from app.services.simulation.envs import get_env, robot_path
+from app.services.simulation.envs import get_env, robot_path, tool_path
 
 SERVER_SCRIPT = REPO_ROOT / "sim" / "runner" / "server.py"
 # Overridden in tests (a fake app instead of Isaac Sim, a temp cache)
@@ -34,6 +35,9 @@ HEALTH_TIMEOUT_S = 1.0
 REQUEST_TIMEOUT_S = 30.0
 SERVER_START_S = 10.0
 MAX_ENV_BYTES = 512 * 1024 * 1024
+PREVIEW_SCRIPT = "preview.py"
+# A tool stands this high above the floor when opened alone (m)
+TOOL_PREVIEW_Z = 0.3
 
 _lock = threading.Lock()
 _server: dict[str, subprocess.Popen] = {}
@@ -155,16 +159,25 @@ def _files(path: Path) -> list[Path]:
     return [p for p in sorted(path.rglob("*")) if p.is_file() and "__pycache__" not in p.parts]
 
 
-def _archive(path: Path, robot: Path | None = None) -> bytes:
+def _usd_files(usd: Path) -> list[Path]:
+    """A robot or tool: its folder when it has one (<id>/<id>.usd), else the file."""
+    return _files(usd.parent if usd.parent.name == usd.stem else usd)
+
+
+def _archive(path: Path | None, robot: Path | None = None, script: str | None = None) -> bytes:
     """The environment (folder or single script) and the robot's USD (its folder when it has
-    one) as tar.gz, laid out as under the sim folder (envs/…, robots/…)."""
+    one) as tar.gz, laid out as under the sim folder (envs/…, robots/…). script, when given,
+    goes in as preview.py at the top."""
     root = config.sim_dir
-    if robot is not None and robot.parent != config.sim_robots_dir:
-        robot = robot.parent
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-        for p in _files(path) + (_files(robot) if robot else []):
+        for p in (_files(path) if path else []) + (_usd_files(robot) if robot else []):
             tar.add(p, arcname=str(p.relative_to(root)))
+        if script is not None:
+            data = script.encode()
+            info = tarfile.TarInfo(PREVIEW_SCRIPT)
+            info.size, info.mtime = len(data), int(time.time())
+            tar.addfile(info, io.BytesIO(data))
     if buf.tell() > MAX_ENV_BYTES:
         raise ApiError(422, f"Environment folder is larger than {MAX_ENV_BYTES >> 20} MB")
     return buf.getvalue()
@@ -188,6 +201,37 @@ def open_env(env_id: str, display: str | None = None) -> SimRunner:
             "env": env_id,
             "script": script.as_posix(),
             "robot": robot,
+            "display": display or s.display,
+            "device": s.device,
+        }
+    )
+    _request(f"/scene?{query}", body, "application/gzip")
+    return status()
+
+
+def scene_id(kind: str, asset_id: str) -> str:
+    """The app's scene name while a robot or tool is open alone: robot-<id> / tool-<id>."""
+    return f"{kind}-{asset_id}"
+
+
+def open_asset(kind: str, asset_id: str, display: str | None = None) -> SimRunner:
+    """Opens one robot (kind "robot", pinned at the origin) or tool ("tool", pinned above the
+    floor) on an empty stage, to look at how its USD is built."""
+    if kind == "robot":
+        usd, script = robot_path(asset_id), "def build(scene):\n    scene.robot()\n"
+    else:
+        usd = tool_path(asset_id)
+        script = f"def build(scene):\n    scene.tool({asset_id!r}, pos=(0, 0, {TOOL_PREVIEW_Z}))\n"
+    if usd is None:
+        raise not_found(kind.capitalize(), asset_id)
+    body = _archive(None, usd, script)
+    _ensure_server()
+    s = _settings()
+    query = urllib.parse.urlencode(
+        {
+            "env": scene_id(kind, asset_id),
+            "script": PREVIEW_SCRIPT,
+            "robot": asset_id if kind == "robot" else "",
             "display": display or s.display,
             "device": s.device,
         }

@@ -1,10 +1,10 @@
 """Isaac Sim environments: Python scripts scanned from the environments folder, robot tags,
-deleted; the robot USDs they can be tagged with."""
+deleted; the robot USDs they can be tagged with and the tool USDs (end effectors)."""
 
 from fastapi import APIRouter, Response
 from fastapi.responses import FileResponse
 
-from app.models.simulation import SimEnv, SimRobot
+from app.models.simulation import SimAsset, SimEnv
 from app.schemas.simulation import RescanResult, SimEnvPatch
 from app.services import simulation as service
 
@@ -32,9 +32,14 @@ def patch_env(env_id: str, body: SimEnvPatch):
     return service.set_robots(env_id, body.robots)
 
 
-@router.get("/robots", response_model=list[SimRobot])
+@router.get("/robots", response_model=list[SimAsset])
 def list_robots():
     return service.list_robots()
+
+
+@router.get("/tools", response_model=list[SimAsset])
+def list_tools():
+    return service.list_tools()
 
 
 @router.get("/envs/{env_id}/thumbnail", response_class=FileResponse)

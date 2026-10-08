@@ -10,7 +10,7 @@ import pytest
 from app.configs.config import config
 from app.services import settings
 from app.services.simulation import runner
-from tests.support import write_sim_robots
+from tests.support import write_sim_robots, write_sim_tool
 
 FAKE_APP = Path(__file__).parent / "fake_isaac_app.py"
 
@@ -139,3 +139,35 @@ def test_physics_device_defaults_to_gpu_and_restarts_on_change(client, local_ser
     body = client.post("/sim/runner/start").json()
     assert body["device"] == "cpu" and body["app"]["device"] == "cpu"
     assert body["app"]["pid"] != pid  # the app takes the device at launch
+
+
+def test_archive_of_a_tool_alone_carries_its_folder_and_script(envs_dir):
+    write_sim_tool("hand")
+    usd = config.sim_tools_dir / "hand" / "hand.usda"
+    archive = runner._archive(None, usd, "def build(scene):\n    pass\n")
+    tar = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz")
+    assert sorted(tar.getnames()) == [
+        "preview.py",
+        "tools/hand/hand.usda",
+        "tools/hand/payloads/base.usda",
+    ]
+    assert b"def build" in tar.extractfile("preview.py").read()
+
+
+@pytest.mark.usefixtures("local_server")
+def test_open_robot_and_tool_alone(client):
+    write_sim_robots("arm")
+    write_sim_tool("hand")
+    assert client.post("/sim/robots/arm/open").status_code == 200
+    assert _wait_app(client, "running")["app"]["scene"] == "robot-arm"
+    assert client.post("/sim/tools/hand/open").status_code == 200
+    deadline = time.monotonic() + 15
+    while client.get("/sim/runner").json()["app"]["scene"] != "tool-hand":
+        assert time.monotonic() < deadline, "the tool did not open"
+        time.sleep(0.2)
+    client.post("/sim/runner/stop")
+
+
+def test_unknown_robot_or_tool_is_not_opened(client):
+    assert client.post("/sim/robots/nope/open").status_code == 404
+    assert client.post("/sim/tools/nope/open").status_code == 404

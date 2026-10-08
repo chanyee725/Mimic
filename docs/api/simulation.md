@@ -24,7 +24,7 @@ job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message"
 ```
 data/sims/
   robots/                 robot USDs: <id>.usd|usda|usdc or <id>/<id>.usd… (GET /sim/robots)
-  tools/                  end-effector USDs (hands, grippers): <id>.usd… or <id>/<id>.usd… — not scanned or placed yet
+  tools/                  end-effector USDs (hands, grippers): same layout (GET /sim/tools); scene.tool(<id>) places one
   envs.yaml               robot tags: { <env id>: { robots: [<robot id>, …] } } — written by PATCH /sim/envs/{id}
   envs/
     table.py              a top-level script: id "table"
@@ -77,9 +77,15 @@ SimEnv = {
   files: { path: string; sizeKB: number }[]
   registeredAt: string; updatedAt: string
   robots: string[]                             // robot tags; [] = untagged, fits any rig
-  tools/                  end-effector USDs (hands, grippers): <id>.usd… or <id>/<id>.usd… — not scanned or placed yet
   rigIds: string[]                             // configured rigs that fit the tags
   thumbnail: boolean                           // an image is served by /sim/envs/{id}/thumbnail
+}
+SimAsset = {                                   // a robot (robots/) or tool (tools/) USD
+  id: string
+  path: string                                 // absolute path of the root USD
+  sizeKB: number
+  files: { path: string; sizeKB: number }[]    // relative to its folder; the file name for a single file
+  updatedAt: string
 }
 Randomization = "none" | "low" | "high"
 SimEpisode = { index: number; seed: number; success: boolean; seconds: number; reason?: string }
@@ -101,7 +107,8 @@ SimJob = {
 | GET | `/sim/envs` | | `SimEnv[]` by id | `listSimEnvs()` |
 | GET | `/sim/envs/{id}` | | `SimEnv`; 404 if unknown | `getSimEnv(id)` |
 | PATCH | `/sim/envs/{id}` | `{ robots: string[] }` | `SimEnv` with the new tags (`[]` clears them); 404 if unknown, 422 with `details.robots` for a robot not under `robots/` | Robots checkboxes |
-| GET | `/sim/robots` | | `{ id: string; path: string }[]` by id | Robots checkboxes |
+| GET | `/sim/robots` | | `SimAsset[]` by id | Robots checkboxes, Robots tab |
+| GET | `/sim/tools` | | `SimAsset[]` by id (tools/) | Tools tab |
 | GET | `/sim/envs/{id}/thumbnail` | | the image (`image/png`, `image/jpeg`, `image/webp`); 404 when the env is unknown or has none | Environment thumbnail |
 | POST | `/sim/envs/rescan` | | `{ dir: string; scannedAt: string; envs: SimEnv[] }` | Rescan |
 | DELETE | `/sim/envs/{id}` | | 204; deletes the file or folder. 404 if unknown; 409 with `details.tasks` while a task's `envId` uses it | Delete |
@@ -150,6 +157,8 @@ SimRunner    = { mode: "local" | "remote"; display: "window" | "headless"; devic
 | GET | `/sim/runner` | | `SimRunner` | Environment detail status |
 | POST | `/sim/runner/start` | `{ display? }` | `SimRunner`; 503 if the local Python is missing or the server is unreachable | — |
 | POST | `/sim/runner/stop` | | `SimRunner` (app stopped) | Stop |
+| POST | `/sim/robots/{id}/open` | `{ display? }` | `SimRunner`; opens the robot alone, pinned at the origin on an empty stage (app scene `robot-<id>`); 404 for an unknown robot | Robots tab: Open in Isaac Sim |
+| POST | `/sim/tools/{id}/open` | `{ display? }` | `SimRunner`; opens the tool alone, pinned 0.3 m above the floor (app scene `tool-<id>`); 404 for an unknown tool | Tools tab: Open in Isaac Sim |
 | POST | `/sim/envs/{id}/open` | `{ display? }` | `SimRunner` (app `starting` until the scene is open; a failing script shows as `app.error`); 404 for an unknown env, 422 when the tagged robot has no USD, 503 as above, 502 when the server rejects it | Open in Isaac Sim |
 
 Server API (backend ↔ server, JSON): `GET /health` → `{ version, app: SimRunnerApp }`; `POST /app/start {display, device}`;

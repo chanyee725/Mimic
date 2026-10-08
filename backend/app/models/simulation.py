@@ -35,11 +35,15 @@ class SimEnv(CamelModel):
     thumbnail: bool = False  # an image is served by /sim/envs/{id}/thumbnail
 
 
-class SimRobot(CamelModel):
-    """A robot USD under <sim folder>/robots/: <id>.usd[a|c] or <id>/<id>.usd[a|c]."""
+class SimAsset(CamelModel):
+    """A robot or tool USD under <sim folder>/robots/ or tools/: <id>.usd[a|c] or
+    <id>/<id>.usd[a|c] with its sub-files."""
 
-    id: str  # named after the LeRobot type of the follower it simulates (e.g. so101_follower)
-    path: str
+    id: str  # a robot is named after the LeRobot type of the follower it simulates (so101_follower)
+    path: str  # absolute path of the root USD
+    size_kb: int = Field(alias="sizeKB")
+    files: list[SimEnvFile] = []  # relative to the asset folder (the file name for a single file)
+    updated_at: str
 
 
 class SimGpu(CamelModel):
