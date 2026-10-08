@@ -19,6 +19,7 @@ dependencies = [
   "av>=15",  # lerobot[dataset] needs av<16
   "foxglove-schemas-protobuf>=0.4.0",
   "huggingface-hub>=1.0",  # dataset Pull from the Hub
+  "usd-core>=26.8",
 ]
 
 [dependency-groups]
