@@ -124,7 +124,7 @@ def build(scene):
 
   `robots/<출력 id>/<출력 id>.usda` 에 팔과 도구를 상대 경로로 참조하는 작은 파일이 생깁니다. 도구의 base 를 팔의 `link_eef` (영점 자세) 에 놓고 고정 관절(`tool_joint`)로 link7 에 묶으며, 도구 자체의 articulation root·월드 관절·PhysicsScene 은 꺼서 팔의 base 만 바닥에 고정됩니다. `--flange`, `--roll` 로 붙일 프레임과 Z 축 회전(도)을 바꿉니다. 에셋을 바꾸면 다시 실행합니다. 환경을 열 때 이 로봇이 참조하는 `robots/<x>`, `tools/<x>` 폴더도 함께 서버로 보냅니다.
 - **로봇 / 도구 하나만 열기:** Environments 화면의 **Robots**, **Tools** 탭에서 고르고 **View** 를 누르면, 빈 장면에 그것만 놓고 엽니다 (로봇은 원점, 도구는 바닥에서 0.3 m 위). Stage 창에서 USD 구조를, Physics Inspector 로 관절을 확인합니다.
-- **초기 자세 (`robot.yaml`):** 로봇 폴더의 `robot.yaml`(파일 하나짜리 로봇이면 옆의 `<id>.yaml`)에 `initial_pose` 를 적으면, 장면을 만들 때 그 관절값이 초기 상태와 drive 목표가 되어 Play 해도 그 자세로 시작하고 유지합니다. 단위는 도이고, `percent` 에 적은 관절(gripper)은 0~100 % 를 관절 범위에 맞춥니다. 리더 팔을 원하는 자세에 두고 `POST /sim/robots/<id>/initial-pose {"deviceId": "leader"}` 를 부르면 지금 위치를 읽어 저장합니다 (리더 값과 단위가 같아 텔레오퍼레이션이 튀지 않고 이어집니다).
+- **초기 자세 (`robot.yaml`):** 로봇 폴더의 `robot.yaml`(파일 하나짜리 로봇이면 옆의 `<id>.yaml`)에 `initial_pose` 를 적으면, 장면을 만들 때 그 관절값이 초기 상태와 drive 목표가 되어 Play 해도 그 자세로 시작하고 유지합니다. 단위는 도이고, `percent` 에 적은 관절(gripper)은 0~100 % 를 관절 범위에 맞춥니다. 리더 팔을 원하는 자세에 두고 Teleoperation 창에서 연결 테스트 후 **Save initial pose** 를 누르면 (또는 `POST /sim/robots/<id>/initial-pose {"deviceId": "leader"}`) 지금 위치를 읽어 저장합니다 (리더 값과 단위가 같아 텔레오퍼레이션이 튀지 않고 이어집니다).
 
   ```yaml
   initial_pose:

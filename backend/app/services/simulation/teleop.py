@@ -159,6 +159,19 @@ def _scene_ready(s: _Session) -> bool:
     return app.state == "running" and app.scene == runner.scene_id("robot", s.robot_id)
 
 
+def _app_gone() -> str | None:
+    """Why sending failed when the app is not running any more (window closed, Stop, crash)."""
+    try:
+        app = runner.status().app
+    except Exception:
+        return None
+    if app is None:
+        return "The Isaac Sim server stopped"
+    if app.state != "running":
+        return app.error or "Isaac Sim was closed (window closed or app stopped)"
+    return None
+
+
 def _loop(s: _Session) -> None:
     deadline = time.monotonic() + SCENE_TIMEOUT_S
     try:
@@ -180,7 +193,9 @@ def _loop(s: _Session) -> None:
             first = False
         except Exception as e:
             log.exception("Isaac Sim teleoperation of %s failed", s.robot_id)
-            return _fail(s, getattr(e, "message", None) or str(e) or type(e).__name__)
+            return _fail(
+                s, _app_gone() or getattr(e, "message", None) or str(e) or type(e).__name__
+            )
         window_steps += 1
         now = time.perf_counter()
         if now - window_start >= 1.0:

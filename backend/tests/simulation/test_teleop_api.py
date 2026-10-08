@@ -107,3 +107,14 @@ def test_capture_initial_pose_from_the_leader(client, fake, envs_dir):
 
     r = client.post("/sim/robots/arm/initial-pose", json={"deviceId": "leader"})
     assert r.status_code == 422
+
+
+@pytest.mark.usefixtures("local_server")
+def test_closing_isaac_sim_stops_the_session_with_a_clear_error(client, fake):
+    client.post("/sim/teleop", json={"robotId": "so101_follower", "deviceId": "leader"})
+    _wait(client, lambda b: b["state"] == "running")
+    client.post("/sim/runner/stop")  # like closing the Isaac Sim window
+    body = _wait(client, lambda b: b["state"] == "stopped")
+    assert body["error"] == "Isaac Sim was closed (window closed or app stopped)"
+    assert fake.leader.closed
+    client.delete("/sim/teleop")
