@@ -8,8 +8,9 @@ HTTP port that only server.py talks to; USD work runs on the main loop between a
                               root is the sim folder it came from (robots/ is looked up there),
                               robot the one scene.robot() places (scene.py)
   POST /joints {"targets": {joint: value}, "percent": [joint, …], "play": bool}
-                              teleoperation: drive targets of the placed robot by joint name
-                              (degrees; percent joints 0–100 over their limits, scene.Drives);
+                              teleoperation: leader readings by joint name, shifted by the
+                              robot's leader offsets (robot.yaml leader.rest → initial_pose), then
+                              set as drive targets (degrees; percent joints 0–100 over their limits);
                               play starts the timeline. Only the newest command is applied
 
 --device gpu (default) simulates on GPU 0: PhysX GPU dynamics and broadphase are turned on in
@@ -118,7 +119,8 @@ def apply_joints(drives) -> None:
     timeline = omni.timeline.get_timeline_interface()
     if cmd.get("play") and not timeline.is_playing():
         timeline.play()
-    drives.set(cmd.get("targets") or {}, tuple(cmd.get("percent") or ()))
+    targets = {j: v + drives.offsets.get(j, 0.0) for j, v in (cmd.get("targets") or {}).items()}
+    drives.set(targets, tuple(cmd.get("percent") or ()))
 
 
 drives = None  # scene.Drives of the open stage
@@ -134,9 +136,10 @@ while app.is_running():
             try:
                 drives = None
                 context.new_stage()
-                env_scene.build(context.get_stage(), Path(path), Path(root), robot)
+                built = env_scene.build(context.get_stage(), Path(path), Path(root), robot)
                 use_physics_device(context.get_stage())
                 drives = env_scene.Drives(context.get_stage())
+                drives.offsets = built.leader_offsets
                 state.update(scene=path, error=None)
             except Exception as e:  # the user's script: report it, keep the app up
                 traceback.print_exc()

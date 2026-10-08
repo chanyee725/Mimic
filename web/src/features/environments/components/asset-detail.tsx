@@ -20,6 +20,20 @@ const HINT: Record<SimAssetKind, string> = {
   tool: "View 는 빈 장면에 이 도구만 바닥에서 0.3 m 위에 고정해 Isaac Sim 에서 엽니다. 아직 로봇 팔 끝에 붙이지는 않습니다.",
 }
 
+/** A joint → degrees map in one line, or a muted note when unset */
+const poseRow = (k: string, pose: Record<string, number> | null, none: string) => ({
+  k,
+  v: pose ? (
+    <span className="font-mono text-xs [overflow-wrap:anywhere]">
+      {Object.entries(pose)
+        .map(([j, v]) => `${j} ${v.toFixed(1)}`)
+        .join(", ")}
+    </span>
+  ) : (
+    <span className="text-muted-foreground">{none}</span>
+  ),
+})
+
 /** Right-hand robot / tool detail: root USD, files, environments tagged with it; View in Isaac Sim and (robots) Teleoperation */
 export function AssetDetail({ kind, asset, envs }: { kind: SimAssetKind; asset: SimAsset; envs?: SimEnv[] }) {
   const open = useOpenSimAsset()
@@ -39,18 +53,8 @@ export function AssetDetail({ kind, asset, envs }: { kind: SimAssetKind; asset: 
       : []),
     ...(kind === "robot"
       ? [
-          {
-            k: "Initial pose",
-            v: asset.initialPose ? (
-              <span className="font-mono text-xs [overflow-wrap:anywhere]">
-                {Object.entries(asset.initialPose)
-                  .map(([j, v]) => `${j} ${v.toFixed(1)}`)
-                  .join(", ")}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">None (robot.yaml)</span>
-            ),
-          },
+          poseRow("Initial pose", asset.initialPose, "None (robot.yaml)"),
+          poseRow("Leader rest", asset.leaderRest, "None (Teleoperation → Align leader)"),
         ]
       : []),
     { k: "Updated", v: formatDateTime(asset.updatedAt) },

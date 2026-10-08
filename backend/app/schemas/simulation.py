@@ -22,8 +22,8 @@ class SimTeleopStart(CamelModel):
     display: Literal["window", "headless"] | None = None
 
 
-class InitialPoseCapture(CamelModel):
-    device_id: str  # leader whose present position becomes the robot's initial pose
+class LeaderRestCapture(CamelModel):
+    device_id: str  # leader held in the robot's initial pose; its reading becomes leader.rest
 
 
 class SimJobCreate(CamelModel):

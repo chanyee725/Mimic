@@ -104,16 +104,22 @@ def robot_config(usd: Path) -> Path:
     return usd.parent / "robot.yaml" if usd.parent.name == usd.stem else usd.with_suffix(".yaml")
 
 
-def _initial_pose(usd: Path) -> dict[str, float] | None:
-    doc = storage.read_file(robot_config(usd)) or {}
-    pose = doc.get("initial_pose") if isinstance(doc, dict) else None
-    return {str(k): float(v) for k, v in pose.items()} if isinstance(pose, dict) else None
+def _config_pose(usd: Path, *keys: str) -> dict[str, float] | None:
+    """A joint → value map at keys (e.g. "leader", "rest") in the robot's config, else None."""
+    doc = storage.read_file(robot_config(usd))
+    for k in keys:
+        doc = doc.get(k) if isinstance(doc, dict) else None
+    return {str(k): float(v) for k, v in doc.items()} if isinstance(doc, dict) else None
 
 
 def list_robots() -> list[SimAsset]:
     return [
         r.model_copy(
-            update={"teleop": leader_types(r.id), "initial_pose": _initial_pose(Path(r.path))}
+            update={
+                "teleop": leader_types(r.id),
+                "initial_pose": _config_pose(Path(r.path), "initial_pose"),
+                "leader_rest": _config_pose(Path(r.path), "leader", "rest"),
+            }
         )
         for r in scan_robots(config.sim_robots_dir)
     ]
@@ -128,27 +134,29 @@ def get_robot(robot_id: str) -> SimAsset:
 
 CONFIG_HEADER = (
     "# Robot config, read by sim/runner/scene.py when the robot is placed.\n"
-    "# initial_pose: joint → degrees the robot starts and holds in when Play starts;\n"
+    "# initial_pose: joint → degrees (USD joint angles) the robot starts and holds in at Play;\n"
     "# joints under percent take 0–100 over their limits (a LeRobot gripper).\n"
+    "# leader.rest: what a leader reads in that same pose; teleoperation drives each joint to\n"
+    "# initial_pose + (reading - rest), since a LeRobot leader reads 0° where it was calibrated.\n"
 )
 
 
-def set_initial_pose(
-    robot_id: str, pose: dict[str, float], percent: list[str], source: str
-) -> SimAsset:
-    """Writes the robot's initial pose into its config, keeping the config's other keys."""
+def set_leader_rest(robot_id: str, rest: dict[str, float], source: str) -> SimAsset:
+    """Writes what the leader reads in the robot's initial pose (leader.rest) into its config,
+    keeping the config's other keys."""
     usd = robot_path(robot_id)
     if usd is None:
         raise not_found("Robot", robot_id)
     path = robot_config(usd)
     doc = storage.read_file(path)
     doc = doc if isinstance(doc, dict) else {}
-    doc.update(
-        initial_pose={k: round(v, 2) for k, v in pose.items()},
-        percent=percent,
-        captured_from=source,
-        captured_at=now_iso(),
-    )
+    for stale in ("captured_from", "captured_at"):  # written by the first version
+        doc.pop(stale, None)
+    doc["leader"] = {
+        "rest": {k: round(v, 2) for k, v in rest.items()},
+        "captured_from": source,
+        "captured_at": now_iso(),
+    }
     storage.write_file(path, CONFIG_HEADER + storage.dumps(doc))
     return get_robot(robot_id)
 

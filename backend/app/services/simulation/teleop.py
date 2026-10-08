@@ -17,7 +17,7 @@ from app.models.simulation import SimAsset, SimTeleop, SimTeleopJoint
 from app.services import rigs
 from app.services.rigs.driver import LeaderLink
 from app.services.simulation import runner
-from app.services.simulation.envs import leader_types, robot_path, set_initial_pose
+from app.services.simulation.envs import leader_types, robot_path, set_leader_rest
 from app.utils.time import now_iso
 
 log = logging.getLogger(__name__)
@@ -111,9 +111,10 @@ def _check_pair(robot_id: str, device_id: str) -> str:
     return leader_type
 
 
-def capture_initial_pose(robot_id: str, device_id: str) -> SimAsset:
+def capture_leader_rest(robot_id: str, device_id: str) -> SimAsset:
     """The leader's present position (median of a few reads; the running session's last one when
-    it drives the simulation) becomes the robot's initial pose."""
+    it drives the simulation) is saved as what it reads in the robot's initial pose, so
+    teleoperation lines the two up."""
     leader_type = _check_pair(robot_id, device_id)
     s = _session
     if s is not None and s.device_id == device_id and s.state == "running" and s.values:
@@ -126,7 +127,7 @@ def capture_initial_pose(robot_id: str, device_id: str) -> SimAsset:
             link.close()
             rigs.release_leader(device_id)
         pose = {m: sorted(r[m] for r in reads)[len(reads) // 2] for m in reads[0]}
-    return set_initial_pose(robot_id, pose, PERCENT_JOINTS, f"{leader_type} ({device_id})")
+    return set_leader_rest(robot_id, pose, f"{leader_type} ({device_id})")
 
 
 def _end(s: _Session) -> None:

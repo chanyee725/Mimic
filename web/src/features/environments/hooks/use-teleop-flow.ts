@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { useDevices, useTestDevice } from "@/api/devices"
-import { useCaptureInitialPose, useSimTeleop, useStartSimTeleop, useStopSimTeleop } from "@/api/simulation"
+import { useCaptureLeaderRest, useSimTeleop, useStartSimTeleop, useStopSimTeleop } from "@/api/simulation"
 import type { Device, DeviceCheck } from "@/domain/device"
 import { isSimTeleopActive, type SimAsset } from "@/domain/simulation"
 
@@ -34,8 +34,8 @@ export function useTeleopFlow(robot: SimAsset, open: boolean) {
 
   const canStart = !!leader && fits(leader) && check?.ok === true && !active && !start.isPending
 
-  // Initial pose: from the leader driving this robot, or from the picked leader once it tested fine
-  const capture = useCaptureInitialPose()
+  // Leader rest: from the leader driving this robot, or from the picked leader once it tested fine
+  const capture = useCaptureLeaderRest()
   const poseDevice = active
     ? current?.robotId === robot.id && current.state === "running"
       ? current.deviceId
@@ -67,7 +67,7 @@ export function useTeleopFlow(robot: SimAsset, open: boolean) {
     capturing: capture.isPending,
     canCapture: !!poseDevice && !capture.isPending,
     /** The pose just saved in this dialog */
-    captured: capture.data?.initialPose ?? null,
+    captured: capture.data?.leaderRest ?? null,
     error: start.error ?? stop.error ?? test.error ?? capture.error,
     reset: () => {
       start.reset()
