@@ -123,7 +123,9 @@ def build(scene):
   ```
 
   `robots/<출력 id>/<출력 id>.usda` 에 팔과 도구를 상대 경로로 참조하는 작은 파일이 생깁니다. 도구의 base 를 팔의 `link_eef` (영점 자세) 에 놓고 고정 관절(`tool_joint`)로 link7 에 묶으며, 도구 자체의 articulation root·월드 관절·PhysicsScene 은 꺼서 팔의 base 만 바닥에 고정됩니다. `--flange`, `--roll` 로 붙일 프레임과 Z 축 회전(도)을 바꿉니다. 에셋을 바꾸면 다시 실행합니다. 환경을 열 때 이 로봇이 참조하는 `robots/<x>`, `tools/<x>` 폴더도 함께 서버로 보냅니다.
-- **로봇 / 도구 하나만 열기:** Environments 화면의 **Robots**, **Tools** 탭에서 고르고 **Open in Isaac Sim** 을 누르면, 빈 장면에 그것만 놓고 엽니다 (로봇은 원점, 도구는 바닥에서 0.3 m 위). Stage 창에서 USD 구조를, Physics Inspector 로 관절을 확인합니다.
+- **로봇 / 도구 하나만 열기:** Environments 화면의 **Robots**, **Tools** 탭에서 고르고 **View** 를 누르면, 빈 장면에 그것만 놓고 엽니다 (로봇은 원점, 도구는 바닥에서 0.3 m 위). Stage 창에서 USD 구조를, Physics Inspector 로 관절을 확인합니다.
+- **Teleoperation:** Robots 탭의 **Teleoperation** 은 리더 장치를 고르는 창을 띄웁니다. 연결 테스트에 성공하면 Start 로 로봇을 열고, 리더 팔의 관절값을 30 Hz 로 Isaac Sim 에 보내 움직입니다 (타임라인은 자동으로 Play). 관절은 이름으로 맞추므로 `X_follower` 로봇은 `X_leader` 장치(예: `so101_leader` → `so101_follower`)로만 움직이고, gripper 는 0~100 % 를 관절 범위에 맞춥니다. Stop 은 리더 연결만 끊고 장면은 둡니다. 실행 중인 리더는 보정이나 Rig 텔레오퍼레이션에 쓸 수 없습니다.
+- 로컬 Isaac Sim 서버가 이전 버전(`/joints` 없음)이면 백엔드가 끄고 새로 띄웁니다. 원격 서버는 직접 업데이트하고 다시 띄워야 합니다.
 - `_` 나 `.` 로 시작하는 파일과 폴더는 스캔하지 않습니다. 폴더 위치는 환경 변수 `VLA_SIM_DIR` (기본값 `data/sims`).
 - Task 가 쓰고 있는 환경은 지울 수 없습니다.
 - 썸네일: 스크립트 옆에 같은 이름의 이미지(`lift_cube.py` → `lift_cube.png`, jpg / webp 도 가능)를 두거나, 폴더 환경이면 안에 `thumbnail.png` 를 둡니다.
