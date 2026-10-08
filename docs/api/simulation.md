@@ -89,6 +89,7 @@ SimAsset = {                                   // a robot (robots/) or tool (too
   updatedAt: string
   teleop: string[]                             // robots: leader types that can drive it; tools: []
   initialPose: Record<string, number> | null   // robots: from <id>/robot.yaml (or <id>.yaml beside a single file)
+  leaderRest: Record<string, number> | null    // robots: robot.yaml leader.rest
 }
 Randomization = "none" | "low" | "high"
 SimEpisode = { index: number; seed: number; success: boolean; seconds: number; reason?: string }
@@ -209,12 +210,14 @@ SimTeleop = {
 | POST | `/sim/teleop` | `{ robotId, deviceId, display? }` | `201 SimTeleop`; 404 unknown robot / device; 422 not a leader, or its type is not in the robot's `teleop` (`details.teleop`); 409 the device is busy, a session runs, or the server is older than version 3; 503 LeRobot unavailable or the port fails | Teleoperation dialog: Start |
 | GET | `/sim/teleop` | | `SimTeleop`, or `null` when there is none | Teleoperation dialog (polled) |
 | DELETE | `/sim/teleop` | | 204; 404 when there is none | Stop |
-| POST | `/sim/robots/{id}/initial-pose` | `{ deviceId }` | `SimAsset` with the new `initialPose`: the leader's present position (median of 5 reads, or the running session's last values when that leader drives the simulation) written to the robot config; same 404 / 422 / 409 / 503 as Start | Teleoperation dialog: Save initial pose (after a good connection test, or while this robot is driven) |
+| POST | `/sim/robots/{id}/leader-rest` | `{ deviceId }` | `SimAsset` with the new `leaderRest`: the leader, held in the robot's initial pose, is read (median of 5 reads, or the running session's last values when that leader drives the simulation) and saved as `leader.rest`; same 404 / 422 / 409 / 503 as Start | Teleoperation dialog: Align leader |
 
 Robot config (`robots/<id>/robot.yaml`, or `robots/<id>.yaml` beside a single-file robot), read by `sim/runner/scene.py` when
-`scene.robot()` places the robot: `initial_pose` (joint → degrees; joints under `percent` take 0–100 over their limits) becomes each
-joint's initial state (`PhysicsJointStateAPI`) and drive target, so the robot starts and holds there when Play starts. The capture
-keeps the file's other keys and adds `captured_from` / `captured_at`. It travels with the robot folder to the server.
+`scene.robot()` places the robot: `initial_pose` (USD joint → degrees; joints under `percent` take 0–100 over their limits)
+becomes each joint's initial state (`PhysicsJointStateAPI`) and drive target, so the robot starts and holds there when Play starts.
+`leader.rest` is what a leader reads in that same pose: a LeRobot leader reads 0° at the pose it was calibrated in, not at the USD
+zero, so teleoperation drives each joint to `initial_pose + (reading - rest)` (`scene.leader_offsets`, applied by the app).
+The capture keeps the file's other keys. It travels with the robot folder to the server.
 
 `SimAsset.teleop` (robots): leader types that can drive it (`["so101_leader"]` for `so101_follower`, `[]` otherwise).
 
