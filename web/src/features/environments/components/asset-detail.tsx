@@ -14,12 +14,6 @@ import { EnvFiles } from "./env-files"
 import { IsaacStatus } from "./isaac-status"
 import { TeleopDialog } from "./teleop-dialog"
 
-const HINT: Record<SimAssetKind, string> = {
-  robot:
-    "View 는 빈 장면의 원점에 이 로봇만 놓고 base 를 바닥에 고정해 Isaac Sim 에서 엽니다. Stage 창에서 USD 구조를, Physics Inspector 로 관절을 확인합니다. Teleoperation 은 같은 장면을 열고 실제 리더 팔로 로봇을 움직입니다.",
-  tool: "View 는 빈 장면에 이 도구만 바닥에서 0.3 m 위에 고정해 Isaac Sim 에서 엽니다. 아직 로봇 팔 끝에 붙이지는 않습니다.",
-}
-
 const poseRow = (k: string, pose: Record<string, number> | null, none: string) => ({
   k,
   v: pose ? (
@@ -82,7 +76,6 @@ export function AssetDetail({ kind, asset, envs }: { kind: SimAssetKind; asset: 
       </div>
 
       <div className="grid gap-1">
-        <p className="text-xs text-muted-foreground">{HINT[kind]}</p>
         <IsaacStatus scene={simAssetScene(kind, asset.id)} />
         <ErrorNote error={open.error} />
       </div>
