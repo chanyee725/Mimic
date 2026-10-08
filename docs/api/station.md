@@ -17,7 +17,7 @@ DayCount  = { date: string; count: number }
 | --- | --- | --- | --- |
 | GET | `/station` | `Station` | `getStation()` |
 | GET | `/station/totals` | `DataTotal[]` (episodes, frames, hours, storage, success — in that order) | `getDataTotals()` |
-| GET | `/station/activity?weeks=52` | `DayCount[]` — one entry per day, oldest first, ending today; the first day is a Sunday (`weeks` 1–104) | `getEpisodeActivity()` |
+| GET | `/station/activity?weeks=52` | `DayCount[]` — one entry per day, oldest first, ending today; the first day is a Sunday (`weeks` 1–104). `DayCount = { date; count; seconds; tasks: { taskId \| null; name; count; success; fail; seconds }[] }` — what each day recorded per task, most episodes first (`name` falls back to the id, or "No task") | `getEpisodeActivity()` |
 | GET | `/station/warnings` | `string[]` — human-readable warnings from real conditions | `getStationWarnings()` |
 | GET | `/station/current-task` | `{ taskId: string \| null }` (`null` until set, and once the task is deleted) | `getCurrentTaskId()` |
 | PUT | `/station/current-task` | body `{ taskId }` → `{ taskId }`; `null` clears it; 404 if unknown task. Publishes `station.current_task` | Capture task picker |
