@@ -23,7 +23,8 @@ job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message"
 
 ```
 data/sims/
-  robots/                 robot USDs: <id>.usd|usda|usdc or <id>/<id>.usd… (GET /sim/robots)
+  robots/                 robot USDs: <id>.usd|usda|usdc or <id>/<id>.usd… (GET /sim/robots); may reference other
+                          robots/ and tools/ folders by relative path (an arm with a hand)
   tools/                  end-effector USDs (hands, grippers): same layout (GET /sim/tools); scene.tool(<id>) places one
   envs.yaml               robot tags: { <env id>: { robots: [<robot id>, …] } } — written by PATCH /sim/envs/{id}
   envs/
@@ -142,6 +143,9 @@ Live: `sim.envs` (`{ envs }` after a rescan or delete), `sim.updated` (status, c
   Its log and the received environments live in `~/.cache/mimic-sim/`.
 - `remote`: the server runs on a sim server (`sim/.venv/bin/python sim/runner/server.py --host 0.0.0.0 --port 8211`) and the
   backend calls `url`. Opening an environment sends its folder (or its single script) and its first tagged robot's USD (its folder when it has one) as tar.gz laid out like `data/sims` (`envs/…`, `robots/…`), so the server needs no copy of `data/sims`.
+  A robot or tool composed from others (e.g. `robots/ufactory_xarm7_inspire_rh56bfx/`, made by `scripts/compose-sim-robot.py`)
+  brings the folders its text `.usda` layers reference by relative path (`@./…@`, `@../…@`): every `robots/<x>` or `tools/<x>`
+  inside the sim folder they resolve to, recursively and once each; paths outside the sim folder are not followed.
 
 `display` (`window` | `headless`) is used when the app starts; starting with the other display restarts the app.
 

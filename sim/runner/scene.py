@@ -107,7 +107,8 @@ class Scene:
 
     def tool(self, name: str, pos=(0, 0, 0), yaw: float = 0) -> Usd.Prim:
         """References an end effector (tools/<name>, e.g. a robot hand) at /World/<name>, its base
-        pinned where it stands. Not attached to the robot yet."""
+        pinned where it stands. To mount one on an arm, compose a
+        robot with scripts/compose-sim-robot.py."""
         return self._articulation(self._free_path(name), self.sim_dir / "tools", name, pos, yaw)
 
     def _articulation(self, path: str, folder: Path, name: str, pos, yaw: float) -> Usd.Prim:
