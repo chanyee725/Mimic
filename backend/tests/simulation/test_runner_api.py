@@ -171,3 +171,14 @@ def test_open_robot_and_tool_alone(client):
 def test_unknown_robot_or_tool_is_not_opened(client):
     assert client.post("/sim/robots/nope/open").status_code == 404
     assert client.post("/sim/tools/nope/open").status_code == 404
+
+
+def test_an_outdated_local_server_is_restarted(client, local_server, monkeypatch):
+    client.post("/sim/runner/start")
+    [old] = runner._local_server_pids(settings.get_settings().connection.isaac.port)
+    monkeypatch.setattr(runner, "JOINTS_VERSION", 99)
+    client.post("/sim/runner/start")
+    [new] = runner._local_server_pids(settings.get_settings().connection.isaac.port)
+    assert new != old and client.get("/sim/runner").json()["reachable"]
+    monkeypatch.setattr(runner, "JOINTS_VERSION", 3)
+    client.post("/sim/runner/stop")

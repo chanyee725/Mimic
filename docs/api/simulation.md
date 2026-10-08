@@ -169,8 +169,9 @@ leaving the folder is refused). Assets come from the server's own `sim/assets/`.
 `POST /open {path, root, robot}` on a private port only the server uses; an exception in the script is kept as `app.error` (the
 app keeps running). `POST /joints {targets, percent, play}` (teleoperation) is forwarded to the app, which keeps only the newest
 command and applies it on its main loop (`scene.Drives`: drive targets by joint name, degrees; a `percent` joint takes 0–100 over its
-limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 3 (2 had no `/joints`; teleoperation
-refuses an older server with 409 — restart it).
+limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 3 (2 had no `/joints`): in local mode the
+backend stops an older server it finds on the port (by its `server.py --port` process) and starts a new one; a remote one is refused
+by teleoperation with 409.
 
 Physics device (`connection.isaac.device`, default `gpu`): the backend sends it with every start / open; the server
 restarts the app when the display or the device differs from the running one. `gpu` starts the app with

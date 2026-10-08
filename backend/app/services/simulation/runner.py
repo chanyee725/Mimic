@@ -9,6 +9,8 @@ and is found again by port.
 
 import io
 import json
+import os
+import signal
 import subprocess
 import tarfile
 import threading
@@ -36,6 +38,8 @@ REQUEST_TIMEOUT_S = 30.0
 SERVER_START_S = 10.0
 MAX_ENV_BYTES = 512 * 1024 * 1024
 PREVIEW_SCRIPT = "preview.py"
+# Servers older than this have no /joints (teleoperation); a local one is restarted
+JOINTS_VERSION = 3
 # A tool stands this high above the floor when opened alone (m)
 TOOL_PREVIEW_Z = 0.3
 
@@ -82,11 +86,47 @@ def _health(timeout: float = HEALTH_TIMEOUT_S) -> dict | None:
         return None
 
 
+def _local_server_pids(port: int) -> list[int]:
+    """Processes running this repo's server.py on the port (Linux /proc)."""
+    pids = []
+    for cmdline in Path("/proc").glob("[0-9]*/cmdline"):
+        try:
+            args = cmdline.read_bytes().split(b"\0")
+        except OSError:
+            continue
+        argv = [a.decode(errors="replace") for a in args if a]
+        if str(SERVER_SCRIPT) in argv and "--port" in argv:
+            i = argv.index("--port")
+            if i + 1 < len(argv) and argv[i + 1] == str(port):
+                pids.append(int(cmdline.parent.name))
+    return pids
+
+
+def _stop_outdated(port: int) -> None:
+    """A local server from an older checkout (no /joints) is stopped; it stops its app too."""
+    for pid in _local_server_pids(port):
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+    deadline = time.monotonic() + SERVER_START_S * 3
+    while _health() and time.monotonic() < deadline:
+        time.sleep(0.2)
+    if _health():
+        raise ApiError(503, f"An outdated Isaac Sim server on port {port} did not stop")
+
+
 def _ensure_server() -> None:
-    """Local mode: start the server when nothing answers on its port."""
+    """Local mode: start the server when nothing answers on its port (restarting one older than
+    JOINTS_VERSION)."""
     s = _settings()
-    if s.mode != "local" or _health():
+    if s.mode != "local":
         return
+    health = _health()
+    if health and int(health.get("version") or 0) >= JOINTS_VERSION:
+        return
+    if health:
+        _stop_outdated(s.port)
     python = _python(s)
     if not python.exists():
         raise ApiError(
@@ -240,8 +280,8 @@ def open_asset(kind: str, asset_id: str, display: str | None = None) -> SimRunne
     return status()
 
 
-# Servers older than this have no /joints (teleoperation)
-JOINTS_VERSION = 3
+def is_local() -> bool:
+    return _settings().mode == "local"
 
 
 def server_version() -> int | None:

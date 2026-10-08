@@ -74,11 +74,9 @@ def start(robot_id: str, device_id: str, display: str | None = None) -> SimTeleo
             _end(_session)
             _session = None
         version = runner.server_version()
-        if version is not None and version < runner.JOINTS_VERSION:
+        if version is not None and version < runner.JOINTS_VERSION and not runner.is_local():
             raise ApiError(
-                409,
-                "The Isaac Sim server is too old for teleoperation; restart it "
-                "(stop the server process, the backend starts a new one)",
+                409, "The Isaac Sim server is too old for teleoperation; update and restart it"
             )
         link = rigs.open_leader(device_id)
         try:
