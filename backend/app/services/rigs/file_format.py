@@ -254,12 +254,21 @@ def declared_devices(spec: RigFile) -> list[Device]:
     n = len(spec.robots[0].joints)
     hz = float(spec.rates.action_hz)
 
-    def dev(i: str, name: str, kind: str, port: str, stream: DeviceStream, note: str) -> Device:
+    def dev(
+        i: str,
+        name: str,
+        kind: str,
+        port: str,
+        stream: DeviceStream,
+        note: str,
+        driver: str | None = None,
+    ) -> Device:
         cal = Calibration(done=False, note=note)
         return Device(
             id=i,
             name=name,
             type=kind,
+            driver=driver,
             port=port,
             health="off",
             calibration=cal,
@@ -275,6 +284,7 @@ def declared_devices(spec: RigFile) -> list[Device]:
             r.port,
             _stream("observation.state", f"[{n}]", hz, "Hz"),
             "Not connected",
+            r.type,
         )
         for r in spec.robots
     ]
@@ -286,6 +296,7 @@ def declared_devices(spec: RigFile) -> list[Device]:
             d.port,
             _stream("action", f"[{n}]", hz, "Hz"),
             "Not connected",
+            d.type,
         )
         for d in spec.devices
     ]
