@@ -11,12 +11,16 @@ API (JSON):
                                    default gpu); restarts it when either changes
   POST /app/stop                   stop the app
   POST /scene?env=<id>&script=<file>[&robot=…&display=…&device=…]  body: tar.gz laid out like
-                                   data/sims (envs/<env>…, robot/…); builds the stage from <file>, a
+                                   data/sims (envs/<env>…, robots/…); builds the stage from <file>, a
                                    path in it (default env.py), with <robot> as the robot scene.robot()
                                    places, starting the app
                                    first when it is not running
+  POST /joints {"targets", "percent", "play"} or {"jog", "play"}  teleoperation: forwarded to the
+                                   app (app.py); 409
+                                   while the app is not running
 AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "device", "pid", "scene",
-            "error"}
+            "error", "joints": {joint: drive target in degrees} | null,
+            "tcp": [x, y, z (m), roll, pitch, yaw (deg)] | null}
 """
 
 import argparse
@@ -37,7 +41,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = 2
+VERSION = 8
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")
@@ -81,6 +85,11 @@ class App:
         self.pending: tuple[str, str, str, str] | None = None  # (env id, script, sim folder, robot)
         self.error: str | None = None
         self.log = cache / "app.log"
+        # Teleoperation: the newest command waits here for the forwarder thread, so a busy app
+        # (a window rendering, a first CUDA call) never blocks or times out the backend
+        self.joints_body: dict | None = None
+        self.joints_ready = threading.Event()
+        threading.Thread(target=self._forward_joints, daemon=True).start()
 
     def state(self) -> dict:
         with self.lock:
@@ -92,14 +101,17 @@ class App:
                 state = "running" if self.ready else "starting"
             pid = self.proc.pid if self.proc and state in ("starting", "running") else None
             scene, error = (self.scene if state == "running" else None), self.error
+        joints = tcp = None
         if state == "running" and error is None:
-            # A failing environment script is reported by the app
+            # A failing environment script is reported by the app; joints: the robot's drive targets
             try:
-                error = _get(f"http://127.0.0.1:{self.port}/state", timeout=0.5).get("error")
+                app_state = _get(f"http://127.0.0.1:{self.port}/state", timeout=0.5)
+                error, joints = app_state.get("error"), app_state.get("joints")
+                tcp = app_state.get("tcp")
             except OSError:
                 pass
             if error:
-                scene = None
+                scene, joints, tcp = None, None, None
         return {
             "state": state,
             "display": self.display,
@@ -107,6 +119,8 @@ class App:
             "pid": pid,
             "scene": scene,
             "error": error,
+            "joints": joints,
+            "tcp": tcp,
         }
 
     def start(self, display: str, device: str = "gpu") -> None:
@@ -192,6 +206,30 @@ class App:
             elif self.ready:
                 self._send_pending()
 
+    def send_joints(self, body: dict) -> bool:
+        """Queues a teleoperation command for the app (the newest replaces an unsent one);
+        False while the app is not ready."""
+        with self.lock:
+            ready = self.ready and self.proc is not None and self.proc.poll() is None
+            if ready:
+                self.joints_body = body
+        if ready:
+            self.joints_ready.set()
+        return ready
+
+    def _forward_joints(self) -> None:
+        while True:
+            self.joints_ready.wait()
+            with self.lock:
+                body, self.joints_body, port = self.joints_body, None, self.port
+                self.joints_ready.clear()
+            if body is None:
+                continue
+            try:
+                _post(f"http://127.0.0.1:{port}/joints", body, timeout=5.0)
+            except OSError:
+                pass  # the app is busy or gone; the next command (or state()) tells
+
     def _send_pending(self) -> None:
         if not self.pending:
             return
@@ -245,6 +283,11 @@ def make_handler(app: App):
                     app.start(display, device)
                 elif url.path == "/app/stop":
                     app.stop()
+                elif url.path == "/joints":
+                    body = json.loads(self._body() or b"{}")
+                    if not app.send_joints(body):
+                        return self._send(409, {"error": "Isaac Sim app is not running"})
+                    return self._send(202, {})
                 elif url.path == "/scene":
                     query = parse_qs(url.query)
                     env_id = query.get("env", [""])[0]

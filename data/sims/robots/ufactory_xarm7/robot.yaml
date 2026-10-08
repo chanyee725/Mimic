@@ -1,0 +1,18 @@
+# Robot config, read by sim/runner/scene.py when the robot is placed.
+# initial_pose: joint → degrees the robot starts and holds in when Play starts;
+# joints under percent take 0–100 over their limits (a LeRobot gripper).
+# xArm7 rest pose: the drive targets its USD ships with (no leader arm drives it).
+initial_pose:
+  joint1: 0
+  joint2: -47.5
+  joint3: 0
+  joint4: 0
+  joint5: 0
+  joint6: 0
+  joint7: 9.6
+percent: []
+# Keyboard TCP jog: the flange (tool0) on link7; the arm joints move, not the hand's
+tcp:
+  link: link7
+  offset: [0, 0, 0]
+  joints: [joint1, joint2, joint3, joint4, joint5, joint6, joint7]

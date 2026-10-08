@@ -198,6 +198,30 @@ class FakeDriver:
         self.robot = FakeRobot()
         return self.robot
 
+    def open_leader(self, hw):
+        self.leader = FakeLeader()
+        return self.leader
+
+
+class FakeLeader:
+    """A leader read on its own; positions follow `pos`, `fail` makes the next read raise."""
+
+    def __init__(self):
+        self.joints = list(JOINTS)
+        self.pos = {m: 10.0 for m in JOINTS}
+        self.reads = 0
+        self.fail: str | None = None
+        self.closed = False
+
+    def read(self):
+        if self.fail:
+            raise RuntimeError(self.fail)
+        self.reads += 1
+        return dict(self.pos)
+
+    def close(self):
+        self.closed = True
+
 
 class FakeRobot:
     """A follower that moves straight to every goal it is sent."""
@@ -246,8 +270,16 @@ class FakeTeleop:
 
 
 def write_sim_robots(*robot_ids: str) -> None:
-    """Robot USD stubs under the sim folder's robot/ (environments can be tagged with them)."""
+    """Robot USD stubs under the sim folder's robots/ (environments can be tagged with them)."""
     for robot_id in robot_ids:
-        p = config.sim_robot_dir / f"{robot_id}.usda"
+        p = config.sim_robots_dir / f"{robot_id}.usda"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("#usda 1.0\n")
+
+
+def write_sim_tool(tool_id: str) -> None:
+    """A folder tool stub under the sim folder's tools/: <id>/<id>.usda and a payload."""
+    folder = config.sim_tools_dir / tool_id
+    (folder / "payloads").mkdir(parents=True, exist_ok=True)
+    (folder / f"{tool_id}.usda").write_text("#usda 1.0\n")
+    (folder / "payloads" / "base.usda").write_text("#usda 1.0\n")

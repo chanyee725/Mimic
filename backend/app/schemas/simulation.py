@@ -16,6 +16,23 @@ class SimEnvPatch(CamelModel):
     robots: list[str]
 
 
+class SimTeleopStart(CamelModel):
+    robot_id: str  # the robot, or the tool with kind "tool"
+    device_id: str
+    kind: Literal["robot", "tool"] = "robot"
+    display: Literal["window", "headless"] | None = None
+
+
+class SimJog(CamelModel):
+    velocities: dict[str, float] | None = None  # joint → degrees per second while held; {} stops
+    # TCP (tool) frame [vx, vy, vz (m/s), wx, wy, wz (deg/s)] while held; zeros stop
+    twist: list[float] | None = Field(None, min_length=6, max_length=6)
+
+
+class LeaderRestCapture(CamelModel):
+    device_id: str  # leader held in the robot's initial pose; its reading becomes leader.rest
+
+
 class SimJobCreate(CamelModel):
     model_id: str
     env_id: str

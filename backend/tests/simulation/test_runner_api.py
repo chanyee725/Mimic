@@ -10,7 +10,7 @@ import pytest
 from app.configs.config import config
 from app.services import settings
 from app.services.simulation import runner
-from tests.support import write_sim_robots
+from tests.support import write_sim_robots, write_sim_tool
 
 FAKE_APP = Path(__file__).parent / "fake_isaac_app.py"
 
@@ -94,16 +94,16 @@ def test_settings_test_reports_the_server(client):
 
 def test_archive_carries_the_tagged_robot(envs_dir):
     write_sim_robots("arm", "other")
-    archive = runner._archive(envs_dir / "drawer", config.sim_robot_dir / "arm.usda")
+    archive = runner._archive(envs_dir / "drawer", config.sim_robots_dir / "arm.usda")
     names = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz").getnames()
-    assert "robot/arm.usda" in names and "robot/other.usda" not in names
-    assert all(n.startswith(("envs/drawer/", "robot/")) for n in names)
+    assert "robots/arm.usda" in names and "robots/other.usda" not in names
+    assert all(n.startswith(("envs/drawer/", "robots/")) for n in names)
 
 
 def test_open_needs_the_tagged_robot_usd(client):
     write_sim_robots("arm")
     client.patch("/sim/envs/table", json={"robots": ["arm"]})
-    (config.sim_robot_dir / "arm.usda").unlink()
+    (config.sim_robots_dir / "arm.usda").unlink()
     r = client.post("/sim/envs/table/open")
     assert r.status_code == 422 and "has no USD" in r.json()["error"]["message"]
 
@@ -139,3 +139,82 @@ def test_physics_device_defaults_to_gpu_and_restarts_on_change(client, local_ser
     body = client.post("/sim/runner/start").json()
     assert body["device"] == "cpu" and body["app"]["device"] == "cpu"
     assert body["app"]["pid"] != pid  # the app takes the device at launch
+
+
+def test_archive_of_a_tool_alone_carries_its_folder_and_script(envs_dir):
+    write_sim_tool("hand")
+    usd = config.sim_tools_dir / "hand" / "hand.usda"
+    archive = runner._archive(None, usd, "def build(scene):\n    pass\n")
+    tar = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz")
+    assert sorted(tar.getnames()) == [
+        "preview.py",
+        "tools/hand/hand.usda",
+        "tools/hand/payloads/base.usda",
+    ]
+    assert b"def build" in tar.extractfile("preview.py").read()
+
+
+def test_archive_follows_relative_references_to_other_assets(envs_dir):
+    # A robot composed of an arm and a hand references both folders by relative path
+    write_sim_tool("hand")
+    arm = config.sim_robots_dir / "arm" / "arm.usda"
+    (arm.parent / "parts").mkdir(parents=True)
+    arm.write_text('#usda 1.0\ndef "a" (references = @./parts/link.usda@) {}\n')
+    (arm.parent / "parts" / "link.usda").write_text("#usda 1.0\n")
+    combo = config.sim_robots_dir / "combo" / "combo.usda"
+    combo.parent.mkdir(parents=True)
+    combo.write_text(
+        "#usda 1.0\n"
+        'def "r" (references = @../arm/arm.usda@) {\n'
+        '  def "t" (references = @../../tools/hand/hand.usda@) {}\n'
+        '  def "u" (references = @../arm/arm.usda@) {}\n'
+        '  def "x" (references = @../../../outside.usda@) {}\n'
+        '  def "y" (references = @../missing/missing.usda@) {}\n'
+        "}\n"
+    )
+    (config.sim_dir.parent / "outside.usda").write_text("#usda 1.0\n")
+    # The tool points back at the arm: no duplicate
+    hand = config.sim_tools_dir / "hand" / "hand.usda"
+    hand.write_text('#usda 1.0\ndef "h" (references = @../../robots/arm/arm.usda@) {}\n')
+    write_sim_robots("other")
+
+    archive = runner._archive(None, combo, "def build(scene):\n    scene.robot()\n")
+    names = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz").getnames()
+    assert sorted(names) == [
+        "preview.py",
+        "robots/arm/arm.usda",
+        "robots/arm/parts/link.usda",
+        "robots/combo/combo.usda",
+        "tools/hand/hand.usda",
+        "tools/hand/payloads/base.usda",
+    ]
+
+
+@pytest.mark.usefixtures("local_server")
+def test_open_robot_and_tool_alone(client):
+    write_sim_robots("arm")
+    write_sim_tool("hand")
+    assert client.post("/sim/robots/arm/open").status_code == 200
+    assert _wait_app(client, "running")["app"]["scene"] == "robot-arm"
+    assert client.post("/sim/tools/hand/open").status_code == 200
+    deadline = time.monotonic() + 15
+    while client.get("/sim/runner").json()["app"]["scene"] != "tool-hand":
+        assert time.monotonic() < deadline, "the tool did not open"
+        time.sleep(0.2)
+    client.post("/sim/runner/stop")
+
+
+def test_unknown_robot_or_tool_is_not_opened(client):
+    assert client.post("/sim/robots/nope/open").status_code == 404
+    assert client.post("/sim/tools/nope/open").status_code == 404
+
+
+def test_an_outdated_local_server_is_restarted(client, local_server, monkeypatch):
+    client.post("/sim/runner/start")
+    [old] = runner._local_server_pids(settings.get_settings().connection.isaac.port)
+    monkeypatch.setattr(runner, "JOINTS_VERSION", 99)
+    client.post("/sim/runner/start")
+    [new] = runner._local_server_pids(settings.get_settings().connection.isaac.port)
+    assert new != old and client.get("/sim/runner").json()["reachable"]
+    monkeypatch.setattr(runner, "JOINTS_VERSION", 8)
+    client.post("/sim/runner/stop")

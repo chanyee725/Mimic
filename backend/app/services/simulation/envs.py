@@ -9,7 +9,7 @@ from app.configs.config import config
 from app.core import storage
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.models.simulation import SimEnv, SimRobot
+from app.models.simulation import SimAsset, SimEnv
 from app.schemas.simulation import RescanResult
 from app.services.rigs import list_rigs, robot_types
 from app.services.simulation.scanner import (
@@ -91,12 +91,94 @@ def get_env(env_id: str) -> SimEnv:
     return env
 
 
-def list_robots() -> list[SimRobot]:
-    return scan_robots(config.sim_robot_dir)
+def leader_types(robot_id: str) -> list[str]:
+    """Leader types that can drive a robot: X_leader for a robot named X_follower."""
+    if not robot_id.endswith("_follower"):
+        return []
+    return [robot_id.removesuffix("_follower") + "_leader"]
+
+
+def robot_config(usd: Path) -> Path:
+    """A robot's config next to its USD (same rule as sim/runner/scene.py): <id>/robot.yaml for a
+    folder robot, else <id>.yaml."""
+    return usd.parent / "robot.yaml" if usd.parent.name == usd.stem else usd.with_suffix(".yaml")
+
+
+def _config_pose(usd: Path, *keys: str) -> dict[str, float] | None:
+    """A joint → value map at keys (e.g. "leader", "rest") in the robot's config, else None."""
+    doc = storage.read_file(robot_config(usd))
+    for k in keys:
+        doc = doc.get(k) if isinstance(doc, dict) else None
+    return {str(k): float(v) for k, v in doc.items()} if isinstance(doc, dict) else None
+
+
+def _tcp_link(usd: Path) -> str | None:
+    doc = storage.read_file(robot_config(usd))
+    tcp = doc.get("tcp") if isinstance(doc, dict) else None
+    return str(tcp["link"]) if isinstance(tcp, dict) and tcp.get("link") else None
+
+
+def list_robots() -> list[SimAsset]:
+    return [
+        r.model_copy(
+            update={
+                "teleop": leader_types(r.id),
+                "initial_pose": _config_pose(Path(r.path), "initial_pose"),
+                "leader_rest": _config_pose(Path(r.path), "leader", "rest"),
+                "tcp": _tcp_link(Path(r.path)),
+            }
+        )
+        for r in scan_robots(config.sim_robots_dir)
+    ]
+
+
+def get_robot(robot_id: str) -> SimAsset:
+    robot = next((r for r in list_robots() if r.id == robot_id), None)
+    if robot is None:
+        raise not_found("Robot", robot_id)
+    return robot
+
+
+CONFIG_HEADER = (
+    "# Robot config, read by sim/runner/scene.py when the robot is placed.\n"
+    "# initial_pose: joint → degrees (USD joint angles) the robot starts and holds in at Play;\n"
+    "# joints under percent take 0–100 over their limits (a LeRobot gripper).\n"
+    "# leader.rest: what a leader reads in that same pose; teleoperation drives each joint to\n"
+    "# initial_pose + (reading - rest), since a LeRobot leader reads 0° where it was calibrated.\n"
+)
+
+
+def set_leader_rest(robot_id: str, rest: dict[str, float], source: str) -> SimAsset:
+    """Writes what the leader reads in the robot's initial pose (leader.rest) into its config,
+    keeping the config's other keys."""
+    usd = robot_path(robot_id)
+    if usd is None:
+        raise not_found("Robot", robot_id)
+    path = robot_config(usd)
+    doc = storage.read_file(path)
+    doc = doc if isinstance(doc, dict) else {}
+    for stale in ("captured_from", "captured_at"):  # written by the first version
+        doc.pop(stale, None)
+    doc["leader"] = {
+        "rest": {k: round(v, 2) for k, v in rest.items()},
+        "captured_from": source,
+        "captured_at": now_iso(),
+    }
+    storage.write_file(path, CONFIG_HEADER + storage.dumps(doc))
+    return get_robot(robot_id)
 
 
 def robot_path(robot_id: str) -> Path | None:
-    return robot_file(config.sim_robot_dir, robot_id)
+    return robot_file(config.sim_robots_dir, robot_id)
+
+
+def list_tools() -> list[SimAsset]:
+    """End effectors (robot hands, grippers) under the tools folder."""
+    return scan_robots(config.sim_tools_dir)
+
+
+def tool_path(tool_id: str) -> Path | None:
+    return robot_file(config.sim_tools_dir, tool_id)
 
 
 def thumbnail(env_id: str) -> tuple[Path, str]:
@@ -115,7 +197,7 @@ def rig_problem(env: SimEnv, rig_id: str | None) -> str | None:
 
 
 def set_robots(env_id: str, robots: list[str]) -> SimEnv:
-    """Replaces the env's robot tags; each must be a robot under the robot folder."""
+    """Replaces the env's robot tags; each must be a robot under the robots folder."""
     with lock:
         get_env(env_id)
         known = {r.id for r in list_robots()}

@@ -3,7 +3,6 @@ import { ErrorNote } from "@/components/common/query-state"
 import { useSetEnvRobots, useSimRobots } from "@/api/simulation"
 import type { SimEnv } from "@/domain/simulation"
 
-/** Robot tags of an environment: one checkbox per robot USD, saved on change */
 export function EnvRobots({ env }: { env: SimEnv }) {
   const robots = useSimRobots()
   const save = useSetEnvRobots()
@@ -23,7 +22,7 @@ export function EnvRobots({ env }: { env: SimEnv }) {
       </p>
       {robots.isPending ? null : ids.length === 0 ? (
         <p className="text-[13px] text-muted-foreground">
-          <span className="font-mono">data/sims/robot/</span> 에 로봇 USD 가 없습니다.
+          <span className="font-mono">data/sims/robots/</span> 에 로봇 USD 가 없습니다.
         </p>
       ) : (
         <ul className="flex flex-wrap gap-x-5 gap-y-2">

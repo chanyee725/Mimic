@@ -68,6 +68,7 @@ class Device(CamelModel):
     id: str
     name: str
     type: DeviceType
+    driver: str | None = None  # LeRobot type from the rig file (so101_leader, …); None for cameras
     port: str
     health: Health
     calibration: Calibration

@@ -91,7 +91,7 @@ def test_activity_default(client, clock):
     rows = client.get("/station/activity").json()
     assert len(rows) == 364
     assert date.fromisoformat(rows[0]["date"]).weekday() == 6  # Sunday
-    assert rows[-1] == {"date": "2026-10-03", "count": 0}
+    assert rows[-1] == {"date": "2026-10-03", "count": 0, "seconds": 0, "tasks": []}
     assert all(r["count"] == 0 for r in rows)
 
 
@@ -108,7 +108,11 @@ def test_activity_counts_recordings(client, record):
     record()
     day = datetime.fromisoformat(rec["recordedAt"]).astimezone(ZoneInfo("Asia/Seoul"))
     rows = client.get("/station/activity", params={"weeks": 1}).json()
-    assert {"date": day.date().isoformat(), "count": 2} in rows
+    [row] = [r for r in rows if r["date"] == day.date().isoformat()]
+    assert row["count"] == 2 and row["seconds"] > 0
+    [task] = row["tasks"]
+    assert task["taskId"] == "stack-two-blocks" and task["count"] == 2 and task["name"]
+    assert task["success"] + task["fail"] <= 2 and task["seconds"] == row["seconds"]
 
 
 def test_warnings_are_real(client, monkeypatch):

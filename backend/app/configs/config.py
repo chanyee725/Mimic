@@ -18,7 +18,7 @@ class Config(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     station_id: str = "Station 01"
     timezone: str = "Asia/Seoul"
-    # Isaac Sim: envs/ (environment scripts) and robot/ (robot USDs they place); unset = <data_dir>/sims
+    # Isaac Sim: envs/ (environment scripts), robots/ (robot USDs they place) and tools/ (end effectors); unset = <data_dir>/sims
     sim_dir: Path | None = None
     # Station setup, committed: rigs/, settings/, calibration/ (hand-set, edited on Rigs / Settings)
     config_dir: Path = REPO_ROOT / "config"
@@ -50,9 +50,14 @@ class Config(BaseSettings):
         return self.sim_dir / "envs"
 
     @property
-    def sim_robot_dir(self) -> Path:
+    def sim_robots_dir(self) -> Path:
         """Robot USDs the scripts place by name (scene.robot), never scanned."""
-        return self.sim_dir / "robot"
+        return self.sim_dir / "robots"
+
+    @property
+    def sim_tools_dir(self) -> Path:
+        """End-effector USDs (robot hands, grippers) a scene places by name (scene.tool)."""
+        return self.sim_dir / "tools"
 
     # Everything the station records or builds lives under the data folder
     @property

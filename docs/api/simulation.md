@@ -23,7 +23,9 @@ job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message"
 
 ```
 data/sims/
-  robot/                  robot USDs: <id>.usd|usda|usdc or <id>/<id>.usd… (GET /sim/robots)
+  robots/                 robot USDs: <id>.usd|usda|usdc or <id>/<id>.usd… (GET /sim/robots); may reference other
+                          robots/ and tools/ folders by relative path (an arm with a hand)
+  tools/                  end-effector USDs (hands, grippers): same layout (GET /sim/tools); scene.tool(<id>) places one
   envs.yaml               robot tags: { <env id>: { robots: [<robot id>, …] } } — written by PATCH /sim/envs/{id}
   envs/
     table.py              a top-level script: id "table"
@@ -79,6 +81,17 @@ SimEnv = {
   rigIds: string[]                             // configured rigs that fit the tags
   thumbnail: boolean                           // an image is served by /sim/envs/{id}/thumbnail
 }
+SimAsset = {                                   // a robot (robots/) or tool (tools/) USD
+  id: string
+  path: string                                 // absolute path of the root USD
+  sizeKB: number
+  files: { path: string; sizeKB: number }[]    // relative to its folder; the file name for a single file
+  updatedAt: string
+  teleop: string[]                             // robots: leader types that can drive it; tools: []
+  initialPose: Record<string, number> | null   // robots: from <id>/robot.yaml (or <id>.yaml beside a single file)
+  tcp: string | null                           // robots: link of the keyboard TCP jog (robot.yaml tcp.link)
+  leaderRest: Record<string, number> | null    // robots: robot.yaml leader.rest
+}
 Randomization = "none" | "low" | "high"
 SimEpisode = { index: number; seed: number; success: boolean; seconds: number; reason?: string }
 SimJob = {
@@ -98,8 +111,11 @@ SimJob = {
 | --- | --- | --- | --- | --- |
 | GET | `/sim/envs` | | `SimEnv[]` by id | `listSimEnvs()` |
 | GET | `/sim/envs/{id}` | | `SimEnv`; 404 if unknown | `getSimEnv(id)` |
-| PATCH | `/sim/envs/{id}` | `{ robots: string[] }` | `SimEnv` with the new tags (`[]` clears them); 404 if unknown, 422 with `details.robots` for a robot not under `robot/` | Robots checkboxes |
-| GET | `/sim/robots` | | `{ id: string; path: string }[]` by id | Robots checkboxes |
+| PATCH | `/sim/envs/{id}` | `{ robots: string[] }` | `SimEnv` with the new tags (`[]` clears them); 404 if unknown, 422 with `details.robots` for a robot not under `robots/` | Robots checkboxes |
+| GET | `/sim/robots` | | `SimAsset[]` by id | Robots checkboxes, Robots tab |
+| GET | `/sim/tools` | | `SimAsset[]` by id (tools/) | Tools tab |
+| GET | `/sim/robots/{id}/model.glb` | | `model/gltf-binary`: static 3D preview of the robot (see below); 404 unknown id, 422 when the USD has no visible mesh or fails to convert | Robots tab: 3D preview |
+| GET | `/sim/tools/{id}/model.glb` | | the same for a tool | Tools tab: 3D preview |
 | GET | `/sim/envs/{id}/thumbnail` | | the image (`image/png`, `image/jpeg`, `image/webp`); 404 when the env is unknown or has none | Environment thumbnail |
 | POST | `/sim/envs/rescan` | | `{ dir: string; scannedAt: string; envs: SimEnv[] }` | Rescan |
 | DELETE | `/sim/envs/{id}` | | 204; deletes the file or folder. 404 if unknown; 409 with `details.tasks` while a task's `envId` uses it | Delete |
@@ -117,6 +133,12 @@ Notes:
   `maxSeconds` 40, `randomization` `"low"`. A valid request then gets 503 until the runner exists.
 - One job holds the GPU at a time (`/sim/config` `gpu.busyBy`). When the running job ends (done, failed, stopped), the oldest
   queued job starts.
+- `model.glb` (`app.services.simulation.preview`, `usd-core`): the composed stage of the root USD (with the robots / tools it
+  references), meshes that are visible and of purpose `default` / `render` only — collision meshes are `guide` in these assets —
+  fan-triangulated, identical points welded, world transforms baked, in metres and turned Z-up → Y-up. One material per colour
+  (`displayColor`, else UsdPreviewSurface `diffuseColor`, else OmniPBR `diffuse_color_constant` × `diffuse_tint` from the shader or
+  its `.mdl`, else grey); no normals or textures, so shade it flat (`flatShading`). Cached as
+  `<data>/cache/sim-models/<kind>-<id>-<hash>.glb`, keyed by the sizes and mtimes of every file it composes from.
 - Episode video is `501 not_implemented` until Isaac Sim is connected; unknown job / episode index is 404, and so is a camera that is not one of the model's task cameras.
 
 Live: `sim.envs` (`{ envs }` after a rescan or delete), `sim.updated` (status, counts, eta) and `sim.episode` (each finished episode) events; live Isaac Sim view over WebRTC.
@@ -131,7 +153,10 @@ Live: `sim.envs` (`{ envs }` after a rescan or delete), `sim.updated` (status, c
   detached, so it outlives backend reloads and is found again by its port; `POST /sim/runner/stop` stops only the app.
   Its log and the received environments live in `~/.cache/mimic-sim/`.
 - `remote`: the server runs on a sim server (`sim/.venv/bin/python sim/runner/server.py --host 0.0.0.0 --port 8211`) and the
-  backend calls `url`. Opening an environment sends its folder (or its single script) and its first tagged robot's USD (its folder when it has one) as tar.gz laid out like `data/sims` (`envs/…`, `robot/…`), so the server needs no copy of `data/sims`.
+  backend calls `url`. Opening an environment sends its folder (or its single script) and its first tagged robot's USD (its folder when it has one) as tar.gz laid out like `data/sims` (`envs/…`, `robots/…`), so the server needs no copy of `data/sims`.
+  A robot or tool composed from others (e.g. `robots/ufactory_xarm7_inspire_rh56bfx/`, made by `scripts/compose-sim-robot.py`)
+  brings the folders its text `.usda` layers reference by relative path (`@./…@`, `@../…@`): every `robots/<x>` or `tools/<x>`
+  inside the sim folder they resolve to, recursively and once each; paths outside the sim folder are not followed.
 
 `display` (`window` | `headless`) is used when the app starts; starting with the other display restarts the app.
 
@@ -148,20 +173,71 @@ SimRunner    = { mode: "local" | "remote"; display: "window" | "headless"; devic
 | GET | `/sim/runner` | | `SimRunner` | Environment detail status |
 | POST | `/sim/runner/start` | `{ display? }` | `SimRunner`; 503 if the local Python is missing or the server is unreachable | — |
 | POST | `/sim/runner/stop` | | `SimRunner` (app stopped) | Stop |
+| POST | `/sim/robots/{id}/open` | `{ display? }` | `SimRunner`; opens the robot alone, pinned at the origin on an empty stage (app scene `robot-<id>`); 404 for an unknown robot | Robots tab: Open in Isaac Sim |
+| POST | `/sim/tools/{id}/open` | `{ display? }` | `SimRunner`; opens the tool alone, pinned 0.3 m above the floor (app scene `tool-<id>`); 404 for an unknown tool | Tools tab: Open in Isaac Sim |
 | POST | `/sim/envs/{id}/open` | `{ display? }` | `SimRunner` (app `starting` until the scene is open; a failing script shows as `app.error`); 404 for an unknown env, 422 when the tagged robot has no USD, 503 as above, 502 when the server rejects it | Open in Isaac Sim |
 
 Server API (backend ↔ server, JSON): `GET /health` → `{ version, app: SimRunnerApp }`; `POST /app/start {display, device}`;
 `POST /app/stop`; `POST /scene?env=<id>&script=<file>&robot=<robot id>&display=&device=` with the tar.gz body (laid out like `data/sims`:
-`envs/<env>…`, `robot/…`); the server extracts it and has the app build a new stage from `<file>` (default `env.py`; a path
+`envs/<env>…`, `robots/…`); the server extracts it and has the app build a new stage from `<file>` (default `env.py`; a path
 leaving the folder is refused). Assets come from the server's own `sim/assets/`. The app answers `GET /state` and
 `POST /open {path, root, robot}` on a private port only the server uses; an exception in the script is kept as `app.error` (the
-app keeps running). Server `version` is 2.
+app keeps running). `POST /joints {targets, percent, play}` (teleoperation) is forwarded to the app, which keeps only the newest
+command and applies it on its main loop (`scene.Drives`: drive targets by joint name, degrees; a `percent` joint takes 0–100 over its
+limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 8 (7 drove a tool's passive joints and only robots, 6 integrated jogs over at most 0.1 s per frame, 5 forwarded `/joints` synchronously, 4 had no TCP twist, 3 no `jog` / `/state` joints, 2 no `/joints`); `/joints` is queued and forwarded to the app by a thread, newest first: in local mode the
+backend stops an older server it finds on the port (by its `server.py --port` process) and starts a new one; a remote one is refused
+by teleoperation with 409.
 
 Physics device (`connection.isaac.device`, default `gpu`): the backend sends it with every start / open; the server
 restarts the app when the display or the device differs from the running one. `gpu` starts the app with
 `active_gpu` / `physics_gpu` 0 and `/physics/cudaDevice` 0, and turns on PhysX GPU dynamics and the GPU broadphase in every
 `PhysicsScene` of a built stage, written to the session layer; `cpu` keeps PhysX on the CPU (`MBP` broadphase). Rendering always uses the
 NVIDIA GPU.
+
+## Teleoperation
+
+A leader arm drives the robot opened alone in Isaac Sim (Robots tab → Teleoperation). One session at a time
+(`app.services.simulation.teleop`). Start checks the pair, opens the leader (`rigs.open_leader`: the device then counts as in a
+teleoperation test, so calibration and rig teleoperation answer 409), opens the robot (`POST /sim/robots/{id}/open`), and a
+thread waits for the app to show `robot-<id>`, plays the timeline and sends the leader's positions to `/joints` at 30 Hz.
+Joints match by name: a robot named `X_follower` (its USD joints named after the LeRobot motors) is driven by an `X_leader`;
+`gripper` goes as 0–100 over its joint limits. Stopping disconnects the leader; the scene stays open.
+
+```ts
+SimTeleop = {
+  robotId: string; deviceId: string            // robotId: the robot or tool id
+  kind: "robot" | "tool"
+  state: "starting" | "running" | "stopped"   // starting: waiting for Isaac Sim to open the robot; stopped: ended with error
+  hz: number | null; targetHz: number          // measured / target send rate (30)
+  error: string | null
+  startedAt: string
+  joints: { name: string; value: number | null }[]   // leader positions: degrees, gripper 0–100
+}
+```
+
+| Method | Path | Body | Returns | Web |
+| --- | --- | --- | --- | --- |
+| POST | `/sim/teleop` | `{ robotId, deviceId, kind?, display? }` | `201 SimTeleop`; `kind` `"tool"` opens a tool alone (`robotId` = the tool id) and takes only the keyboard (422 otherwise); 404 unknown robot / device; 422 not a leader, or its type is not in the robot's `teleop` (`details.teleop`); 409 the device is busy, a session runs, or the server is older than version 3; 503 LeRobot unavailable or the port fails | Teleoperation dialog: Start |
+| GET | `/sim/teleop` | | `SimTeleop`, or `null` when there is none | Teleoperation dialog (polled) |
+| PUT | `/sim/teleop/jog` | `{ velocities: Record<string, number> }` or `{ twist: [vx, vy, vz, wx, wy, wz] }` | 204: keyboard session only — joints to move now in degrees per second (capped at 120; `{}` stops), or the TCP twist in its own (tool0) frame in m/s and deg/s (capped at 0.25 / 90; zeros stop; 422 when the robot has no `tcp`); the page resends while keys are held and speeds older than 0.5 s drop to zero. 404 without a keyboard session, 409 while it is starting | Keyboard jog |
+| DELETE | `/sim/teleop` | | 204; 404 when there is none | Stop |
+| POST | `/sim/robots/{id}/leader-rest` | `{ deviceId }` | `SimAsset` with the new `leaderRest`: the leader, held in the robot's initial pose, is read (median of 5 reads, or the running session's last values when that leader drives the simulation) and saved as `leader.rest`; same 404 / 422 / 409 / 503 as Start | Teleoperation dialog: Align leader |
+
+Robot config (`robots/<id>/robot.yaml`, or `robots/<id>.yaml` beside a single-file robot), read by `sim/runner/scene.py` when
+`scene.robot()` places the robot: `initial_pose` (USD joint → degrees; joints under `percent` take 0–100 over their limits)
+becomes each joint's initial state (`PhysicsJointStateAPI`) and drive target, so the robot starts and holds there when Play starts.
+`leader.rest` is what a leader reads in that same pose: a LeRobot leader reads 0° at the pose it was calibrated in, not at the USD
+zero, so teleoperation drives each joint to `initial_pose + (reading - rest)` (`scene.leader_offsets`, applied by the app).
+The capture keeps the file's other keys. It travels with the robot folder to the server.
+
+Keyboard: `deviceId: "keyboard"` drives any robot without a leader, and a tool opened alone (`kind: "tool"`, e.g. a robot hand until a
+glove device exists). Drives without stiffness (a hand's coupled finger segments) are passive and left out of `joints`. The loop sends `{jog}` to the server's `/joints` at 30 Hz; the app
+moves the drive targets at those speeds (stopping at the joint limits) and reports them in `/state` `joints`, which `SimTeleop.joints`
+shows (degrees) and `SimRunnerApp.joints` carries. A twist goes to `/joints` as `{twist}`: the app turns it into joint speeds by damped
+least squares on the PhysX Jacobian of the TCP link (`sim/runner/tcp.py`, robot.yaml `tcp: {link, offset, joints}`) and reports the
+TCP pose as `/state` `tcp` → `SimRunnerApp.tcp` / `SimTeleop.tcp` (`[x, y, z (m, world), roll, pitch, yaw (deg)]`).
+
+`SimAsset.teleop` (robots): leader types that can drive it (`["so101_leader"]` for `so101_follower`, `[]` otherwise).
 
 ## Changes from the web mocks
 

@@ -1,7 +1,7 @@
 """Lift a cube: a red cube 28 cm in front of the robot at the edge of a table, a tray to its right.
 
 Copy into the environments folder (data/sims/envs/), Rescan, and tag it with a robot on the
-Environments page (e.g. so101_follower, whose USD sits in data/sims/robot/).
+Environments page (e.g. so101_follower, whose USD sits in data/sims/robots/).
 """
 
 TABLE_TOP = 0.75  # sim/assets/table surface height (m)

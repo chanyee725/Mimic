@@ -28,18 +28,28 @@ class SimEnv(CamelModel):
     files: list[SimEnvFile] = []
     registered_at: str
     updated_at: str
-    robots: list[str] = []  # robot tags (robot/<name>); [] = untagged, fits any rig
+    robots: list[str] = []  # robot tags (robots/<name>); [] = untagged, fits any rig
     rig_ids: list[str] = (
         []
     )  # configured rigs whose follower types are all tagged (every rig when untagged)
     thumbnail: bool = False  # an image is served by /sim/envs/{id}/thumbnail
 
 
-class SimRobot(CamelModel):
-    """A robot USD under <sim folder>/robot/: <id>.usd[a|c] or <id>/<id>.usd[a|c]."""
+class SimAsset(CamelModel):
+    """A robot or tool USD under <sim folder>/robots/ or tools/: <id>.usd[a|c] or
+    <id>/<id>.usd[a|c] with its sub-files."""
 
-    id: str  # named after the LeRobot type of the follower it simulates (e.g. so101_follower)
-    path: str
+    id: str  # a robot is named after the LeRobot type of the follower it simulates (so101_follower)
+    path: str  # absolute path of the root USD
+    size_kb: int = Field(alias="sizeKB")
+    files: list[SimEnvFile] = []  # relative to the asset folder (the file name for a single file)
+    updated_at: str
+    teleop: list[str] = []  # leader types that can drive it (so101_follower ← so101_leader)
+    tcp: str | None = None  # robots: link the keyboard TCP jog moves (robot.yaml tcp.link)
+    # robots: start pose from <id>/robot.yaml (joint → degrees; percent joints 0–100), null when unset
+    initial_pose: dict[str, float] | None = None
+    # robots: what a leader reads in initial_pose (robot.yaml leader.rest), null when unset
+    leader_rest: dict[str, float] | None = None
 
 
 class SimGpu(CamelModel):
@@ -66,6 +76,8 @@ class SimRunnerApp(CamelModel):
     pid: int | None = None
     scene: str | None = None  # id of the open environment
     error: str | None = None
+    joints: dict[str, float] | None = None  # drive target per joint of the open robot (degrees)
+    tcp: list[float] | None = None  # TCP pose [x, y, z (m), roll, pitch, yaw (deg)] while playing
 
 
 class SimRunner(CamelModel):
@@ -75,6 +87,28 @@ class SimRunner(CamelModel):
     url: str
     reachable: bool
     app: SimRunnerApp | None  # null when the server is not reachable
+
+
+class SimTeleopJoint(CamelModel):
+    name: str
+    value: float | None = None  # leader position: degrees, gripper 0–100
+
+
+class SimTeleop(CamelModel):
+    """A leader arm (or the keyboard) driving the robot or tool open alone in Isaac Sim."""
+
+    robot_id: str  # the robot or tool id
+    kind: Literal["robot", "tool"] = "robot"
+    device_id: str
+    state: Literal["starting", "running", "stopped"]  # starting: waiting for the scene
+    hz: float | None = None  # measured send rate
+    target_hz: int
+    error: str | None = None
+    started_at: str
+    joints: list[SimTeleopJoint] = []
+    tcp: list[float] | None = (
+        None  # keyboard: TCP pose [x, y, z (m, world), roll, pitch, yaw (deg)]
+    )
 
 
 class SimEpisode(CamelModel):

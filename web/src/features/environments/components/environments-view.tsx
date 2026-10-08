@@ -9,7 +9,6 @@ import { matchesRobot, type RobotFilter } from "../lib"
 import { EnvDetail } from "./env-detail"
 import { EnvList } from "./env-list"
 
-/** Environment scripts found in the environments folder: list on the left, detail on the right */
 export function EnvironmentsView({
   selected,
   onSelect,
@@ -17,7 +16,6 @@ export function EnvironmentsView({
 }: {
   selected?: string
   onSelect: (id: string | undefined) => void
-  /** Rescan failure, shown above the panels */
   error: unknown
 }) {
   const query = useSimEnvs()

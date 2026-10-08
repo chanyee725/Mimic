@@ -97,6 +97,18 @@ class RobotLink(Protocol):
         ...
 
 
+class LeaderLink(Protocol):
+    """A leader arm read on its own (no follower), e.g. to drive a simulated robot."""
+
+    joints: list[str]  # motors in action order
+
+    def read(self) -> dict[str, float]:
+        """Positions per motor: degrees, gripper 0–100."""
+        ...
+
+    def close(self) -> None: ...
+
+
 class Driver(Protocol):
     def unavailable(self) -> str | None: ...
     def calibration_file(self, hw: Hardware) -> Path | None: ...
@@ -110,6 +122,7 @@ class Driver(Protocol):
 
     def open_teleop(self, pairs: list[tuple[Hardware, Hardware]]) -> TeleopLink: ...
     def open_robot(self, hw: Hardware) -> RobotLink: ...
+    def open_leader(self, hw: Hardware) -> LeaderLink: ...
 
 
 class NoDriver:
@@ -139,6 +152,9 @@ class NoDriver:
         raise ApiError(503, self.reason)
 
     def open_robot(self, hw: Hardware) -> RobotLink:
+        raise ApiError(503, self.reason)
+
+    def open_leader(self, hw: Hardware) -> LeaderLink:
         raise ApiError(503, self.reason)
 
 
@@ -295,6 +311,10 @@ class LeRobotDriver:
         self._require()
         return _LeRobotRobot(hw)
 
+    def open_leader(self, hw: Hardware) -> LeaderLink:
+        self._require()
+        return _LeRobotLeader(hw)
+
 
 @dataclass
 class _LeRobotArm:
@@ -450,6 +470,25 @@ class _LeRobotRobot:
         if self.robot.is_connected:
             try:
                 self.robot.disconnect()
+            except Exception:
+                pass
+
+
+class _LeRobotLeader:
+    def __init__(self, hw: Hardware):
+        self.leader = _lerobot_device(hw)
+        if not self.leader.calibration:
+            raise ApiError(409, f"Calibrate '{hw.id}' first")
+        _connect_calibrated(self.leader, hw.port)
+        self.joints = [k.removesuffix(".pos") for k in self.leader.action_features]
+
+    def read(self) -> dict[str, float]:
+        return {k.removesuffix(".pos"): float(v) for k, v in self.leader.get_action().items()}
+
+    def close(self) -> None:
+        if self.leader.is_connected:
+            try:
+                self.leader.disconnect()
             except Exception:
                 pass
 

@@ -22,7 +22,7 @@ DeviceType = "robot" | "teleop" | "camera" | "glove" | "input"
 Health     = "ok" | "warn" | "off"
 DeviceStream = { key: string; shape: string; targetHz: number | null; measuredHz: number | null; unit: "Hz" | "fps" }
 DeviceCheck = { ok: boolean; message: string; at: string }   // last connection test (ISO 8601)
-Device = { id: string; name: string; type: DeviceType; port: string; health: Health;
+Device = { id: string; name: string; type: DeviceType; driver: string | null /* LeRobot type: so101_leader, …; null for cameras */; port: string; health: Health;
            calibration: { done: boolean; note: string }; streams: DeviceStream[]; stats: { label: string; value: string }[];
            check: DeviceCheck | null }
 

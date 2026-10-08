@@ -2,8 +2,8 @@
 
 An environment is a Python script whose build(scene) lays out the stage (sim/runner/scene.py): a
 top-level `<id>.py` file, or a folder `<id>/` holding `env.py` with its own files. A thumbnail is
-`<stem>.<image>` beside a script, or `thumbnail.<image>` in an env folder. Robots are also
-found here: robot/<id>.usd[a|c] or robot/<id>/<id>.usd[a|c].
+`<stem>.<image>` beside a script, or `thumbnail.<image>` in an env folder. Robots and tools are
+also found here: robots/<id>.usd[a|c] or robots/<id>/<id>.usd[a|c] (tools/ alike).
 """
 
 import logging
@@ -11,7 +11,7 @@ import math
 from collections.abc import Mapping
 from pathlib import Path
 
-from app.models.simulation import SimEnv, SimEnvFile, SimRobot
+from app.models.simulation import SimAsset, SimEnv, SimEnvFile
 from app.utils.paths import latest_mtime, size_kb, walk_files
 from app.utils.time import from_timestamp, now_iso
 
@@ -55,6 +55,7 @@ def scan_envs(root: Path, first_seen: Mapping[str, str] | None = None) -> list[S
 
 
 def robot_file(root: Path, robot_id: str) -> Path | None:
+    """Root USD of a robot or tool: <id>.usd… or <id>/<id>.usd…"""
     for ext in ROBOT_EXTS:
         for p in (root / f"{robot_id}{ext}", root / robot_id / f"{robot_id}{ext}"):
             if p.is_file():
@@ -62,13 +63,26 @@ def robot_file(root: Path, robot_id: str) -> Path | None:
     return None
 
 
-def scan_robots(root: Path) -> list[SimRobot]:
-    """Robot USDs under the robot folder, by id."""
+def _asset(asset_id: str, usd: Path) -> SimAsset:
+    folder = usd.parent if usd.parent.name == asset_id else None
+    paths = list(walk_files(folder)) if folder else [usd]
+    base = folder or usd.parent
+    return SimAsset(
+        id=asset_id,
+        path=str(usd.resolve()),
+        size_kb=math.ceil(sum(p.stat().st_size for p in paths) / 1024),
+        files=[SimEnvFile(path=p.relative_to(base).as_posix(), size_kb=size_kb(p)) for p in paths],
+        updated_at=from_timestamp(latest_mtime(folder) if folder else usd.stat().st_mtime),
+    )
+
+
+def scan_robots(root: Path) -> list[SimAsset]:
+    """Robot (or tool) USDs under root, by id."""
     if not root.is_dir():
         return []
     ids = {p.stem if p.is_file() else p.name for p in _entries(root)}
     found = [(i, robot_file(root, i)) for i in sorted(ids)]
-    return [SimRobot(id=i, path=str(f.resolve())) for i, f in found if f is not None]
+    return [_asset(i, f) for i, f in found if f is not None]
 
 
 def thumbnail_file(path: Path) -> Path | None:

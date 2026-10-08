@@ -1,0 +1,29 @@
+# Robot config, read by sim/runner/scene.py when the robot is placed.
+# initial_pose: joint → degrees (USD joint angles) the robot starts and holds in at Play;
+# joints under percent take 0–100 over their limits (a LeRobot gripper).
+# leader.rest: what a leader reads in that same pose; teleoperation drives each joint to
+# initial_pose + (reading - rest), since a LeRobot leader reads 0° where it was calibrated.
+initial_pose:
+  shoulder_pan: 0
+  shoulder_lift: -100
+  elbow_flex: 90
+  wrist_flex: 50
+  wrist_roll: 0
+  gripper: 0
+percent:
+- gripper
+leader:
+  rest:
+    shoulder_pan: -2.15
+    shoulder_lift: 0.04
+    elbow_flex: -0.26
+    wrist_flex: 62.29
+    wrist_roll: 3.74
+    gripper: 0.55
+  captured_from: so101_leader (leader)
+  captured_at: '2026-10-08T16:30:40+09:00'
+# Keyboard TCP jog: the gripper link; 5 arm joints, so not every direction is reachable
+tcp:
+  link: gripper
+  offset: [0, 0, 0]
+  joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll]

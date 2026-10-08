@@ -261,6 +261,34 @@ def open_robot(rig_id: str) -> tuple[driver.RobotLink, str]:
     return driver.get().open_robot(hw), robot_id
 
 
+def open_leader(device_id: str) -> driver.LeaderLink:
+    """A leader arm opened on its own (Isaac Sim teleoperation); it counts as in a teleoperation
+    test until release_leader(). 422 for a device that is not a leader, 409 while it is busy."""
+    require_device(device_id)
+    hw = _hardware[device_id]
+    if hw.kind != "teleop":
+        raise ApiError(422, f"Device '{device_id}' is not a leader arm")
+    _require_idle(device_id)
+    if driver.get().unavailable() is None and not ports.exists(hw.port):
+        raise ApiError(503, f"Port not found: {hw.port}")
+    link = driver.get().open_leader(hw)
+    teleop.claim(device_id)
+    bus.publish("device.updated", require_device(device_id))
+    return link
+
+
+def release_leader(device_id: str) -> None:
+    teleop.release(device_id)
+    if device_id in _devices:
+        bus.publish("device.updated", require_device(device_id))
+
+
+def device_type(device_id: str) -> str:
+    """LeRobot type of a device (so101_leader, …); 404 if unknown."""
+    require_device(device_id)
+    return _hardware[device_id].type
+
+
 def set_port(device_id: str, port: str) -> Device:
     """Write `port` into the rig file that declares the device (in place); resets its test."""
     require_device(device_id)

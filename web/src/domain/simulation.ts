@@ -16,7 +16,7 @@ export type SimEnv = {
   script: string
   sizeKB: number
   files: SimEnvFile[]
-  /** Robot tags (robot USDs under data/sims/robot/, kept in data/sims/envs.yaml); [] = untagged, fits any rig */
+  /** Robot tags (robot USDs under data/sims/robots/, kept in data/sims/envs.yaml); [] = untagged, fits any rig */
   robots: string[]
   /** Configured rigs whose followers are all tagged robots (every rig when untagged) */
   rigIds: string[]
@@ -26,8 +26,70 @@ export type SimEnv = {
   updatedAt: string
 }
 
-/** A robot USD under data/sims/robot/, named after the LeRobot type it simulates (e.g. so101_follower) */
-export type SimRobot = { id: string; path: string }
+/**
+ * A robot USD under data/sims/robots/ (named after the LeRobot type it simulates, e.g. so101_follower) or an end
+ * effector under data/sims/tools/ (robot hand, gripper): <id>.usd or <id>/<id>.usd with its sub-files
+ */
+export type SimAsset = {
+  id: string
+  /** Absolute path of the root USD */
+  path: string
+  sizeKB: number
+  /** Relative to its folder; the file name for a single file */
+  files: SimEnvFile[]
+  updatedAt: string
+  /** Leader device types (LeRobot, e.g. so101_leader) that can drive it; [] = none, always [] for tools */
+  teleop: string[]
+  /** Robots: start pose from <id>/robot.yaml (joint → degrees; gripper 0–100); null when unset */
+  initialPose: Record<string, number> | null
+  /** Robots: what a leader reads in initialPose (robot.yaml leader.rest); teleoperation sends initialPose + (reading − rest) */
+  leaderRest: Record<string, number> | null
+  /** Robots: link the tool center point rides on (robot.yaml tcp.link); null = no TCP jog */
+  tcp: string | null
+}
+
+export type SimAssetKind = "robot" | "tool"
+
+/** App scene name while a robot or tool is open alone (POST /sim/robots/{id}/open) */
+export const simAssetScene = (kind: SimAssetKind, id: string) => `${kind}-${id}`
+
+export type SimTeleopState = "starting" | "running" | "stopped"
+
+/** Leader joint value: degrees, gripper 0–100 */
+export type SimTeleopJoint = { name: string; value: number | null }
+
+/**
+ * Teleoperation of a robot or tool opened alone in Isaac Sim by a real leader arm or the keyboard (GET / POST / DELETE /sim/teleop).
+ * starting: waiting for Isaac Sim to open the asset (the first launch can take minutes); stopped: ended, see error
+ */
+export type SimTeleop = {
+  kind: SimAssetKind
+  /** Robot or tool id, by kind */
+  robotId: string
+  deviceId: string
+  state: SimTeleopState
+  hz: number | null
+  targetHz: number
+  error: string | null
+  startedAt: string
+  joints: SimTeleopJoint[]
+  /** Keyboard sessions: live TCP pose [x, y, z (m, world), roll, pitch, yaw (deg)]; null when unknown */
+  tcp: number[] | null
+}
+
+/** POST /sim/teleop body; kind defaults to robot, a tool takes only the keyboard; display defaults to the Connection setting */
+export type SimTeleopCreate = { robotId: string; deviceId: string; kind?: SimAssetKind; display?: IsaacDisplay }
+
+/** Device id of keyboard teleoperation: jog any robot's or tool's joints from the page (no leader arm) */
+export const SIM_KEYBOARD = "keyboard"
+
+/**
+ * PUT /sim/teleop/jog body. velocities: joint → deg/s ({} stops);
+ * twist: [vx, vy, vz, wx, wy, wz] in the TCP (tool) frame, m/s and deg/s (all zeros stops)
+ */
+export type SimJog = { velocities: Record<string, number> } | { twist: number[] }
+
+export const isSimTeleopActive = (t: SimTeleop | null | undefined) => t?.state === "starting" || t?.state === "running"
 
 /** An environment is usable by a rig when the backend lists the rig as fitting its robot tags */
 export const envFitsRig = (env: Pick<SimEnv, "rigIds">, rigId: string | undefined) => !rigId || env.rigIds.includes(rigId)
@@ -49,6 +111,8 @@ export type SimRunnerApp = {
   pid: number | null
   scene: string | null
   error: string | null
+  /** Drive target per joint of the open robot (degrees) */
+  joints: Record<string, number> | null
 }
 
 /** Isaac Sim server; app is null when the server is not reachable */

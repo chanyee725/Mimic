@@ -8,7 +8,7 @@ from app.core.errors import not_found
 from app.core.events import bus
 from app.models.recordings import Recording
 from app.models.station import DataTotal, Station
-from app.schemas.station import CurrentTask, DayCount
+from app.schemas.station import CurrentTask, DayCount, DayTask
 from app.services import recordings, rigs
 from app.services.settings import system
 from app.services.tasks import get_task, list_tasks
@@ -77,16 +77,43 @@ def totals() -> list[DataTotal]:
 
 
 def activity(weeks: int) -> list[DayCount]:
-    """Recordings per station day, from the Sunday `weeks - 1` weeks back up to today."""
+    """Recordings per station day, from the Sunday `weeks - 1` weeks back up to today, with what
+    each day recorded per task (for the heatmap tooltip)."""
     end = today()
     start = week_start(end) - timedelta(weeks=weeks - 1)
-    counts = Counter(
-        parse_iso(r.recorded_at).astimezone(tz()).date().isoformat()
-        for r in recordings.list_recordings()
+    by_day: dict[str, list[Recording]] = {}
+    for r in recordings.list_recordings():
+        by_day.setdefault(parse_iso(r.recorded_at).astimezone(tz()).date().isoformat(), []).append(
+            r
+        )
+    return [_day(d.isoformat(), by_day.get(d.isoformat(), [])) for d in days(start, end)]
+
+
+def _day(date: str, recs: list[Recording]) -> DayCount:
+    by_task: dict[str | None, list[Recording]] = {}
+    for r in recs:
+        by_task.setdefault(r.task_id, []).append(r)
+    tasks = []
+    for task_id, rows in by_task.items():
+        task = get_task(task_id) if task_id else None
+        outcomes = Counter(r.outcome for r in rows)
+        tasks.append(
+            DayTask(
+                task_id=task_id,
+                name=task.name if task else (task_id or "No task"),
+                count=len(rows),
+                success=outcomes["success"],
+                fail=outcomes["fail"],
+                seconds=round(sum(r.duration_s for r in rows), 1),
+            )
+        )
+    tasks.sort(key=lambda t: (-t.count, t.name))
+    return DayCount(
+        date=date,
+        count=len(recs),
+        seconds=round(sum(r.duration_s for r in recs), 1),
+        tasks=tasks,
     )
-    return [
-        DayCount(date=d.isoformat(), count=counts.get(d.isoformat(), 0)) for d in days(start, end)
-    ]
 
 
 def warnings() -> list[str]:

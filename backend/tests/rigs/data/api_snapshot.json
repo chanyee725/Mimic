@@ -127,6 +127,7 @@
       "id": "leader",
       "name": "SO-101 Leader",
       "type": "teleop",
+      "driver": "so101_leader",
       "port": "/dev/so101_leader",
       "health": "off",
       "calibration": {
@@ -149,6 +150,7 @@
       "id": "follower",
       "name": "SO-101 Follower",
       "type": "robot",
+      "driver": "so101_follower",
       "port": "/dev/so101_follower",
       "health": "off",
       "calibration": {
@@ -171,6 +173,7 @@
       "id": "top",
       "name": "Top camera",
       "type": "camera",
+      "driver": null,
       "port": "/dev/cam_top",
       "health": "off",
       "calibration": {
@@ -193,6 +196,7 @@
       "id": "wrist",
       "name": "Wrist camera",
       "type": "camera",
+      "driver": null,
       "port": "/dev/cam_wrist",
       "health": "off",
       "calibration": {
@@ -215,6 +219,7 @@
       "id": "bi-leader-l",
       "name": "SO-101 Leader (L)",
       "type": "teleop",
+      "driver": "so101_leader",
       "port": "/dev/bi_leader_l",
       "health": "off",
       "calibration": {
@@ -237,6 +242,7 @@
       "id": "bi-leader-r",
       "name": "SO-101 Leader (R)",
       "type": "teleop",
+      "driver": "so101_leader",
       "port": "/dev/bi_leader_r",
       "health": "off",
       "calibration": {
@@ -259,6 +265,7 @@
       "id": "bi-follower-l",
       "name": "SO-101 Follower (L)",
       "type": "robot",
+      "driver": "so101_follower",
       "port": "/dev/bi_follower_l",
       "health": "off",
       "calibration": {
@@ -281,6 +288,7 @@
       "id": "bi-follower-r",
       "name": "SO-101 Follower (R)",
       "type": "robot",
+      "driver": "so101_follower",
       "port": "/dev/bi_follower_r",
       "health": "off",
       "calibration": {
@@ -303,6 +311,7 @@
       "id": "bi-cam-top",
       "name": "Top camera",
       "type": "camera",
+      "driver": null,
       "port": "/dev/bi_cam_top",
       "health": "off",
       "calibration": {
@@ -325,6 +334,7 @@
       "id": "bi-cam-wrist-l",
       "name": "Left wrist camera",
       "type": "camera",
+      "driver": null,
       "port": "/dev/bi_cam_wrist_l",
       "health": "off",
       "calibration": {
@@ -347,6 +357,7 @@
       "id": "bi-cam-wrist-r",
       "name": "Right wrist camera",
       "type": "camera",
+      "driver": null,
       "port": "/dev/bi_cam_wrist_r",
       "health": "off",
       "calibration": {

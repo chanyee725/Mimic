@@ -9,15 +9,19 @@ An environment script (data/sims/envs/<id>.py, or <id>/env.py) only defines
 
 Assets come from sim/assets/<name>/<name>.usd[a] (origin at their bottom, centred). The robot is
 not named in the script: it is the environment's robot tag (Environments page), loaded from the
-sim folder's robot/<name>.usd[a]; scene.robot_name says which one. The robot is pinned to the world with a fixed joint, so
-it stands when Play starts. Units are metres, Z up, yaw in degrees about Z. pxr only, so the
+sim folder's robots/<name>.usd[a]; scene.robot_name says which one. The robot is pinned to the world with a fixed joint, so
+it stands when Play starts. scene.tool(<name>) places an end effector from tools/<name> the same
+way. A robot's robots/<name>/robot.yaml (initial_pose) sets the joints it starts and holds in.
+Units are metres, Z up, yaw in degrees about Z. pxr only, so the
 same code builds a stage with usd-core outside Isaac Sim.
 """
 
 import importlib.util
 from pathlib import Path
 
-from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics
+import yaml
+
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdPhysics
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 USD_EXTS = (".usd", ".usda", ".usdc")
@@ -49,6 +53,9 @@ class Scene:
         self.sim_dir = sim_dir
         self.robot_name = robot
         self.robot_path: str | None = None
+        self.tool_paths: list[str] = []
+        self.leader_offsets: dict[str, float] = {}  # leader reading → joint value (robot.yaml)
+        self.tcp: dict | None = None  # robot.yaml tcp (keyboard TCP jog)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
         UsdGeom.SetStageMetersPerUnit(stage, 1.0)
         world = UsdGeom.Xform.Define(stage, "/World")
@@ -93,21 +100,44 @@ class Scene:
         return prim
 
     def robot(self, pos=(0, 0, 0), yaw: float = 0, name: str | None = None) -> Usd.Prim:
-        """References the robot (robot/<name>, the tagged one by default) at /World/Robot, its
+        """References the robot (robots/<name>, the tagged one by default) at /World/Robot, its
         base pinned where it stands."""
         if self.robot_path:
             raise ValueError("an environment places one robot")
         name = name or self.robot_name
         if not name:
             raise ValueError("no robot: tag the environment with one on the Environments page")
-        prim = self.stage.DefinePrim("/World/Robot", "Xform")
-        prim.GetReferences().AddReference(str(_usd_file(self.sim_dir / "robot", name)))
+        prim = self._articulation("/World/Robot", self.sim_dir / "robots", name, pos, yaw)
+        self.robot_path = str(prim.GetPath())
+        usd = _usd_file(self.sim_dir / "robots", name)
+        self.leader_offsets = leader_offsets(usd)
+        self.tcp = tcp_config(usd)
+        pose, percent = initial_pose(usd)
+        if pose:
+            Drives(self.stage, self.robot_path).start_at(pose, percent)
+        return prim
+
+    def tool(self, name: str, pos=(0, 0, 0), yaw: float = 0) -> Usd.Prim:
+        """References an end effector (tools/<name>, e.g. a robot hand) at /World/<name>, its base
+        pinned where it stands. To mount one on an arm, compose a
+        robot with scripts/compose-sim-robot.py."""
+        prim = self._articulation(self._free_path(name), self.sim_dir / "tools", name, pos, yaw)
+        self.tool_paths.append(str(prim.GetPath()))
+        return prim
+
+    @property
+    def teleop_path(self) -> str | None:
+        """What teleoperation drives: the robot, else the first tool (a tool opened alone)."""
+        return self.robot_path or (self.tool_paths[0] if self.tool_paths else None)
+
+    def _articulation(self, path: str, folder: Path, name: str, pos, yaw: float) -> Usd.Prim:
+        prim = self.stage.DefinePrim(path, "Xform")
+        prim.GetReferences().AddReference(str(_usd_file(folder, name)))
         _place(prim, pos, yaw)
         # A robot file may carry its own PhysicsScene; the stage keeps one
         for p in Usd.PrimRange(prim):
             if p.IsA(UsdPhysics.Scene):
                 p.SetActive(False)
-        self.robot_path = str(prim.GetPath())
         _pin(self.stage, prim)
         return prim
 
@@ -115,6 +145,13 @@ class Scene:
 def _pin(stage: Usd.Stage, robot: Usd.Prim) -> None:
     """Fixed base: the articulation root moves from the base body to the robot Xform and a
     fixed joint ties the base to the world at its current pose."""
+    # A robot file's own world joints (e.g. an active root_joint) pin it in world coordinates,
+    # wherever the script places it
+    for p in list(Usd.PrimRange(robot)):
+        if p.IsA(UsdPhysics.Joint):
+            j = UsdPhysics.Joint(p)
+            if not j.GetBody0Rel().GetTargets() or not j.GetBody1Rel().GetTargets():
+                p.SetActive(False)
     roots = [p for p in Usd.PrimRange(robot) if p.HasAPI(UsdPhysics.ArticulationRootAPI)]
     bodies = [p for p in Usd.PrimRange(robot) if p.HasAPI(UsdPhysics.RigidBodyAPI)]
     base = next((p for p in roots if p.HasAPI(UsdPhysics.RigidBodyAPI)), None) or (
@@ -146,3 +183,123 @@ def build(stage: Usd.Stage, script: Path, sim_dir: Path, robot: str | None = Non
     scene = Scene(stage, sim_dir, robot)
     module.build(scene)
     return scene
+
+
+def robot_config(usd: Path) -> Path:
+    """A robot's config next to its USD: <id>/robot.yaml for a folder robot, else <id>.yaml."""
+    return usd.parent / "robot.yaml" if usd.parent.name == usd.stem else usd.with_suffix(".yaml")
+
+
+def _floats(d) -> dict[str, float]:
+    return {str(k): float(v) for k, v in (d or {}).items()}
+
+
+def initial_pose(usd: Path) -> tuple[dict[str, float], tuple[str, ...]]:
+    """initial_pose (joint name → degrees) and its percent joints (0–100 over the limits) from
+    the robot's config; empty without one."""
+    path = robot_config(usd)
+    if not path.is_file():
+        return {}, ()
+    doc = yaml.safe_load(path.read_text()) or {}
+    return _floats(doc.get("initial_pose")), tuple(doc.get("percent") or ())
+
+
+def tcp_config(usd: Path) -> dict | None:
+    """robot.yaml tcp: {link, offset (m, in the link frame), joints (the IK may move)}, or None."""
+    path = robot_config(usd)
+    doc = (yaml.safe_load(path.read_text()) or {}) if path.is_file() else {}
+    tcp = doc.get("tcp")
+    if not isinstance(tcp, dict) or not tcp.get("link"):
+        return None
+    return {
+        "link": str(tcp["link"]),
+        "offset": [float(v) for v in tcp.get("offset") or (0, 0, 0)],
+        "joints": [str(j) for j in tcp.get("joints") or []] or None,
+    }
+
+
+def leader_offsets(usd: Path) -> dict[str, float]:
+    """What to add to a leader reading to get the robot's joint value: the leader reads
+    leader.rest while the robot is in initial_pose (a LeRobot leader reads 0° at the pose it was
+    calibrated in, which need not be the USD's zero)."""
+    path = robot_config(usd)
+    if not path.is_file():
+        return {}
+    doc = yaml.safe_load(path.read_text()) or {}
+    pose, rest = _floats(doc.get("initial_pose")), _floats((doc.get("leader") or {}).get("rest"))
+    return {j: pose.get(j, 0.0) - v for j, v in rest.items()}
+
+
+class Drives:
+    """Joint drives of the placed robot by joint name, for teleoperation: targets in degrees
+    (metres for a prismatic joint); a joint listed as percent takes 0–100 over its limits."""
+
+    def __init__(self, stage: Usd.Stage, root: str = "/World/Robot"):
+        self.drives: dict[str, tuple[UsdPhysics.DriveAPI, float | None, float | None]] = {}
+        self.kinds: dict[str, str] = {}  # "angular" | "linear"
+        self.offsets: dict[str, float] = {}  # added to a leader reading (scene.leader_offsets)
+        prim = stage.GetPrimAtPath(root)
+        if not prim:
+            return
+        for p in Usd.PrimRange(prim):
+            for kind, joint_type in (
+                ("angular", UsdPhysics.RevoluteJoint),
+                ("linear", UsdPhysics.PrismaticJoint),
+            ):
+                if p.IsA(joint_type) and p.HasAPI(UsdPhysics.DriveAPI, kind):
+                    # A drive without stiffness is passive (a hand's coupled finger segments)
+                    if not UsdPhysics.DriveAPI(p, kind).GetStiffnessAttr().Get():
+                        continue
+                    j = joint_type(p)
+                    lo, hi = j.GetLowerLimitAttr().Get(), j.GetUpperLimitAttr().Get()
+                    self.drives[p.GetName()] = (UsdPhysics.DriveAPI(p, kind), lo, hi)
+                    self.kinds[p.GetName()] = kind
+
+    def _value(self, name: str, value: float, percent: tuple[str, ...]) -> float:
+        _, lo, hi = self.drives[name]
+        if name in percent and lo is not None and hi is not None:
+            value = lo + max(0.0, min(100.0, value)) / 100 * (hi - lo)
+        if lo is not None and hi is not None:
+            value = max(lo, min(hi, value))
+        return float(value)
+
+    def set(self, targets: dict[str, float], percent: tuple[str, ...] = ()) -> list[str]:
+        """Sets the drive targets it knows (clamped to the limits); returns the names applied."""
+        applied = []
+        for name, value in targets.items():
+            if name in self.drives:
+                self.drives[name][0].GetTargetPositionAttr().Set(self._value(name, value, percent))
+                applied.append(name)
+        return applied
+
+    def targets(self) -> dict[str, float]:
+        """Present drive target per joint (degrees)."""
+        return {n: float(d.GetTargetPositionAttr().Get() or 0.0) for n, (d, _, _) in self.drives.items()}
+
+    def jog(self, velocities: dict[str, float], dt: float) -> None:
+        """Moves drive targets by velocity × dt (degrees per second), stopping at the limits."""
+        for name, v in velocities.items():
+            if name in self.drives and v:
+                drive, lo, hi = self.drives[name]
+                value = float(drive.GetTargetPositionAttr().Get() or 0.0) + v * dt
+                if lo is not None and hi is not None:
+                    value = max(lo, min(hi, value))
+                drive.GetTargetPositionAttr().Set(value)
+
+    def start_at(self, pose: dict[str, float], percent: tuple[str, ...] = ()) -> list[str]:
+        """Initial joint state (PhysicsJointStateAPI) and drive target, so the robot starts and
+        holds there when Play starts."""
+        applied = self.set(pose, percent)
+        for name in applied:
+            drive = self.drives[name][0]
+            prim, kind = drive.GetPrim(), self.kinds[name]
+            schema = f"PhysicsJointStateAPI:{kind}"
+            if schema not in prim.GetAppliedSchemas():
+                prim.AddAppliedSchema(schema)
+            value = drive.GetTargetPositionAttr().Get()
+            for attr, v in (("position", value), ("velocity", 0.0)):
+                a = prim.GetAttribute(f"state:{kind}:physics:{attr}")
+                if not a:
+                    a = prim.CreateAttribute(f"state:{kind}:physics:{attr}", Sdf.ValueTypeNames.Float)
+                a.Set(float(v))
+        return applied

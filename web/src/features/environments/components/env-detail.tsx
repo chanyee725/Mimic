@@ -27,9 +27,7 @@ function deleteError(error: unknown) {
   return Array.isArray(tasks) && tasks.length ? `${error.message} (${tasks.join(", ")})` : error
 }
 
-/** Right-hand environment detail: script, robot tags, tasks using it, files and actions */
 export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => void }) {
-  // Tasks recorded in this environment (picked under World on the Tasks page)
   const tasks = (useTasks().data ?? []).filter((t) => t.envId === env.id)
   const rigs = useRigs().data ?? []
   const open = useOpenSimEnv()
@@ -122,7 +120,7 @@ export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => vo
       </div>
 
       <div className="grid gap-1">
-        <IsaacStatus envId={env.id} />
+        <IsaacStatus scene={env.id} />
         <ErrorNote error={open.error} />
         <ErrorNote error={deleteError(remove.error)} />
       </div>
@@ -132,7 +130,7 @@ export function EnvDetail({ env, onDeleted }: { env: SimEnv; onDeleted: () => vo
         <h3 className="text-sm font-semibold">Details</h3>
         <DetailList rows={details} bordered />
       </section>
-      {env.files.length > 1 && <EnvFiles env={env} />}
+      {env.files.length > 1 && <EnvFiles files={env.files} />}
     </Panel>
   )
 }
