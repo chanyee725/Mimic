@@ -7,10 +7,7 @@ import { JOG_DEG_S, JOG_RESEND_MS, JOG_SLOW_DEG_S } from "../lib"
 
 type Held = { joint: string; dir: number; slow: boolean }
 
-/**
- * Keyboard jog of a sim robot's joints: ↑/↓ (W/S) pick the joint, ←/→ (A/D) move it while held, Shift is slow.
- * Speeds are resent every JOG_RESEND_MS while held (the backend drops them when they stop coming) and cleared on release or blur.
- */
+/** Speeds are resent while a key is held (the backend drops them when they stop coming) and cleared on release or blur */
 export function useJogKeys(joints: string[], enabled: boolean) {
   const [selected, setSelected] = useState(0)
   const [held, setHeld] = useState<Held | null>(null)
@@ -30,7 +27,6 @@ export function useJogKeys(joints: string[], enabled: boolean) {
     void sendSimJog({})
   }
 
-  // Latest values for the window listeners
   const live = useRef({ joints, index, enabled, press, release })
   useEffect(() => {
     live.current = { joints, index, enabled, press, release }
@@ -63,7 +59,6 @@ export function useJogKeys(joints: string[], enabled: boolean) {
     }
   }, [])
 
-  // Resend while held so the backend keeps moving the joint
   useEffect(() => {
     if (!held) return
     const t = window.setInterval(

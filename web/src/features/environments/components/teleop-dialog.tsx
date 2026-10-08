@@ -11,13 +11,11 @@ import { IsaacStatus } from "./isaac-status"
 import { LeaderPicker } from "./leader-picker"
 import { TeleopSession } from "./teleop-session"
 
-/** Drive a robot opened alone in Isaac Sim with a real leader arm: pick → test → start → watch → stop */
 export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; open: boolean; onOpenChange: (open: boolean) => void }) {
   const flow = useTeleopFlow(robot, open)
   const { current, active, other } = flow
   // A finished session stays visible (with its error) until the next start
   const shown = current && (active || current.robotId === robot.id) ? current : null
-  // Leader types that drive this robot; the keyboard drives any robot
   const supported = robot.teleop.length > 0
 
   const close = () => {

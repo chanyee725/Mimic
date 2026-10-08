@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE } from "../lib"
 
-/** Leader arms to pick from, with the connection test of the picked one */
 export function LeaderPicker({
   leaders,
   fits,
@@ -21,15 +20,12 @@ export function LeaderPicker({
   onTest,
 }: {
   leaders: Device[]
-  /** Whether a leader can drive the robot; the others are listed but cannot be picked */
   fits: (d: Device) => boolean
-  /** The keyboard is picked (it needs no connection test) */
   keyboard: boolean
   value: string | undefined
   onChange: (id: string) => void
   disabled: boolean
   testing: boolean
-  /** Result of the test run in this dialog for the picked leader */
   check: DeviceCheck | undefined
   onTest: () => void
 }) {

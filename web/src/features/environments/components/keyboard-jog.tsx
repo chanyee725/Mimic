@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 
 import { useJogKeys } from "../hooks/use-jog-keys"
 
-/** Keyboard teleoperation: the robot's joints with their targets; keys or the −/+ buttons move the selected one */
 export function KeyboardJog({ session }: { session: SimTeleop }) {
   const names = session.joints.map((j) => j.name)
   const running = session.state === "running"

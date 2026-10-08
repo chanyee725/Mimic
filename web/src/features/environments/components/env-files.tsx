@@ -2,7 +2,6 @@ import type { SimEnvFile } from "@/domain/simulation"
 
 import { formatKB } from "../lib"
 
-/** Files of a folder environment (env.py and its own files) or of a robot / tool USD folder */
 export function EnvFiles({ files }: { files: SimEnvFile[] }) {
   return (
     <section className="grid content-start gap-2">

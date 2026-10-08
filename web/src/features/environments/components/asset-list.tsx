@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 
 import { formatKB } from "../lib"
 
-/** Left-hand list of the robot or tool USDs under data/sims/robots/ or tools/ */
 export function AssetList({
   title,
   dir,
