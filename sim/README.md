@@ -20,8 +20,9 @@ data/sims/         시뮬레이션 데이터 (git 에 올림, `VLA_SIM_DIR` 로 
   envs.yaml        환경별 로봇 태그 (Environments 화면에서 편집)
   robots/          로봇 팔 USD: <robot-id>.usd 또는 <robot-id>/<robot-id>.usd (+ 그 로봇이 쓰는 하위 파일)
     so101_follower/  SO-101 팔로워 (5축 + 그리퍼)
-    xarm7/         UFactory xArm7 (7축, 그리퍼 없이)
-  tools/           엔드 이펙터 USD (로봇 손, 그리퍼): 같은 규칙. scene.tool(<id>) 로 놓습니다 (팔에 붙이는 건 아직)
+    ufactory_xarm7/  UFactory xArm7 (7축, 그리퍼 없이)
+    ufactory_xarm7_inspire_rh56bfx/  xArm7 끝(link_eef)에 Inspire 손을 붙인 로봇 (scripts/compose-sim-robot.py 로 생성)
+  tools/           엔드 이펙터 USD (로봇 손, 그리퍼): 같은 규칙. scene.tool(<id>) 로 따로 놓거나, 팔과 합친 로봇을 만들어 씁니다
     inspire_rh56bfx/  Inspire 로봇 손 (6 자유도, 관절 12개, 오른손)
 ```
 
@@ -30,7 +31,8 @@ data/sims/         시뮬레이션 데이터 (git 에 올림, `VLA_SIM_DIR` 로 
 | 파일 | 출처 |
 |---|---|
 | `robots/so101_follower/` | LightwheelAI 배포 파일 (Apache License 2.0) |
-| `robots/xarm7/` | NVIDIA Isaac Sim 5.1 에셋 `Robots/Ufactory/xarm7` — 기본 그리퍼 variant 를 `None` 으로 바꿔 팔만 씁니다 |
+| `robots/ufactory_xarm7/` | NVIDIA Isaac Sim 5.1 에셋 `Robots/Ufactory/xarm7` — 기본 그리퍼 variant 를 `None` 으로 바꿔 팔만 씁니다 |
+| `robots/ufactory_xarm7_inspire_rh56bfx/` | 위 두 파일을 상대 경로로 참조만 하는 USDA (`scripts/compose-sim-robot.py` 가 생성) |
 | `tools/inspire_rh56bfx/` | NVIDIA Isaac Sim 6.0 에셋 `Samples/Rigging/Inspire/module_5_end-checkpoint_3` (리깅 튜토리얼의 완성본). Inspire RH56 계열 손 모델로, 정확한 세부 모델(BFX / DFX)은 원본에 적혀 있지 않습니다 |
 
 ## 장면이 만들어지는 흐름
@@ -114,8 +116,16 @@ def build(scene):
 
 - **로봇 태그:** Environments 화면의 **Robots** 에서 `data/sims/robots/` 의 로봇을 체크합니다 (`data/sims/envs.yaml` 에 저장). 로봇 id 는 LeRobot 팔로워 타입 이름(예: `so101_follower`)으로 둡니다. 태그가 있으면 팔로워가 모두 태그된 로봇인 Rig 의 Task 와 모델에서만 쓰고, 태그가 없으면 모든 Rig 에서 씁니다.
 - 새 로봇은 `data/sims/robots/<robot-id>.usd` (하위 파일이 있으면 `<robot-id>/<robot-id>.usd`) 에 USD 를 넣으면 태그 목록에 나타납니다. USD 에 `root_joint` 가 켜져 있든 꺼져 있든 상관없습니다 (Mimic 이 끄고 따로 고정 관절을 붙입니다).
-- 로봇 손이나 그리퍼는 `data/sims/tools/` 에 같은 규칙으로 둡니다. `scene.tool(<id>, pos, yaw)` 로 놓으면 base 가 그 자리에 고정됩니다. 로봇 팔 끝에 붙이는 기능은 아직 없습니다.
-- **로봇 / 도구 하나만 열기:** Environments 화면의 **Robots**, **Tools** 탭에서 고르고 **Open in Isaac Sim** 을 누르면, 빈 장면에 그것만 놓고 엽니다 (로봇은 원점, 도구는 바닥에서 0.3 m 위). Stage 창에서 USD 구조를, Physics Inspector 로 관절을 확인합니다.
+- 로봇 손이나 그리퍼는 `data/sims/tools/` 에 같은 규칙으로 둡니다. `scene.tool(<id>, pos, yaw)` 로 놓으면 base 가 그 자리에 고정됩니다. 팔 끝에 붙이려면 둘을 합친 로봇을 만듭니다:
+
+  ```sh
+  uv run --no-project --with usd-core python scripts/compose-sim-robot.py ufactory_xarm7 inspire_rh56bfx ufactory_xarm7_inspire_rh56bfx
+  ```
+
+  `robots/<출력 id>/<출력 id>.usda` 에 팔과 도구를 상대 경로로 참조하는 작은 파일이 생깁니다. 도구의 base 를 팔의 `link_eef` (영점 자세) 에 놓고 고정 관절(`tool_joint`)로 link7 에 묶으며, 도구 자체의 articulation root·월드 관절·PhysicsScene 은 꺼서 팔의 base 만 바닥에 고정됩니다. `--flange`, `--roll` 로 붙일 프레임과 Z 축 회전(도)을 바꿉니다. 에셋을 바꾸면 다시 실행합니다. 환경을 열 때 이 로봇이 참조하는 `robots/<x>`, `tools/<x>` 폴더도 함께 서버로 보냅니다.
+- **로봇 / 도구 하나만 열기:** Environments 화면의 **Robots**, **Tools** 탭에서 고르고 **View** 를 누르면, 빈 장면에 그것만 놓고 엽니다 (로봇은 원점, 도구는 바닥에서 0.3 m 위). Stage 창에서 USD 구조를, Physics Inspector 로 관절을 확인합니다.
+- **Teleoperation:** Robots 탭의 **Teleoperation** 은 리더 장치를 고르는 창을 띄웁니다. 연결 테스트에 성공하면 Start 로 로봇을 열고, 리더 팔의 관절값을 30 Hz 로 Isaac Sim 에 보내 움직입니다 (타임라인은 자동으로 Play). 관절은 이름으로 맞추므로 `X_follower` 로봇은 `X_leader` 장치(예: `so101_leader` → `so101_follower`)로만 움직이고, gripper 는 0~100 % 를 관절 범위에 맞춥니다. Stop 은 리더 연결만 끊고 장면은 둡니다. 실행 중인 리더는 보정이나 Rig 텔레오퍼레이션에 쓸 수 없습니다.
+- 로컬 Isaac Sim 서버가 이전 버전(`/joints` 없음)이면 백엔드가 끄고 새로 띄웁니다. 원격 서버는 직접 업데이트하고 다시 띄워야 합니다.
 - `_` 나 `.` 로 시작하는 파일과 폴더는 스캔하지 않습니다. 폴더 위치는 환경 변수 `VLA_SIM_DIR` (기본값 `data/sims`).
 - Task 가 쓰고 있는 환경은 지울 수 없습니다.
 - 썸네일: 스크립트 옆에 같은 이름의 이미지(`lift_cube.py` → `lift_cube.png`, jpg / webp 도 가능)를 두거나, 폴더 환경이면 안에 `thumbnail.png` 를 둡니다.

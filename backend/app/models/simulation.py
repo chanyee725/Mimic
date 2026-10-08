@@ -44,6 +44,7 @@ class SimAsset(CamelModel):
     size_kb: int = Field(alias="sizeKB")
     files: list[SimEnvFile] = []  # relative to the asset folder (the file name for a single file)
     updated_at: str
+    teleop: list[str] = []  # leader types that can drive it (so101_follower ← so101_leader)
 
 
 class SimGpu(CamelModel):
@@ -79,6 +80,24 @@ class SimRunner(CamelModel):
     url: str
     reachable: bool
     app: SimRunnerApp | None  # null when the server is not reachable
+
+
+class SimTeleopJoint(CamelModel):
+    name: str
+    value: float | None = None  # leader position: degrees, gripper 0–100
+
+
+class SimTeleop(CamelModel):
+    """A leader arm driving the robot open alone in Isaac Sim."""
+
+    robot_id: str
+    device_id: str
+    state: Literal["starting", "running", "stopped"]  # starting: waiting for the scene
+    hz: float | None = None  # measured send rate
+    target_hz: int
+    error: str | None = None
+    started_at: str
+    joints: list[SimTeleopJoint] = []
 
 
 class SimEpisode(CamelModel):

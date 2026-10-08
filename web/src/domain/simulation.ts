@@ -38,12 +38,39 @@ export type SimAsset = {
   /** Relative to its folder; the file name for a single file */
   files: SimEnvFile[]
   updatedAt: string
+  /** Leader device types (LeRobot, e.g. so101_leader) that can drive it; [] = none, always [] for tools */
+  teleop: string[]
 }
 
 export type SimAssetKind = "robot" | "tool"
 
 /** App scene name while a robot or tool is open alone (POST /sim/robots/{id}/open) */
 export const simAssetScene = (kind: SimAssetKind, id: string) => `${kind}-${id}`
+
+export type SimTeleopState = "starting" | "running" | "stopped"
+
+/** Leader joint value: degrees, gripper 0–100 */
+export type SimTeleopJoint = { name: string; value: number | null }
+
+/**
+ * Teleoperation of a robot opened alone in Isaac Sim by a real leader arm (GET / POST / DELETE /sim/teleop).
+ * starting: waiting for Isaac Sim to open the robot (the first launch can take minutes); stopped: ended, see error
+ */
+export type SimTeleop = {
+  robotId: string
+  deviceId: string
+  state: SimTeleopState
+  hz: number | null
+  targetHz: number
+  error: string | null
+  startedAt: string
+  joints: SimTeleopJoint[]
+}
+
+/** POST /sim/teleop body; display defaults to the Connection setting */
+export type SimTeleopCreate = { robotId: string; deviceId: string; display?: IsaacDisplay }
+
+export const isSimTeleopActive = (t: SimTeleop | null | undefined) => t?.state === "starting" || t?.state === "running"
 
 /** An environment is usable by a rig when the backend lists the rig as fitting its robot tags */
 export const envFitsRig = (env: Pick<SimEnv, "rigIds">, rigId: string | undefined) => !rigId || env.rigIds.includes(rigId)

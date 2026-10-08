@@ -107,7 +107,8 @@ class Scene:
 
     def tool(self, name: str, pos=(0, 0, 0), yaw: float = 0) -> Usd.Prim:
         """References an end effector (tools/<name>, e.g. a robot hand) at /World/<name>, its base
-        pinned where it stands. Not attached to the robot yet."""
+        pinned where it stands. To mount one on an arm, compose a
+        robot with scripts/compose-sim-robot.py."""
         return self._articulation(self._free_path(name), self.sim_dir / "tools", name, pos, yaw)
 
     def _articulation(self, path: str, folder: Path, name: str, pos, yaw: float) -> Usd.Prim:
@@ -163,3 +164,39 @@ def build(stage: Usd.Stage, script: Path, sim_dir: Path, robot: str | None = Non
     scene = Scene(stage, sim_dir, robot)
     module.build(scene)
     return scene
+
+
+class Drives:
+    """Joint drives of the placed robot by joint name, for teleoperation: targets in degrees
+    (metres for a prismatic joint); a joint listed as percent takes 0–100 over its limits."""
+
+    def __init__(self, stage: Usd.Stage, root: str = "/World/Robot"):
+        self.drives: dict[str, tuple[UsdPhysics.DriveAPI, float | None, float | None]] = {}
+        prim = stage.GetPrimAtPath(root)
+        if not prim:
+            return
+        for p in Usd.PrimRange(prim):
+            for kind, joint_type in (
+                ("angular", UsdPhysics.RevoluteJoint),
+                ("linear", UsdPhysics.PrismaticJoint),
+            ):
+                if p.IsA(joint_type) and p.HasAPI(UsdPhysics.DriveAPI, kind):
+                    j = joint_type(p)
+                    lo, hi = j.GetLowerLimitAttr().Get(), j.GetUpperLimitAttr().Get()
+                    self.drives[p.GetName()] = (UsdPhysics.DriveAPI(p, kind), lo, hi)
+
+    def set(self, targets: dict[str, float], percent: tuple[str, ...] = ()) -> list[str]:
+        """Sets the drive targets it knows (clamped to the limits); returns the names applied."""
+        applied = []
+        for name, value in targets.items():
+            entry = self.drives.get(name)
+            if entry is None:
+                continue
+            drive, lo, hi = entry
+            if name in percent and lo is not None and hi is not None:
+                value = lo + max(0.0, min(100.0, value)) / 100 * (hi - lo)
+            if lo is not None and hi is not None:
+                value = max(lo, min(hi, value))
+            drive.GetTargetPositionAttr().Set(float(value))
+            applied.append(name)
+        return applied

@@ -7,6 +7,10 @@ HTTP port that only server.py talks to; USD work runs on the main loop between a
   POST /open {"path", "root", "robot"}  build a new stage from the environment script at path;
                               root is the sim folder it came from (robots/ is looked up there),
                               robot the one scene.robot() places (scene.py)
+  POST /joints {"targets": {joint: value}, "percent": [joint, …], "play": bool}
+                              teleoperation: drive targets of the placed robot by joint name
+                              (degrees; percent joints 0–100 over their limits, scene.Drives);
+                              play starts the timeline. Only the newest command is applied
 
 --device gpu (default) simulates on GPU 0: PhysX GPU dynamics and broadphase are turned on in
 every PhysicsScene of a built stage, in the session layer; --device cpu keeps PhysX on the CPU.
@@ -47,6 +51,7 @@ if not args.headless:
         manager.set_extension_enabled_immediate(ext, True)
 
 import carb  # noqa: E402
+import omni.timeline  # noqa: E402
 import omni.usd  # noqa: E402
 from pxr import PhysxSchema, Usd, UsdPhysics  # noqa: E402
 
@@ -57,6 +62,9 @@ carb.settings.get_settings().set_int("/physics/cudaDevice", 0 if GPU else -1)
 
 state = {"scene": None, "error": None}
 commands: queue.Queue = queue.Queue()
+# Newest teleoperation command; older ones are dropped (the main loop applies one per update)
+joints: dict = {"latest": None}
+joints_lock = threading.Lock()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -75,9 +83,13 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200 if self.path == "/state" else 404, dict(state))
 
     def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
+        if self.path == "/joints":
+            with joints_lock:
+                joints["latest"] = body
+            return self._send(202, dict(state))
         if self.path != "/open":
             return self._send(404, {})
-        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
         commands.put(("open", body.get("path"), body.get("root"), body.get("robot") or None))
         self._send(202, dict(state))
 
@@ -98,17 +110,33 @@ def use_physics_device(stage) -> None:
 server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 
+def apply_joints(drives) -> None:
+    with joints_lock:
+        cmd, joints["latest"] = joints["latest"], None
+    if not cmd or drives is None:
+        return
+    timeline = omni.timeline.get_timeline_interface()
+    if cmd.get("play") and not timeline.is_playing():
+        timeline.play()
+    drives.set(cmd.get("targets") or {}, tuple(cmd.get("percent") or ()))
+
+
+drives = None  # scene.Drives of the open stage
+
 # Runs until the window is closed or server.py terminates the process
 while app.is_running():
     app.update()
+    apply_joints(drives)
     while not commands.empty():
         kind, path, root, robot = commands.get()
         if kind == "open":
             context = omni.usd.get_context()
             try:
+                drives = None
                 context.new_stage()
                 env_scene.build(context.get_stage(), Path(path), Path(root), robot)
                 use_physics_device(context.get_stage())
+                drives = env_scene.Drives(context.get_stage())
                 state.update(scene=path, error=None)
             except Exception as e:  # the user's script: report it, keep the app up
                 traceback.print_exc()

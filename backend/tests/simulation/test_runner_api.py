@@ -154,6 +154,42 @@ def test_archive_of_a_tool_alone_carries_its_folder_and_script(envs_dir):
     assert b"def build" in tar.extractfile("preview.py").read()
 
 
+def test_archive_follows_relative_references_to_other_assets(envs_dir):
+    # A robot composed of an arm and a hand references both folders by relative path
+    write_sim_tool("hand")
+    arm = config.sim_robots_dir / "arm" / "arm.usda"
+    (arm.parent / "parts").mkdir(parents=True)
+    arm.write_text('#usda 1.0\ndef "a" (references = @./parts/link.usda@) {}\n')
+    (arm.parent / "parts" / "link.usda").write_text("#usda 1.0\n")
+    combo = config.sim_robots_dir / "combo" / "combo.usda"
+    combo.parent.mkdir(parents=True)
+    combo.write_text(
+        "#usda 1.0\n"
+        'def "r" (references = @../arm/arm.usda@) {\n'
+        '  def "t" (references = @../../tools/hand/hand.usda@) {}\n'
+        '  def "u" (references = @../arm/arm.usda@) {}\n'
+        '  def "x" (references = @../../../outside.usda@) {}\n'
+        '  def "y" (references = @../missing/missing.usda@) {}\n'
+        "}\n"
+    )
+    (config.sim_dir.parent / "outside.usda").write_text("#usda 1.0\n")
+    # The tool points back at the arm: no duplicate
+    hand = config.sim_tools_dir / "hand" / "hand.usda"
+    hand.write_text('#usda 1.0\ndef "h" (references = @../../robots/arm/arm.usda@) {}\n')
+    write_sim_robots("other")
+
+    archive = runner._archive(None, combo, "def build(scene):\n    scene.robot()\n")
+    names = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz").getnames()
+    assert sorted(names) == [
+        "preview.py",
+        "robots/arm/arm.usda",
+        "robots/arm/parts/link.usda",
+        "robots/combo/combo.usda",
+        "tools/hand/hand.usda",
+        "tools/hand/payloads/base.usda",
+    ]
+
+
 @pytest.mark.usefixtures("local_server")
 def test_open_robot_and_tool_alone(client):
     write_sim_robots("arm")
@@ -171,3 +207,14 @@ def test_open_robot_and_tool_alone(client):
 def test_unknown_robot_or_tool_is_not_opened(client):
     assert client.post("/sim/robots/nope/open").status_code == 404
     assert client.post("/sim/tools/nope/open").status_code == 404
+
+
+def test_an_outdated_local_server_is_restarted(client, local_server, monkeypatch):
+    client.post("/sim/runner/start")
+    [old] = runner._local_server_pids(settings.get_settings().connection.isaac.port)
+    monkeypatch.setattr(runner, "JOINTS_VERSION", 99)
+    client.post("/sim/runner/start")
+    [new] = runner._local_server_pids(settings.get_settings().connection.isaac.port)
+    assert new != old and client.get("/sim/runner").json()["reachable"]
+    monkeypatch.setattr(runner, "JOINTS_VERSION", 3)
+    client.post("/sim/runner/stop")

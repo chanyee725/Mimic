@@ -28,6 +28,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)))
+        if self.path == "/joints":
+            state["joints"] = body
+            return self._send(202, state)
         with open(body["path"]) as f:  # the extracted scene must be readable
             f.read()
         state["scene"] = body["path"]

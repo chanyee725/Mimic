@@ -13,7 +13,10 @@ import type {
   SimJobCreate,
   SimJobStatus,
   SimRunner,
+  SimTeleop,
+  SimTeleopCreate,
 } from "@/domain/simulation"
+import { isSimTeleopActive } from "@/domain/simulation"
 import type { IsaacDisplay } from "@/domain/settings"
 
 import { API_BASE, api, type Page } from "./client"
@@ -123,4 +126,38 @@ export const useOpenSimAsset = () =>
   useMutation({
     mutationFn: ({ kind, id }: { kind: SimAssetKind; id: string }) => api.post<SimRunner>(`/sim/${kind}s/${encodeURIComponent(id)}/open`),
     onSuccess: onRunner,
+  })
+
+// Teleoperation: a real leader arm drives a robot opened alone in Isaac Sim
+
+const teleopKey = [...qk.sim, "teleop"] as const
+
+/** Current sim teleoperation (null when none); polled every 500 ms while it starts or runs */
+export const useSimTeleop = (enabled = true) =>
+  useQuery({
+    queryKey: teleopKey,
+    queryFn: () => api.get<SimTeleop | null>("/sim/teleop"),
+    enabled,
+    refetchInterval: (q) => (isSimTeleopActive(q.state.data) ? 500 : false),
+  })
+
+/**
+ * Opens the robot alone in Isaac Sim (starting the app when needed) and streams the leader's joints to it.
+ * 404 unknown robot / device; 422 not a leader or not one of the robot's teleop types; 409 device busy or a session runs;
+ * 503 LeRobot unavailable or the port does not open
+ */
+export const useStartSimTeleop = () =>
+  useMutation({
+    mutationFn: (body: SimTeleopCreate) => api.post<SimTeleop>("/sim/teleop", body),
+    onSuccess: (t) => {
+      queryClient.setQueryData(teleopKey, t)
+      return queryClient.invalidateQueries({ queryKey: qk.sim })
+    },
+  })
+
+/** Disconnects the leader; the Isaac Sim scene stays open. 404 when none */
+export const useStopSimTeleop = () =>
+  useMutation({
+    mutationFn: () => api.delete("/sim/teleop"),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.sim }),
   })

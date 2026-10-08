@@ -3,8 +3,8 @@ import { LuRefreshCw } from "react-icons/lu"
 import { useSearchParams } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Page } from "@/components/layout/page-layout"
-import { Segmented } from "@/components/common/segmented"
 import { useRescanEnvs, useSimEnvs, useSimRobots, useSimTools } from "@/api/simulation"
 import { cn } from "@/lib/utils"
 
@@ -12,6 +12,12 @@ import { AssetsView } from "./components/assets-view"
 import { EnvironmentsView } from "./components/environments-view"
 
 type View = "envs" | "robots" | "tools"
+
+const VIEWS: { value: View; label: string }[] = [
+  { value: "envs", label: "Environments" },
+  { value: "robots", label: "Robots" },
+  { value: "tools", label: "Tools" },
+]
 
 const DESCRIPTION: Record<View, string> = {
   envs: "환경 폴더에 넣어 둔 환경 스크립트 목록입니다. Task 와 Evaluate 에서 고릅니다.",
@@ -34,29 +40,36 @@ export function EnvironmentsPage() {
       title="Environments"
       description={DESCRIPTION[view]}
       actions={
-        <>
-          <Segmented
-            label="View"
-            value={view}
-            onChange={(v) => setParams(v === "envs" ? {} : { view: v }, { replace: true })}
-            options={[
-              { value: "envs", label: "Environments", count: counts.envs },
-              { value: "robots", label: "Robots", count: counts.robots },
-              { value: "tools", label: "Tools", count: counts.tools },
-            ]}
-          />
-          <Button variant="outline" size="sm" disabled={rescan.isPending} onClick={() => rescan.mutate()}>
-            <LuRefreshCw className={cn(rescan.isPending && "animate-spin")} />
-            Rescan
-          </Button>
-        </>
+        <Button variant="outline" size="lg" disabled={rescan.isPending} onClick={() => rescan.mutate()}>
+          <LuRefreshCw className={cn(rescan.isPending && "animate-spin")} />
+          Rescan
+        </Button>
       }
     >
-      {view === "envs" ? (
-        <EnvironmentsView selected={selected} onSelect={setSelected} error={rescan.error} />
-      ) : (
-        <AssetsView key={view} kind={view === "robots" ? "robot" : "tool"} />
-      )}
+      {/* Same tab bar as the Rigs device groups and the Task detail, with the count after each label */}
+      <Tabs
+        value={view}
+        onValueChange={(v) => setParams(v === "envs" ? {} : { view: String(v) }, { replace: true })}
+        className="min-h-0 flex-1 gap-4"
+      >
+        <TabsList>
+          {VIEWS.map((v) => (
+            <TabsTrigger key={v.value} value={v.value} className="gap-1.5 px-3">
+              {v.label}
+              {counts[v.value] !== undefined && <span className="text-xs text-muted-foreground tabular-nums">{counts[v.value]}</span>}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value="envs" className="flex min-h-0 flex-col">
+          <EnvironmentsView selected={selected} onSelect={setSelected} error={rescan.error} />
+        </TabsContent>
+        <TabsContent value="robots" className="flex min-h-0 flex-col">
+          <AssetsView kind="robot" />
+        </TabsContent>
+        <TabsContent value="tools" className="flex min-h-0 flex-col">
+          <AssetsView kind="tool" />
+        </TabsContent>
+      </Tabs>
     </Page>
   )
 }

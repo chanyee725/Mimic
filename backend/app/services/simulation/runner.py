@@ -9,6 +9,9 @@ and is found again by port.
 
 import io
 import json
+import os
+import re
+import signal
 import subprocess
 import tarfile
 import threading
@@ -36,8 +39,14 @@ REQUEST_TIMEOUT_S = 30.0
 SERVER_START_S = 10.0
 MAX_ENV_BYTES = 512 * 1024 * 1024
 PREVIEW_SCRIPT = "preview.py"
+# Servers older than this have no /joints (teleoperation); a local one is restarted
+JOINTS_VERSION = 3
 # A tool stands this high above the floor when opened alone (m)
 TOOL_PREVIEW_Z = 0.3
+# Relative asset paths in text USD layers: @./x.usd@, @../tools/hand/hand.usda@
+ASSET_PATH_RE = re.compile(r"@(\.\.?/[^@]+)@")
+USD_TEXT_SUFFIXES = (".usda", ".usd")
+USDA_MAGIC = b"#usda"
 
 _lock = threading.Lock()
 _server: dict[str, subprocess.Popen] = {}
@@ -82,11 +91,47 @@ def _health(timeout: float = HEALTH_TIMEOUT_S) -> dict | None:
         return None
 
 
+def _local_server_pids(port: int) -> list[int]:
+    """Processes running this repo's server.py on the port (Linux /proc)."""
+    pids = []
+    for cmdline in Path("/proc").glob("[0-9]*/cmdline"):
+        try:
+            args = cmdline.read_bytes().split(b"\0")
+        except OSError:
+            continue
+        argv = [a.decode(errors="replace") for a in args if a]
+        if str(SERVER_SCRIPT) in argv and "--port" in argv:
+            i = argv.index("--port")
+            if i + 1 < len(argv) and argv[i + 1] == str(port):
+                pids.append(int(cmdline.parent.name))
+    return pids
+
+
+def _stop_outdated(port: int) -> None:
+    """A local server from an older checkout (no /joints) is stopped; it stops its app too."""
+    for pid in _local_server_pids(port):
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+    deadline = time.monotonic() + SERVER_START_S * 3
+    while _health() and time.monotonic() < deadline:
+        time.sleep(0.2)
+    if _health():
+        raise ApiError(503, f"An outdated Isaac Sim server on port {port} did not stop")
+
+
 def _ensure_server() -> None:
-    """Local mode: start the server when nothing answers on its port."""
+    """Local mode: start the server when nothing answers on its port (restarting one older than
+    JOINTS_VERSION)."""
     s = _settings()
-    if s.mode != "local" or _health():
+    if s.mode != "local":
         return
+    health = _health()
+    if health and int(health.get("version") or 0) >= JOINTS_VERSION:
+        return
+    if health:
+        _stop_outdated(s.port)
     python = _python(s)
     if not python.exists():
         raise ApiError(
@@ -159,9 +204,55 @@ def _files(path: Path) -> list[Path]:
     return [p for p in sorted(path.rglob("*")) if p.is_file() and "__pycache__" not in p.parts]
 
 
-def _usd_files(usd: Path) -> list[Path]:
+def _asset_files(usd: Path) -> list[Path]:
     """A robot or tool: its folder when it has one (<id>/<id>.usd), else the file."""
     return _files(usd.parent if usd.parent.name == usd.stem else usd)
+
+
+def _asset_of(path: Path) -> Path | None:
+    """The robots/<x> or tools/<x> folder (or single file) a path under the sim folder is in."""
+    try:
+        parts = path.resolve().relative_to(config.sim_dir.resolve()).parts
+    except ValueError:
+        return None
+    if len(parts) < 2 or parts[0] not in ("robots", "tools"):
+        return None
+    asset = config.sim_dir / parts[0] / parts[1]
+    return asset if asset.exists() else None
+
+
+def _referenced_assets(files: list[Path]) -> set[Path]:
+    """Assets the text layers among files point at by relative paths (@./…@, @../…@)."""
+    found: set[Path] = set()
+    for f in files:
+        if f.suffix not in USD_TEXT_SUFFIXES:
+            continue
+        with f.open("rb") as fh:
+            if fh.read(len(USDA_MAGIC)) != USDA_MAGIC:
+                continue  # a binary (crate) layer
+        for ref in ASSET_PATH_RE.findall(f.read_text(errors="replace")):
+            asset = _asset_of(f.parent / ref)
+            if asset is not None:
+                found.add(asset)
+    return found
+
+
+def _usd_files(usd: Path) -> list[Path]:
+    """A robot or tool with every robots/<x> or tools/<x> its text layers reference by relative
+    path (e.g. an arm and a hand composed into one robot), recursively; nothing outside the sim
+    folder."""
+    files = _asset_files(usd)
+    first = usd.parent if usd.parent.name == usd.stem else usd
+    seen, queue = {first.resolve()}, [files]
+    while queue:
+        for asset in sorted(_referenced_assets(queue.pop())):
+            if asset.resolve() in seen:
+                continue
+            seen.add(asset.resolve())
+            more = _files(asset)
+            files += more
+            queue.append(more)
+    return files
 
 
 def _archive(path: Path | None, robot: Path | None = None, script: str | None = None) -> bytes:
@@ -238,6 +329,22 @@ def open_asset(kind: str, asset_id: str, display: str | None = None) -> SimRunne
     )
     _request(f"/scene?{query}", body, "application/gzip")
     return status()
+
+
+def is_local() -> bool:
+    return _settings().mode == "local"
+
+
+def server_version() -> int | None:
+    health = _health()
+    return int(health.get("version") or 0) if health else None
+
+
+def send_joints(targets: dict[str, float], percent: list[str], play: bool = False) -> None:
+    """Teleoperation: drive targets of the open robot by joint name (degrees; percent joints
+    0–100 over their limits). 409 from the server while the app is not running."""
+    body = {"targets": targets, "percent": percent, "play": play}
+    _request("/joints", json.dumps(body).encode())
 
 
 def check() -> ConnTestResult:

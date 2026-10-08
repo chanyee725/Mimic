@@ -1,7 +1,7 @@
 """Simulation: environment scripts (envs, scanner), evaluation jobs (jobs) and the Isaac Sim server
 (runner)."""
 
-from app.services.simulation import envs, jobs, runner
+from app.services.simulation import envs, jobs, runner, teleop
 from app.services.simulation.envs import (
     delete_env,
     find_env,
@@ -52,6 +52,7 @@ __all__ = [
     "thumbnail",
     "tool_path",
     "runner",
+    "teleop",
     "sim_config",
     "stop_job",
 ]
@@ -59,6 +60,7 @@ __all__ = [
 
 def reset() -> None:
     with envs.lock:
+        teleop.reset()
         jobs.reset()
         envs.reset()
 

@@ -54,15 +54,28 @@ class _Session:
 
 
 _sessions: dict[str, _Session] = {}
+# Devices held by a teleoperation outside a rig session (a leader driving Isaac Sim)
+_claimed: set[str] = set()
 
 
 def reset() -> None:
     for rig_id in list(_sessions):
         stop(rig_id)
+    _claimed.clear()
 
 
 def uses(device_id: str) -> bool:
-    return any(s.running and device_id in s.devices for s in _sessions.values())
+    return device_id in _claimed or any(
+        s.running and device_id in s.devices for s in _sessions.values()
+    )
+
+
+def claim(device_id: str) -> None:
+    _claimed.add(device_id)
+
+
+def release(device_id: str) -> None:
+    _claimed.discard(device_id)
 
 
 def running(rig_id: str) -> bool:
