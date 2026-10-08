@@ -5,6 +5,10 @@ waits for the app to show the robot's scene, plays the timeline and sends the le
 to the server at TARGET_HZ (runner.send_joints). Joints match by name: a LeRobot follower's
 USD names its joints after the motors (so101_follower: shoulder_pan, …, gripper), so the leader
 X_leader drives the robot X_follower; the gripper goes as 0–100 over its joint limits.
+
+The device "keyboard" drives any robot instead: the page sends jog speeds per joint while keys
+are held (set_jog), the loop forwards them at TARGET_HZ and the app moves the drive targets,
+stopping at the limits. Speeds not refreshed within JOG_HOLD_S drop to zero.
 """
 
 import logging
@@ -26,18 +30,23 @@ TARGET_HZ = 30
 SCENE_TIMEOUT_S = 600.0  # a first Isaac Sim start compiles shaders for minutes
 SCENE_POLL_S = 0.5
 PERCENT_JOINTS = ["gripper"]
+KEYBOARD = "keyboard"
+JOG_HOLD_S = 0.5
+MAX_JOG_DEG_S = 120.0
 
 
 @dataclass
 class _Session:
     robot_id: str
     device_id: str
-    link: LeaderLink
+    link: LeaderLink | None  # None for the keyboard
     started_at: str
     state: str = "starting"
     hz: float | None = None
     error: str | None = None
     values: dict[str, float] = field(default_factory=dict)
+    jog: dict[str, float] = field(default_factory=dict)  # keyboard: joint → degrees per second
+    jog_at: float = 0.0  # time.monotonic() of the last set_jog
     stop: threading.Event = field(default_factory=threading.Event)
     thread: threading.Thread | None = None
 
@@ -58,7 +67,12 @@ def state() -> SimTeleop | None:
 
 def start(robot_id: str, device_id: str, display: str | None = None) -> SimTeleop:
     global _session
-    _check_pair(robot_id, device_id)
+    keyboard = device_id == KEYBOARD
+    if keyboard:
+        if robot_path(robot_id) is None:
+            raise not_found("Robot", robot_id)
+    else:
+        _check_pair(robot_id, device_id)
     with _lock:
         if _session is not None and _session.state != "stopped":
             raise conflict(f"Isaac Sim teleoperation of {_session.robot_id} is running; stop it")
@@ -70,18 +84,30 @@ def start(robot_id: str, device_id: str, display: str | None = None) -> SimTeleo
             raise ApiError(
                 409, "The Isaac Sim server is too old for teleoperation; update and restart it"
             )
-        link = rigs.open_leader(device_id)
+        link = None if keyboard else rigs.open_leader(device_id)
         try:
             runner.open_asset("robot", robot_id, display)
         except BaseException:
-            link.close()
-            rigs.release_leader(device_id)
+            if link is not None:
+                link.close()
+                rigs.release_leader(device_id)
             raise
         s = _Session(robot_id=robot_id, device_id=device_id, link=link, started_at=now_iso())
         _session = s
     s.thread = threading.Thread(target=_loop, args=(s,), daemon=True)
     s.thread.start()
     return _view(s)
+
+
+def set_jog(velocities: dict[str, float]) -> None:
+    """Keyboard: the joints to move now (degrees per second, capped); {} stops them."""
+    s = _session
+    if s is None or s.device_id != KEYBOARD:
+        raise not_found("Keyboard teleoperation", "isaac-sim")
+    if s.state != "running":
+        raise conflict(f"Teleoperation is {s.state}")
+    s.jog = {j: max(-MAX_JOG_DEG_S, min(MAX_JOG_DEG_S, float(v))) for j, v in velocities.items()}
+    s.jog_at = time.monotonic()
 
 
 def stop() -> None:
@@ -138,6 +164,8 @@ def _end(s: _Session) -> None:
 
 
 def _close(s: _Session) -> None:
+    if s.link is None:
+        return
     try:
         s.link.close()
     except Exception:
@@ -189,8 +217,12 @@ def _loop(s: _Session) -> None:
     next_t, first = time.perf_counter(), True
     while not s.stop.is_set():
         try:
-            s.values = s.link.read()
-            runner.send_joints(s.values, PERCENT_JOINTS, play=first)
+            if s.link is None:
+                fresh = time.monotonic() - s.jog_at < JOG_HOLD_S
+                runner.send_jog(s.jog if fresh else {}, play=first)
+            else:
+                s.values = s.link.read()
+                runner.send_joints(s.values, PERCENT_JOINTS, play=first)
             first = False
         except Exception as e:
             log.exception("Isaac Sim teleoperation of %s failed", s.robot_id)
@@ -211,6 +243,10 @@ def _loop(s: _Session) -> None:
 
 
 def _view(s: _Session) -> SimTeleop:
+    if s.link is None:
+        # Keyboard: the robot's drive targets as the app reports them
+        app = runner.status().app if s.state == "running" else None
+        s.values = dict((app.joints if app else None) or s.values)
     names = list(getattr(s.link, "joints", None) or s.values)
     return SimTeleop(
         robot_id=s.robot_id,

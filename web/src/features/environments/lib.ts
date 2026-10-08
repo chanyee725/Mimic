@@ -33,3 +33,8 @@ export const TELEOP_STATE: Record<SimTeleopState, { tone: Tone; label: string }>
 /** Leader joint value: degrees with one decimal, the gripper in % */
 export const formatJoint = (name: string, value: number | null) =>
   value === null ? "—" : name === "gripper" ? `${value.toFixed(1)} %` : `${value.toFixed(1)}°`
+
+/** Keyboard jog speeds (degrees per second; Shift = slow) and how often a held key is resent */
+export const JOG_DEG_S = 30
+export const JOG_SLOW_DEG_S = 8
+export const JOG_RESEND_MS = 150

@@ -7,7 +7,11 @@ HTTP port that only server.py talks to; USD work runs on the main loop between a
   POST /open {"path", "root", "robot"}  build a new stage from the environment script at path;
                               root is the sim folder it came from (robots/ is looked up there),
                               robot the one scene.robot() places (scene.py)
+  GET  /state also lists "joints": {joint: drive target (degrees)} of the open robot
   POST /joints {"targets": {joint: value}, "percent": [joint, …], "play": bool}
+         or    {"jog": {joint: degrees per second}, "play": bool}  keyboard teleoperation: the
+                              targets move at those speeds (stopping at the limits) until JOG_HOLD_S
+                              passes without a new command
                               teleoperation: leader readings by joint name, shifted by the
                               robot's leader offsets (robot.yaml leader.rest → initial_pose), then
                               set as drive targets (degrees; percent joints 0–100 over their limits);
@@ -22,6 +26,7 @@ Rendering is always on the NVIDIA GPU. A window app also enables the physics UI 
 import argparse
 import json
 import queue
+import time
 import sys
 import threading
 import traceback
@@ -66,6 +71,9 @@ commands: queue.Queue = queue.Queue()
 # Newest teleoperation command; older ones are dropped (the main loop applies one per update)
 joints: dict = {"latest": None}
 joints_lock = threading.Lock()
+JOG_HOLD_S = 0.3  # a jog stops when no command came for this long (key released, page closed)
+STATE_EVERY_S = 0.2  # how often /state's joint targets are refreshed
+jog = {"velocities": {}, "until": 0.0}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -119,22 +127,38 @@ def apply_joints(drives) -> None:
     timeline = omni.timeline.get_timeline_interface()
     if cmd.get("play") and not timeline.is_playing():
         timeline.play()
+    if "jog" in cmd:
+        jog.update(velocities=dict(cmd["jog"] or {}), until=time.monotonic() + JOG_HOLD_S)
+        return
     targets = {j: v + drives.offsets.get(j, 0.0) for j, v in (cmd.get("targets") or {}).items()}
     drives.set(targets, tuple(cmd.get("percent") or ()))
 
 
+def step_jog(drives, dt: float) -> None:
+    if drives is not None and jog["velocities"] and time.monotonic() < jog["until"]:
+        drives.jog(jog["velocities"], dt)
+
+
 drives = None  # scene.Drives of the open stage
+last, last_state = time.monotonic(), 0.0
 
 # Runs until the window is closed or server.py terminates the process
 while app.is_running():
     app.update()
     apply_joints(drives)
+    now = time.monotonic()
+    step_jog(drives, min(now - last, 0.1))
+    last = now
+    if now - last_state > STATE_EVERY_S:
+        state["joints"] = {j: round(v, 2) for j, v in drives.targets().items()} if drives else None
+        last_state = now
     while not commands.empty():
         kind, path, root, robot = commands.get()
         if kind == "open":
             context = omni.usd.get_context()
             try:
                 drives = None
+                jog.update(velocities={}, until=0.0)
                 context.new_stage()
                 built = env_scene.build(context.get_stage(), Path(path), Path(root), robot)
                 use_physics_device(context.get_stage())

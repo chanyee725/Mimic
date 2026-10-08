@@ -22,6 +22,10 @@ class SimTeleopStart(CamelModel):
     display: Literal["window", "headless"] | None = None
 
 
+class SimJog(CamelModel):
+    velocities: dict[str, float]  # joint → degrees per second while the key is held; {} stops
+
+
 class LeaderRestCapture(CamelModel):
     device_id: str  # leader held in the robot's initial pose; its reading becomes leader.rest
 

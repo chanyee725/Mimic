@@ -39,8 +39,8 @@ REQUEST_TIMEOUT_S = 30.0
 SERVER_START_S = 10.0
 MAX_ENV_BYTES = 512 * 1024 * 1024
 PREVIEW_SCRIPT = "preview.py"
-# Servers older than this have no /joints (teleoperation); a local one is restarted
-JOINTS_VERSION = 3
+# Servers older than this lack /joints jog or /state joints (teleoperation); a local one is restarted
+JOINTS_VERSION = 4
 # A tool stands this high above the floor when opened alone (m)
 TOOL_PREVIEW_Z = 0.3
 # Relative asset paths in text USD layers: @./x.usd@, @../tools/hand/hand.usda@
@@ -345,6 +345,12 @@ def send_joints(targets: dict[str, float], percent: list[str], play: bool = Fals
     0–100 over their limits). 409 from the server while the app is not running."""
     body = {"targets": targets, "percent": percent, "play": play}
     _request("/joints", json.dumps(body).encode())
+
+
+def send_jog(velocities: dict[str, float], play: bool = False) -> None:
+    """Keyboard teleoperation: move these joints at degrees per second (the app stops them at the
+    limits, and when no command comes for a moment)."""
+    _request("/joints", json.dumps({"jog": velocities, "play": play}).encode())
 
 
 def check() -> ConnTestResult:

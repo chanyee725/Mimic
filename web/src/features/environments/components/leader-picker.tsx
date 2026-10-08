@@ -1,8 +1,9 @@
-import { LuPlugZap } from "react-icons/lu"
+import { LuKeyboard, LuPlugZap } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/common/status-dot"
 import type { Device, DeviceCheck } from "@/domain/device"
+import { SIM_KEYBOARD } from "@/domain/simulation"
 import { cn } from "@/lib/utils"
 
 import { HEALTH_TONE } from "../lib"
@@ -11,6 +12,7 @@ import { HEALTH_TONE } from "../lib"
 export function LeaderPicker({
   leaders,
   fits,
+  keyboard,
   value,
   onChange,
   disabled,
@@ -21,6 +23,8 @@ export function LeaderPicker({
   leaders: Device[]
   /** Whether a leader can drive the robot; the others are listed but cannot be picked */
   fits: (d: Device) => boolean
+  /** The keyboard is picked (it needs no connection test) */
+  keyboard: boolean
   value: string | undefined
   onChange: (id: string) => void
   disabled: boolean
@@ -32,8 +36,25 @@ export function LeaderPicker({
   return (
     <div className="grid gap-2">
       <ul className="grid gap-0.5 rounded-md border p-1" role="radiogroup" aria-label="Leader device">
+        <li>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={keyboard}
+            disabled={disabled}
+            onClick={() => onChange(SIM_KEYBOARD)}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-accent/60 disabled:pointer-events-none disabled:opacity-60",
+              keyboard && "bg-accent hover:bg-accent",
+            )}
+          >
+            <LuKeyboard className="size-4 text-muted-foreground" aria-hidden />
+            <span className={cn("flex-1", keyboard && "font-medium")}>Keyboard</span>
+            <span className="text-xs text-muted-foreground">관절을 하나씩 움직입니다</span>
+          </button>
+        </li>
         {leaders.map((d) => {
-          const on = d.id === value
+          const on = !keyboard && d.id === value
           const ok = fits(d)
           return (
             <li key={d.id}>
@@ -64,24 +85,26 @@ export function LeaderPicker({
         })}
       </ul>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={disabled || testing || !value || !leaders.some((d) => d.id === value && fits(d))}
-          onClick={onTest}
-        >
-          <LuPlugZap />
-          {testing ? "Testing…" : "Test connection"}
-        </Button>
-        {check ? (
-          <StatusDot tone={check.ok ? "ok" : "bad"} className="min-w-0 text-[13px] text-muted-foreground">
-            <span className="min-w-0 [overflow-wrap:anywhere]">{check.message || (check.ok ? "Connected" : "Failed")}</span>
-          </StatusDot>
-        ) : (
-          <span className="text-xs text-muted-foreground">연결 테스트에 성공해야 시작할 수 있습니다.</span>
-        )}
-      </div>
+      {!keyboard && (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={disabled || testing || !value || !leaders.some((d) => d.id === value && fits(d))}
+            onClick={onTest}
+          >
+            <LuPlugZap />
+            {testing ? "Testing…" : "Test connection"}
+          </Button>
+          {check ? (
+            <StatusDot tone={check.ok ? "ok" : "bad"} className="min-w-0 text-[13px] text-muted-foreground">
+              <span className="min-w-0 [overflow-wrap:anywhere]">{check.message || (check.ok ? "Connected" : "Failed")}</span>
+            </StatusDot>
+          ) : (
+            <span className="text-xs text-muted-foreground">연결 테스트에 성공해야 시작할 수 있습니다.</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

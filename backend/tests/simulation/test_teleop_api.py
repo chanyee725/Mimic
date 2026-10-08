@@ -113,3 +113,26 @@ def test_capture_leader_rest(client, fake, envs_dir):
 
     r = client.post("/sim/robots/arm/leader-rest", json={"deviceId": "leader"})
     assert r.status_code == 422
+
+
+@pytest.mark.usefixtures("local_server")
+def test_keyboard_jogs_any_robot(client, fake):
+    # No leader type drives "arm"; the keyboard does
+    r = client.post("/sim/teleop", json={"robotId": "arm", "deviceId": "keyboard"})
+    assert r.status_code == 201, r.text
+    assert client.put("/sim/teleop/jog", json={"velocities": {}}).status_code == 409  # starting
+    body = _wait(client, lambda b: b["state"] == "running" and b["joints"])
+    assert [j["name"] for j in body["joints"]] == ["joint1", "joint2"]
+
+    # Held keys move the joint; speeds are capped; they stop when no longer refreshed
+    assert client.put("/sim/teleop/jog", json={"velocities": {"joint2": 999}}).status_code == 204
+    moved = _wait(client, lambda b: {j["name"]: j["value"] for j in b["joints"]}["joint2"] > 1)
+    time.sleep(1.0)  # past JOG_HOLD_S: the loop sends {} again
+    a = {j["name"]: j["value"] for j in client.get("/sim/teleop").json()["joints"]}["joint2"]
+    time.sleep(0.5)
+    b = {j["name"]: j["value"] for j in client.get("/sim/teleop").json()["joints"]}["joint2"]
+    assert a == b and a > 1 and moved["deviceId"] == "keyboard"
+
+    assert client.delete("/sim/teleop").status_code == 204
+    assert client.put("/sim/teleop/jog", json={"velocities": {}}).status_code == 404
+    client.post("/sim/runner/stop")

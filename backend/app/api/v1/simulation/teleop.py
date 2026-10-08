@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Response
 
 from app.models.simulation import SimAsset, SimTeleop
-from app.schemas.simulation import LeaderRestCapture, SimTeleopStart
+from app.schemas.simulation import LeaderRestCapture, SimJog, SimTeleopStart
 from app.services import simulation as service
 
 router = APIRouter()
@@ -17,6 +17,12 @@ def start_teleop(body: SimTeleopStart):
 @router.get("/teleop", response_model=SimTeleop | None)
 def teleop_state():
     return service.teleop.state()
+
+
+@router.put("/teleop/jog", status_code=204)
+def jog(body: SimJog):
+    service.teleop.set_jog(body.velocities)
+    return Response(status_code=204)
 
 
 @router.delete("/teleop", status_code=204)
