@@ -95,9 +95,10 @@ class SimTeleopJoint(CamelModel):
 
 
 class SimTeleop(CamelModel):
-    """A leader arm driving the robot open alone in Isaac Sim."""
+    """A leader arm (or the keyboard) driving the robot or tool open alone in Isaac Sim."""
 
-    robot_id: str
+    robot_id: str  # the robot or tool id
+    kind: Literal["robot", "tool"] = "robot"
     device_id: str
     state: Literal["starting", "running", "stopped"]  # starting: waiting for the scene
     hz: float | None = None  # measured send rate
