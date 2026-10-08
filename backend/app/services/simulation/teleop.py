@@ -34,6 +34,7 @@ KEYBOARD = "keyboard"
 JOG_HOLD_S = 0.5
 MAX_JOG_DEG_S = 120.0
 MAX_TWIST = (0.25, 90.0)  # m/s, deg/s
+SEND_FAIL_S = 5.0  # a session stops after sending fails this long (the app still running)
 
 
 @dataclass
@@ -230,6 +231,7 @@ def _loop(s: _Session) -> None:
     period = 1 / TARGET_HZ
     window_start, window_steps = time.perf_counter(), 0
     next_t, first = time.perf_counter(), True
+    failing_since: float | None = None
     while not s.stop.is_set():
         try:
             if s.link is None:
@@ -238,12 +240,17 @@ def _loop(s: _Session) -> None:
             else:
                 s.values = s.link.read()
                 runner.send_joints(s.values, PERCENT_JOINTS, play=first)
-            first = False
+            first, failing_since = False, None
         except Exception as e:
-            log.exception("Isaac Sim teleoperation of %s failed", s.robot_id)
-            return _fail(
-                s, _app_gone() or getattr(e, "message", None) or str(e) or type(e).__name__
-            )
+            message = getattr(e, "message", None) or str(e) or type(e).__name__
+            gone = _app_gone()
+            failing_since = failing_since or time.monotonic()
+            if gone or s.link is not None and not isinstance(e, ApiError):
+                log.exception("Isaac Sim teleoperation of %s failed", s.robot_id)
+                return _fail(s, gone or message)
+            if time.monotonic() - failing_since > SEND_FAIL_S:
+                return _fail(s, message)
+            log.warning("Isaac Sim teleoperation of %s: %s (retrying)", s.robot_id, message)
         window_steps += 1
         now = time.perf_counter()
         if now - window_start >= 1.0:

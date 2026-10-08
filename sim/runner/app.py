@@ -74,7 +74,8 @@ commands: queue.Queue = queue.Queue()
 # Newest teleoperation command; older ones are dropped (the main loop applies one per update)
 joints: dict = {"latest": None}
 joints_lock = threading.Lock()
-JOG_HOLD_S = 0.3  # a jog stops when no command came for this long (key released, page closed)
+JOG_HOLD_S = 1.0  # a jog stops when no command came for this long (the backend sends a stop on release)
+JOG_MAX_DT_S = 0.5  # longest frame a jog step integrates (a window app can render slowly)
 STATE_EVERY_S = 0.2  # how often /state's joint targets are refreshed
 jog = {"velocities": {}, "twist": None, "until": 0.0}
 
@@ -160,7 +161,7 @@ while app.is_running():
     app.update()
     apply_joints(drives)
     now = time.monotonic()
-    step_jog(drives, tcp, min(now - last, 0.1))
+    step_jog(drives, tcp, min(now - last, JOG_MAX_DT_S))
     last = now
     if now - last_state > STATE_EVERY_S:
         state["joints"] = {j: round(v, 2) for j, v in drives.targets().items()} if drives else None

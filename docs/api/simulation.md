@@ -176,7 +176,7 @@ leaving the folder is refused). Assets come from the server's own `sim/assets/`.
 `POST /open {path, root, robot}` on a private port only the server uses; an exception in the script is kept as `app.error` (the
 app keeps running). `POST /joints {targets, percent, play}` (teleoperation) is forwarded to the app, which keeps only the newest
 command and applies it on its main loop (`scene.Drives`: drive targets by joint name, degrees; a `percent` joint takes 0–100 over its
-limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 5 (4 had no TCP twist, 3 no `jog` / `/state` joints, 2 no `/joints`): in local mode the
+limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 7 (6 integrated jogs over at most 0.1 s per frame, 5 forwarded `/joints` synchronously, 4 had no TCP twist, 3 no `jog` / `/state` joints, 2 no `/joints`); `/joints` is queued and forwarded to the app by a thread, newest first: in local mode the
 backend stops an older server it finds on the port (by its `server.py --port` process) and starts a new one; a remote one is refused
 by teleoperation with 409.
 
