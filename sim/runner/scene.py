@@ -115,6 +115,13 @@ class Scene:
 def _pin(stage: Usd.Stage, robot: Usd.Prim) -> None:
     """Fixed base: the articulation root moves from the base body to the robot Xform and a
     fixed joint ties the base to the world at its current pose."""
+    # A robot file's own world joints (e.g. an active root_joint) pin it in world coordinates,
+    # wherever the script places it
+    for p in list(Usd.PrimRange(robot)):
+        if p.IsA(UsdPhysics.Joint):
+            j = UsdPhysics.Joint(p)
+            if not j.GetBody0Rel().GetTargets() or not j.GetBody1Rel().GetTargets():
+                p.SetActive(False)
     roots = [p for p in Usd.PrimRange(robot) if p.HasAPI(UsdPhysics.ArticulationRootAPI)]
     bodies = [p for p in Usd.PrimRange(robot) if p.HasAPI(UsdPhysics.RigidBodyAPI)]
     base = next((p for p in roots if p.HasAPI(UsdPhysics.RigidBodyAPI)), None) or (
