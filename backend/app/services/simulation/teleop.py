@@ -21,7 +21,7 @@ from app.models.simulation import SimAsset, SimTeleop, SimTeleopJoint
 from app.services import rigs
 from app.services.rigs.driver import LeaderLink
 from app.services.simulation import runner
-from app.services.simulation.envs import leader_types, robot_path, set_leader_rest
+from app.services.simulation.envs import get_robot, leader_types, robot_path, set_leader_rest
 from app.utils.time import now_iso
 
 log = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ PERCENT_JOINTS = ["gripper"]
 KEYBOARD = "keyboard"
 JOG_HOLD_S = 0.5
 MAX_JOG_DEG_S = 120.0
+MAX_TWIST = (0.25, 90.0)  # m/s, deg/s
 
 
 @dataclass
@@ -45,7 +46,9 @@ class _Session:
     hz: float | None = None
     error: str | None = None
     values: dict[str, float] = field(default_factory=dict)
+    tcp: list[float] | None = None
     jog: dict[str, float] = field(default_factory=dict)  # keyboard: joint → degrees per second
+    twist: list[float] | None = None  # keyboard: TCP twist (tool frame; m/s, deg/s)
     jog_at: float = 0.0  # time.monotonic() of the last set_jog
     stop: threading.Event = field(default_factory=threading.Event)
     thread: threading.Thread | None = None
@@ -99,14 +102,26 @@ def start(robot_id: str, device_id: str, display: str | None = None) -> SimTeleo
     return _view(s)
 
 
-def set_jog(velocities: dict[str, float]) -> None:
-    """Keyboard: the joints to move now (degrees per second, capped); {} stops them."""
+def set_jog(velocities: dict[str, float] | None = None, twist: list[float] | None = None) -> None:
+    """Keyboard: the joints to move now (degrees per second), or the TCP twist (its own frame;
+    m/s, deg/s), capped; {} or zeros stop. 422 for a twist when the robot has no TCP."""
     s = _session
     if s is None or s.device_id != KEYBOARD:
         raise not_found("Keyboard teleoperation", "isaac-sim")
     if s.state != "running":
         raise conflict(f"Teleoperation is {s.state}")
-    s.jog = {j: max(-MAX_JOG_DEG_S, min(MAX_JOG_DEG_S, float(v))) for j, v in velocities.items()}
+    if twist is not None:
+        if get_robot(s.robot_id).tcp is None:
+            raise ApiError(422, f"Robot '{s.robot_id}' has no TCP (robot.yaml tcp)")
+        caps = [MAX_TWIST[0]] * 3 + [MAX_TWIST[1]] * 3
+        s.twist = [max(-c, min(c, float(v))) for v, c in zip(twist, caps)]
+        s.jog = {}
+    else:
+        s.twist = None
+        s.jog = {
+            j: max(-MAX_JOG_DEG_S, min(MAX_JOG_DEG_S, float(v)))
+            for j, v in (velocities or {}).items()
+        }
     s.jog_at = time.monotonic()
 
 
@@ -219,7 +234,7 @@ def _loop(s: _Session) -> None:
         try:
             if s.link is None:
                 fresh = time.monotonic() - s.jog_at < JOG_HOLD_S
-                runner.send_jog(s.jog if fresh else {}, play=first)
+                runner.send_jog(s.jog if fresh else {}, s.twist if fresh else None, play=first)
             else:
                 s.values = s.link.read()
                 runner.send_joints(s.values, PERCENT_JOINTS, play=first)
@@ -247,6 +262,7 @@ def _view(s: _Session) -> SimTeleop:
         # Keyboard: the robot's drive targets as the app reports them
         app = runner.status().app if s.state == "running" else None
         s.values = dict((app.joints if app else None) or s.values)
+        s.tcp = app.tcp if app else None
     names = list(getattr(s.link, "joints", None) or s.values)
     return SimTeleop(
         robot_id=s.robot_id,
@@ -257,4 +273,5 @@ def _view(s: _Session) -> SimTeleop:
         error=s.error,
         started_at=s.started_at,
         joints=[SimTeleopJoint(name=n, value=s.values.get(n)) for n in names],
+        tcp=s.tcp,
     )

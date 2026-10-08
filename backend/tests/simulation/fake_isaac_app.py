@@ -9,7 +9,7 @@ p.add_argument("--port", type=int, required=True)
 p.add_argument("--headless", action="store_true")
 p.add_argument("--device", choices=("gpu", "cpu"), default="gpu")
 args = p.parse_args()
-state = {"scene": None, "error": None, "joints": None}
+state = {"scene": None, "error": None, "joints": None, "tcp": None}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -32,11 +32,14 @@ class Handler(BaseHTTPRequestHandler):
             if "jog" in body:  # keyboard: move the targets by one 1/30 s step
                 for j, v in body["jog"].items():
                     state["joints"][j] = state["joints"].get(j, 0.0) + v / 30
+            if "twist" in body:  # the TCP moves by one 1/30 s step
+                state["tcp"] = [p + v / 30 for p, v in zip(state["tcp"], body["twist"])]
             return self._send(202, state)
         with open(body["path"]) as f:  # the extracted scene must be readable
             f.read()
         state["scene"] = body["path"]
         state["joints"] = {"joint1": 0.0, "joint2": 0.0}  # a two-joint robot
+        state["tcp"] = [0.0] * 6
         self._send(202, state)
 
 

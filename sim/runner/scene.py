@@ -54,6 +54,7 @@ class Scene:
         self.robot_name = robot
         self.robot_path: str | None = None
         self.leader_offsets: dict[str, float] = {}  # leader reading → joint value (robot.yaml)
+        self.tcp: dict | None = None  # robot.yaml tcp (keyboard TCP jog)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
         UsdGeom.SetStageMetersPerUnit(stage, 1.0)
         world = UsdGeom.Xform.Define(stage, "/World")
@@ -109,6 +110,7 @@ class Scene:
         self.robot_path = str(prim.GetPath())
         usd = _usd_file(self.sim_dir / "robots", name)
         self.leader_offsets = leader_offsets(usd)
+        self.tcp = tcp_config(usd)
         pose, percent = initial_pose(usd)
         if pose:
             Drives(self.stage, self.robot_path).start_at(pose, percent)
@@ -192,6 +194,20 @@ def initial_pose(usd: Path) -> tuple[dict[str, float], tuple[str, ...]]:
         return {}, ()
     doc = yaml.safe_load(path.read_text()) or {}
     return _floats(doc.get("initial_pose")), tuple(doc.get("percent") or ())
+
+
+def tcp_config(usd: Path) -> dict | None:
+    """robot.yaml tcp: {link, offset (m, in the link frame), joints (the IK may move)}, or None."""
+    path = robot_config(usd)
+    doc = (yaml.safe_load(path.read_text()) or {}) if path.is_file() else {}
+    tcp = doc.get("tcp")
+    if not isinstance(tcp, dict) or not tcp.get("link"):
+        return None
+    return {
+        "link": str(tcp["link"]),
+        "offset": [float(v) for v in tcp.get("offset") or (0, 0, 0)],
+        "joints": [str(j) for j in tcp.get("joints") or []] or None,
+    }
 
 
 def leader_offsets(usd: Path) -> dict[str, float]:

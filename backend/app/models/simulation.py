@@ -45,6 +45,7 @@ class SimAsset(CamelModel):
     files: list[SimEnvFile] = []  # relative to the asset folder (the file name for a single file)
     updated_at: str
     teleop: list[str] = []  # leader types that can drive it (so101_follower ← so101_leader)
+    tcp: str | None = None  # robots: link the keyboard TCP jog moves (robot.yaml tcp.link)
     # robots: start pose from <id>/robot.yaml (joint → degrees; percent joints 0–100), null when unset
     initial_pose: dict[str, float] | None = None
     # robots: what a leader reads in initial_pose (robot.yaml leader.rest), null when unset
@@ -76,6 +77,7 @@ class SimRunnerApp(CamelModel):
     scene: str | None = None  # id of the open environment
     error: str | None = None
     joints: dict[str, float] | None = None  # drive target per joint of the open robot (degrees)
+    tcp: list[float] | None = None  # TCP pose [x, y, z (m), roll, pitch, yaw (deg)] while playing
 
 
 class SimRunner(CamelModel):
@@ -103,6 +105,9 @@ class SimTeleop(CamelModel):
     error: str | None = None
     started_at: str
     joints: list[SimTeleopJoint] = []
+    tcp: list[float] | None = (
+        None  # keyboard: TCP pose [x, y, z (m, world), roll, pitch, yaw (deg)]
+    )
 
 
 class SimEpisode(CamelModel):

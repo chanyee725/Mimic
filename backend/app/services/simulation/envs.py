@@ -112,6 +112,12 @@ def _config_pose(usd: Path, *keys: str) -> dict[str, float] | None:
     return {str(k): float(v) for k, v in doc.items()} if isinstance(doc, dict) else None
 
 
+def _tcp_link(usd: Path) -> str | None:
+    doc = storage.read_file(robot_config(usd))
+    tcp = doc.get("tcp") if isinstance(doc, dict) else None
+    return str(tcp["link"]) if isinstance(tcp, dict) and tcp.get("link") else None
+
+
 def list_robots() -> list[SimAsset]:
     return [
         r.model_copy(
@@ -119,6 +125,7 @@ def list_robots() -> list[SimAsset]:
                 "teleop": leader_types(r.id),
                 "initial_pose": _config_pose(Path(r.path), "initial_pose"),
                 "leader_rest": _config_pose(Path(r.path), "leader", "rest"),
+                "tcp": _tcp_link(Path(r.path)),
             }
         )
         for r in scan_robots(config.sim_robots_dir)

@@ -23,7 +23,9 @@ class SimTeleopStart(CamelModel):
 
 
 class SimJog(CamelModel):
-    velocities: dict[str, float]  # joint → degrees per second while the key is held; {} stops
+    velocities: dict[str, float] | None = None  # joint → degrees per second while held; {} stops
+    # TCP (tool) frame [vx, vy, vz (m/s), wx, wy, wz (deg/s)] while held; zeros stop
+    twist: list[float] | None = Field(None, min_length=6, max_length=6)
 
 
 class LeaderRestCapture(CamelModel):

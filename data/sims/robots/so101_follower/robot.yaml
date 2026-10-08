@@ -22,3 +22,8 @@ leader:
     gripper: 0.55
   captured_from: so101_leader (leader)
   captured_at: '2026-10-08T16:30:40+09:00'
+# Keyboard TCP jog: the gripper link; 5 arm joints, so not every direction is reachable
+tcp:
+  link: gripper
+  offset: [0, 0, 0]
+  joints: [shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll]

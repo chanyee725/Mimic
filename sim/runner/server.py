@@ -19,7 +19,8 @@ API (JSON):
                                    app (app.py); 409
                                    while the app is not running
 AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "device", "pid", "scene",
-            "error", "joints": {joint: drive target in degrees} | null}
+            "error", "joints": {joint: drive target in degrees} | null,
+            "tcp": [x, y, z (m), roll, pitch, yaw (deg)] | null}
 """
 
 import argparse
@@ -40,7 +41,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = 4
+VERSION = 5
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")
@@ -95,16 +96,17 @@ class App:
                 state = "running" if self.ready else "starting"
             pid = self.proc.pid if self.proc and state in ("starting", "running") else None
             scene, error = (self.scene if state == "running" else None), self.error
-        joints = None
+        joints = tcp = None
         if state == "running" and error is None:
             # A failing environment script is reported by the app; joints: the robot's drive targets
             try:
                 app_state = _get(f"http://127.0.0.1:{self.port}/state", timeout=0.5)
                 error, joints = app_state.get("error"), app_state.get("joints")
+                tcp = app_state.get("tcp")
             except OSError:
                 pass
             if error:
-                scene, joints = None, None
+                scene, joints, tcp = None, None, None
         return {
             "state": state,
             "display": self.display,
@@ -113,6 +115,7 @@ class App:
             "scene": scene,
             "error": error,
             "joints": joints,
+            "tcp": tcp,
         }
 
     def start(self, display: str, device: str = "gpu") -> None:
