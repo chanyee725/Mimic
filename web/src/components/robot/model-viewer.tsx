@@ -46,9 +46,9 @@ export function ModelViewer({ data, className }: { data: ArrayBuffer; className?
     room.dispose()
     pmrem.dispose()
     scene.environment = envMap
-    scene.environmentIntensity = 0.6
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 1.2))
-    const sun = new THREE.DirectionalLight(0xffffff, 1.5)
+    scene.environmentIntensity = 0.35
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6a6a6a, 0.8))
+    const sun = new THREE.DirectionalLight(0xffffff, 1.6)
     scene.add(sun)
 
     const camera = new THREE.PerspectiveCamera(FOV, 1, 0.01, 100)
@@ -74,8 +74,13 @@ export function ModelViewer({ data, className }: { data: ArrayBuffer; className?
       (gltf) => {
         if (disposed) return
         const model = gltf.scene
+        // Without normals (welded CAD points) smooth normals would blur hard edges: shade per face instead
         model.traverse((obj) => {
-          if (obj instanceof THREE.Mesh && !obj.geometry.attributes.normal) obj.geometry.computeVertexNormals()
+          if (!(obj instanceof THREE.Mesh) || obj.geometry.attributes.normal) return
+          for (const m of Array.isArray(obj.material) ? obj.material : [obj.material]) {
+            m.flatShading = true
+            m.needsUpdate = true
+          }
         })
         scene.add(model)
 
