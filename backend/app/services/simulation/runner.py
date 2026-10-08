@@ -240,6 +240,22 @@ def open_asset(kind: str, asset_id: str, display: str | None = None) -> SimRunne
     return status()
 
 
+# Servers older than this have no /joints (teleoperation)
+JOINTS_VERSION = 3
+
+
+def server_version() -> int | None:
+    health = _health()
+    return int(health.get("version") or 0) if health else None
+
+
+def send_joints(targets: dict[str, float], percent: list[str], play: bool = False) -> None:
+    """Teleoperation: drive targets of the open robot by joint name (degrees; percent joints
+    0–100 over their limits). 409 from the server while the app is not running."""
+    body = {"targets": targets, "percent": percent, "play": play}
+    _request("/joints", json.dumps(body).encode())
+
+
 def check() -> ConnTestResult:
     """Server health with its latency; locally an installed Python also counts (it starts on demand)."""
     s = _settings()

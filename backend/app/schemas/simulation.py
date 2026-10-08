@@ -16,6 +16,12 @@ class SimEnvPatch(CamelModel):
     robots: list[str]
 
 
+class SimTeleopStart(CamelModel):
+    robot_id: str
+    device_id: str
+    display: Literal["window", "headless"] | None = None
+
+
 class SimJobCreate(CamelModel):
     model_id: str
     env_id: str

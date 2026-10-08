@@ -15,6 +15,8 @@ API (JSON):
                                    path in it (default env.py), with <robot> as the robot scene.robot()
                                    places, starting the app
                                    first when it is not running
+  POST /joints {"targets", "percent", "play"}  teleoperation: forwarded to the app (app.py); 409
+                                   while the app is not running
 AppState = {"state": "stopped" | "starting" | "running" | "exited", "display", "device", "pid", "scene",
             "error"}
 """
@@ -37,7 +39,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = 2
+VERSION = 3
 HERE = Path(__file__).resolve().parent
 ENV_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 DISPLAYS = ("window", "headless")
@@ -192,6 +194,16 @@ class App:
             elif self.ready:
                 self._send_pending()
 
+    def send_joints(self, body: dict) -> bool:
+        """Forwards a teleoperation command to the app; False while it is not ready."""
+        with self.lock:
+            ready = self.ready and self.proc is not None and self.proc.poll() is None
+            port = self.port
+        if not ready:
+            return False
+        _post(f"http://127.0.0.1:{port}/joints", body, timeout=1.0)
+        return True
+
     def _send_pending(self) -> None:
         if not self.pending:
             return
@@ -245,6 +257,11 @@ def make_handler(app: App):
                     app.start(display, device)
                 elif url.path == "/app/stop":
                     app.stop()
+                elif url.path == "/joints":
+                    body = json.loads(self._body() or b"{}")
+                    if not app.send_joints(body):
+                        return self._send(409, {"error": "Isaac Sim app is not running"})
+                    return self._send(202, {})
                 elif url.path == "/scene":
                     query = parse_qs(url.query)
                     env_id = query.get("env", [""])[0]

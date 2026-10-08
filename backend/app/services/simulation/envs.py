@@ -91,8 +91,18 @@ def get_env(env_id: str) -> SimEnv:
     return env
 
 
+def leader_types(robot_id: str) -> list[str]:
+    """Leader types that can drive a robot: X_leader for a robot named X_follower."""
+    if not robot_id.endswith("_follower"):
+        return []
+    return [robot_id.removesuffix("_follower") + "_leader"]
+
+
 def list_robots() -> list[SimAsset]:
-    return scan_robots(config.sim_robots_dir)
+    return [
+        r.model_copy(update={"teleop": leader_types(r.id)})
+        for r in scan_robots(config.sim_robots_dir)
+    ]
 
 
 def robot_path(robot_id: str) -> Path | None:

@@ -86,6 +86,7 @@ SimAsset = {                                   // a robot (robots/) or tool (too
   sizeKB: number
   files: { path: string; sizeKB: number }[]    // relative to its folder; the file name for a single file
   updatedAt: string
+  teleop: string[]                             // robots: leader types that can drive it; tools: []
 }
 Randomization = "none" | "low" | "high"
 SimEpisode = { index: number; seed: number; success: boolean; seconds: number; reason?: string }
@@ -166,13 +167,44 @@ Server API (backend ↔ server, JSON): `GET /health` → `{ version, app: SimRun
 `envs/<env>…`, `robots/…`); the server extracts it and has the app build a new stage from `<file>` (default `env.py`; a path
 leaving the folder is refused). Assets come from the server's own `sim/assets/`. The app answers `GET /state` and
 `POST /open {path, root, robot}` on a private port only the server uses; an exception in the script is kept as `app.error` (the
-app keeps running). Server `version` is 2.
+app keeps running). `POST /joints {targets, percent, play}` (teleoperation) is forwarded to the app, which keeps only the newest
+command and applies it on its main loop (`scene.Drives`: drive targets by joint name, degrees; a `percent` joint takes 0–100 over its
+limits; `play` starts the timeline); 409 while the app is not running. Server `version` is 3 (2 had no `/joints`; teleoperation
+refuses an older server with 409 — restart it).
 
 Physics device (`connection.isaac.device`, default `gpu`): the backend sends it with every start / open; the server
 restarts the app when the display or the device differs from the running one. `gpu` starts the app with
 `active_gpu` / `physics_gpu` 0 and `/physics/cudaDevice` 0, and turns on PhysX GPU dynamics and the GPU broadphase in every
 `PhysicsScene` of a built stage, written to the session layer; `cpu` keeps PhysX on the CPU (`MBP` broadphase). Rendering always uses the
 NVIDIA GPU.
+
+## Teleoperation
+
+A leader arm drives the robot opened alone in Isaac Sim (Robots tab → Teleoperation). One session at a time
+(`app.services.simulation.teleop`). Start checks the pair, opens the leader (`rigs.open_leader`: the device then counts as in a
+teleoperation test, so calibration and rig teleoperation answer 409), opens the robot (`POST /sim/robots/{id}/open`), and a
+thread waits for the app to show `robot-<id>`, plays the timeline and sends the leader's positions to `/joints` at 30 Hz.
+Joints match by name: a robot named `X_follower` (its USD joints named after the LeRobot motors) is driven by an `X_leader`;
+`gripper` goes as 0–100 over its joint limits. Stopping disconnects the leader; the scene stays open.
+
+```ts
+SimTeleop = {
+  robotId: string; deviceId: string
+  state: "starting" | "running" | "stopped"   // starting: waiting for Isaac Sim to open the robot; stopped: ended with error
+  hz: number | null; targetHz: number          // measured / target send rate (30)
+  error: string | null
+  startedAt: string
+  joints: { name: string; value: number | null }[]   // leader positions: degrees, gripper 0–100
+}
+```
+
+| Method | Path | Body | Returns | Web |
+| --- | --- | --- | --- | --- |
+| POST | `/sim/teleop` | `{ robotId, deviceId, display? }` | `201 SimTeleop`; 404 unknown robot / device; 422 not a leader, or its type is not in the robot's `teleop` (`details.teleop`); 409 the device is busy, a session runs, or the server is older than version 3; 503 LeRobot unavailable or the port fails | Teleoperation dialog: Start |
+| GET | `/sim/teleop` | | `SimTeleop`, or `null` when there is none | Teleoperation dialog (polled) |
+| DELETE | `/sim/teleop` | | 204; 404 when there is none | Stop |
+
+`SimAsset.teleop` (robots): leader types that can drive it (`["so101_leader"]` for `so101_follower`, `[]` otherwise).
 
 ## Changes from the web mocks
 
