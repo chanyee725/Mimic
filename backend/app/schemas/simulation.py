@@ -22,6 +22,10 @@ class SimTeleopStart(CamelModel):
     display: Literal["window", "headless"] | None = None
 
 
+class InitialPoseCapture(CamelModel):
+    device_id: str  # leader whose present position becomes the robot's initial pose
+
+
 class SimJobCreate(CamelModel):
     model_id: str
     env_id: str

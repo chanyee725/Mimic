@@ -37,6 +37,22 @@ export function AssetDetail({ kind, asset, envs }: { kind: SimAssetKind; asset: 
           },
         ]
       : []),
+    ...(kind === "robot"
+      ? [
+          {
+            k: "Initial pose",
+            v: asset.initialPose ? (
+              <span className="font-mono text-xs [overflow-wrap:anywhere]">
+                {Object.entries(asset.initialPose)
+                  .map(([j, v]) => `${j} ${v.toFixed(1)}`)
+                  .join(", ")}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">None (robot.yaml)</span>
+            ),
+          },
+        ]
+      : []),
     { k: "Updated", v: formatDateTime(asset.updatedAt) },
   ]
 

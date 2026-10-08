@@ -13,11 +13,11 @@ import time
 from dataclasses import dataclass, field
 
 from app.core.errors import ApiError, conflict, not_found
-from app.models.simulation import SimTeleop, SimTeleopJoint
+from app.models.simulation import SimAsset, SimTeleop, SimTeleopJoint
 from app.services import rigs
 from app.services.rigs.driver import LeaderLink
 from app.services.simulation import runner
-from app.services.simulation.envs import leader_types, robot_path
+from app.services.simulation.envs import leader_types, robot_path, set_initial_pose
 from app.utils.time import now_iso
 
 log = logging.getLogger(__name__)
@@ -58,15 +58,7 @@ def state() -> SimTeleop | None:
 
 def start(robot_id: str, device_id: str, display: str | None = None) -> SimTeleop:
     global _session
-    if robot_path(robot_id) is None:
-        raise not_found("Robot", robot_id)
-    leader_type = rigs.device_type(device_id)
-    if leader_type not in leader_types(robot_id):
-        raise ApiError(
-            422,
-            f"'{device_id}' ({leader_type}) cannot drive {robot_id}",
-            {"teleop": leader_types(robot_id)},
-        )
+    _check_pair(robot_id, device_id)
     with _lock:
         if _session is not None and _session.state != "stopped":
             raise conflict(f"Isaac Sim teleoperation of {_session.robot_id} is running; stop it")
@@ -100,6 +92,41 @@ def stop() -> None:
     if s is None:
         raise not_found("Teleoperation", "isaac-sim")
     _end(s)
+
+
+CAPTURE_READS = 5
+
+
+def _check_pair(robot_id: str, device_id: str) -> str:
+    """The leader's type; 404 for an unknown robot / device, 422 when it cannot drive the robot."""
+    if robot_path(robot_id) is None:
+        raise not_found("Robot", robot_id)
+    leader_type = rigs.device_type(device_id)
+    if leader_type not in leader_types(robot_id):
+        raise ApiError(
+            422,
+            f"'{device_id}' ({leader_type}) cannot drive {robot_id}",
+            {"teleop": leader_types(robot_id)},
+        )
+    return leader_type
+
+
+def capture_initial_pose(robot_id: str, device_id: str) -> SimAsset:
+    """The leader's present position (median of a few reads; the running session's last one when
+    it drives the simulation) becomes the robot's initial pose."""
+    leader_type = _check_pair(robot_id, device_id)
+    s = _session
+    if s is not None and s.device_id == device_id and s.state == "running" and s.values:
+        pose = dict(s.values)
+    else:
+        link = rigs.open_leader(device_id)
+        try:
+            reads = [link.read() for _ in range(CAPTURE_READS)]
+        finally:
+            link.close()
+            rigs.release_leader(device_id)
+        pose = {m: sorted(r[m] for r in reads)[len(reads) // 2] for m in reads[0]}
+    return set_initial_pose(robot_id, pose, PERCENT_JOINTS, f"{leader_type} ({device_id})")
 
 
 def _end(s: _Session) -> None:
