@@ -28,7 +28,7 @@ def test_sim_dir_defaults_under_data(monkeypatch):
     monkeypatch.setenv("VLA_DATA_DIR", "station/data")
     c = Config(_env_file=None)
     assert c.sim_envs_dir == REPO_ROOT / "station" / "data" / "sims" / "envs"
-    assert c.sim_robot_dir == REPO_ROOT / "station" / "data" / "sims" / "robot"
+    assert c.sim_robots_dir == REPO_ROOT / "station" / "data" / "sims" / "robots"
 
 
 def test_config_paths_start_at_repo_root(monkeypatch):

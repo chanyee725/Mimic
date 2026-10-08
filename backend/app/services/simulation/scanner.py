@@ -3,7 +3,7 @@
 An environment is a Python script whose build(scene) lays out the stage (sim/runner/scene.py): a
 top-level `<id>.py` file, or a folder `<id>/` holding `env.py` with its own files. A thumbnail is
 `<stem>.<image>` beside a script, or `thumbnail.<image>` in an env folder. Robots are also
-found here: robot/<id>.usd[a|c] or robot/<id>/<id>.usd[a|c].
+found here: robots/<id>.usd[a|c] or robots/<id>/<id>.usd[a|c].
 """
 
 import logging
@@ -63,7 +63,7 @@ def robot_file(root: Path, robot_id: str) -> Path | None:
 
 
 def scan_robots(root: Path) -> list[SimRobot]:
-    """Robot USDs under the robot folder, by id."""
+    """Robot USDs under the robots folder, by id."""
     if not root.is_dir():
         return []
     ids = {p.stem if p.is_file() else p.name for p in _entries(root)}

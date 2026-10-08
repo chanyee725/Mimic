@@ -94,16 +94,16 @@ def test_settings_test_reports_the_server(client):
 
 def test_archive_carries_the_tagged_robot(envs_dir):
     write_sim_robots("arm", "other")
-    archive = runner._archive(envs_dir / "drawer", config.sim_robot_dir / "arm.usda")
+    archive = runner._archive(envs_dir / "drawer", config.sim_robots_dir / "arm.usda")
     names = tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz").getnames()
-    assert "robot/arm.usda" in names and "robot/other.usda" not in names
-    assert all(n.startswith(("envs/drawer/", "robot/")) for n in names)
+    assert "robots/arm.usda" in names and "robots/other.usda" not in names
+    assert all(n.startswith(("envs/drawer/", "robots/")) for n in names)
 
 
 def test_open_needs_the_tagged_robot_usd(client):
     write_sim_robots("arm")
     client.patch("/sim/envs/table", json={"robots": ["arm"]})
-    (config.sim_robot_dir / "arm.usda").unlink()
+    (config.sim_robots_dir / "arm.usda").unlink()
     r = client.post("/sim/envs/table/open")
     assert r.status_code == 422 and "has no USD" in r.json()["error"]["message"]
 

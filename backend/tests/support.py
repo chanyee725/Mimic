@@ -246,8 +246,8 @@ class FakeTeleop:
 
 
 def write_sim_robots(*robot_ids: str) -> None:
-    """Robot USD stubs under the sim folder's robot/ (environments can be tagged with them)."""
+    """Robot USD stubs under the sim folder's robots/ (environments can be tagged with them)."""
     for robot_id in robot_ids:
-        p = config.sim_robot_dir / f"{robot_id}.usda"
+        p = config.sim_robots_dir / f"{robot_id}.usda"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("#usda 1.0\n")

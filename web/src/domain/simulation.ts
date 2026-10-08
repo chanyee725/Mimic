@@ -16,7 +16,7 @@ export type SimEnv = {
   script: string
   sizeKB: number
   files: SimEnvFile[]
-  /** Robot tags (robot USDs under data/sims/robot/, kept in data/sims/envs.yaml); [] = untagged, fits any rig */
+  /** Robot tags (robot USDs under data/sims/robots/, kept in data/sims/envs.yaml); [] = untagged, fits any rig */
   robots: string[]
   /** Configured rigs whose followers are all tagged robots (every rig when untagged) */
   rigIds: string[]
@@ -26,7 +26,7 @@ export type SimEnv = {
   updatedAt: string
 }
 
-/** A robot USD under data/sims/robot/, named after the LeRobot type it simulates (e.g. so101_follower) */
+/** A robot USD under data/sims/robots/, named after the LeRobot type it simulates (e.g. so101_follower) */
 export type SimRobot = { id: string; path: string }
 
 /** An environment is usable by a rig when the backend lists the rig as fitting its robot tags */

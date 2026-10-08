@@ -9,7 +9,7 @@ An environment script (data/sims/envs/<id>.py, or <id>/env.py) only defines
 
 Assets come from sim/assets/<name>/<name>.usd[a] (origin at their bottom, centred). The robot is
 not named in the script: it is the environment's robot tag (Environments page), loaded from the
-sim folder's robot/<name>.usd[a]; scene.robot_name says which one. The robot is pinned to the world with a fixed joint, so
+sim folder's robots/<name>.usd[a]; scene.robot_name says which one. The robot is pinned to the world with a fixed joint, so
 it stands when Play starts. Units are metres, Z up, yaw in degrees about Z. pxr only, so the
 same code builds a stage with usd-core outside Isaac Sim.
 """
@@ -93,7 +93,7 @@ class Scene:
         return prim
 
     def robot(self, pos=(0, 0, 0), yaw: float = 0, name: str | None = None) -> Usd.Prim:
-        """References the robot (robot/<name>, the tagged one by default) at /World/Robot, its
+        """References the robot (robots/<name>, the tagged one by default) at /World/Robot, its
         base pinned where it stands."""
         if self.robot_path:
             raise ValueError("an environment places one robot")
@@ -101,7 +101,7 @@ class Scene:
         if not name:
             raise ValueError("no robot: tag the environment with one on the Environments page")
         prim = self.stage.DefinePrim("/World/Robot", "Xform")
-        prim.GetReferences().AddReference(str(_usd_file(self.sim_dir / "robot", name)))
+        prim.GetReferences().AddReference(str(_usd_file(self.sim_dir / "robots", name)))
         _place(prim, pos, yaw)
         # A robot file may carry its own PhysicsScene; the stage keeps one
         for p in Usd.PrimRange(prim):

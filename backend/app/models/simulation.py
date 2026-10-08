@@ -28,7 +28,7 @@ class SimEnv(CamelModel):
     files: list[SimEnvFile] = []
     registered_at: str
     updated_at: str
-    robots: list[str] = []  # robot tags (robot/<name>); [] = untagged, fits any rig
+    robots: list[str] = []  # robot tags (robots/<name>); [] = untagged, fits any rig
     rig_ids: list[str] = (
         []
     )  # configured rigs whose follower types are all tagged (every rig when untagged)
@@ -36,7 +36,7 @@ class SimEnv(CamelModel):
 
 
 class SimRobot(CamelModel):
-    """A robot USD under <sim folder>/robot/: <id>.usd[a|c] or <id>/<id>.usd[a|c]."""
+    """A robot USD under <sim folder>/robots/: <id>.usd[a|c] or <id>/<id>.usd[a|c]."""
 
     id: str  # named after the LeRobot type of the follower it simulates (e.g. so101_follower)
     path: str

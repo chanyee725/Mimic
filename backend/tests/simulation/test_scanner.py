@@ -80,7 +80,7 @@ def test_thumbnails_and_no_rig_folders(root: Path):
 
 
 def test_robots(tmp_path: Path):
-    root = tmp_path / "robot"
+    root = tmp_path / "robots"
     write(root, "so101_follower.usd", "x")
     write(root, "koch/koch.usda", "x")
     write(root, "koch/meshes/link.usd", "x")

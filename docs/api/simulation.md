@@ -23,7 +23,8 @@ job routes 404) and a valid `POST /sim/jobs` returns `503 { "error": { "message"
 
 ```
 data/sims/
-  robot/                  robot USDs: <id>.usd|usda|usdc or <id>/<id>.usd… (GET /sim/robots)
+  robots/                 robot USDs: <id>.usd|usda|usdc or <id>/<id>.usd… (GET /sim/robots)
+  tools/                  end-effector USDs (hands, grippers): <id>.usd… or <id>/<id>.usd… — not scanned or placed yet
   envs.yaml               robot tags: { <env id>: { robots: [<robot id>, …] } } — written by PATCH /sim/envs/{id}
   envs/
     table.py              a top-level script: id "table"
@@ -76,6 +77,7 @@ SimEnv = {
   files: { path: string; sizeKB: number }[]
   registeredAt: string; updatedAt: string
   robots: string[]                             // robot tags; [] = untagged, fits any rig
+  tools/                  end-effector USDs (hands, grippers): <id>.usd… or <id>/<id>.usd… — not scanned or placed yet
   rigIds: string[]                             // configured rigs that fit the tags
   thumbnail: boolean                           // an image is served by /sim/envs/{id}/thumbnail
 }
@@ -98,7 +100,7 @@ SimJob = {
 | --- | --- | --- | --- | --- |
 | GET | `/sim/envs` | | `SimEnv[]` by id | `listSimEnvs()` |
 | GET | `/sim/envs/{id}` | | `SimEnv`; 404 if unknown | `getSimEnv(id)` |
-| PATCH | `/sim/envs/{id}` | `{ robots: string[] }` | `SimEnv` with the new tags (`[]` clears them); 404 if unknown, 422 with `details.robots` for a robot not under `robot/` | Robots checkboxes |
+| PATCH | `/sim/envs/{id}` | `{ robots: string[] }` | `SimEnv` with the new tags (`[]` clears them); 404 if unknown, 422 with `details.robots` for a robot not under `robots/` | Robots checkboxes |
 | GET | `/sim/robots` | | `{ id: string; path: string }[]` by id | Robots checkboxes |
 | GET | `/sim/envs/{id}/thumbnail` | | the image (`image/png`, `image/jpeg`, `image/webp`); 404 when the env is unknown or has none | Environment thumbnail |
 | POST | `/sim/envs/rescan` | | `{ dir: string; scannedAt: string; envs: SimEnv[] }` | Rescan |
@@ -131,7 +133,7 @@ Live: `sim.envs` (`{ envs }` after a rescan or delete), `sim.updated` (status, c
   detached, so it outlives backend reloads and is found again by its port; `POST /sim/runner/stop` stops only the app.
   Its log and the received environments live in `~/.cache/mimic-sim/`.
 - `remote`: the server runs on a sim server (`sim/.venv/bin/python sim/runner/server.py --host 0.0.0.0 --port 8211`) and the
-  backend calls `url`. Opening an environment sends its folder (or its single script) and its first tagged robot's USD (its folder when it has one) as tar.gz laid out like `data/sims` (`envs/…`, `robot/…`), so the server needs no copy of `data/sims`.
+  backend calls `url`. Opening an environment sends its folder (or its single script) and its first tagged robot's USD (its folder when it has one) as tar.gz laid out like `data/sims` (`envs/…`, `robots/…`), so the server needs no copy of `data/sims`.
 
 `display` (`window` | `headless`) is used when the app starts; starting with the other display restarts the app.
 
@@ -152,7 +154,7 @@ SimRunner    = { mode: "local" | "remote"; display: "window" | "headless"; devic
 
 Server API (backend ↔ server, JSON): `GET /health` → `{ version, app: SimRunnerApp }`; `POST /app/start {display, device}`;
 `POST /app/stop`; `POST /scene?env=<id>&script=<file>&robot=<robot id>&display=&device=` with the tar.gz body (laid out like `data/sims`:
-`envs/<env>…`, `robot/…`); the server extracts it and has the app build a new stage from `<file>` (default `env.py`; a path
+`envs/<env>…`, `robots/…`); the server extracts it and has the app build a new stage from `<file>` (default `env.py`; a path
 leaving the folder is refused). Assets come from the server's own `sim/assets/`. The app answers `GET /state` and
 `POST /open {path, root, robot}` on a private port only the server uses; an exception in the script is kept as `app.error` (the
 app keeps running). Server `version` is 2.

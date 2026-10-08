@@ -11,7 +11,7 @@ API (JSON):
                                    default gpu); restarts it when either changes
   POST /app/stop                   stop the app
   POST /scene?env=<id>&script=<file>[&robot=…&display=…&device=…]  body: tar.gz laid out like
-                                   data/sims (envs/<env>…, robot/…); builds the stage from <file>, a
+                                   data/sims (envs/<env>…, robots/…); builds the stage from <file>, a
                                    path in it (default env.py), with <robot> as the robot scene.robot()
                                    places, starting the app
                                    first when it is not running

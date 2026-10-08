@@ -92,11 +92,11 @@ def get_env(env_id: str) -> SimEnv:
 
 
 def list_robots() -> list[SimRobot]:
-    return scan_robots(config.sim_robot_dir)
+    return scan_robots(config.sim_robots_dir)
 
 
 def robot_path(robot_id: str) -> Path | None:
-    return robot_file(config.sim_robot_dir, robot_id)
+    return robot_file(config.sim_robots_dir, robot_id)
 
 
 def thumbnail(env_id: str) -> tuple[Path, str]:
@@ -115,7 +115,7 @@ def rig_problem(env: SimEnv, rig_id: str | None) -> str | None:
 
 
 def set_robots(env_id: str, robots: list[str]) -> SimEnv:
-    """Replaces the env's robot tags; each must be a robot under the robot folder."""
+    """Replaces the env's robot tags; each must be a robot under the robots folder."""
     with lock:
         get_env(env_id)
         known = {r.id for r in list_robots()}

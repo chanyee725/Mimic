@@ -5,7 +5,7 @@ HTTP port that only server.py talks to; USD work runs on the main loop between a
 
   GET  /state                 {"scene": path | null, "error": str | null}
   POST /open {"path", "root", "robot"}  build a new stage from the environment script at path;
-                              root is the sim folder it came from (robot/ is looked up there),
+                              root is the sim folder it came from (robots/ is looked up there),
                               robot the one scene.robot() places (scene.py)
 
 --device gpu (default) simulates on GPU 0: PhysX GPU dynamics and broadphase are turned on in

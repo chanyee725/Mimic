@@ -157,9 +157,9 @@ def _files(path: Path) -> list[Path]:
 
 def _archive(path: Path, robot: Path | None = None) -> bytes:
     """The environment (folder or single script) and the robot's USD (its folder when it has
-    one) as tar.gz, laid out as under the sim folder (envs/…, robot/…)."""
+    one) as tar.gz, laid out as under the sim folder (envs/…, robots/…)."""
     root = config.sim_dir
-    if robot is not None and robot.parent != config.sim_robot_dir:
+    if robot is not None and robot.parent != config.sim_robots_dir:
         robot = robot.parent
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
@@ -178,7 +178,7 @@ def open_env(env_id: str, display: str | None = None) -> SimRunner:
     robot = env.robots[0] if env.robots else ""
     robot_file = robot_path(robot) if robot else None
     if robot and robot_file is None:
-        raise ApiError(422, f"Robot '{robot}' has no USD under {config.sim_robot_dir}")
+        raise ApiError(422, f"Robot '{robot}' has no USD under {config.sim_robots_dir}")
     body = _archive(path, robot_file)
     _ensure_server()
     s = _settings()

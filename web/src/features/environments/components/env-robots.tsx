@@ -23,7 +23,7 @@ export function EnvRobots({ env }: { env: SimEnv }) {
       </p>
       {robots.isPending ? null : ids.length === 0 ? (
         <p className="text-[13px] text-muted-foreground">
-          <span className="font-mono">data/sims/robot/</span> 에 로봇 USD 가 없습니다.
+          <span className="font-mono">data/sims/robots/</span> 에 로봇 USD 가 없습니다.
         </p>
       ) : (
         <ul className="flex flex-wrap gap-x-5 gap-y-2">
