@@ -1,6 +1,6 @@
 import type { Tone } from "@/components/common/status-dot"
 import type { Health } from "@/domain/device"
-import type { SimEnv, SimTeleopState } from "@/domain/simulation"
+import type { SimAssetKind, SimEnv, SimTeleopState } from "@/domain/simulation"
 
 export const evalHref = (envId: string, modelId?: string) => `/evaluate?target=sim&env=${envId}${modelId ? `&model=${modelId}` : ""}`
 
@@ -17,6 +17,9 @@ export const matchesRobot = (env: SimEnv, filter: RobotFilter) =>
 export const robotsLabel = (env: SimEnv) => (env.robots.length ? env.robots.join(", ") : "Any robot")
 
 export const HEALTH_TONE: Record<Health, Tone> = { ok: "ok", warn: "warn", off: "muted" }
+
+/** Korean noun for an asset kind in on-screen hints */
+export const KIND_NOUN: Record<SimAssetKind, string> = { robot: "로봇", tool: "도구" }
 
 export const TELEOP_STATE: Record<SimTeleopState, { tone: Tone; label: string }> = {
   starting: { tone: "info", label: "Starting" },

@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { Segmented } from "@/components/common/segmented"
-import { useSimRobots } from "@/api/simulation"
+import { useSimRobots, useSimTools } from "@/api/simulation"
 import type { SimTeleop } from "@/domain/simulation"
 
 import type { JogMode } from "../lib"
@@ -14,7 +14,10 @@ const MODES = [
 ] as const
 
 export function KeyboardJog({ session }: { session: SimTeleop }) {
-  const link = useSimRobots().data?.find((r) => r.id === session.robotId)?.tcp ?? null
+  const robots = useSimRobots()
+  const tools = useSimTools()
+  const assets = session.kind === "tool" ? tools.data : robots.data
+  const link = assets?.find((a) => a.id === session.robotId)?.tcp ?? null
   const [picked, setPicked] = useState<JogMode>()
   const mode: JogMode = link === null ? "joint" : (picked ?? "tcp")
 

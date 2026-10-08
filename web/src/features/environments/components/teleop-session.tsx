@@ -1,7 +1,7 @@
 import { StatusDot } from "@/components/common/status-dot"
 import { SIM_KEYBOARD, type SimTeleop } from "@/domain/simulation"
 
-import { formatJoint, TELEOP_STATE } from "../lib"
+import { formatJoint, KIND_NOUN, TELEOP_STATE } from "../lib"
 import { KeyboardJog } from "./keyboard-jog"
 
 export function TeleopSession({ session }: { session: SimTeleop }) {
@@ -17,7 +17,9 @@ export function TeleopSession({ session }: { session: SimTeleop }) {
         </span>
       </div>
       {session.state === "starting" && (
-        <p className="text-xs text-muted-foreground">Isaac Sim 이 로봇을 여는 중입니다. 처음 실행하면 몇 분 걸릴 수 있습니다.</p>
+        <p className="text-xs text-muted-foreground">
+          Isaac Sim 이 {KIND_NOUN[session.kind]} 장면을 여는 중입니다. 처음 실행하면 몇 분 걸릴 수 있습니다.
+        </p>
       )}
       {session.error && <p className="text-[13px] [overflow-wrap:anywhere] text-bad">{session.error}</p>}
       {session.deviceId === SIM_KEYBOARD

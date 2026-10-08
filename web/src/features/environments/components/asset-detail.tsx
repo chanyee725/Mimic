@@ -66,12 +66,10 @@ export function AssetDetail({ kind, asset, envs }: { kind: SimAssetKind; asset: 
             <LuEye />
             {open.isPending ? "Opening…" : "View"}
           </Button>
-          {kind === "robot" && (
-            <Button variant="outline" size="sm" onClick={() => setTeleop(true)}>
-              <LuGamepad2 />
-              Teleoperation
-            </Button>
-          )}
+          <Button variant="outline" size="sm" onClick={() => setTeleop(true)}>
+            <LuGamepad2 />
+            Teleoperation
+          </Button>
         </div>
       </div>
 
@@ -86,7 +84,7 @@ export function AssetDetail({ kind, asset, envs }: { kind: SimAssetKind; asset: 
       </section>
       <EnvFiles files={asset.files} />
       {/* Mounted only while open so every opening starts with a fresh connection test */}
-      {teleop && <TeleopDialog robot={asset} open onOpenChange={setTeleop} />}
+      {teleop && <TeleopDialog kind={kind} asset={asset} open onOpenChange={setTeleop} />}
     </Panel>
   )
 }
