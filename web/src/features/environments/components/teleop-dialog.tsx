@@ -1,9 +1,10 @@
-import { LuPlay, LuSquare } from "react-icons/lu"
+import { LuBookmark, LuPlay, LuSquare } from "react-icons/lu"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/common/empty-state"
 import { ErrorNote, QueryNote } from "@/components/common/query-state"
+import { StatusDot } from "@/components/common/status-dot"
 import { simAssetScene, type SimAsset } from "@/domain/simulation"
 
 import { useTeleopFlow } from "../hooks/use-teleop-flow"
@@ -77,10 +78,32 @@ export function TeleopDialog({ robot, open, onOpenChange }: { robot: SimAsset; o
             )
           )}
 
+          {supported && (
+            <p className="text-xs text-muted-foreground">
+              Save initial pose 는 지금 리더 팔의 자세를 이 로봇의 초기 자세(robot.yaml)로 저장합니다. 다음에 로봇을 열 때부터 그 자세로
+              시작합니다.
+            </p>
+          )}
+          {flow.captured && (
+            <StatusDot tone="ok" className="min-w-0 text-[13px] text-muted-foreground">
+              <span className="min-w-0 font-mono text-xs [overflow-wrap:anywhere]">
+                Saved:{" "}
+                {Object.entries(flow.captured)
+                  .map(([j, v]) => `${j} ${v.toFixed(1)}`)
+                  .join(", ")}
+              </span>
+            </StatusDot>
+          )}
           <ErrorNote error={flow.error ?? flow.session.error} />
         </div>
 
         <DialogFooter>
+          {supported && (
+            <Button variant="outline" className="sm:mr-auto" disabled={!flow.canCapture} onClick={flow.capture}>
+              <LuBookmark />
+              {flow.capturing ? "Saving…" : "Save initial pose"}
+            </Button>
+          )}
           <Button variant="outline" onClick={close}>
             Close
           </Button>
