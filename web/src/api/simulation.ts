@@ -3,6 +3,8 @@ import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
 
 import type {
   RescanResult,
+  SimAsset,
+  SimAssetKind,
   SimConfig,
   SimEnv,
   SimEpisode,
@@ -10,7 +12,6 @@ import type {
   SimJob,
   SimJobCreate,
   SimJobStatus,
-  SimRobot,
   SimRunner,
 } from "@/domain/simulation"
 import type { IsaacDisplay } from "@/domain/settings"
@@ -38,7 +39,10 @@ export const useRescanEnvs = () =>
   })
 
 /** Robot USDs an environment can be tagged with */
-export const useSimRobots = () => useQuery({ queryKey: [...qk.sim, "robots"], queryFn: () => api.get<SimRobot[]>("/sim/robots") })
+export const useSimRobots = () => useQuery({ queryKey: [...qk.sim, "robots"], queryFn: () => api.get<SimAsset[]>("/sim/robots") })
+
+/** End-effector USDs (robot hands, grippers) under data/sims/tools/ */
+export const useSimTools = () => useQuery({ queryKey: [...qk.sim, "tools"], queryFn: () => api.get<SimAsset[]>("/sim/tools") })
 
 /** Replaces the environment's robot tags (saved in data/sims/envs.yaml) */
 export const useSetEnvRobots = () =>
@@ -113,3 +117,10 @@ export const useStopSimRunner = () => useMutation({ mutationFn: () => api.post<S
 /** Sends the environment to the server, which builds its stage (starts the app when needed) */
 export const useOpenSimEnv = () =>
   useMutation({ mutationFn: (envId: string) => api.post<SimRunner>(`/sim/envs/${envId}/open`), onSuccess: onRunner })
+
+/** Opens one robot or tool alone on an empty stage (starts the app when needed) */
+export const useOpenSimAsset = () =>
+  useMutation({
+    mutationFn: ({ kind, id }: { kind: SimAssetKind; id: string }) => api.post<SimRunner>(`/sim/${kind}s/${encodeURIComponent(id)}/open`),
+    onSuccess: onRunner,
+  })

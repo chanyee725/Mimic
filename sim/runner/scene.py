@@ -10,7 +10,8 @@ An environment script (data/sims/envs/<id>.py, or <id>/env.py) only defines
 Assets come from sim/assets/<name>/<name>.usd[a] (origin at their bottom, centred). The robot is
 not named in the script: it is the environment's robot tag (Environments page), loaded from the
 sim folder's robots/<name>.usd[a]; scene.robot_name says which one. The robot is pinned to the world with a fixed joint, so
-it stands when Play starts. Units are metres, Z up, yaw in degrees about Z. pxr only, so the
+it stands when Play starts. scene.tool(<name>) places an end effector from tools/<name> the same
+way. Units are metres, Z up, yaw in degrees about Z. pxr only, so the
 same code builds a stage with usd-core outside Isaac Sim.
 """
 
@@ -100,14 +101,23 @@ class Scene:
         name = name or self.robot_name
         if not name:
             raise ValueError("no robot: tag the environment with one on the Environments page")
-        prim = self.stage.DefinePrim("/World/Robot", "Xform")
-        prim.GetReferences().AddReference(str(_usd_file(self.sim_dir / "robots", name)))
+        prim = self._articulation("/World/Robot", self.sim_dir / "robots", name, pos, yaw)
+        self.robot_path = str(prim.GetPath())
+        return prim
+
+    def tool(self, name: str, pos=(0, 0, 0), yaw: float = 0) -> Usd.Prim:
+        """References an end effector (tools/<name>, e.g. a robot hand) at /World/<name>, its base
+        pinned where it stands. Not attached to the robot yet."""
+        return self._articulation(self._free_path(name), self.sim_dir / "tools", name, pos, yaw)
+
+    def _articulation(self, path: str, folder: Path, name: str, pos, yaw: float) -> Usd.Prim:
+        prim = self.stage.DefinePrim(path, "Xform")
+        prim.GetReferences().AddReference(str(_usd_file(folder, name)))
         _place(prim, pos, yaw)
         # A robot file may carry its own PhysicsScene; the stage keeps one
         for p in Usd.PrimRange(prim):
             if p.IsA(UsdPhysics.Scene):
                 p.SetActive(False)
-        self.robot_path = str(prim.GetPath())
         _pin(self.stage, prim)
         return prim
 

@@ -5,7 +5,7 @@ import yaml
 from app.configs.config import config
 from app.services import tasks
 from tests.conftest import FIXTURES, add_tasks
-from tests.support import write_sim_robots
+from tests.support import write_sim_robots, write_sim_tool
 
 
 def test_list_envs(client, envs_dir: Path):
@@ -46,6 +46,7 @@ def test_robot_tags(client, tmp_path: Path):
     write_sim_robots("so101_follower", "koch_follower")
     robots = client.get("/sim/robots").json()
     assert [r["id"] for r in robots] == ["koch_follower", "so101_follower"]
+    assert robots[0]["files"] == [{"path": "koch_follower.usda", "sizeKB": 1}]
 
     r = client.patch("/sim/envs/table", json={"robots": ["so101_follower"]})
     assert r.status_code == 200, r.text
@@ -129,3 +130,11 @@ def test_config(client, envs_dir: Path):
     assert cfg["envsDir"] == str(envs_dir)
     # gpu comes from nvidia-smi (see test_jobs_api); null on machines without one
     assert cfg["gpu"] is None or cfg["gpu"]["id"] == "cuda:0"
+
+
+def test_tools(client):
+    assert client.get("/sim/tools").json() == []
+    write_sim_tool("hand")
+    [tool] = client.get("/sim/tools").json()
+    assert tool["id"] == "hand" and tool["sizeKB"] == 1
+    assert [f["path"] for f in tool["files"]] == ["hand.usda", "payloads/base.usda"]

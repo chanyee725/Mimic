@@ -54,6 +54,11 @@ class Config(BaseSettings):
         """Robot USDs the scripts place by name (scene.robot), never scanned."""
         return self.sim_dir / "robots"
 
+    @property
+    def sim_tools_dir(self) -> Path:
+        """End-effector USDs (robot hands, grippers) a scene places by name (scene.tool)."""
+        return self.sim_dir / "tools"
+
     # Everything the station records or builds lives under the data folder
     @property
     def recordings_dir(self) -> Path:

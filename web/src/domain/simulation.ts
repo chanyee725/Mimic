@@ -26,8 +26,24 @@ export type SimEnv = {
   updatedAt: string
 }
 
-/** A robot USD under data/sims/robots/, named after the LeRobot type it simulates (e.g. so101_follower) */
-export type SimRobot = { id: string; path: string }
+/**
+ * A robot USD under data/sims/robots/ (named after the LeRobot type it simulates, e.g. so101_follower) or an end
+ * effector under data/sims/tools/ (robot hand, gripper): <id>.usd or <id>/<id>.usd with its sub-files
+ */
+export type SimAsset = {
+  id: string
+  /** Absolute path of the root USD */
+  path: string
+  sizeKB: number
+  /** Relative to its folder; the file name for a single file */
+  files: SimEnvFile[]
+  updatedAt: string
+}
+
+export type SimAssetKind = "robot" | "tool"
+
+/** App scene name while a robot or tool is open alone (POST /sim/robots/{id}/open) */
+export const simAssetScene = (kind: SimAssetKind, id: string) => `${kind}-${id}`
 
 /** An environment is usable by a rig when the backend lists the rig as fitting its robot tags */
 export const envFitsRig = (env: Pick<SimEnv, "rigIds">, rigId: string | undefined) => !rigId || env.rigIds.includes(rigId)

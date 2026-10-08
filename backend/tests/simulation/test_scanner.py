@@ -86,5 +86,10 @@ def test_robots(tmp_path: Path):
     write(root, "koch/meshes/link.usd", "x")
     write(root, "empty/readme.txt", "x")
     write(root, "_old.usd", "x")
-    assert [r.id for r in scan_robots(root)] == ["koch", "so101_follower"]
+    robots = scan_robots(root)
+    assert [r.id for r in robots] == ["koch", "so101_follower"]
+    # A folder lists its files relative to itself; a single file is its own list
+    assert [f.path for f in robots[0].files] == ["koch.usda", "meshes/link.usd"]
+    assert [f.path for f in robots[1].files] == ["so101_follower.usd"]
+    assert robots[0].path == str((root / "koch" / "koch.usda").resolve())
     assert scan_robots(tmp_path / "nope") == []

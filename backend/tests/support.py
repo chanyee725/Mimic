@@ -251,3 +251,11 @@ def write_sim_robots(*robot_ids: str) -> None:
         p = config.sim_robots_dir / f"{robot_id}.usda"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("#usda 1.0\n")
+
+
+def write_sim_tool(tool_id: str) -> None:
+    """A folder tool stub under the sim folder's tools/: <id>/<id>.usda and a payload."""
+    folder = config.sim_tools_dir / tool_id
+    (folder / "payloads").mkdir(parents=True, exist_ok=True)
+    (folder / f"{tool_id}.usda").write_text("#usda 1.0\n")
+    (folder / "payloads" / "base.usda").write_text("#usda 1.0\n")

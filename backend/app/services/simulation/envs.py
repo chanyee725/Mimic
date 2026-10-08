@@ -9,7 +9,7 @@ from app.configs.config import config
 from app.core import storage
 from app.core.errors import ApiError, conflict, not_found
 from app.core.events import bus
-from app.models.simulation import SimEnv, SimRobot
+from app.models.simulation import SimAsset, SimEnv
 from app.schemas.simulation import RescanResult
 from app.services.rigs import list_rigs, robot_types
 from app.services.simulation.scanner import (
@@ -91,12 +91,21 @@ def get_env(env_id: str) -> SimEnv:
     return env
 
 
-def list_robots() -> list[SimRobot]:
+def list_robots() -> list[SimAsset]:
     return scan_robots(config.sim_robots_dir)
 
 
 def robot_path(robot_id: str) -> Path | None:
     return robot_file(config.sim_robots_dir, robot_id)
+
+
+def list_tools() -> list[SimAsset]:
+    """End effectors (robot hands, grippers) under the tools folder."""
+    return scan_robots(config.sim_tools_dir)
+
+
+def tool_path(tool_id: str) -> Path | None:
+    return robot_file(config.sim_tools_dir, tool_id)
 
 
 def thumbnail(env_id: str) -> tuple[Path, str]:
