@@ -11,7 +11,6 @@ import { AssetList } from "./asset-list"
 
 const DIR: Record<SimAssetKind, string> = { robot: "data/sims/robots/", tool: "data/sims/tools/" }
 
-/** Robot or tool USDs: list on the left, detail on the right */
 export function AssetsView({ kind }: { kind: SimAssetKind }) {
   const robots = useSimRobots()
   const tools = useSimTools()

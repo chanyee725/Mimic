@@ -27,7 +27,6 @@ const DESCRIPTION: Record<View, string> = {
 
 export function EnvironmentsPage() {
   const [selected, setSelected] = useState<string>()
-  // ?view= keeps the tab linkable
   const [params, setParams] = useSearchParams()
   const raw = params.get("view")
   const view: View = raw === "robots" || raw === "tools" ? raw : "envs"
@@ -46,7 +45,6 @@ export function EnvironmentsPage() {
         </Button>
       }
     >
-      {/* Same tab bar as the Rigs device groups and the Task detail, with the count after each label */}
       <Tabs
         value={view}
         onValueChange={(v) => setParams(v === "envs" ? {} : { view: String(v) }, { replace: true })}

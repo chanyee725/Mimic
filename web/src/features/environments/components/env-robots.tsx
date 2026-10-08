@@ -3,7 +3,6 @@ import { ErrorNote } from "@/components/common/query-state"
 import { useSetEnvRobots, useSimRobots } from "@/api/simulation"
 import type { SimEnv } from "@/domain/simulation"
 
-/** Robot tags of an environment: one checkbox per robot USD, saved on change */
 export function EnvRobots({ env }: { env: SimEnv }) {
   const robots = useSimRobots()
   const save = useSetEnvRobots()

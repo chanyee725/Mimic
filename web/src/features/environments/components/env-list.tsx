@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils"
 
 import { formatKB, matchesRobot, robotsLabel, UNTAGGED, type RobotFilter } from "../lib"
 
-/** Left-hand list of the environments in the environments folder, filtered by robot tag */
 export function EnvList({
   envs,
   selected,

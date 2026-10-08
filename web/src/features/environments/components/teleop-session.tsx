@@ -4,7 +4,6 @@ import { SIM_KEYBOARD, type SimTeleop } from "@/domain/simulation"
 import { formatJoint, TELEOP_STATE } from "../lib"
 import { KeyboardJog } from "./keyboard-jog"
 
-/** Live sim teleoperation: state, loop rate and the leader's joint values (the keyboard jog panel for the keyboard) */
 export function TeleopSession({ session }: { session: SimTeleop }) {
   const { tone, label } = TELEOP_STATE[session.state]
   return (

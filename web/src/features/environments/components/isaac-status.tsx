@@ -19,7 +19,7 @@ function describe(r: SimRunner, scene: string): { tone: Tone; text: string } {
   return { tone: "ok", text: `Isaac Sim running (${app.display}), ${open}` }
 }
 
-/** Isaac Sim server and app state for a detail panel (scene: the env id, or robot-<id> / tool-<id>), with Stop while the app runs */
+/** scene: the env id, or robot-<id> / tool-<id> */
 export function IsaacStatus({ scene }: { scene: string }) {
   const runner = useSimRunner()
   const stop = useStopSimRunner()
